@@ -87,9 +87,8 @@ const CharacterFeatPicker = ({ characterId, mode = "player", scenarioLevel }: Ch
   const [expandedFeatId, setExpandedFeatId] = useState<string | null>(null);
   const [expandedAssignedFeatId, setExpandedAssignedFeatId] = useState<string | null>(null);
   const [expandedSubfeatKey, setExpandedSubfeatKey] = useState<string | null>(null);
-  const [editingNoteId, setEditingNoteId] = useState<string | null>(null);
-  const [noteValue, setNoteValue] = useState("");
-  const noteInputRef = useRef<HTMLInputElement>(null);
+  const [localNotes, setLocalNotes] = useState<Record<string, string>>({});
+  const [notesInitialized, setNotesInitialized] = useState(false);
   const [pendingSubfeatSlots, setPendingSubfeatSlots] = useState<{ characterFeatId: string; slot: SubfeatSlot }[]>([]);
 
   const { data: allFeats } = useQuery({
