@@ -226,6 +226,11 @@ const CharacterFeatPicker = ({ characterId, mode = "player", scenarioLevel }: Ch
         setSearchTerm("");
       }
     },
+    onError: (error: any) => {
+      toast.error("Cannot pick this feat", {
+        description: error.message || "Prerequisites not met",
+      });
+    },
   });
 
   const deleteMutation = useMutation({
