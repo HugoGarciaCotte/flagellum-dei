@@ -208,46 +208,48 @@ const PlayGame = () => {
 
             <div className="border-t border-border pt-6">
               <p className="text-sm font-medium text-muted-foreground mb-3">Your characters</p>
-              {(myCharacters ?? []).length === 0 && !creatingChar && (
-                <p className="text-sm text-muted-foreground">No characters yet. Create one below.</p>
-              )}
-              <div className="space-y-2">
-                {(myCharacters ?? []).map((char) => (
-                  <button
-                    key={char.id}
-                    onClick={() => selectCharMutation.mutate(char.id)}
-                    className={`w-full text-left p-3 rounded-md border transition-colors ${
-                      char.id === myPlayer?.character_id
-                        ? "border-primary bg-primary/10"
-                        : "border-border hover:border-primary/50"
-                    }`}
-                  >
-                    <div className="flex items-center justify-between">
-                      <span className="font-medium text-foreground text-sm">{char.name}</span>
-                      {char.id === myPlayer?.character_id && <Check className="h-4 w-4 text-primary" />}
-                    </div>
-                    {char.description && (
-                      <p className="text-xs text-muted-foreground mt-1 line-clamp-2">{char.description}</p>
-                    )}
-                  </button>
-                ))}
-              </div>
-
-              {creatingChar ? (
-                <div className="border border-border rounded-md p-3 mt-3">
-                  <CreateCharacterForm
-                    submitLabel="Create & Select"
-                    onCreated={(id) => {
-                      selectCharMutation.mutate(id);
-                      setCreatingChar(false);
-                    }}
-                    onCancel={() => setCreatingChar(false)}
-                  />
-                </div>
+              {(myCharacters ?? []).length === 0 ? (
+                creatingChar ? (
+                  <div className="border border-border rounded-md p-3">
+                    <CreateCharacterForm
+                      submitLabel="Create & Select"
+                      onCreated={(id) => {
+                        selectCharMutation.mutate(id);
+                        setCreatingChar(false);
+                      }}
+                      onCancel={() => setCreatingChar(false)}
+                    />
+                  </div>
+                ) : (
+                  <div className="space-y-2">
+                    <p className="text-sm text-muted-foreground">No characters yet.</p>
+                    <Button variant="outline" size="sm" className="gap-2 w-full" onClick={() => setCreatingChar(true)}>
+                      <Plus className="h-3 w-3" /> New Character
+                    </Button>
+                  </div>
+                )
               ) : (
-                <Button variant="outline" size="sm" className="gap-2 w-full mt-3" onClick={() => setCreatingChar(true)}>
-                  <Plus className="h-3 w-3" /> New Character
-                </Button>
+                <div className="space-y-2">
+                  {(myCharacters ?? []).map((char) => (
+                    <button
+                      key={char.id}
+                      onClick={() => selectCharMutation.mutate(char.id)}
+                      className={`w-full text-left p-3 rounded-md border transition-colors ${
+                        char.id === myPlayer?.character_id
+                          ? "border-primary bg-primary/10"
+                          : "border-border hover:border-primary/50"
+                      }`}
+                    >
+                      <div className="flex items-center justify-between">
+                        <span className="font-medium text-foreground text-sm">{char.name}</span>
+                        {char.id === myPlayer?.character_id && <Check className="h-4 w-4 text-primary" />}
+                      </div>
+                      {char.description && (
+                        <p className="text-xs text-muted-foreground mt-1 line-clamp-2">{char.description}</p>
+                      )}
+                    </button>
+                  ))}
+                </div>
               )}
             </div>
           </div>

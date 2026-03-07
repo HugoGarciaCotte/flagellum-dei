@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from "@/components/ui/sheet";
 import { Button } from "@/components/ui/button";
-import { Users, Pencil, Sword } from "lucide-react";
+import { Users, Pencil, Check } from "lucide-react";
 import CharacterSheet from "@/components/CharacterSheet";
 import CharacterListItem from "@/components/CharacterListItem";
 
@@ -28,11 +28,15 @@ interface PlayerListSheetProps {
 const PlayerListSheet = ({ players, characters, gameId }: PlayerListSheetProps) => {
   const [editingId, setEditingId] = useState<string | null>(null);
 
-  const charMap = new Map(characters.map((c) => [c.id, c]));
+  const cancelEdit = () => setEditingId(null);
 
-  const cancelEdit = () => {
-    setEditingId(null);
-  };
+  // Group characters by user_id
+  const charsByUser = new Map<string, Character[]>();
+  for (const c of characters) {
+    const list = charsByUser.get(c.user_id) ?? [];
+    list.push(c);
+    charsByUser.set(c.user_id, list);
+  }
 
   return (
     <Sheet>
@@ -48,36 +52,52 @@ const PlayerListSheet = ({ players, characters, gameId }: PlayerListSheetProps) 
           </SheetTitle>
         </SheetHeader>
 
-        <div className="mt-6 space-y-4">
+        <div className="mt-6 space-y-6">
           {players.length === 0 ? (
             <p className="text-sm text-muted-foreground text-center py-8">No players have joined yet.</p>
           ) : (
             players.map((player) => {
-              const char = player.character_id ? charMap.get(player.character_id) : null;
               const displayName = (player as any).profiles?.display_name || "Unknown player";
-              const isEditing = editingId === char?.id;
+              const playerChars = charsByUser.get(player.user_id) ?? [];
+              const selectedCharId = player.character_id;
 
               return (
-                <div key={player.id} className="space-y-1">
+                <div key={player.id} className="space-y-2">
                   <p className="text-xs font-medium text-muted-foreground px-1">{displayName}</p>
 
-                  {char ? (
-                    isEditing ? (
-                      <div className="bg-muted/30 rounded-md p-2">
-                        <CharacterSheet characterId={char.id} mode="gm" onDone={cancelEdit} />
-                      </div>
-                    ) : (
-                      <CharacterListItem
-                        character={{ id: char.id, name: char.name, description: char.description }}
-                        actions={
-                          <Button variant="ghost" size="icon" className="h-7 w-7 shrink-0" onClick={() => setEditingId(char.id)}>
-                            <Pencil className="h-3.5 w-3.5" />
-                          </Button>
-                        }
-                      />
-                    )
+                  {playerChars.length === 0 ? (
+                    <p className="text-xs text-muted-foreground italic px-1">No characters</p>
                   ) : (
-                    <p className="text-xs text-muted-foreground italic px-1">No character selected</p>
+                    playerChars.map((char) => {
+                      const isSelected = char.id === selectedCharId;
+                      const isEditing = editingId === char.id;
+
+                      if (isEditing) {
+                        return (
+                          <div key={char.id} className="bg-muted/30 rounded-md p-2">
+                            <CharacterSheet characterId={char.id} mode="gm" onDone={cancelEdit} />
+                          </div>
+                        );
+                      }
+
+                      return (
+                        <div key={char.id} className="relative">
+                          {isSelected && (
+                            <div className="absolute top-2 right-10 z-10">
+                              <Check className="h-3.5 w-3.5 text-primary" />
+                            </div>
+                          )}
+                          <CharacterListItem
+                            character={{ id: char.id, name: char.name, description: char.description }}
+                            actions={
+                              <Button variant="ghost" size="icon" className="h-7 w-7 shrink-0" onClick={() => setEditingId(char.id)}>
+                                <Pencil className="h-3.5 w-3.5" />
+                              </Button>
+                            }
+                          />
+                        </div>
+                      );
+                    })
                   )}
                 </div>
               );
