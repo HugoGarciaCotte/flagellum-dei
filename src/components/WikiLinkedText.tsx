@@ -93,6 +93,12 @@ function FeatHoverContent({ featTitle, featsMap }: { featTitle: string; featsMap
           <p className="text-xs text-muted-foreground/80">{stripLinks(meta.prerequisites || fields.prerequisites!)}</p>
         </div>
       )}
+      {meta.blocking && meta.blocking.length > 0 && (
+        <div>
+          <p className="text-xs font-medium text-destructive">Incompatible with</p>
+          <p className="text-xs text-destructive/80">{meta.blocking.join(", ")}</p>
+        </div>
+      )}
       {fields.special && (
         <div>
           <p className="text-xs font-medium text-muted-foreground">Special</p>

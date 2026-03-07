@@ -13,7 +13,8 @@ const FeatDetailsDisplay = ({ content, className = "" }: FeatDetailsDisplayProps
   const fields = parseFeatFields(content);
   const meta = parseEmbeddedFeatMeta(content);
   const prerequisites = meta.prerequisites || fields.prerequisites;
-  const hasFields = fields.description || fields.special || prerequisites || fields.synonyms;
+  const blocking = meta.blocking;
+  const hasFields = fields.description || fields.special || prerequisites || fields.synonyms || (blocking && blocking.length > 0);
 
   // Render the full raw content through the wiki engine
   const fullHtml = useMemo(() => {
@@ -66,6 +67,19 @@ const FeatDetailsDisplay = ({ content, className = "" }: FeatDetailsDisplayProps
           <div className="text-xs font-medium text-muted-foreground">Special</div>
           <div className="text-xs text-muted-foreground/80 whitespace-pre-line">
             <WikiLinkedText text={fields.special} />
+          </div>
+        </div>
+      )}
+      {blocking && blocking.length > 0 && (
+        <div>
+          <div className="text-xs font-medium text-destructive">Incompatible with</div>
+          <div className="text-xs text-destructive/80">
+            {blocking.map((b, i) => (
+              <span key={b}>
+                {i > 0 && ", "}
+                <WikiLinkedText text={`[[${b}]]`} />
+              </span>
+            ))}
           </div>
         </div>
       )}
