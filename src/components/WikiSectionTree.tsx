@@ -57,24 +57,21 @@ function SectionNode({
           <ChevronRight className={cn("h-4 w-4", isActive ? "text-primary-foreground/70" : "text-muted-foreground")} />
         </button>
 
+        {/* Play button — always visible, next to title */}
+        <button
+          onClick={() => onActivateSection(section.id)}
+          className={cn(
+            "shrink-0 p-1 rounded hover:bg-accent/50 transition-colors",
+            isActive ? "text-primary-foreground" : "text-primary"
+          )}
+        >
+          <Play className="h-3.5 w-3.5 fill-current" />
+        </button>
+
         {/* Title */}
         <span className={cn("flex-1", isActive ? "text-primary-foreground" : "text-foreground", TITLE_SIZES[section.level] || "text-sm")}>
           {section.title}
         </span>
-
-        {/* Play button */}
-        <Button
-          variant="ghost"
-          size="icon"
-          className={cn(
-            "h-7 w-7 transition-opacity",
-            section.level > 1 ? "opacity-100" : "opacity-0 group-hover:opacity-100",
-            isActive && "opacity-100 text-primary-foreground"
-          )}
-          onClick={() => onActivateSection(section.id)}
-        >
-          <Play className="h-3.5 w-3.5" />
-        </Button>
       </div>
 
       {/* Content + children */}
