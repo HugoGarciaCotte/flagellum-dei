@@ -69,8 +69,9 @@ async function checkFeatWithAI(
   const apiKey = Deno.env.get("LOVABLE_API_KEY");
   if (!apiKey) throw new Error("LOVABLE_API_KEY is not configured");
 
-  const cleanContent = stripParseableBlock(feat.content || "");
-  const currentMeta = parseEmbeddedFeatMeta(feat.content || "");
+  const sourceContent = feat.raw_content || feat.content || "";
+  const cleanContent = stripParseableBlock(sourceContent);
+  const currentMeta = parseEmbeddedFeatMeta(sourceContent);
 
   const currentFieldsStr = JSON.stringify({
     description: currentMeta.description,

@@ -1,0 +1,1 @@
+ALTER TABLE public.feats ADD COLUMN raw_content text;

@@ -6,12 +6,13 @@ import { useMemo } from "react";
 
 interface FeatDetailsDisplayProps {
   content: string | null | undefined;
+  rawContent?: string | null | undefined;
   className?: string;
 }
 
-const FeatDetailsDisplay = ({ content, className = "" }: FeatDetailsDisplayProps) => {
+const FeatDetailsDisplay = ({ content, rawContent, className = "" }: FeatDetailsDisplayProps) => {
   const fields = parseFeatFields(content);
-  const meta = parseEmbeddedFeatMeta(content);
+  const meta = parseEmbeddedFeatMeta(rawContent || content);
   const prerequisites = meta.prerequisites || fields.prerequisites;
   const blocking = meta.blocking;
   const hasFields = fields.description || fields.special || prerequisites || fields.synonyms || (blocking && blocking.length > 0);

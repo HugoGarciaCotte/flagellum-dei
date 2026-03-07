@@ -47,6 +47,31 @@ const CATEGORY_MAP: Record<string, string> = {
   "Dark Feats": "Dark Feat",
 };
 
+/** Fetch raw wikitext (preserves HTML comments) via revisions API */
+async function fetchRawContent(title: string): Promise<string> {
+  const url = new URL("https://prima.wiki/api.php");
+  url.searchParams.set("action", "query");
+  url.searchParams.set("titles", title);
+  url.searchParams.set("prop", "revisions");
+  url.searchParams.set("rvprop", "content");
+  url.searchParams.set("format", "json");
+  const res = await fetch(url.toString());
+  const data = await res.json();
+  const pages = data?.query?.pages;
+  if (!pages) return "";
+  const pageId = Object.keys(pages)[0];
+  if (pageId === "-1") return "";
+  return pages[pageId]?.revisions?.[0]?.["*"] ?? "";
+}
+
+/** Fetch expanded content (templates resolved, HTML comments stripped) via expandtemplates API */
+async function fetchExpandedContent(title: string): Promise<string> {
+  const pageUrl = `https://prima.wiki/api.php?action=expandtemplates&title=${encodeURIComponent(title)}&text={{:${encodeURIComponent(title)}}}&prop=wikitext&format=json`;
+  const pageRes = await fetch(pageUrl);
+  const pageData = await pageRes.json();
+  return pageData?.expandtemplates?.wikitext || "";
+}
+
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") {
     return new Response(null, { headers: corsHeaders });
@@ -124,48 +149,54 @@ Deno.serve(async (req) => {
       );
     }
 
-    // Fetch existing feats
+    // Fetch existing feats (include raw_content for comparison)
     const { data: existingFeats } = await adminClient
       .from("feats")
-      .select("id, title, content, categories");
+      .select("id, title, content, raw_content, categories");
     const existingMap = new Map(
       (existingFeats || []).map((f: any) => [f.title, f])
     );
 
-    // Fetch each page content via expandtemplates
+    // Fetch each page content — both raw and expanded
     const items: { title: string; status: "new" | "modified" | "unchanged"; categories: string[]; diff?: any }[] = [];
-    const pageContents = new Map<string, string>();
+    const rawContents = new Map<string, string>();
+    const expandedContents = new Map<string, string>();
 
     for (const title of intersectedTitles) {
       const categories = categoryLookup.get(title) || [];
       try {
-        const pageUrl = `https://prima.wiki/api.php?action=expandtemplates&title=${encodeURIComponent(title)}&text={{:${encodeURIComponent(title)}}}&prop=wikitext&format=json`;
-        const pageRes = await fetch(pageUrl);
-        const pageData = await pageRes.json();
+        const [rawContent, expandedContent] = await Promise.all([
+          fetchRawContent(title),
+          fetchExpandedContent(title),
+        ]);
 
-        const content = pageData?.expandtemplates?.wikitext || "";
-        if (!content) continue;
-        pageContents.set(title, content);
+        if (!rawContent && !expandedContent) continue;
+        rawContents.set(title, rawContent);
+        expandedContents.set(title, expandedContent);
 
         const existing = existingMap.get(title);
         if (!existing) {
           items.push({ title, status: "new", categories });
         } else {
-          const existingContent = (existing.content || "").trim();
-          const newContent = content.trim();
-          const contentChanged = existingContent !== newContent;
+          const dbExpanded = (existing.content || "").trim();
+          const dbRaw = (existing.raw_content || "").trim();
+          const newExpanded = expandedContent.trim();
+          const newRaw = rawContent.trim();
+          const expandedChanged = dbExpanded !== newExpanded;
+          const rawChanged = dbRaw !== newRaw;
           const categoriesChanged = JSON.stringify(existing.categories || []) !== JSON.stringify(categories);
-          if (contentChanged || categoriesChanged) {
+          if (expandedChanged || rawChanged || categoriesChanged) {
             const pad = 40;
-            const idx = findFirstDiff(existingContent, newContent);
+            const idx = findFirstDiff(dbExpanded, newExpanded);
             const diff = {
-              contentChanged,
+              expandedChanged,
+              rawChanged,
               categoriesChanged,
               firstDiffAt: idx,
-              dbSnippet: idx >= 0 ? JSON.stringify(existingContent.slice(Math.max(0, idx - pad), idx + pad)) : null,
-              wikiSnippet: idx >= 0 ? JSON.stringify(newContent.slice(Math.max(0, idx - pad), idx + pad)) : null,
-              dbLength: existingContent.length,
-              wikiLength: newContent.length,
+              dbSnippet: idx >= 0 ? JSON.stringify(dbExpanded.slice(Math.max(0, idx - pad), idx + pad)) : null,
+              wikiSnippet: idx >= 0 ? JSON.stringify(newExpanded.slice(Math.max(0, idx - pad), idx + pad)) : null,
+              dbLength: dbExpanded.length,
+              wikiLength: newExpanded.length,
             };
             items.push({ title, status: "modified", categories, diff });
           } else {
@@ -194,11 +225,13 @@ Deno.serve(async (req) => {
       const batch = toProcess.slice(i, i + BATCH_SIZE);
       const results = await Promise.allSettled(
         batch.map(async (item) => {
-          const wikiContent = pageContents.get(item.title) || "";
+          const expandedContent = expandedContents.get(item.title) || "";
+          const rawContent = rawContents.get(item.title) || "";
           const existing = existingMap.get(item.title);
 
           const payload: any = {
-            content: wikiContent,
+            content: expandedContent,
+            raw_content: rawContent,
             categories: item.categories,
           };
 
