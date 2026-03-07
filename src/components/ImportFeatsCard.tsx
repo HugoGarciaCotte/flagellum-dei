@@ -10,7 +10,7 @@ import { toast } from "@/hooks/use-toast";
 import { Sword, Loader2, Search, X, Check, Upload } from "lucide-react";
 import FeatCategoryBadges from "@/components/FeatCategoryBadges";
 
-type PreviewItem = { title: string; status: "new" | "modified" | "unchanged"; categories?: string[]; diff?: { contentChanged: boolean; categoriesChanged: boolean; firstDiffAt: number; dbSnippet: string | null; wikiSnippet: string | null; dbLength: number; wikiLength: number } };
+type PreviewItem = { title: string; status: "new" | "modified" | "unchanged"; categories?: string[] };
 type PushPreviewItem = { title: string; id: string; status: string; error?: string };
 
 const statusBadge = (status: PreviewItem["status"]) => {
@@ -224,14 +224,6 @@ const ImportFeatsCard = () => {
                           {item.title}
                           <FeatCategoryBadges categories={item.categories} />
                         </div>
-                        {item.diff && (
-                          <div className="mt-1 text-xs text-muted-foreground space-y-0.5 font-mono">
-                            <p>Diff at char {item.diff.firstDiffAt} | DB len: {item.diff.dbLength} | Wiki len: {item.diff.wikiLength}</p>
-                            {item.diff.dbSnippet && <p className="text-destructive">DB: {item.diff.dbSnippet}</p>}
-                            {item.diff.wikiSnippet && <p className="text-primary">Wiki: {item.diff.wikiSnippet}</p>}
-                            <p>content: {item.diff.contentChanged ? "changed" : "same"} | categories: {item.diff.categoriesChanged ? "changed" : "same"}</p>
-                          </div>
-                        )}
                       </TableCell>
                       <TableCell className="text-right">{statusBadge(item.status)}</TableCell>
                     </TableRow>
