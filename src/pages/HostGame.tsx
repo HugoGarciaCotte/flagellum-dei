@@ -218,6 +218,8 @@ const HostGame = () => {
           </Card>
         )}
       </main>
+
+      <DiceRoller />
     </div>
   );
 };
