@@ -608,15 +608,11 @@ const CharacterFeatPicker = ({ characterId, mode = "player", scenarioLevel }: Ch
                       </div>
                     )}
                   </div>
-                  {expandedAssignedFeatId === assigned!.id && (
-                    <div className="mt-2 space-y-1">
-                      {assignedFeat.description && (
-                        <p className="text-sm text-muted-foreground whitespace-pre-line">{assignedFeat.description}</p>
-                      )}
-                      {assignedFeat.content && (
-                        <p className="text-xs text-muted-foreground/80 whitespace-pre-line border-t border-border pt-1 mt-1">{assignedFeat.content}</p>
-                      )}
-                    </div>
+                  {assignedFeat.description && (
+                    <p className="text-xs text-muted-foreground line-clamp-2 mt-1">{assignedFeat.description}</p>
+                  )}
+                  {expandedAssignedFeatId === assigned!.id && assignedFeat.content && (
+                    <p className="text-xs text-muted-foreground/80 whitespace-pre-line border-t border-border pt-1 mt-2">{assignedFeat.content}</p>
                   )}
                   {/* Subfeats */}
                   {assigned && assignedFeat && renderSubfeats(assigned, assignedFeat)}
@@ -701,15 +697,11 @@ const CharacterFeatPicker = ({ characterId, mode = "player", scenarioLevel }: Ch
                     </Button>
                   )}
                 </div>
-                {expandedAssignedFeatId === cf.id && (
-                  <div className="mt-2 space-y-1">
-                    {feat.description && (
-                      <p className="text-sm text-muted-foreground whitespace-pre-line">{feat.description}</p>
-                    )}
-                    {feat.content && (
-                      <p className="text-xs text-muted-foreground/80 whitespace-pre-line border-t border-border pt-1 mt-1">{feat.content}</p>
-                    )}
-                  </div>
+                {feat.description && (
+                  <p className="text-xs text-muted-foreground line-clamp-2 mt-1">{feat.description}</p>
+                )}
+                {expandedAssignedFeatId === cf.id && feat.content && (
+                  <p className="text-xs text-muted-foreground/80 whitespace-pre-line border-t border-border pt-1 mt-2">{feat.content}</p>
                 )}
                 {/* Subfeats for free feats */}
                 {renderSubfeats(cf, feat)}
