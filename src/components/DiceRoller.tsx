@@ -150,12 +150,14 @@ const DiceRoller = () => {
       {/* Keyframes injected via style tag */}
       <style>{`
         @keyframes dice-tumble {
-          0% { transform: rotate(0deg) scale(0.3); opacity: 0; }
-          15% { opacity: 1; }
-          25% { transform: rotate(360deg) scale(1.15); }
-          50% { transform: rotate(720deg) scale(0.9); }
-          75% { transform: rotate(1080deg) scale(1.05); }
-          100% { transform: rotate(1440deg) scale(1); opacity: 1; }
+          0%   { transform: translate(-150px, -200px) rotate(0deg) scale(0.3); opacity: 0; }
+          10%  { opacity: 1; }
+          20%  { transform: translate(120px, 150px) rotate(360deg) scale(1.1); }
+          35%  { transform: translate(-100px, 80px) rotate(720deg) scale(0.9); }
+          50%  { transform: translate(80px, -120px) rotate(1080deg) scale(1.05); }
+          65%  { transform: translate(-60px, 60px) rotate(1300deg) scale(0.95); }
+          80%  { transform: translate(30px, -30px) rotate(1400deg) scale(1.02); }
+          100% { transform: translate(0, 0) rotate(1440deg) scale(1); opacity: 1; }
         }
         @keyframes dice-settle {
           0% { transform: scale(1.1); }
