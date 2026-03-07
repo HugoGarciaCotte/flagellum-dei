@@ -10,10 +10,12 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from 
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import { toast } from "@/hooks/use-toast";
 import { useNavigate } from "react-router-dom";
-import { Crown, LogOut, Plus, DoorOpen, Scroll, Users, Settings, ChevronDown, Sword, Trash2, Pencil } from "lucide-react";
+import { Crown, LogOut, Plus, DoorOpen, Scroll, Users, Settings, ChevronDown, Sword, Trash2, Pencil, ShieldCheck } from "lucide-react";
 import { useOfflineScenarios } from "@/hooks/useOfflineScenarios";
 import { getCachedScenarios, isOffline } from "@/lib/offlineStorage";
 import { useIsOwner } from "@/hooks/useIsOwner";
+import { useIsGameMaster } from "@/hooks/useIsGameMaster";
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
 
 const Dashboard = () => {
   const { user, signOut } = useAuth();
