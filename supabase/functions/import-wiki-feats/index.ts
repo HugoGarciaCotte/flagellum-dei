@@ -1,0 +1,180 @@
+import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+
+const corsHeaders = {
+  "Access-Control-Allow-Origin": "*",
+  "Access-Control-Allow-Headers":
+    "authorization, x-client-info, apikey, content-type, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version",
+};
+
+async function fetchCategoryMembers(category: string): Promise<string[]> {
+  const titles: string[] = [];
+  let cmcontinue: string | undefined;
+
+  do {
+    const url = new URL("https://prima.wiki/api.php");
+    url.searchParams.set("action", "query");
+    url.searchParams.set("list", "categorymembers");
+    url.searchParams.set("cmtitle", `Category:${category}`);
+    url.searchParams.set("cmlimit", "500");
+    url.searchParams.set("format", "json");
+    if (cmcontinue) url.searchParams.set("cmcontinue", cmcontinue);
+
+    const res = await fetch(url.toString());
+    const data = await res.json();
+    const members = data?.query?.categorymembers || [];
+    for (const m of members) {
+      titles.push(m.title as string);
+    }
+    cmcontinue = data?.continue?.cmcontinue;
+  } while (cmcontinue);
+
+  return titles;
+}
+
+Deno.serve(async (req) => {
+  if (req.method === "OPTIONS") {
+    return new Response(null, { headers: corsHeaders });
+  }
+
+  try {
+    const authHeader = req.headers.get("authorization");
+    const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
+    const supabaseServiceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
+    const supabaseAnonKey = Deno.env.get("SUPABASE_ANON_KEY")!;
+
+    const userClient = createClient(supabaseUrl, supabaseAnonKey, {
+      global: { headers: { Authorization: authHeader! } },
+    });
+    const { data: { user }, error: authError } = await userClient.auth.getUser();
+    if (authError || !user) {
+      return new Response(JSON.stringify({ error: "Unauthorized" }), {
+        status: 401,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
+    const adminClient = createClient(supabaseUrl, supabaseServiceKey);
+    const { data: roleData } = await adminClient
+      .from("user_roles")
+      .select("role")
+      .eq("user_id", user.id)
+      .eq("role", "owner")
+      .single();
+
+    if (!roleData) {
+      return new Response(JSON.stringify({ error: "Forbidden: owner only" }), {
+        status: 403,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
+    let mode = "execute";
+    try {
+      const body = await req.json();
+      if (body?.mode) mode = body.mode;
+    } catch {
+      // no body = default execute
+    }
+
+    // Fetch both categories and intersect
+    const [featTitles, officialTitles] = await Promise.all([
+      fetchCategoryMembers("Feats"),
+      fetchCategoryMembers("Official"),
+    ]);
+
+    const officialSet = new Set(officialTitles);
+    const intersectedTitles = featTitles.filter((t) => officialSet.has(t));
+
+    if (intersectedTitles.length === 0) {
+      return new Response(
+        JSON.stringify({ success: true, items: [], total: 0, message: "No feats found in both Feats and Official categories" }),
+        { headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
+
+    // Fetch existing feats
+    const { data: existingFeats } = await adminClient
+      .from("feats")
+      .select("id, title, content");
+    const existingMap = new Map(
+      (existingFeats || []).map((f: any) => [f.title, f])
+    );
+
+    // Fetch each page content
+    const items: { title: string; status: "new" | "modified" | "unchanged" }[] = [];
+    const pageContents = new Map<string, string>();
+
+    for (const title of intersectedTitles) {
+      try {
+        const pageUrl = `https://prima.wiki/api.php?action=query&prop=revisions&titles=${encodeURIComponent(title)}&rvprop=content&format=json`;
+        const pageRes = await fetch(pageUrl);
+        const pageData = await pageRes.json();
+
+        const pagesObj = pageData?.query?.pages;
+        if (!pagesObj) continue;
+
+        const pageId = Object.keys(pagesObj)[0];
+        const revisions = pagesObj[pageId]?.revisions;
+        if (!revisions || revisions.length === 0) continue;
+
+        const content = revisions[0]["*"] || revisions[0]?.content || "";
+        pageContents.set(title, content);
+
+        const existing = existingMap.get(title);
+        if (!existing) {
+          items.push({ title, status: "new" });
+        } else if (existing.content !== content) {
+          items.push({ title, status: "modified" });
+        } else {
+          items.push({ title, status: "unchanged" });
+        }
+      } catch {
+        items.push({ title, status: "new" });
+      }
+    }
+
+    if (mode === "preview") {
+      return new Response(
+        JSON.stringify({ success: true, items, total: items.length }),
+        { headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
+
+    // Execute: upsert new + modified
+    let imported = 0;
+    const errors: string[] = [];
+
+    for (const item of items) {
+      if (item.status === "unchanged") continue;
+      try {
+        const content = pageContents.get(item.title) || "";
+        const existing = existingMap.get(item.title);
+
+        if (existing) {
+          await adminClient
+            .from("feats")
+            .update({ content, description: "Imported from prima.wiki" })
+            .eq("id", existing.id);
+        } else {
+          await adminClient
+            .from("feats")
+            .insert({ title: item.title, content, description: "Imported from prima.wiki" });
+        }
+        imported++;
+      } catch (e: any) {
+        errors.push(`Error processing ${item.title}: ${e.message}`);
+      }
+    }
+
+    return new Response(
+      JSON.stringify({ success: true, imported, total: intersectedTitles.length, errors }),
+      { headers: { ...corsHeaders, "Content-Type": "application/json" } }
+    );
+  } catch (error: any) {
+    console.error("Import error:", error);
+    return new Response(
+      JSON.stringify({ success: false, error: error.message }),
+      { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+    );
+  }
+});

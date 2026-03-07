@@ -41,6 +41,30 @@ export type Database = {
         }
         Relationships: []
       }
+      feats: {
+        Row: {
+          content: string | null
+          created_at: string
+          description: string | null
+          id: string
+          title: string
+        }
+        Insert: {
+          content?: string | null
+          created_at?: string
+          description?: string | null
+          id?: string
+          title: string
+        }
+        Update: {
+          content?: string | null
+          created_at?: string
+          description?: string | null
+          id?: string
+          title?: string
+        }
+        Relationships: []
+      }
       game_players: {
         Row: {
           character_id: string | null
