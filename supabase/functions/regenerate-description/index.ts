@@ -68,6 +68,48 @@ function parseEmbeddedFeatMeta(content: string): EmbeddedFeatMeta {
   return result;
 }
 
+function generateParseableBlock(meta: EmbeddedFeatMeta): string {
+  const lines: string[] = [];
+  if (meta.description?.trim()) {
+    lines.push(`<!--@ feat_one_liner: ${meta.description.trim()} @-->`);
+  }
+  if (meta.specialities && meta.specialities.length > 0) {
+    lines.push(`<!--@ feat_specialities: ${meta.specialities.join(", ")} @-->`);
+  }
+  if (meta.subfeats && meta.subfeats.length > 0) {
+    for (const s of meta.subfeats) {
+      const parts: string[] = [s.kind];
+      if (s.optional) parts.push("optional");
+      if (s.kind === "fixed" && s.feat_title) parts.push(s.feat_title);
+      else if (s.kind === "list" && s.options) parts.push(s.options.join("|"));
+      else if (s.kind === "type" && s.filter) parts.push(s.filter);
+      lines.push(`<!--@ feat_subfeat:${s.slot}: ${parts.join(", ")} @-->`);
+    }
+  }
+  if (meta.unlocks_categories && meta.unlocks_categories.length > 0) {
+    lines.push(`<!--@ feat_unlocks: ${meta.unlocks_categories.join(", ")} @-->`);
+  }
+  if (lines.length === 0) return "";
+  return `<!--@ PARSEABLE FIELDS START @-->\n${lines.join("\n")}\n<!--@ PARSEABLE FIELDS END @-->`;
+}
+
+function mergeParseableBlock(existingContent: string, newBlock: string): string {
+  const startMarker = "<!--@ PARSEABLE FIELDS START @-->";
+  const endMarker = "<!--@ PARSEABLE FIELDS END @-->";
+  const startIdx = existingContent.indexOf(startMarker);
+  const endIdx = existingContent.indexOf(endMarker);
+
+  if (startIdx !== -1 && endIdx !== -1) {
+    const before = existingContent.substring(0, startIdx).trimEnd();
+    const after = existingContent.substring(endIdx + endMarker.length).trimStart();
+    if (!newBlock) return (before + (after ? "\n" + after : "")).trimEnd();
+    return (before + "\n" + newBlock + (after ? "\n" + after : "")).trimEnd();
+  }
+
+  if (!newBlock) return existingContent;
+  return existingContent.trimEnd() + "\n\n" + newBlock;
+}
+
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
   "Access-Control-Allow-Headers":
@@ -133,13 +175,6 @@ There are 3 kinds of subfeat slots (up to 4 slots per feat):
 1. "fixed" — A specific feat is always granted. Use "feat_title" to name it.
 2. "list" — The player picks from a named list of feats. Use "options" array with feat titles. Set "optional" to true if the player can choose not to pick.
 3. "type" — The player picks any feat matching a category filter. Use "filter" string with comma-separated rules. Prefix "not:" to exclude a category (e.g. "not:Archetype,not:Hidden Feat"). Use a bare category name to REQUIRE it (e.g. "Dark Feat" means only feats in that category). You can combine both: "Dark Feat,not:Hidden Feat". Set "optional" to false if they must pick one.
-
-ARCHETYPE PATTERN: Archetypes almost always follow this pattern:
-- Slot 1: "list" with options ["Faith"] and optional:true (the character can choose Faith or not)
-- Slot 2: "fixed" with one default feat (e.g. Knowledge for Alchemist)
-- Slot 3: "list" with specific feats the archetype can learn from, optional:true
-
-NON-ARCHETYPE PATTERN: Some general feats like "Foreigner" grant a subfeat of type "type" where the player picks any non-Archetype, non-Hidden feat.
 
 Most feats do NOT grant subfeats. Only return subfeats if the wiki content clearly indicates the feat grants additional feats.
 
@@ -234,7 +269,7 @@ async function generateSpecialities(
       messages: [
         {
           role: "system",
-          content: `You are a TRPG feat analyzer. Some feats require the player to choose a speciality when they pick the feat. For example, the "Combat" feat requires choosing a combat speciality (like Swords, Axes, Bows, etc.).
+          content: `You are a TRPG feat analyzer. Some feats require the player to choose a speciality when they pick the feat.
 
 Analyze the feat's wiki content and determine:
 1. Whether this feat requires the player to choose a speciality
@@ -259,7 +294,6 @@ Most feats do NOT have specialities. Only return specialities if the wiki conten
                 specialities: {
                   type: "array",
                   items: { type: "string" },
-                  description: "List of speciality options the player can choose from. Empty array if none.",
                 },
               },
               required: ["specialities"],
@@ -363,7 +397,6 @@ serve(async (req) => {
         });
       }
 
-      // Check wiki metadata first
       const meta = parseEmbeddedFeatMeta(feat.content || "");
       let specialities: string[] | null;
 
@@ -377,9 +410,14 @@ serve(async (req) => {
         );
       }
 
+      // Merge back into content
+      const updatedMeta = { ...meta, specialities: specialities || null };
+      const block = generateParseableBlock(updatedMeta);
+      const updatedContent = mergeParseableBlock(feat.content || "", block);
+
       const { error: updateError } = await adminClient
         .from("feats")
-        .update({ specialities: specialities || null })
+        .update({ content: updatedContent })
         .eq("id", id);
 
       if (updateError) throw updateError;
@@ -411,14 +449,13 @@ serve(async (req) => {
         });
       }
 
-      // Check wiki metadata first
       const meta = parseEmbeddedFeatMeta(feat.content || "");
       let subfeats: any[] | null;
+      let unlocks_categories = meta.unlocks_categories;
 
       if (meta.subfeats) {
         subfeats = meta.subfeats;
       } else {
-        // Fetch all feat titles for context
         const { data: allFeats } = await adminClient.from("feats").select("title");
         const allFeatTitles = (allFeats || []).map((f: any) => f.title);
 
@@ -430,14 +467,14 @@ serve(async (req) => {
         );
       }
 
-      const updatePayload: any = { subfeats: subfeats || null };
-      if (meta.unlocks_categories) {
-        updatePayload.unlocks_categories = meta.unlocks_categories;
-      }
+      // Merge back into content
+      const updatedMeta = { ...meta, subfeats: subfeats || null, unlocks_categories };
+      const block = generateParseableBlock(updatedMeta);
+      const updatedContent = mergeParseableBlock(feat.content || "", block);
 
       const { error: updateError } = await adminClient
         .from("feats")
-        .update(updatePayload)
+        .update({ content: updatedContent })
         .eq("id", id);
 
       if (updateError) throw updateError;
@@ -455,46 +492,71 @@ serve(async (req) => {
       });
     }
 
-    const table = type === "feat" ? "feats" : "scenarios";
-    const { data: item, error: fetchError } = await adminClient
-      .from(table)
+    if (type === "scenario") {
+      // Scenarios still have their own description column
+      const { data: item, error: fetchError } = await adminClient
+        .from("scenarios")
+        .select("*")
+        .eq("id", id)
+        .single();
+
+      if (fetchError || !item) {
+        return new Response(JSON.stringify({ error: "Item not found" }), {
+          status: 404,
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
+
+      const description = await generateDescription(item.title, item.content || "", undefined, "scenario");
+
+      const { error: updateError } = await adminClient
+        .from("scenarios")
+        .update({ description })
+        .eq("id", id);
+
+      if (updateError) throw updateError;
+
+      return new Response(JSON.stringify({ description }), {
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
+    // type === "feat" — regenerate description and merge into content
+    const { data: feat, error: fetchError } = await adminClient
+      .from("feats")
       .select("*")
       .eq("id", id)
       .single();
 
-    if (fetchError || !item) {
-      return new Response(JSON.stringify({ error: "Item not found" }), {
+    if (fetchError || !feat) {
+      return new Response(JSON.stringify({ error: "Feat not found" }), {
         status: 404,
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
 
-    // Check wiki metadata for feats
+    const meta = parseEmbeddedFeatMeta(feat.content || "");
     let description: string;
-    if (type === "feat") {
-      const meta = parseEmbeddedFeatMeta(item.content || "");
-      if (meta.description) {
-        description = meta.description;
-      } else {
-        description = await generateDescription(
-          item.title,
-          item.content || "",
-          item.categories,
-          type
-        );
-      }
+
+    if (meta.description) {
+      description = meta.description;
     } else {
       description = await generateDescription(
-        item.title,
-        item.content || "",
-        undefined,
-        type
+        feat.title,
+        feat.content || "",
+        feat.categories,
+        "feat"
       );
     }
 
+    // Merge back into content
+    const updatedMeta = { ...meta, description };
+    const block = generateParseableBlock(updatedMeta);
+    const updatedContent = mergeParseableBlock(feat.content || "", block);
+
     const { error: updateError } = await adminClient
-      .from(table)
-      .update({ description })
+      .from("feats")
+      .update({ content: updatedContent })
       .eq("id", id);
 
     if (updateError) throw updateError;

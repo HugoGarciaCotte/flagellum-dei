@@ -2,6 +2,7 @@ import { Fragment, useMemo } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { parseFeatFields } from "@/lib/parseFeatContent";
+import { parseEmbeddedFeatMeta } from "@/lib/parseEmbeddedFeatMeta";
 import { convertInlineMarkup } from "@/lib/parseWikitext";
 import {
   HoverCard,
@@ -17,30 +18,19 @@ interface WikiLinkedTextProps {
 interface TextSegment {
   type: "text" | "link" | "plain";
   text: string;
-  html?: string; // pre-rendered HTML for text segments
-  target?: string; // feat name to look up
+  html?: string;
+  target?: string;
 }
 
-/**
- * Parse wikitext into segments, handling:
- * - [[Category:X]] → stripped
- * - [[:Category:X|Label]] → plain text
- * - [[target|label]] or [[target]] → feat link
- * - Everything else → text (with inline wiki markup converted to HTML)
- */
 function parseSegments(raw: string): TextSegment[] {
-  // Strip HTML comments first
   raw = raw.replace(/<!--[\s\S]*?-->/g, "");
 
   const segments: TextSegment[] = [];
   let lastIndex = 0;
-
-  // Match all [[ ]] patterns
   const re = /\[\[([^\]]+)\]\]/g;
   let match;
 
   while ((match = re.exec(raw)) !== null) {
-    // Push preceding text
     if (match.index > lastIndex) {
       const textChunk = raw.slice(lastIndex, match.index);
       segments.push({ type: "text", text: textChunk, html: convertInlineMarkup(textChunk) });
@@ -48,13 +38,11 @@ function parseSegments(raw: string): TextSegment[] {
 
     const inner = match[1];
 
-    // [[Category:X]] — strip entirely
     if (/^Category:/i.test(inner)) {
       lastIndex = re.lastIndex;
       continue;
     }
 
-    // [[:Category:X|Label]] — plain text label
     if (/^:Category:/i.test(inner)) {
       const pipeIdx = inner.indexOf("|");
       const label = pipeIdx !== -1 ? inner.slice(pipeIdx + 1).trim() : inner.replace(/^:Category:/i, "").trim();
@@ -63,7 +51,6 @@ function parseSegments(raw: string): TextSegment[] {
       continue;
     }
 
-    // Regular link: [[target|label]] or [[target]]
     const pipeIdx = inner.indexOf("|");
     const target = pipeIdx !== -1 ? inner.slice(0, pipeIdx).trim() : inner.trim();
     const label = pipeIdx !== -1 ? inner.slice(pipeIdx + 1).trim() : inner.trim();
@@ -71,7 +58,6 @@ function parseSegments(raw: string): TextSegment[] {
     lastIndex = re.lastIndex;
   }
 
-  // Trailing text
   if (lastIndex < raw.length) {
     const textChunk = raw.slice(lastIndex);
     segments.push({ type: "text", text: textChunk, html: convertInlineMarkup(textChunk) });
@@ -87,12 +73,13 @@ function FeatHoverContent({ featTitle, featsMap }: { featTitle: string; featsMap
   }
 
   const fields = parseFeatFields(feat.content);
+  const meta = parseEmbeddedFeatMeta(feat.content);
 
   return (
     <div className="space-y-1.5">
       <p className="text-sm font-semibold text-foreground">{feat.title}</p>
-      {feat.description && (
-        <p className="text-xs text-muted-foreground">{feat.description}</p>
+      {meta.description && (
+        <p className="text-xs text-muted-foreground">{meta.description}</p>
       )}
       {fields.description && (
         <div>
@@ -116,7 +103,6 @@ function FeatHoverContent({ featTitle, featsMap }: { featTitle: string; featsMap
   );
 }
 
-/** Strip wiki links for hover card content to avoid nested parsing */
 function stripLinks(text: string): string {
   return text
     .replace(/\[\[Category:[^\]]*\]\]/gi, "")
@@ -134,7 +120,7 @@ export default function WikiLinkedText({ text, className = "" }: WikiLinkedTextP
     queryKey: ["feats-map-for-links"],
     queryFn: async () => {
       const [featsRes, redirectsRes] = await Promise.all([
-        supabase.from("feats").select("title, description, content"),
+        supabase.from("feats").select("title, content"),
         supabase.from("feat_redirects").select("from_title, to_title"),
       ]);
       const map = new Map<string, any>();
@@ -159,7 +145,6 @@ export default function WikiLinkedText({ text, className = "" }: WikiLinkedTextP
         if (seg.type === "plain") {
           return <Fragment key={i}>{seg.text}</Fragment>;
         }
-        // type === "link"
         if (!featsMap) {
           return (
             <span key={i} className="text-primary underline decoration-dotted underline-offset-2">

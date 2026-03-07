@@ -44,10 +44,10 @@ serve(async (req) => {
       });
     }
 
-    // Fetch target feat
+    // Fetch target feat (no more description column — it's in content)
     const { data: targetFeat, error: featError } = await supabase
       .from("feats")
-      .select("id, title, categories, description, content")
+      .select("id, title, categories, content")
       .eq("id", featId)
       .single();
 
@@ -78,13 +78,12 @@ serve(async (req) => {
       .select("level, is_free, feat_id")
       .eq("character_id", characterId);
 
-    // Fetch all feat details for current feats
     const featIds = (characterFeats ?? []).map((cf: any) => cf.feat_id);
     let currentFeatsDetails: any[] = [];
     if (featIds.length > 0) {
       const { data } = await supabase
         .from("feats")
-        .select("id, title, categories, description, content")
+        .select("id, title, categories, content")
         .in("id", featIds);
       currentFeatsDetails = data ?? [];
     }
@@ -95,12 +94,12 @@ serve(async (req) => {
       .map((cf: any) => {
         const feat = featMap.get(cf.feat_id);
         if (!feat) return null;
-        return `- ${feat.title} (Level ${cf.level}${cf.is_free ? ", Free" : ""}, Categories: ${feat.categories?.join(", ") || "none"})\n  Description: ${feat.description || "N/A"}\n  Content: ${feat.content || "N/A"}`;
+        return `- ${feat.title} (Level ${cf.level}${cf.is_free ? ", Free" : ""}, Categories: ${feat.categories?.join(", ") || "none"})\n  Content: ${feat.content || "N/A"}`;
       })
       .filter(Boolean)
       .join("\n");
 
-    const targetFeatFormatted = `Title: ${targetFeat.title}\nCategories: ${targetFeat.categories?.join(", ") || "none"}\nDescription: ${targetFeat.description || "N/A"}\nFull Content:\n${targetFeat.content || "N/A"}`;
+    const targetFeatFormatted = `Title: ${targetFeat.title}\nCategories: ${targetFeat.categories?.join(", ") || "none"}\nFull Content:\n${targetFeat.content || "N/A"}`;
 
     const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
     if (!LOVABLE_API_KEY) {
@@ -113,7 +112,7 @@ serve(async (req) => {
     const systemPrompt = `You are a TRPG rules validator for the Prima system. Your job is to determine if a character meets all prerequisites to acquire a new feat.
 
 Rules:
-- Check the new feat's content/description for any prerequisite requirements (e.g. "Prerequisite: ...", "Requires: ...", or similar phrasing).
+- Check the new feat's content for any prerequisite requirements (e.g. "Prerequisite: ...", "Requires: ...", or similar phrasing).
 - Prerequisites typically reference other feats the character must already have, or conditions they must meet.
 - Prowess feats often have prerequisites that the character needs to already possess.
 - Some Archetypes may restrict certain feats or require specific conditions.
@@ -171,18 +170,15 @@ Does this character meet all prerequisites for this feat?`;
     if (!aiResponse.ok) {
       if (aiResponse.status === 429) {
         return new Response(JSON.stringify({ error: "Rate limited, please try again later" }), {
-          status: 429,
-          headers: { ...corsHeaders, "Content-Type": "application/json" },
+          status: 429, headers: { ...corsHeaders, "Content-Type": "application/json" },
         });
       }
       if (aiResponse.status === 402) {
         return new Response(JSON.stringify({ error: "AI credits exhausted" }), {
-          status: 402,
-          headers: { ...corsHeaders, "Content-Type": "application/json" },
+          status: 402, headers: { ...corsHeaders, "Content-Type": "application/json" },
         });
       }
       console.error("AI error:", aiResponse.status, await aiResponse.text());
-      // On AI failure, allow the feat (fail open)
       return new Response(JSON.stringify({ allowed: true, reason: "Validation unavailable" }), {
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
@@ -192,7 +188,6 @@ Does this character meet all prerequisites for this feat?`;
     const toolCall = aiData.choices?.[0]?.message?.tool_calls?.[0];
 
     if (!toolCall?.function?.arguments) {
-      // Fail open
       return new Response(JSON.stringify({ allowed: true, reason: "Could not parse validation" }), {
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
@@ -205,7 +200,6 @@ Does this character meet all prerequisites for this feat?`;
     });
   } catch (e) {
     console.error("validate-feat error:", e);
-    // Fail open on errors
     return new Response(JSON.stringify({ allowed: true, reason: "Validation error" }), {
       headers: { ...corsHeaders, "Content-Type": "application/json" },
     });

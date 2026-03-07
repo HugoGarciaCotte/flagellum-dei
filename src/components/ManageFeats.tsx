@@ -23,34 +23,22 @@ import {
   ChevronDown, CheckCircle2, AlertCircle, Wand2, Copy, Upload, Unlock,
 } from "lucide-react";
 import FeatCategoryBadges from "@/components/FeatCategoryBadges";
-
-type SubfeatSlot = {
-  slot: number;
-  kind: "fixed" | "list" | "type";
-  feat_title?: string;
-  options?: string[];
-  filter?: string;
-  optional?: boolean;
-};
+import { parseEmbeddedFeatMeta, generateParseableBlock, mergeParseableBlock, type SubfeatSlot } from "@/lib/parseEmbeddedFeatMeta";
 
 type Feat = {
   id: string;
   title: string;
   content: string | null;
-  description: string | null;
   categories: string[] | null;
-  subfeats: SubfeatSlot[] | null;
-  specialities: string[] | null;
   created_at: string;
 };
 
 type FormData = {
   title: string;
-  description: string;
   content: string;
 };
 
-const emptyForm: FormData = { title: "", description: "", content: "" };
+const emptyForm: FormData = { title: "", content: "" };
 
 const ManageFeats = () => {
   const queryClient = useQueryClient();
@@ -82,7 +70,6 @@ const ManageFeats = () => {
     mutationFn: async (formData: FormData & { id?: string }) => {
       const payload = {
         title: formData.title,
-        description: formData.description || null,
         content: formData.content || null,
       };
       if (formData.id) {
@@ -193,7 +180,6 @@ const ManageFeats = () => {
     setBulkPushing(true);
     setBulkPushProgress({ current: 0, total: feats.length });
     let errors = 0;
-    // Push in batches of 5
     for (let i = 0; i < feats.length; i += 5) {
       const batch = feats.slice(i, i + 5);
       setBulkPushProgress({ current: Math.min(i + 5, feats.length), total: feats.length });
@@ -223,7 +209,7 @@ const ManageFeats = () => {
 
   const openEdit = (f: Feat) => {
     setEditingId(f.id);
-    setForm({ title: f.title, description: f.description || "", content: f.content || "" });
+    setForm({ title: f.title, content: f.content || "" });
     setDialogOpen(true);
   };
 
@@ -235,11 +221,12 @@ const ManageFeats = () => {
     saveMutation.mutate({ ...form, id: editingId ?? undefined });
   };
 
-  const hasDescription = (f: Feat) => !!f.description?.trim();
+  const getMeta = (f: Feat) => parseEmbeddedFeatMeta(f.content);
+  const hasDescription = (f: Feat) => !!getMeta(f).description?.trim();
   const hasContent = (f: Feat) => !!f.content?.trim();
-  const hasSubfeats = (f: Feat) => Array.isArray(f.subfeats) && f.subfeats.length > 0;
-  const hasSpecialities = (f: Feat) => Array.isArray(f.specialities) && f.specialities.length > 0;
-  const hasUnlocks = (f: Feat) => Array.isArray((f as any).unlocks_categories) && (f as any).unlocks_categories.length > 0;
+  const hasSubfeats = (f: Feat) => { const m = getMeta(f); return Array.isArray(m.subfeats) && m.subfeats.length > 0; };
+  const hasSpecialities = (f: Feat) => { const m = getMeta(f); return Array.isArray(m.specialities) && m.specialities.length > 0; };
+  const hasUnlocks = (f: Feat) => { const m = getMeta(f); return Array.isArray(m.unlocks_categories) && m.unlocks_categories.length > 0; };
 
   const StatusIcon = ({ ok, label, icon: Icon }: { ok: boolean; label: string; icon?: React.ComponentType<{ className?: string }> }) => (
     <span className="inline-flex items-center gap-1 text-xs" title={label}>
@@ -272,38 +259,14 @@ const ManageFeats = () => {
     );
   };
 
-  const generateWikiTags = (f: Feat): string => {
-    const lines: string[] = [];
-    if (f.description?.trim()) {
-      lines.push(`<!--@ feat_one_liner: ${f.description.trim()} @-->`);
-    }
-    if (f.specialities && f.specialities.length > 0) {
-      lines.push(`<!--@ feat_specialities: ${f.specialities.join(", ")} @-->`);
-    }
-    if (f.subfeats && f.subfeats.length > 0) {
-      for (const s of f.subfeats) {
-        const parts: string[] = [s.kind];
-        if (s.optional) parts.push("optional");
-        if (s.kind === "fixed" && s.feat_title) parts.push(s.feat_title);
-        else if (s.kind === "list" && s.options) parts.push(s.options.join("|"));
-        else if (s.kind === "type" && s.filter) parts.push(s.filter);
-        lines.push(`<!--@ feat_subfeat:${s.slot}: ${parts.join(", ")} @-->`);
-      }
-    }
-    const rawFeat = feats?.find(feat => feat.id === f.id) as any;
-    if (rawFeat?.unlocks_categories && rawFeat.unlocks_categories.length > 0) {
-      lines.push(`<!--@ feat_unlocks: ${rawFeat.unlocks_categories.join(", ")} @-->`);
-    }
-    return lines.join("\n");
-  };
-
   const handleCopyWikiTags = (f: Feat) => {
-    const tags = generateWikiTags(f);
-    if (!tags) {
+    const meta = getMeta(f);
+    const block = generateParseableBlock(meta);
+    if (!block) {
       toast({ title: "No wiki tags to copy", description: "This feat has no metadata to export.", variant: "destructive" });
       return;
     }
-    navigator.clipboard.writeText(tags);
+    navigator.clipboard.writeText(block);
     toast({ title: "Wiki tags copied to clipboard" });
   };
 
@@ -377,6 +340,7 @@ const ManageFeats = () => {
               {feats.map((f) => {
                 const isExpanded = expandedId === f.id;
                 const isRegenerating = regeneratingId === f.id;
+                const meta = getMeta(f);
                 return (
                   <Collapsible
                     key={f.id}
@@ -395,7 +359,7 @@ const ManageFeats = () => {
                               <FeatCategoryBadges categories={f.categories} />
                             </div>
                             <p className="text-xs text-muted-foreground mt-1 line-clamp-1">
-                              {f.description || <span className="italic">No description</span>}
+                              {meta.description || <span className="italic">No description</span>}
                             </p>
                             {(hasSubfeats(f) || hasSpecialities(f) || hasUnlocks(f)) && (
                               <div className="flex items-center gap-3 mt-1.5">
@@ -414,12 +378,12 @@ const ManageFeats = () => {
                           <div className="pt-3">
                             <p className="text-xs font-medium text-muted-foreground mb-1">Description</p>
                             <p className="text-sm text-foreground">
-                              {f.description || <span className="italic text-muted-foreground">None</span>}
+                              {meta.description || <span className="italic text-muted-foreground">None</span>}
                             </p>
                           </div>
 
                           {/* Subfeats detail */}
-                          {renderSubfeatsDetail(f.subfeats)}
+                          {renderSubfeatsDetail(meta.subfeats)}
                           {!hasSubfeats(f) && (
                             <div>
                               <p className="text-xs font-medium text-muted-foreground mb-1">Subfeats</p>
@@ -431,7 +395,7 @@ const ManageFeats = () => {
                           <div>
                             <p className="text-xs font-medium text-muted-foreground mb-1">Specialities</p>
                             {hasSpecialities(f) ? (
-                              <p className="text-xs text-foreground">{f.specialities!.join(", ")}</p>
+                              <p className="text-xs text-foreground">{meta.specialities!.join(", ")}</p>
                             ) : (
                               <p className="text-xs italic text-muted-foreground">None detected</p>
                             )}
@@ -516,29 +480,21 @@ const ManageFeats = () => {
               />
             </div>
             <div className="space-y-2">
-              <Label htmlFor="feat-description">Description</Label>
-              <Textarea
-                id="feat-description"
-                value={form.description}
-                onChange={(e) => setForm((f) => ({ ...f, description: e.target.value }))}
-                placeholder="Short description"
-                rows={2}
-              />
-            </div>
-            <div className="space-y-2">
               <Label htmlFor="feat-content">Content (MediaWiki markup)</Label>
               <Textarea
                 id="feat-content"
                 value={form.content}
                 onChange={(e) => setForm((f) => ({ ...f, content: e.target.value }))}
-                placeholder="== Section ==&#10;Content here..."
+                placeholder="== Section ==&#10;Content here...&#10;&#10;<!--@ feat_one_liner: Short description @-->"
                 rows={12}
                 className="font-mono text-xs"
               />
             </div>
             {editingId && (() => {
               const feat = feats?.find(f => f.id === editingId);
-              return feat ? renderSubfeatsDetail(feat.subfeats) : null;
+              if (!feat) return null;
+              const meta = getMeta(feat);
+              return renderSubfeatsDetail(meta.subfeats);
             })()}
           </div>
           <DialogFooter>
