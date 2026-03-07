@@ -395,7 +395,7 @@ const ManageFeats = () => {
           ) : !feats?.length ? (
             <p className="text-sm text-muted-foreground py-4">No feats yet.</p>
           ) : (
-            <div className="space-y-1 max-h-[36rem] overflow-y-auto pr-1">
+            <div className="space-y-1 flex-1 overflow-y-auto pr-1">
               {feats.map((f) => {
                 const isExpanded = expandedId === f.id;
                 const isRegenerating = regeneratingId === f.id;
@@ -529,8 +529,7 @@ const ManageFeats = () => {
               })}
             </div>
           )}
-        </CardContent>
-      </Card>
+        </div>
 
       {/* Edit/Create Dialog */}
       <Dialog open={dialogOpen} onOpenChange={(open) => { if (!open) { setDialogOpen(false); setEditingId(null); } }}>
