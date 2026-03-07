@@ -449,6 +449,9 @@ const Dashboard = () => {
           </AlertDialog>
         )}
 
+        {/* My Players (GM only) */}
+        {isGameMaster && <GMPlayerList />}
+
         {/* Delete Character Confirmation */}
         <AlertDialog open={!!deleteCharTarget} onOpenChange={(open) => { if (!open) setDeleteCharTarget(null); }}>
           <AlertDialogContent>
