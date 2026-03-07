@@ -480,31 +480,33 @@ Deno.serve(async (req) => {
       const batch = toProcess.slice(i, i + BATCH_SIZE);
       const results = await Promise.allSettled(
         batch.map(async (item) => {
-          const content = pageContents.get(item.title) || "";
+          const wikiContent = pageContents.get(item.title) || "";
           const existing = existingMap.get(item.title);
 
-          // Parse embedded wiki metadata first
-          const meta = parseEmbeddedFeatMeta(content);
+          // Parse embedded wiki metadata from the new wiki content
+          const meta = parseEmbeddedFeatMeta(wikiContent);
+
+          // Parse existing metadata from DB content
+          const existingMeta = existing ? parseEmbeddedFeatMeta(existing.content || "") : null;
 
           const isModified = item.status === "modified";
-          const existingDescription = existing?.description;
-          const needsDescription = !existingDescription || existingDescription.trim() === "" || existingDescription === "Imported from prima.wiki" || isModified;
-          let description: string | null = existingDescription || null;
 
+          // Description
+          let description: string | null = existingMeta?.description || null;
+          const needsDescription = !description || description.trim() === "" || isModified;
           if (meta.description) {
             description = meta.description;
           } else if (needsDescription) {
-            description = await generateDescription(item.title, content, item.categories);
+            description = await generateDescription(item.title, wikiContent, item.categories);
           }
 
-          // Generate subfeats and unlocks_categories if not already set or if modified
-          const existingSubfeats = existing?.subfeats;
-          let subfeats: any[] | null = existingSubfeats || null;
-          let unlocks_categories: string[] | null = existing?.unlocks_categories || null;
+          // Subfeats + unlocks
+          let subfeats: any[] | null = existingMeta?.subfeats || null;
+          let unlocks_categories: string[] | null = existingMeta?.unlocks_categories || null;
           if (meta.subfeats) {
             subfeats = meta.subfeats;
-          } else if (!existingSubfeats || isModified) {
-            const result = await generateSubfeats(item.title, content, item.categories, allFeatTitles);
+          } else if (!existingMeta?.subfeats || isModified) {
+            const result = await generateSubfeats(item.title, wikiContent, item.categories, allFeatTitles);
             subfeats = result.subfeats;
             unlocks_categories = result.unlocks_categories;
           }
@@ -512,22 +514,60 @@ Deno.serve(async (req) => {
             unlocks_categories = meta.unlocks_categories;
           }
 
-          // Generate specialities if not already set or if modified
-          const existingSpecialities = existing?.specialities;
-          let specialities: string[] | null = existingSpecialities || null;
+          // Specialities
+          let specialities: string[] | null = existingMeta?.specialities || null;
           if (meta.specialities) {
             specialities = meta.specialities;
-          } else if (!existingSpecialities || isModified) {
-            specialities = await generateSpecialities(item.title, content, item.categories);
+          } else if (!existingMeta?.specialities || isModified) {
+            specialities = await generateSpecialities(item.title, wikiContent, item.categories);
+          }
+
+          // Build final content with metadata merged in
+          const finalMeta = {
+            description: description || null,
+            subfeats: subfeats || null,
+            specialities: specialities || null,
+            unlocks_categories: unlocks_categories || null,
+          };
+
+          // Helper to build parseable block
+          const buildBlock = (m: typeof finalMeta): string => {
+            const lines: string[] = [];
+            if (m.description?.trim()) lines.push(\`<!--@ feat_one_liner: \${m.description.trim()} @-->\`);
+            if (m.specialities && m.specialities.length > 0) lines.push(\`<!--@ feat_specialities: \${m.specialities.join(", ")} @-->\`);
+            if (m.subfeats && m.subfeats.length > 0) {
+              for (const s of m.subfeats) {
+                const parts: string[] = [s.kind];
+                if (s.optional) parts.push("optional");
+                if (s.kind === "fixed" && s.feat_title) parts.push(s.feat_title);
+                else if (s.kind === "list" && s.options) parts.push(s.options.join("|"));
+                else if (s.kind === "type" && s.filter) parts.push(s.filter);
+                lines.push(\`<!--@ feat_subfeat:\${s.slot}: \${parts.join(", ")} @-->\`);
+              }
+            }
+            if (m.unlocks_categories && m.unlocks_categories.length > 0) lines.push(\`<!--@ feat_unlocks: \${m.unlocks_categories.join(", ")} @-->\`);
+            if (lines.length === 0) return "";
+            return \`<!--@ PARSEABLE FIELDS START @-->\\n\${lines.join("\\n")}\\n<!--@ PARSEABLE FIELDS END @-->\`;
+          };
+
+          // Merge parseable block into wiki content
+          const block = buildBlock(finalMeta);
+          let finalContent = wikiContent;
+          const startMarker = "<!--@ PARSEABLE FIELDS START @-->";
+          const endMarker = "<!--@ PARSEABLE FIELDS END @-->";
+          const startIdx = finalContent.indexOf(startMarker);
+          const endIdx = finalContent.indexOf(endMarker);
+          if (startIdx !== -1 && endIdx !== -1) {
+            const before = finalContent.substring(0, startIdx).trimEnd();
+            const after = finalContent.substring(endIdx + endMarker.length).trimStart();
+            finalContent = block ? (before + "\\n" + block + (after ? "\\n" + after : "")).trimEnd() : (before + (after ? "\\n" + after : "")).trimEnd();
+          } else if (block) {
+            finalContent = finalContent.trimEnd() + "\\n\\n" + block;
           }
 
           const payload: any = {
-            content,
-            description: description || "Imported from prima.wiki",
+            content: finalContent,
             categories: item.categories,
-            subfeats: subfeats || null,
-            unlocks_categories: unlocks_categories || null,
-            specialities: specialities || null,
           };
 
           if (existing) {
