@@ -19,11 +19,8 @@ interface PlayerRow {
 
 const GMPlayerList = () => {
   const { user } = useAuth();
-  const queryClient = useQueryClient();
   const [open, setOpen] = useState(false);
   const [editPlayer, setEditPlayer] = useState<PlayerRow | null>(null);
-  const [editName, setEditName] = useState("");
-  const [editDesc, setEditDesc] = useState("");
 
   const { data: players } = useQuery({
     queryKey: ["gm-players", user?.id],
@@ -65,25 +62,8 @@ const GMPlayerList = () => {
     enabled: !!user,
   });
 
-  const updateCharMutation = useMutation({
-    mutationFn: async ({ id, name, desc }: { id: string; name: string; desc: string }) => {
-      const { error } = await supabase
-        .from("characters")
-        .update({ name, description: desc || null })
-        .eq("id", id);
-      if (error) throw error;
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["gm-players"] });
-      toast({ title: "Character updated" });
-    },
-    onError: (e: any) => toast({ title: "Error", description: e.message, variant: "destructive" }),
-  });
-
   const openEdit = (p: PlayerRow) => {
     setEditPlayer(p);
-    setEditName(p.character_name || "");
-    setEditDesc(p.character_description || "");
   };
 
   if (!players || players.length === 0) return null;

@@ -25,33 +25,12 @@ interface PlayerListSheetProps {
 }
 
 const PlayerListSheet = ({ players, characters, gameId }: PlayerListSheetProps) => {
-  const queryClient = useQueryClient();
   const [editingId, setEditingId] = useState<string | null>(null);
-  const [editName, setEditName] = useState("");
-  const [editDesc, setEditDesc] = useState("");
 
   const charMap = new Map(characters.map((c) => [c.id, c]));
 
-  const updateCharMutation = useMutation({
-    mutationFn: async ({ id, name, description }: { id: string; name: string; description: string | null }) => {
-      const { error } = await supabase
-        .from("characters")
-        .update({ name, description })
-        .eq("id", id);
-      if (error) throw error;
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["game-characters", gameId] });
-      setEditingId(null);
-      toast({ title: "Character updated" });
-    },
-    onError: (e: any) => toast({ title: "Error", description: e.message, variant: "destructive" }),
-  });
-
   const startEdit = (char: Character) => {
     setEditingId(char.id);
-    setEditName(char.name);
-    setEditDesc(char.description || "");
   };
 
   const cancelEdit = () => {
