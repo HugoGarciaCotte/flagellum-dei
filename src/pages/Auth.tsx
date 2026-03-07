@@ -12,6 +12,23 @@ const Auth = () => {
   const [password, setPassword] = useState("");
   const [displayName, setDisplayName] = useState("");
   const [loading, setLoading] = useState(false);
+  const [showForgotPassword, setShowForgotPassword] = useState(false);
+  const [resetEmail, setResetEmail] = useState("");
+
+  const handleForgotPassword = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setLoading(true);
+    const { error } = await supabase.auth.resetPasswordForEmail(resetEmail, {
+      redirectTo: `${window.location.origin}/reset-password`,
+    });
+    if (error) {
+      toast({ title: "Reset failed", description: error.message, variant: "destructive" });
+    } else {
+      toast({ title: "Check your email", description: "A password reset link has been sent to your inbox." });
+      setShowForgotPassword(false);
+    }
+    setLoading(false);
+  };
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -65,13 +82,29 @@ const Auth = () => {
 
             <CardContent>
               <TabsContent value="login">
-                <form onSubmit={handleLogin} className="space-y-4">
-                  <Input placeholder="Email" type="email" value={email} onChange={(e) => setEmail(e.target.value)} required />
-                  <Input placeholder="Password" type="password" value={password} onChange={(e) => setPassword(e.target.value)} required />
-                  <Button type="submit" className="w-full font-display" disabled={loading}>
-                    {loading ? "Entering..." : "Enter the Realm"}
-                  </Button>
-                </form>
+                {showForgotPassword ? (
+                  <form onSubmit={handleForgotPassword} className="space-y-4">
+                    <p className="text-sm text-muted-foreground">Enter your email and we'll send you a link to reset your password.</p>
+                    <Input placeholder="Email" type="email" value={resetEmail} onChange={(e) => setResetEmail(e.target.value)} required />
+                    <Button type="submit" className="w-full font-display" disabled={loading}>
+                      {loading ? "Sending..." : "Send Reset Link"}
+                    </Button>
+                    <button type="button" onClick={() => setShowForgotPassword(false)} className="text-sm text-primary hover:underline w-full text-center">
+                      Back to Login
+                    </button>
+                  </form>
+                ) : (
+                  <form onSubmit={handleLogin} className="space-y-4">
+                    <Input placeholder="Email" type="email" value={email} onChange={(e) => setEmail(e.target.value)} required />
+                    <Input placeholder="Password" type="password" value={password} onChange={(e) => setPassword(e.target.value)} required />
+                    <Button type="submit" className="w-full font-display" disabled={loading}>
+                      {loading ? "Entering..." : "Enter the Realm"}
+                    </Button>
+                    <button type="button" onClick={() => setShowForgotPassword(true)} className="text-sm text-primary hover:underline w-full text-center">
+                      Forgot your password?
+                    </button>
+                  </form>
+                )}
               </TabsContent>
 
               <TabsContent value="signup">
