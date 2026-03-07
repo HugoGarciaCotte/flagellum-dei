@@ -280,7 +280,7 @@ Deno.serve(async (req) => {
     // Fetch existing feats (include description and subfeats to check if they need AI generation)
     const { data: existingFeats } = await adminClient
       .from("feats")
-      .select("id, title, content, categories, description, subfeats");
+      .select("id, title, content, categories, description, subfeats, unlocks_categories");
     const existingMap = new Map(
       (existingFeats || []).map((f: any) => [f.title, f])
     );
