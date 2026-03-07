@@ -62,7 +62,7 @@ async function generateSubfeats(
 
   const systemPrompt = `You are a TRPG feat analyzer. You determine whether a feat grants "subfeats" — additional feat choices a character gets when they acquire the parent feat.
 
-There are 3 kinds of subfeat slots (up to 3 slots per feat):
+There are 3 kinds of subfeat slots (up to 4 slots per feat):
 1. "fixed" — A specific feat is always granted. Use "feat_title" to name it.
 2. "list" — The player picks from a named list of feats. Use "options" array with feat titles. Set "optional" to true if the player can choose not to pick.
 3. "type" — The player picks any feat matching a category filter. Use "filter" string like "not:Archetype,not:Hidden Feat" to exclude categories. Set "optional" to false if they must pick one.
