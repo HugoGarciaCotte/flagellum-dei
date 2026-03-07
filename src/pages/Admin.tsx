@@ -12,7 +12,7 @@ import { toast } from "@/hooks/use-toast";
 import { ArrowLeft, Crown, Download, Loader2, Search, X, Check } from "lucide-react";
 import ManageScenarios from "@/components/ManageScenarios";
 import ImportFeatsCard from "@/components/ImportFeatsCard";
-import ManageFeats from "@/components/ManageFeats";
+import { Swords } from "lucide-react";
 import ManageRedirects from "@/components/ManageRedirects";
 import FullPageLoader from "@/components/FullPageLoader";
 import PageHeader from "@/components/PageHeader";
@@ -205,7 +205,21 @@ const Admin = () => {
         {/* Feats Import */}
         <ImportFeatsCard />
 
-        <ManageFeats />
+        <Card className="border-primary/20">
+          <CardHeader>
+            <CardTitle className="font-display flex items-center gap-2">
+              <Swords className="h-5 w-5 text-primary" /> Manage Feats
+            </CardTitle>
+            <CardDescription>
+              Create, edit, check with AI, and push feats to the wiki.
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            <Button onClick={() => navigate("/admin/feats")} className="gap-2 font-display">
+              <Swords className="h-4 w-4" /> Open Feat Manager
+            </Button>
+          </CardContent>
+        </Card>
 
         <ManageRedirects />
       </main>
