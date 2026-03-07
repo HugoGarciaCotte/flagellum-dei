@@ -16,12 +16,14 @@ import {
 } from "@/components/ui/alert-dialog";
 import { toast } from "@/hooks/use-toast";
 import { Plus, Pencil, Trash2, Sword, Loader2 } from "lucide-react";
+import FeatCategoryBadges from "@/components/FeatCategoryBadges";
 
 type Feat = {
   id: string;
   title: string;
   content: string | null;
   description: string | null;
+  categories: string[] | null;
   created_at: string;
 };
 
@@ -152,7 +154,12 @@ const ManageFeats = () => {
                 <TableBody>
                   {feats.map((f) => (
                     <TableRow key={f.id}>
-                      <TableCell className="font-medium">{f.title}</TableCell>
+                      <TableCell className="font-medium">
+                        <div className="flex items-center gap-2 flex-wrap">
+                          {f.title}
+                          <FeatCategoryBadges categories={f.categories} />
+                        </div>
+                      </TableCell>
                       <TableCell className="hidden sm:table-cell text-muted-foreground text-sm truncate max-w-[200px]">
                         {f.description || "—"}
                       </TableCell>

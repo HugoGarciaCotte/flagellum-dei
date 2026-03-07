@@ -6,8 +6,9 @@ import { Badge } from "@/components/ui/badge";
 import { Table, TableHeader, TableBody, TableHead, TableRow, TableCell } from "@/components/ui/table";
 import { toast } from "@/hooks/use-toast";
 import { Sword, Loader2, Search, X, Check } from "lucide-react";
+import FeatCategoryBadges from "@/components/FeatCategoryBadges";
 
-type PreviewItem = { title: string; status: "new" | "modified" | "unchanged" };
+type PreviewItem = { title: string; status: "new" | "modified" | "unchanged"; categories?: string[] };
 
 const statusBadge = (status: PreviewItem["status"]) => {
   switch (status) {
@@ -110,7 +111,12 @@ const ImportFeatsCard = () => {
                 <TableBody>
                   {preview.map((item) => (
                     <TableRow key={item.title}>
-                      <TableCell className="font-medium">{item.title}</TableCell>
+                      <TableCell className="font-medium">
+                        <div className="flex items-center gap-2 flex-wrap">
+                          {item.title}
+                          <FeatCategoryBadges categories={item.categories} />
+                        </div>
+                      </TableCell>
                       <TableCell className="text-right">{statusBadge(item.status)}</TableCell>
                     </TableRow>
                   ))}
