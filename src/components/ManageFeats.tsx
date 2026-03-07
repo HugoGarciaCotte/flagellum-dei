@@ -459,6 +459,16 @@ const ManageFeats = () => {
                               size="sm"
                               variant="outline"
                               className="gap-1.5"
+                              onClick={(e) => { e.stopPropagation(); handlePushToWiki(f.id); }}
+                              disabled={pushingId === f.id}
+                            >
+                              {pushingId === f.id ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Upload className="h-3.5 w-3.5" />}
+                              Push to Wiki
+                            </Button>
+                            <Button
+                              size="sm"
+                              variant="outline"
+                              className="gap-1.5"
                               onClick={(e) => { e.stopPropagation(); handleCopyWikiTags(f); }}
                             >
                               <Copy className="h-3.5 w-3.5" /> Copy Wiki Tags
