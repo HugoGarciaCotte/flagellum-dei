@@ -4,15 +4,10 @@ import { sortTitlesEmojiLast } from "@/lib/utils";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { X, Search, Gift, Loader2, WifiOff, Pencil } from "lucide-react";
+import { X, Search, Gift, Loader2, WifiOff, Pencil, ArrowLeft } from "lucide-react";
 import { toast } from "sonner";
 import FeatListItem from "@/components/FeatListItem";
-import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-} from "@/components/ui/dialog";
+import { ArrowLeft } from "lucide-react";
 import {
   Select,
   SelectContent,
