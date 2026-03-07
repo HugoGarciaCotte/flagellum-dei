@@ -8,6 +8,80 @@ const corsHeaders = {
 
 const WIKI_API = "https://prima.wiki/api.php";
 
+interface EmbeddedFeatMeta {
+  description: string | null;
+  specialities: string[] | null;
+  subfeats: any[] | null;
+  unlocks_categories: string[] | null;
+}
+
+function parseEmbeddedFeatMeta(content: string): EmbeddedFeatMeta {
+  const result: EmbeddedFeatMeta = {
+    description: null, specialities: null, subfeats: null, unlocks_categories: null,
+  };
+  const tagRegex = /<!--@\s*([\w:]+)\s*:\s*(.*?)\s*@-->/g;
+  let match: RegExpExecArray | null;
+  const subfeatSlots: any[] = [];
+  while ((match = tagRegex.exec(content)) !== null) {
+    const key = match[1].trim();
+    const value = match[2].trim();
+    if (key === "feat_one_liner") result.description = value;
+    else if (key === "feat_specialities") result.specialities = value.split(",").map(s => s.trim()).filter(Boolean);
+    else if (key === "feat_unlocks") result.unlocks_categories = value.split(",").map(s => s.trim()).filter(Boolean);
+    else if (key.startsWith("feat_subfeat:")) {
+      const slotNum = parseInt(key.split(":")[1], 10);
+      if (isNaN(slotNum)) continue;
+      const parts = value.split(",").map(s => s.trim());
+      if (parts.length < 2) continue;
+      const kind = parts[0] as "fixed" | "list" | "type";
+      let optional = false; let valueStart = 1;
+      if (parts[1] === "optional") { optional = true; valueStart = 2; }
+      const rest = parts.slice(valueStart).join(",").trim();
+      const slot: any = { slot: slotNum, kind, optional };
+      if (kind === "fixed") slot.feat_title = rest;
+      else if (kind === "list") slot.options = rest.split("|").map(s => s.trim()).filter(Boolean);
+      else if (kind === "type") slot.filter = rest;
+      subfeatSlots.push(slot);
+    }
+  }
+  if (subfeatSlots.length > 0) result.subfeats = subfeatSlots.sort((a, b) => a.slot - b.slot);
+  return result;
+}
+
+function generateParseableBlock(meta: EmbeddedFeatMeta): string {
+  const lines: string[] = [];
+  if (meta.description?.trim()) lines.push(`<!--@ feat_one_liner: ${meta.description.trim()} @-->`);
+  if (meta.specialities && meta.specialities.length > 0) lines.push(`<!--@ feat_specialities: ${meta.specialities.join(", ")} @-->`);
+  if (meta.subfeats && meta.subfeats.length > 0) {
+    for (const s of meta.subfeats) {
+      const parts: string[] = [s.kind];
+      if (s.optional) parts.push("optional");
+      if (s.kind === "fixed" && s.feat_title) parts.push(s.feat_title);
+      else if (s.kind === "list" && s.options) parts.push(s.options.join("|"));
+      else if (s.kind === "type" && s.filter) parts.push(s.filter);
+      lines.push(`<!--@ feat_subfeat:${s.slot}: ${parts.join(", ")} @-->`);
+    }
+  }
+  if (meta.unlocks_categories && meta.unlocks_categories.length > 0) lines.push(`<!--@ feat_unlocks: ${meta.unlocks_categories.join(", ")} @-->`);
+  if (lines.length === 0) return "";
+  return `<!--@ PARSEABLE FIELDS START @-->\n${lines.join("\n")}\n<!--@ PARSEABLE FIELDS END @-->`;
+}
+
+function mergeParseableBlock(existingContent: string, newBlock: string): string {
+  const startMarker = "<!--@ PARSEABLE FIELDS START @-->";
+  const endMarker = "<!--@ PARSEABLE FIELDS END @-->";
+  const startIdx = existingContent.indexOf(startMarker);
+  const endIdx = existingContent.indexOf(endMarker);
+  if (startIdx !== -1 && endIdx !== -1) {
+    const before = existingContent.substring(0, startIdx).trimEnd();
+    const after = existingContent.substring(endIdx + endMarker.length).trimStart();
+    if (!newBlock) return (before + (after ? "\n" + after : "")).trimEnd();
+    return (before + "\n" + newBlock + (after ? "\n" + after : "")).trimEnd();
+  }
+  if (!newBlock) return existingContent;
+  return existingContent.trimEnd() + "\n\n" + newBlock;
+}
+
 interface WikiSession {
   cookies: string[];
 }
@@ -18,14 +92,12 @@ async function wikiLogin(): Promise<WikiSession> {
   if (!username || !password) throw new Error("Wiki credentials not configured");
 
   const cookies: string[] = [];
-
   const collectCookies = (res: Response) => {
     for (const val of res.headers.getSetCookie?.() || []) {
       cookies.push(val.split(";")[0]);
     }
   };
 
-  // Step 1: Get login token
   const tokenUrl = `${WIKI_API}?action=query&meta=tokens&type=login&format=json`;
   const tokenRes = await fetch(tokenUrl);
   collectCookies(tokenRes);
@@ -33,41 +105,24 @@ async function wikiLogin(): Promise<WikiSession> {
   const loginToken = tokenData?.query?.tokens?.logintoken;
   if (!loginToken) throw new Error("Failed to get login token");
 
-  // Step 2: Login
   const loginBody = new URLSearchParams({
-    action: "login",
-    lgname: username,
-    lgpassword: password,
-    lgtoken: loginToken,
-    format: "json",
+    action: "login", lgname: username, lgpassword: password, lgtoken: loginToken, format: "json",
   });
-
   const loginRes = await fetch(WIKI_API, {
     method: "POST",
-    headers: {
-      "Content-Type": "application/x-www-form-urlencoded",
-      Cookie: cookies.join("; "),
-    },
+    headers: { "Content-Type": "application/x-www-form-urlencoded", Cookie: cookies.join("; ") },
     body: loginBody.toString(),
   });
   collectCookies(loginRes);
   const loginData = await loginRes.json();
-
-  if (loginData?.login?.result !== "Success") {
-    throw new Error(`Wiki login failed: ${JSON.stringify(loginData?.login)}`);
-  }
-
+  if (loginData?.login?.result !== "Success") throw new Error(`Wiki login failed: ${JSON.stringify(loginData?.login)}`);
   return { cookies };
 }
 
 async function getEditToken(session: WikiSession): Promise<string> {
   const url = `${WIKI_API}?action=query&meta=tokens&type=csrf&format=json`;
-  const res = await fetch(url, {
-    headers: { Cookie: session.cookies.join("; ") },
-  });
-  for (const val of res.headers.getSetCookie?.() || []) {
-    session.cookies.push(val.split(";")[0]);
-  }
+  const res = await fetch(url, { headers: { Cookie: session.cookies.join("; ") } });
+  for (const val of res.headers.getSetCookie?.() || []) { session.cookies.push(val.split(";")[0]); }
   const data = await res.json();
   const token = data?.query?.tokens?.csrftoken;
   if (!token) throw new Error("Failed to get CSRF token");
@@ -82,91 +137,26 @@ async function getPageContent(title: string, session: WikiSession): Promise<stri
   url.searchParams.set("rvprop", "content");
   url.searchParams.set("rvslots", "main");
   url.searchParams.set("format", "json");
-
-  const res = await fetch(url.toString(), {
-    headers: { Cookie: session.cookies.join("; ") },
-  });
+  const res = await fetch(url.toString(), { headers: { Cookie: session.cookies.join("; ") } });
   const data = await res.json();
   const pages = data?.query?.pages;
   if (!pages) return null;
-
   const pageId = Object.keys(pages)[0];
   if (pageId === "-1") return null;
-
   return pages[pageId]?.revisions?.[0]?.slots?.main?.["*"] ?? null;
 }
 
 async function editPage(title: string, content: string, token: string, session: WikiSession, summary: string): Promise<void> {
   const body = new URLSearchParams({
-    action: "edit",
-    title,
-    text: content,
-    token,
-    summary,
-    format: "json",
-    bot: "true",
+    action: "edit", title, text: content, token, summary, format: "json", bot: "true",
   });
-
   const res = await fetch(WIKI_API, {
     method: "POST",
-    headers: {
-      "Content-Type": "application/x-www-form-urlencoded",
-      Cookie: session.cookies.join("; "),
-    },
+    headers: { "Content-Type": "application/x-www-form-urlencoded", Cookie: session.cookies.join("; ") },
     body: body.toString(),
   });
   const data = await res.json();
-  if (data?.edit?.result !== "Success") {
-    throw new Error(`Edit failed: ${JSON.stringify(data)}`);
-  }
-}
-
-function generateParseableBlock(feat: any): string {
-  const lines: string[] = [];
-
-  if (feat.description?.trim()) {
-    lines.push(`<!--@ feat_one_liner: ${feat.description.trim()} @-->`);
-  }
-  if (feat.specialities && feat.specialities.length > 0) {
-    lines.push(`<!--@ feat_specialities: ${feat.specialities.join(", ")} @-->`);
-  }
-  if (feat.subfeats && Array.isArray(feat.subfeats) && feat.subfeats.length > 0) {
-    for (const s of feat.subfeats) {
-      const parts: string[] = [s.kind];
-      if (s.optional) parts.push("optional");
-      if (s.kind === "fixed" && s.feat_title) parts.push(s.feat_title);
-      else if (s.kind === "list" && s.options) parts.push(s.options.join("|"));
-      else if (s.kind === "type" && s.filter) parts.push(s.filter);
-      lines.push(`<!--@ feat_subfeat:${s.slot}: ${parts.join(", ")} @-->`);
-    }
-  }
-  if (feat.unlocks_categories && feat.unlocks_categories.length > 0) {
-    lines.push(`<!--@ feat_unlocks: ${feat.unlocks_categories.join(", ")} @-->`);
-  }
-
-  if (lines.length === 0) return "";
-
-  return `<!--@ PARSEABLE FIELDS START @-->\n${lines.join("\n")}\n<!--@ PARSEABLE FIELDS END @-->`;
-}
-
-function mergeParseableBlock(existingContent: string, newBlock: string): string {
-  const startMarker = "<!--@ PARSEABLE FIELDS START @-->";
-  const endMarker = "<!--@ PARSEABLE FIELDS END @-->";
-
-  const startIdx = existingContent.indexOf(startMarker);
-  const endIdx = existingContent.indexOf(endMarker);
-
-  if (startIdx !== -1 && endIdx !== -1) {
-    // Replace existing block
-    const before = existingContent.substring(0, startIdx).trimEnd();
-    const after = existingContent.substring(endIdx + endMarker.length).trimStart();
-    if (!newBlock) return (before + (after ? "\n" + after : "")).trimEnd();
-    return (before + "\n" + newBlock + (after ? "\n" + after : "")).trimEnd();
-  }
-
-  // Append at end
-  if (!newBlock) return existingContent;
-  return existingContent.trimEnd() + "\n\n" + newBlock;
+  if (data?.edit?.result !== "Success") throw new Error(`Edit failed: ${JSON.stringify(data)}`);
 }
 
 Deno.serve(async (req: Request) => {
@@ -183,12 +173,10 @@ Deno.serve(async (req: Request) => {
     const featIds: string[] = ids || (id ? [id] : []);
     if (featIds.length === 0) {
       return new Response(JSON.stringify({ error: "No feat id(s) provided" }), {
-        status: 400,
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
+        status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
 
-    // Fetch feats from DB
     const { data: feats, error: fetchErr } = await supabase
       .from("feats")
       .select("*")
@@ -196,12 +184,10 @@ Deno.serve(async (req: Request) => {
     if (fetchErr) throw fetchErr;
     if (!feats || feats.length === 0) {
       return new Response(JSON.stringify({ error: "No feats found" }), {
-        status: 404,
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
+        status: 404, headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
 
-    // Login to wiki once
     const session = await wikiLogin();
     const editToken = await getEditToken(session);
 
@@ -215,7 +201,9 @@ Deno.serve(async (req: Request) => {
           continue;
         }
 
-        const newBlock = generateParseableBlock(feat);
+        // Parse metadata from the DB content and generate block
+        const meta = parseEmbeddedFeatMeta(feat.content || "");
+        const newBlock = generateParseableBlock(meta);
         const updatedContent = mergeParseableBlock(pageContent, newBlock);
 
         if (updatedContent === pageContent) {
@@ -235,8 +223,7 @@ Deno.serve(async (req: Request) => {
     });
   } catch (e: any) {
     return new Response(JSON.stringify({ error: e.message }), {
-      status: 500,
-      headers: { ...corsHeaders, "Content-Type": "application/json" },
+      status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
   }
 });
