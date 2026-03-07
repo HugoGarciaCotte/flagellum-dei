@@ -25,7 +25,7 @@ const GameTimer = () => {
   }, []);
 
   const minutes = Math.floor(elapsed / 60);
-
+  const seconds = elapsed % 60;
   if (!open) {
     return (
       <div className="fixed bottom-6 left-6 z-50">
@@ -54,7 +54,7 @@ const GameTimer = () => {
           ✕
         </button>
         <p className="text-3xl font-display font-bold text-foreground tabular-nums">
-          {minutes} <span className="text-base font-normal text-muted-foreground">min</span>
+          {minutes}:{seconds.toString().padStart(2, "0")} <span className="text-base font-normal text-muted-foreground">min</span>
         </p>
         <div className="flex items-center gap-2">
           {running ? (
