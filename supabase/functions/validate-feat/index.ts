@@ -99,22 +99,28 @@ serve(async (req) => {
       .filter(Boolean)
       .join("\n");
 
-    // Parse embedded meta for prerequisites
+    // Parse embedded meta for prerequisites and blocking
     const metaTagRegex = /<!--@\s*([\w:]+)\s*:\s*(.*?)\s*@-->/g;
     let metaMatch: RegExpExecArray | null;
     let featPrerequisites: string | null = null;
+    let featBlocking: string[] | null = null;
     while ((metaMatch = metaTagRegex.exec(targetFeat.content || "")) !== null) {
-      if (metaMatch[1].trim() === "feat_prerequisites") {
+      const key = metaMatch[1].trim();
+      if (key === "feat_prerequisites") {
         featPrerequisites = metaMatch[2].trim();
-        break;
+      } else if (key === "feat_blocking") {
+        featBlocking = metaMatch[2].trim().split(",").map(s => s.trim()).filter(Boolean);
       }
     }
 
     const prerequisitesLine = featPrerequisites
       ? `\nParsed Prerequisites: ${featPrerequisites}`
       : "";
+    const blockingLine = featBlocking?.length
+      ? `\nBlocking (incompatible) Feats: ${featBlocking.join(", ")}`
+      : "";
 
-    const targetFeatFormatted = `Title: ${targetFeat.title}\nCategories: ${targetFeat.categories?.join(", ") || "none"}${prerequisitesLine}\nFull Content:\n${targetFeat.content || "N/A"}`;
+    const targetFeatFormatted = `Title: ${targetFeat.title}\nCategories: ${targetFeat.categories?.join(", ") || "none"}${prerequisitesLine}${blockingLine}\nFull Content:\n${targetFeat.content || "N/A"}`;
 
     const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
     if (!LOVABLE_API_KEY) {
@@ -128,11 +134,14 @@ serve(async (req) => {
 
 Rules:
 - Check the new feat's content for any prerequisite requirements (e.g. "Prerequisite: ...", "Requires: ...", or similar phrasing).
+- If the feat has a "Parsed Prerequisites" field, use it as the authoritative source for prerequisites.
+- If the feat has a "Blocking (incompatible) Feats" field, check if the character already has any of those feats. If they do, DENY the feat.
 - Prerequisites typically reference other feats the character must already have, or conditions they must meet.
 - Prowess feats often have prerequisites that the character needs to already possess.
 - Some Archetypes may restrict certain feats or require specific conditions.
-- If the feat has NO prerequisites mentioned in its content, it should be allowed.
+- If the feat has NO prerequisites mentioned in its content, it should be allowed (unless blocked).
 - Be strict about prerequisites: if a feat requires another feat and the character doesn't have it, deny it.
+- Be strict about blocking: if the character has an incompatible feat, deny it.
 - Be lenient about ambiguous requirements: if you're unsure whether a requirement is met, allow it.
 
 Use the validate_feat tool to return your verdict.`;

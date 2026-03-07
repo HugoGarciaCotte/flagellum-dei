@@ -7,11 +7,12 @@ interface EmbeddedFeatMeta {
   specialities: string[] | null;
   subfeats: any[] | null;
   unlocks_categories: string[] | null;
+  blocking: string[] | null;
 }
 
 function parseEmbeddedFeatMeta(content: string): EmbeddedFeatMeta {
   const result: EmbeddedFeatMeta = {
-    description: null, prerequisites: null, specialities: null, subfeats: null, unlocks_categories: null,
+    description: null, prerequisites: null, specialities: null, subfeats: null, unlocks_categories: null, blocking: null,
   };
   const tagRegex = /<!--@\s*([\w:]+)\s*:\s*(.*?)\s*@-->/g;
   let match: RegExpExecArray | null;
@@ -23,6 +24,7 @@ function parseEmbeddedFeatMeta(content: string): EmbeddedFeatMeta {
     else if (key === "feat_prerequisites") result.prerequisites = value;
     else if (key === "feat_specialities") result.specialities = value.split(",").map(s => s.trim()).filter(Boolean);
     else if (key === "feat_unlocks") result.unlocks_categories = value.split(",").map(s => s.trim()).filter(Boolean);
+    else if (key === "feat_blocking") result.blocking = value.split(",").map(s => s.trim()).filter(Boolean);
     else if (key.startsWith("feat_subfeat:")) {
       const slotNum = parseInt(key.split(":")[1], 10);
       if (isNaN(slotNum)) continue;
@@ -60,6 +62,7 @@ function generateParseableBlock(meta: EmbeddedFeatMeta): string {
     }
   }
   if (meta.unlocks_categories && meta.unlocks_categories.length > 0) lines.push(`<!--@ feat_unlocks: ${meta.unlocks_categories.join(", ")} @-->`);
+  if (meta.blocking && meta.blocking.length > 0) lines.push(`<!--@ feat_blocking: ${meta.blocking.join(", ")} @-->`);
   if (lines.length === 0) return "";
   return `<!--@ PARSEABLE FIELDS START @-->\n${lines.join("\n")}\n<!--@ PARSEABLE FIELDS END @-->`;
 }
@@ -279,6 +282,46 @@ async function generatePrerequisites(title: string, content: string, categories:
   return null;
 }
 
+async function generateBlocking(title: string, content: string, categories: string[], allFeatTitles: string[]): Promise<string[] | null> {
+  const apiKey = Deno.env.get("LOVABLE_API_KEY");
+  if (!apiKey) throw new Error("LOVABLE_API_KEY is not configured");
+
+  const response = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
+    method: "POST",
+    headers: { Authorization: `Bearer ${apiKey}`, "Content-Type": "application/json" },
+    body: JSON.stringify({
+      model: "google/gemini-3-flash-preview",
+      messages: [
+        { role: "system", content: `You are a TRPG feat analyzer. Analyze the feat's wiki content and determine which other feats are INCOMPATIBLE with this feat. Blocking feats are feats that cannot be taken together — if a character has one, they cannot take the other. This is typically stated explicitly in the wiki content (e.g. "incompatible with X", "cannot be combined with Y", "mutually exclusive with Z"). Most feats do NOT block any other feats. Only return blocking feats if the wiki content clearly states incompatibility. Return feat titles that exist in the system.\n\nAvailable feat titles:\n${allFeatTitles.join(", ")}` },
+        { role: "user", content: `Title: ${title}\nCategories: ${categories.join(", ")}\n\nWiki Content:\n${content}` },
+      ],
+      tools: [{
+        type: "function",
+        function: {
+          name: "set_blocking",
+          description: "Set the blocking (incompatible) feats for this feat. Pass an empty array if the feat has no incompatibilities.",
+          parameters: {
+            type: "object",
+            properties: { blocking: { type: "array", items: { type: "string" } } },
+            required: ["blocking"],
+            additionalProperties: false,
+          },
+        },
+      }],
+      tool_choice: { type: "function", function: { name: "set_blocking" } },
+    }),
+  });
+
+  if (!response.ok) throw new Error(`AI gateway error: ${response.status}`);
+  const data = await response.json();
+  const toolCall = data.choices?.[0]?.message?.tool_calls?.[0];
+  if (toolCall?.function?.arguments) {
+    const args = JSON.parse(toolCall.function.arguments);
+    if (Array.isArray(args.blocking) && args.blocking.length > 0) return args.blocking;
+  }
+  return null;
+}
+
 serve(async (req) => {
   if (req.method === "OPTIONS") {
     return new Response(null, { headers: corsHeaders });
@@ -352,11 +395,12 @@ serve(async (req) => {
       const { data: allFeats } = await adminClient.from("feats").select("title");
       const allFeatTitles = (allFeats || []).map((f: any) => f.title);
 
-      const [description, subfeatResult, specialities, prerequisites] = await Promise.all([
+      const [description, subfeatResult, specialities, prerequisites, blocking] = await Promise.all([
         generateDescription(feat.title, cleanContent, feat.categories || []),
         generateSubfeats(feat.title, cleanContent, feat.categories || [], allFeatTitles),
         generateSpecialities(feat.title, cleanContent, feat.categories || []),
         generatePrerequisites(feat.title, cleanContent, feat.categories || []),
+        generateBlocking(feat.title, cleanContent, feat.categories || [], allFeatTitles),
       ]);
 
       const newMeta: EmbeddedFeatMeta = {
@@ -365,6 +409,7 @@ serve(async (req) => {
         subfeats: subfeatResult.subfeats,
         specialities,
         unlocks_categories: subfeatResult.unlocks_categories,
+        blocking,
       };
 
       const block = generateParseableBlock(newMeta);
