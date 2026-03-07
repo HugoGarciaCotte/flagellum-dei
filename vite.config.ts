@@ -65,8 +65,8 @@ export default defineConfig(({ mode }) => ({
         ],
       },
       manifest: {
-        name: "Prima Danse Macabre RPG Helper",
-        short_name: "PrimaDanse",
+        name: "Prima TTRPG Helper",
+        short_name: "PrimaTTRPG",
         description: "Interactive tabletop RPG scenario runner",
         theme_color: "#141318",
         background_color: "#141318",
