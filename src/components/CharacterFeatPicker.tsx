@@ -393,7 +393,7 @@ const CharacterFeatPicker = ({ characterId, mode = "player", scenarioLevel }: Ch
       filtered = filtered.filter((f) => f.title.toLowerCase().includes(lower));
     }
     return filtered.sort(sortTitlesEmojiLast);
-  }, [allFeats, filterMode, searchTerm, mode, pickerTarget, characterFeats]);
+  }, [allFeats, filterMode, searchTerm, mode, pickerTarget, characterFeats, featMap]);
 
   const openPicker = (target: PickerTarget) => {
     if (!online) return;
