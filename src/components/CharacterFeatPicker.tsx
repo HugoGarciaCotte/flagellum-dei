@@ -4,7 +4,7 @@ import { sortTitlesEmojiLast } from "@/lib/utils";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { X, Search, Gift, Loader2, WifiOff } from "lucide-react";
+import { X, Search, Gift, Loader2, WifiOff, ChevronDown } from "lucide-react";
 import FeatCategoryBadges from "@/components/FeatCategoryBadges";
 import { toast } from "sonner";
 import {
@@ -54,6 +54,7 @@ const CharacterFeatPicker = ({ characterId, mode = "player" }: CharacterFeatPick
   const [searchTerm, setSearchTerm] = useState("");
   const [filterMode, setFilterMode] = useState<"archetype" | "feat">("feat");
   const [validatingFeat, setValidatingFeat] = useState<string | null>(null);
+  const [expandedFeatId, setExpandedFeatId] = useState<string | null>(null);
 
   const { data: allFeats } = useQuery({
     queryKey: ["all-feats"],
@@ -236,6 +237,7 @@ const CharacterFeatPicker = ({ characterId, mode = "player" }: CharacterFeatPick
     if (!online) return;
     setPickerTarget(target);
     setSearchTerm("");
+    setExpandedFeatId(null);
     if (target.type === "level" && mode !== "gm") {
       setFilterMode(canPickArchetype(target.level) ? "archetype" : "feat");
     } else {
@@ -352,7 +354,7 @@ const CharacterFeatPicker = ({ characterId, mode = "player" }: CharacterFeatPick
       )}
 
       {/* Fullscreen Feat Picker Dialog */}
-      <Dialog open={pickerTarget !== null} onOpenChange={(open) => { if (!open) { setPickerTarget(null); setSearchTerm(""); } }}>
+      <Dialog open={pickerTarget !== null} onOpenChange={(open) => { if (!open) { setPickerTarget(null); setSearchTerm(""); setExpandedFeatId(null); } }}>
         <DialogContent className="max-w-none w-full h-full m-0 rounded-none flex flex-col">
           <DialogHeader>
             <DialogTitle>{dialogTitle}</DialogTitle>
@@ -394,28 +396,50 @@ const CharacterFeatPicker = ({ characterId, mode = "player" }: CharacterFeatPick
             {filteredFeats.length === 0 ? (
               <p className="text-sm text-muted-foreground text-center py-8">No feats found</p>
             ) : (
-              filteredFeats.map((feat) => (
-                <button
-                  key={feat.id}
-                  onClick={() => handleFeatSelect(feat.id)}
-                  className="w-full text-left p-3 rounded border border-border hover:border-primary/50 hover:bg-primary/5 transition-colors disabled:opacity-50"
-                  disabled={upsertMutation.isPending || addFreeFeatMutation.isPending}
-                >
-                  <div className="flex items-center gap-2">
-                    {validatingFeat === feat.id && (
-                      <Loader2 className="h-3 w-3 animate-spin text-primary shrink-0" />
+              filteredFeats.map((feat) => {
+                const isExpanded = expandedFeatId === feat.id;
+                return (
+                  <div
+                    key={feat.id}
+                    className="rounded border border-border hover:border-primary/50 transition-colors"
+                  >
+                    <button
+                      type="button"
+                      onClick={() => setExpandedFeatId(isExpanded ? null : feat.id)}
+                      className="w-full text-left p-3"
+                    >
+                      <div className="flex items-center gap-2">
+                        {validatingFeat === feat.id && (
+                          <Loader2 className="h-3 w-3 animate-spin text-primary shrink-0" />
+                        )}
+                        <span className="text-sm font-medium text-foreground truncate">{feat.title}</span>
+                        <FeatCategoryBadges categories={feat.categories} />
+                        <ChevronDown className={`h-4 w-4 ml-auto shrink-0 text-muted-foreground transition-transform ${isExpanded ? "rotate-180" : ""}`} />
+                      </div>
+                      {!isExpanded && feat.description && validatingFeat !== feat.id && (
+                        <p className="text-xs text-muted-foreground mt-0.5 line-clamp-1">{feat.description}</p>
+                      )}
+                    </button>
+                    {isExpanded && (
+                      <div className="px-3 pb-3 space-y-2">
+                        {validatingFeat === feat.id && (
+                          <p className="text-xs text-primary">Checking prerequisites...</p>
+                        )}
+                        {feat.description && (
+                          <p className="text-sm text-muted-foreground whitespace-pre-line">{feat.description}</p>
+                        )}
+                        <Button
+                          size="sm"
+                          onClick={() => handleFeatSelect(feat.id)}
+                          disabled={upsertMutation.isPending || addFreeFeatMutation.isPending}
+                        >
+                          Pick this feat
+                        </Button>
+                      </div>
                     )}
-                    <span className="text-sm font-medium text-foreground truncate">{feat.title}</span>
-                    <FeatCategoryBadges categories={feat.categories} />
                   </div>
-                  {validatingFeat === feat.id && (
-                    <p className="text-xs text-primary mt-0.5">Checking prerequisites...</p>
-                  )}
-                  {feat.description && validatingFeat !== feat.id && (
-                    <p className="text-xs text-muted-foreground mt-0.5 line-clamp-1">{feat.description}</p>
-                  )}
-                </button>
-              ))
+                );
+              }))
             )}
           </div>
         </DialogContent>
