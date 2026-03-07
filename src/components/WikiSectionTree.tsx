@@ -38,7 +38,7 @@ function SectionNode({
     <div
       className={cn(
         "transition-colors duration-200 rounded-md",
-        isActive && "bg-foreground/10 border-l-4 border-foreground"
+        isActive && "bg-black text-white border-l-4 border-black"
       )}
       style={{ marginLeft: depth > 0 ? 16 : 0 }}
     >
@@ -67,7 +67,7 @@ function SectionNode({
           size="icon"
           className={cn(
             "h-7 w-7 opacity-0 group-hover:opacity-100 transition-opacity",
-            isActive && "opacity-100 text-primary"
+            isActive && "opacity-100 text-white"
           )}
           onClick={() => onActivateSection(section.id)}
         >
