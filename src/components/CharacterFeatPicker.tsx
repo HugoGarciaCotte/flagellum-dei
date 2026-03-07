@@ -1,10 +1,10 @@
-import { useState, useMemo, useEffect } from "react";
+import { useState, useMemo, useEffect, useRef } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { sortTitlesEmojiLast } from "@/lib/utils";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { X, Search, Gift, Loader2, WifiOff, ChevronDown } from "lucide-react";
+import { X, Search, Gift, Loader2, WifiOff, ChevronDown, Pencil } from "lucide-react";
 import FeatCategoryBadges from "@/components/FeatCategoryBadges";
 import { toast } from "sonner";
 import {
@@ -41,6 +41,7 @@ type CharacterFeat = {
   level: number;
   feat_id: string;
   is_free: boolean;
+  note: string | null;
 };
 
 const MAX_LEVEL = 10;
