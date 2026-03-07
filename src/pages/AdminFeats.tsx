@@ -22,7 +22,7 @@ const AdminFeats = () => {
   }
 
   return (
-    <div className="min-h-screen bg-background">
+    <div className="flex flex-col h-screen bg-background">
       <PageHeader
         title="Manage Feats"
         icon={<Swords className="h-5 w-5 text-primary" />}
@@ -32,7 +32,7 @@ const AdminFeats = () => {
           </Button>
         }
       />
-      <main className="container py-8 max-w-5xl">
+      <main className="container flex-1 overflow-hidden py-4 max-w-5xl flex flex-col">
         <ManageFeats />
       </main>
     </div>

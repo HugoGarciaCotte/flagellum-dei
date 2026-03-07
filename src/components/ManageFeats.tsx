@@ -2,7 +2,7 @@ import { useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
+
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
@@ -20,7 +20,7 @@ import {
 } from "@/components/ui/collapsible";
 import { toast } from "@/hooks/use-toast";
 import {
-  Plus, Pencil, Trash2, Sword, Loader2, Sparkles, Layers,
+  Plus, Pencil, Trash2, Loader2, Sparkles, Layers,
   ChevronDown, CheckCircle2, AlertCircle, Wand2, Unlock, Eye, ShieldCheck, Ban, Upload,
 } from "lucide-react";
 import FeatCategoryBadges from "@/components/FeatCategoryBadges";
@@ -353,45 +353,34 @@ const ManageFeats = () => {
 
   return (
     <>
-      <Card className="border-primary/20">
-        <CardHeader>
-          <div className="flex items-center justify-between">
-            <div>
-              <CardTitle className="font-display flex items-center gap-2">
-                <Sword className="h-5 w-5 text-primary" /> Manage Feats
-              </CardTitle>
-              <CardDescription className="mt-1.5">
-                Create, edit, or delete feats. Content uses raw MediaWiki markup.
-              </CardDescription>
-            </div>
-            <div className="flex items-center gap-2">
-              <Button
-                onClick={handleCheckWithAI}
-                size="sm"
-                variant="outline"
-                className="gap-2 font-display"
-                disabled={aiChecking || bulkRegenerating || !feats?.length}
-              >
-                {aiChecking ? <Loader2 className="h-4 w-4 animate-spin" /> : <Eye className="h-4 w-4" />}
-                Check Parseable Fields with AI
-              </Button>
-              <Button
-                onClick={handleBulkRegenerate}
-                size="sm"
-                variant="outline"
-                className="gap-2 font-display"
-                disabled={bulkRegenerating || aiChecking || !feats?.length}
-              >
-                {bulkRegenerating ? <Loader2 className="h-4 w-4 animate-spin" /> : <Wand2 className="h-4 w-4" />}
-                Generate All Parseable Fields
-              </Button>
-              <Button onClick={openCreate} size="sm" className="gap-2 font-display">
-                <Plus className="h-4 w-4" /> New
-              </Button>
-            </div>
+       <div className="flex flex-col flex-1 min-h-0">
+          <div className="flex flex-wrap items-center gap-2 pb-4">
+            <Button
+              onClick={handleCheckWithAI}
+              size="sm"
+              variant="outline"
+              className="gap-2 font-display"
+              disabled={aiChecking || bulkRegenerating || !feats?.length}
+            >
+              {aiChecking ? <Loader2 className="h-4 w-4 animate-spin" /> : <Eye className="h-4 w-4" />}
+              Check Parseable Fields with AI
+            </Button>
+            <Button
+              onClick={handleBulkRegenerate}
+              size="sm"
+              variant="outline"
+              className="gap-2 font-display"
+              disabled={bulkRegenerating || aiChecking || !feats?.length}
+            >
+              {bulkRegenerating ? <Loader2 className="h-4 w-4 animate-spin" /> : <Wand2 className="h-4 w-4" />}
+              Generate All Parseable Fields
+            </Button>
+            <Button onClick={openCreate} size="sm" className="gap-2 font-display">
+              <Plus className="h-4 w-4" /> New
+            </Button>
           </div>
           {bulkProgress && (
-            <div className="mt-3 space-y-1.5">
+            <div className="pb-3 space-y-1.5">
               <div className="flex items-center justify-between text-xs text-muted-foreground">
                 <span>Processing feat {bulkProgress.current} of {bulkProgress.total}...</span>
                 <span>{Math.round((bulkProgress.current / bulkProgress.total) * 100)}%</span>
@@ -399,8 +388,6 @@ const ManageFeats = () => {
               <Progress value={(bulkProgress.current / bulkProgress.total) * 100} className="h-2" />
             </div>
           )}
-        </CardHeader>
-        <CardContent>
           {isLoading ? (
             <div className="flex items-center justify-center py-8">
               <Loader2 className="h-5 w-5 animate-spin text-muted-foreground" />
@@ -408,7 +395,7 @@ const ManageFeats = () => {
           ) : !feats?.length ? (
             <p className="text-sm text-muted-foreground py-4">No feats yet.</p>
           ) : (
-            <div className="space-y-1 max-h-[36rem] overflow-y-auto pr-1">
+            <div className="space-y-1 flex-1 overflow-y-auto pr-1">
               {feats.map((f) => {
                 const isExpanded = expandedId === f.id;
                 const isRegenerating = regeneratingId === f.id;
@@ -542,8 +529,7 @@ const ManageFeats = () => {
               })}
             </div>
           )}
-        </CardContent>
-      </Card>
+        </div>
 
       {/* Edit/Create Dialog */}
       <Dialog open={dialogOpen} onOpenChange={(open) => { if (!open) { setDialogOpen(false); setEditingId(null); } }}>
