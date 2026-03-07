@@ -59,6 +59,9 @@ const CharacterFeatPicker = ({ characterId, mode = "player", scenarioLevel }: Ch
   const [validatingFeat, setValidatingFeat] = useState<string | null>(null);
   const [expandedFeatId, setExpandedFeatId] = useState<string | null>(null);
   const [expandedAssignedFeatId, setExpandedAssignedFeatId] = useState<string | null>(null);
+  const [editingNoteId, setEditingNoteId] = useState<string | null>(null);
+  const [noteValue, setNoteValue] = useState("");
+  const noteInputRef = useRef<HTMLInputElement>(null);
 
   const { data: allFeats } = useQuery({
     queryKey: ["all-feats"],
@@ -174,6 +177,31 @@ const CharacterFeatPicker = ({ characterId, mode = "player", scenarioLevel }: Ch
       setSearchTerm("");
     },
   });
+
+  const updateNoteMutation = useMutation({
+    mutationFn: async ({ id, note }: { id: string; note: string }) => {
+      const trimmed = note.trim() || null;
+      const { error } = await supabase
+        .from("character_feats")
+        .update({ note: trimmed } as any)
+        .eq("id", id);
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["character-feats", characterId] });
+      setEditingNoteId(null);
+    },
+  });
+
+  const startEditingNote = (cf: CharacterFeat) => {
+    setEditingNoteId(cf.id);
+    setNoteValue(cf.note ?? "");
+    setTimeout(() => noteInputRef.current?.focus(), 50);
+  };
+
+  const saveNote = (id: string) => {
+    updateNoteMutation.mutate({ id, note: noteValue });
+  };
 
   const featMap = useMemo(() => {
     const map = new Map<string, Feat>();
