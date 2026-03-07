@@ -9,7 +9,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from 
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import { toast } from "@/hooks/use-toast";
 import { useNavigate } from "react-router-dom";
-import { Crown, LogOut, Plus, DoorOpen, Scroll, Users, Settings, ChevronDown, Sword, Trash2, Pencil, ShieldCheck } from "lucide-react";
+import { Crown, LogOut, Plus, DoorOpen, Scroll, Users, Settings, ChevronDown, Sword, Trash2, Pencil, ShieldCheck, ArrowLeft } from "lucide-react";
 import CharacterSheet from "@/components/CharacterSheet";
 import { useOfflineScenarios } from "@/hooks/useOfflineScenarios";
 import { useOfflineFeats } from "@/hooks/useOfflineFeats";
@@ -28,18 +28,12 @@ const Dashboard = () => {
   const queryClient = useQueryClient();
   const [joinCode, setJoinCode] = useState("");
   const [hostOpen, setHostOpen] = useState(false);
-  const [charDialogOpen, setCharDialogOpen] = useState(false);
-  const [editingChar, setEditingChar] = useState<string | null>(null);
-  const [activeCharId, setActiveCharId] = useState<string | null>(null);
-  const [charName, setCharName] = useState("");
-  const [charDesc, setCharDesc] = useState("");
+  const [newCharDialogOpen, setNewCharDialogOpen] = useState(false);
+  const [editingCharId, setEditingCharId] = useState<string | null>(null);
   const { isOwner } = useIsOwner();
   const { isGameMaster } = useIsGameMaster();
   const [gmDialogOpen, setGmDialogOpen] = useState(false);
   const [deleteCharTarget, setDeleteCharTarget] = useState<{ id: string; name: string } | null>(null);
-
-  useOfflineScenarios();
-  useOfflineFeats();
 
   // Characters
   const { data: characters } = useQuery({
@@ -56,7 +50,6 @@ const Dashboard = () => {
     enabled: !!user,
   });
 
-
   const deleteCharMutation = useMutation({
     mutationFn: async (id: string) => {
       const { error } = await supabase.from("characters").delete().eq("id", id);
@@ -69,22 +62,6 @@ const Dashboard = () => {
     },
   });
 
-  const resetCharForm = () => {
-    setCharName("");
-    setCharDesc("");
-    setEditingChar(null);
-    setActiveCharId(null);
-  };
-
-  const openEditChar = (c: any) => {
-    setEditingChar(c.id);
-    setActiveCharId(c.id);
-    setCharName(c.name);
-    setCharDesc(c.description || "");
-    setCharDialogOpen(true);
-  };
-
-  // Scenarios
   const { data: scenarios } = useQuery({
     queryKey: ["scenarios"],
     queryFn: async () => {
@@ -231,38 +208,46 @@ const Dashboard = () => {
         <section className="space-y-4">
           <div className="flex items-center justify-between">
             <h2 className="font-display text-2xl text-foreground flex items-center gap-2">
-              <Sword className="h-6 w-6 text-primary" /> My Characters
-            </h2>
-            <Dialog open={charDialogOpen} onOpenChange={(open) => { setCharDialogOpen(open); if (!open) resetCharForm(); }}>
-              <DialogTrigger asChild>
-                <Button size="sm" className="gap-2 font-display">
-                  <Plus className="h-4 w-4" /> New Character
+              {editingCharId && (
+                <Button variant="ghost" size="icon" className="h-8 w-8 mr-1" onClick={() => setEditingCharId(null)}>
+                  <ArrowLeft className="h-4 w-4" />
                 </Button>
-              </DialogTrigger>
-              <DialogContent className="max-h-[85vh] overflow-y-auto">
-                <DialogHeader>
-                  <DialogTitle className="font-display">{editingChar ? "Edit Character" : "Create Character"}</DialogTitle>
-                </DialogHeader>
-                {activeCharId ? (
-                  <CharacterSheet
-                    characterId={activeCharId}
-                    mode="player"
-                    onDone={() => { setCharDialogOpen(false); resetCharForm(); }}
-                  />
-                ) : (
+              )}
+              <Sword className="h-6 w-6 text-primary" /> {editingCharId ? "Edit Character" : "My Characters"}
+            </h2>
+            {!editingCharId && (
+              <Dialog open={newCharDialogOpen} onOpenChange={setNewCharDialogOpen}>
+                <DialogTrigger asChild>
+                  <Button size="sm" className="gap-2 font-display">
+                    <Plus className="h-4 w-4" /> New Character
+                  </Button>
+                </DialogTrigger>
+                <DialogContent className="max-h-[85vh] overflow-y-auto">
+                  <DialogHeader>
+                    <DialogTitle className="font-display">Create Character</DialogTitle>
+                  </DialogHeader>
                   <CreateCharacterForm
                     onCreated={(charId) => {
-                      setActiveCharId(charId);
-                      setEditingChar(charId);
+                      setNewCharDialogOpen(false);
+                      setEditingCharId(charId);
                       toast({ title: "Character created — now pick feats!" });
                     }}
                   />
-                )}
-              </DialogContent>
-            </Dialog>
+                </DialogContent>
+              </Dialog>
+            )}
           </div>
 
-          {characters && characters.length > 0 ? (
+          {editingCharId ? (
+            <CharacterSheet
+              characterId={editingCharId}
+              mode="player"
+              onDone={() => {
+                setEditingCharId(null);
+                queryClient.invalidateQueries({ queryKey: ["my-characters"] });
+              }}
+            />
+          ) : characters && characters.length > 0 ? (
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
               {characters.map((c) => (
                 <CharacterListItem
@@ -270,7 +255,7 @@ const Dashboard = () => {
                   character={c}
                   actions={
                     <>
-                      <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => openEditChar(c)}>
+                      <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => setEditingCharId(c.id)}>
                         <Pencil className="h-3.5 w-3.5" />
                       </Button>
                       <Button variant="ghost" size="icon" className="h-7 w-7 text-destructive" onClick={() => setDeleteCharTarget({ id: c.id, name: c.name })}>
