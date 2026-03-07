@@ -1,4 +1,4 @@
-import { useEffect } from "react";
+import { useEffect, useMemo } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
@@ -7,6 +7,8 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { toast } from "@/hooks/use-toast";
 import { ArrowLeft, Copy, Crown, Users, StopCircle } from "lucide-react";
+import { parseWikitext } from "@/lib/parseWikitext";
+import WikiSectionTree from "@/components/WikiSectionTree";
 
 const HostGame = () => {
   const { gameId } = useParams<{ gameId: string }>();
@@ -41,6 +43,18 @@ const HostGame = () => {
     enabled: !!gameId,
   });
 
+  // Realtime for game updates (current_section changes)
+  useEffect(() => {
+    if (!gameId) return;
+    const channel = supabase
+      .channel(`game-host-${gameId}`)
+      .on("postgres_changes", { event: "UPDATE", schema: "public", table: "games", filter: `id=eq.${gameId}` }, () => {
+        queryClient.invalidateQueries({ queryKey: ["game", gameId] });
+      })
+      .subscribe();
+    return () => { supabase.removeChannel(channel); };
+  }, [gameId, queryClient]);
+
   // Realtime for players joining
   useEffect(() => {
     if (!gameId) return;
@@ -66,6 +80,15 @@ const HostGame = () => {
     }
   };
 
+  const scenarioContent = (game as any)?.scenarios?.content || "";
+  const sections = useMemo(() => parseWikitext(scenarioContent), [scenarioContent]);
+  const activeSection = (game as any)?.current_section ?? null;
+
+  const activateSection = async (sectionId: string) => {
+    if (!game) return;
+    await supabase.from("games").update({ current_section: sectionId } as any).eq("id", game.id);
+  };
+
   if (!game) {
     return (
       <div className="flex min-h-screen items-center justify-center bg-background">
@@ -73,8 +96,6 @@ const HostGame = () => {
       </div>
     );
   }
-
-  const scenarioContent = (game as any).scenarios?.content || "No content available.";
 
   return (
     <div className="min-h-screen bg-background flex flex-col">
@@ -103,14 +124,26 @@ const HostGame = () => {
         </div>
       </header>
 
-      <main className="flex-1 container py-8 max-w-3xl">
-        <Card className="w-full border-primary/20">
-          <CardContent className="p-8">
-            <div className="text-foreground text-lg leading-relaxed whitespace-pre-wrap">
-              {scenarioContent}
-            </div>
-          </CardContent>
-        </Card>
+      <main className="flex-1 container py-6 max-w-3xl">
+        {sections.length > 0 ? (
+          <Card className="w-full border-primary/20">
+            <CardContent className="p-4">
+              <WikiSectionTree
+                sections={sections}
+                activeSection={activeSection}
+                onActivateSection={activateSection}
+              />
+            </CardContent>
+          </Card>
+        ) : (
+          <Card className="w-full border-primary/20">
+            <CardContent className="p-8">
+              <div className="text-foreground text-lg leading-relaxed whitespace-pre-wrap">
+                {scenarioContent || "No content available."}
+              </div>
+            </CardContent>
+          </Card>
+        )}
       </main>
     </div>
   );
