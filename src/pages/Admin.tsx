@@ -112,7 +112,7 @@ const Admin = () => {
         }
       />
 
-      <main className="container py-8 max-w-2xl space-y-6">
+      <main className="container py-8 max-w-5xl space-y-6">
         {/* Scenarios Import */}
         <Card className="border-primary/20">
           <CardHeader>
