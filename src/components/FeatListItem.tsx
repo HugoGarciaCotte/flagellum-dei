@@ -16,6 +16,7 @@ interface FeatListItemFeat {
   categories: string[];
   description: string | null;
   content: string | null;
+  raw_content?: string | null;
 }
 
 interface FeatListItemProps {
@@ -105,7 +106,7 @@ const FeatListItem = ({
           {feat.description && (
             <p className="text-sm text-muted-foreground whitespace-pre-line">{feat.description}</p>
           )}
-          {feat.content && <FeatDetailsDisplay content={feat.content} />}
+          {feat.content && <FeatDetailsDisplay content={feat.content} rawContent={feat.raw_content} />}
           {expandedContent}
         </div>
       )}
