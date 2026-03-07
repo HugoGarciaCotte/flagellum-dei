@@ -128,6 +128,7 @@ export type Database = {
           id: string
           subfeats: Json | null
           title: string
+          unlocks_categories: string[] | null
         }
         Insert: {
           categories?: string[]
@@ -137,6 +138,7 @@ export type Database = {
           id?: string
           subfeats?: Json | null
           title: string
+          unlocks_categories?: string[] | null
         }
         Update: {
           categories?: string[]
@@ -146,6 +148,7 @@ export type Database = {
           id?: string
           subfeats?: Json | null
           title?: string
+          unlocks_categories?: string[] | null
         }
         Relationships: []
       }

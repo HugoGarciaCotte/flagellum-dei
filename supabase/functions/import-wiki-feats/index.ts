@@ -102,10 +102,10 @@ async function generateSubfeats(
   content: string,
   categories: string[],
   allFeatTitles: string[]
-): Promise<any[] | null> {
+): Promise<{ subfeats: any[] | null; unlocks_categories: string[] | null }> {
   try {
     const apiKey = Deno.env.get("LOVABLE_API_KEY");
-    if (!apiKey) return null;
+    if (!apiKey) return { subfeats: null, unlocks_categories: null };
 
     const systemPrompt = `You are a TTRPG feat analyzer. You determine whether a feat grants "subfeats" — additional feat choices a character gets when they acquire the parent feat.
 
@@ -122,6 +122,8 @@ ARCHETYPE PATTERN: Archetypes almost always follow this pattern:
 NON-ARCHETYPE PATTERN: Some general feats like "Foreigner" grant a subfeat of type "type" where the player picks any non-Archetype, non-Hidden feat.
 
 Most feats do NOT grant subfeats. Only return subfeats if the wiki content clearly indicates the feat grants additional feats.
+
+CATEGORY UNLOCKING: Some feats unlock entire categories for the character. For example, "Dark Faith" allows the character to pick "Dark Feat" feats during normal level-up. If a feat grants access to a category, return it in "unlocks_categories". Most feats unlock nothing — return an empty array.
 
 Available feat titles for reference:
 ${allFeatTitles.join(", ")}`;
@@ -166,8 +168,13 @@ ${allFeatTitles.join(", ")}`;
                       additionalProperties: false,
                     },
                   },
+                  unlocks_categories: {
+                    type: "array",
+                    items: { type: "string" },
+                    description: "Category names this feat unlocks for the character during level-up. E.g. 'Dark Faith' unlocks 'Dark Feat'. Most feats unlock nothing — return an empty array.",
+                  },
                 },
-                required: ["subfeats"],
+                required: ["subfeats", "unlocks_categories"],
                 additionalProperties: false,
               },
             },
@@ -177,21 +184,19 @@ ${allFeatTitles.join(", ")}`;
       }),
     });
 
-    if (!response.ok) return null;
+    if (!response.ok) return { subfeats: null, unlocks_categories: null };
 
     const data = await response.json();
     const toolCall = data.choices?.[0]?.message?.tool_calls?.[0];
     if (toolCall?.function?.arguments) {
       const args = JSON.parse(toolCall.function.arguments);
-      const subfeats = args.subfeats;
-      if (Array.isArray(subfeats) && subfeats.length > 0) {
-        return subfeats;
-      }
-      return null;
+      const subfeats = Array.isArray(args.subfeats) && args.subfeats.length > 0 ? args.subfeats : null;
+      const unlocks = Array.isArray(args.unlocks_categories) && args.unlocks_categories.length > 0 ? args.unlocks_categories : null;
+      return { subfeats, unlocks_categories: unlocks };
     }
-    return null;
+    return { subfeats: null, unlocks_categories: null };
   } catch {
-    return null;
+    return { subfeats: null, unlocks_categories: null };
   }
 }
 
@@ -275,7 +280,7 @@ Deno.serve(async (req) => {
     // Fetch existing feats (include description and subfeats to check if they need AI generation)
     const { data: existingFeats } = await adminClient
       .from("feats")
-      .select("id, title, content, categories, description, subfeats");
+      .select("id, title, content, categories, description, subfeats, unlocks_categories");
     const existingMap = new Map(
       (existingFeats || []).map((f: any) => [f.title, f])
     );
@@ -345,11 +350,14 @@ Deno.serve(async (req) => {
             description = await generateDescription(item.title, content, item.categories);
           }
 
-          // Generate subfeats if not already set
+          // Generate subfeats and unlocks_categories if not already set
           const existingSubfeats = existing?.subfeats;
           let subfeats: any[] | null = existingSubfeats || null;
+          let unlocks_categories: string[] | null = existing?.unlocks_categories || null;
           if (!existingSubfeats) {
-            subfeats = await generateSubfeats(item.title, content, item.categories, allFeatTitles);
+            const result = await generateSubfeats(item.title, content, item.categories, allFeatTitles);
+            subfeats = result.subfeats;
+            unlocks_categories = result.unlocks_categories;
           }
 
           const payload: any = {
@@ -357,6 +365,7 @@ Deno.serve(async (req) => {
             description: description || "Imported from prima.wiki",
             categories: item.categories,
             subfeats: subfeats || null,
+            unlocks_categories: unlocks_categories || null,
           };
 
           if (existing) {
