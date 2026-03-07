@@ -21,7 +21,7 @@ import {
 import { toast } from "@/hooks/use-toast";
 import {
   Plus, Pencil, Trash2, Sword, Loader2, Sparkles, Layers,
-  ChevronDown, CheckCircle2, AlertCircle, Wand2, Copy, Unlock, Eye, ShieldCheck, Ban, Upload,
+  ChevronDown, CheckCircle2, AlertCircle, Wand2, Unlock, Eye, ShieldCheck, Ban, Upload,
 } from "lucide-react";
 import FeatCategoryBadges from "@/components/FeatCategoryBadges";
 import { parseEmbeddedFeatMeta, generateParseableBlock, type SubfeatSlot } from "@/lib/parseEmbeddedFeatMeta";
