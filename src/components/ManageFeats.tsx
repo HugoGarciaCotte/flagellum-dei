@@ -40,6 +40,7 @@ type Feat = {
   description: string | null;
   categories: string[] | null;
   subfeats: SubfeatSlot[] | null;
+  specialities: string[] | null;
   created_at: string;
 };
 
@@ -125,6 +126,9 @@ const ManageFeats = () => {
       await supabase.functions.invoke("regenerate-description", {
         body: { action: "regenerate_subfeats", id },
       });
+      await supabase.functions.invoke("regenerate-description", {
+        body: { action: "regenerate_specialities", id },
+      });
       queryClient.invalidateQueries({ queryKey: ["admin-feats"] });
       toast({ title: "AI content regenerated" });
     } catch (e: any) {
@@ -147,6 +151,9 @@ const ManageFeats = () => {
         });
         await supabase.functions.invoke("regenerate-description", {
           body: { action: "regenerate_subfeats", id: feats[i].id },
+        });
+        await supabase.functions.invoke("regenerate-description", {
+          body: { action: "regenerate_specialities", id: feats[i].id },
         });
       } catch {
         errors++;
@@ -184,6 +191,7 @@ const ManageFeats = () => {
   const hasDescription = (f: Feat) => !!f.description?.trim();
   const hasContent = (f: Feat) => !!f.content?.trim();
   const hasSubfeats = (f: Feat) => Array.isArray(f.subfeats) && f.subfeats.length > 0;
+  const hasSpecialities = (f: Feat) => Array.isArray(f.specialities) && f.specialities.length > 0;
 
   const StatusIcon = ({ ok, label }: { ok: boolean; label: string }) => (
     <span className="inline-flex items-center gap-1 text-xs" title={label}>
@@ -289,7 +297,7 @@ const ManageFeats = () => {
                               <StatusIcon ok={hasDescription(f)} label="Description" />
                               <StatusIcon ok={hasContent(f)} label="Content" />
                               <StatusIcon ok={hasSubfeats(f)} label="Subfeats" />
-                            </div>
+                              <StatusIcon ok={hasSpecialities(f)} label="Specialities" />
                           </div>
                         </button>
                       </CollapsibleTrigger>
@@ -312,6 +320,16 @@ const ManageFeats = () => {
                               <p className="text-xs italic text-muted-foreground">None configured</p>
                             </div>
                           )}
+
+                          {/* Specialities detail */}
+                          <div>
+                            <p className="text-xs font-medium text-muted-foreground mb-1">Specialities</p>
+                            {hasSpecialities(f) ? (
+                              <p className="text-xs text-foreground">{f.specialities!.join(", ")}</p>
+                            ) : (
+                              <p className="text-xs italic text-muted-foreground">None detected</p>
+                            )}
+                          </div>
 
                           {/* Full content */}
                           {f.content && (
