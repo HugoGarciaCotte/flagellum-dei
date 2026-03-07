@@ -433,10 +433,14 @@ const CharacterFeatPicker = ({ characterId, mode = "player", scenarioLevel }: Ch
       if (slot.kind === "list" && slot.options) {
         filtered = allFeats.filter(f => slot.options!.includes(f.title));
       } else if (slot.kind === "type" && slot.filter) {
-        const excludeCategories = slot.filter.split(",").map(f => f.trim().replace("not:", ""));
-        filtered = allFeats.filter(f =>
-          !f.categories?.some(c => excludeCategories.includes(c))
-        );
+        const parts = slot.filter.split(",").map(f => f.trim());
+        const excludeCategories = parts.filter(p => p.startsWith("not:")).map(p => p.replace("not:", ""));
+        const includeCategories = parts.filter(p => !p.startsWith("not:"));
+        filtered = allFeats.filter(f => {
+          if (excludeCategories.length > 0 && f.categories?.some(c => excludeCategories.includes(c))) return false;
+          if (includeCategories.length > 0 && !f.categories?.some(c => includeCategories.includes(c))) return false;
+          return true;
+        });
       } else {
         filtered = [];
       }
