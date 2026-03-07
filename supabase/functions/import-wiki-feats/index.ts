@@ -123,6 +123,8 @@ NON-ARCHETYPE PATTERN: Some general feats like "Foreigner" grant a subfeat of ty
 
 Most feats do NOT grant subfeats. Only return subfeats if the wiki content clearly indicates the feat grants additional feats.
 
+CATEGORY UNLOCKING: Some feats unlock entire categories for the character. For example, "Dark Faith" allows the character to pick "Dark Feat" feats during normal level-up. If a feat grants access to a category, return it in "unlocks_categories". Most feats unlock nothing — return an empty array.
+
 Available feat titles for reference:
 ${allFeatTitles.join(", ")}`;
 
@@ -166,8 +168,13 @@ ${allFeatTitles.join(", ")}`;
                       additionalProperties: false,
                     },
                   },
+                  unlocks_categories: {
+                    type: "array",
+                    items: { type: "string" },
+                    description: "Category names this feat unlocks for the character during level-up. E.g. 'Dark Faith' unlocks 'Dark Feat'. Most feats unlock nothing — return an empty array.",
+                  },
                 },
-                required: ["subfeats"],
+                required: ["subfeats", "unlocks_categories"],
                 additionalProperties: false,
               },
             },
