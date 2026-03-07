@@ -89,6 +89,7 @@ const CharacterFeatPicker = ({ characterId, mode = "player", scenarioLevel }: Ch
   const [editingNoteId, setEditingNoteId] = useState<string | null>(null);
   const [noteValue, setNoteValue] = useState("");
   const noteInputRef = useRef<HTMLInputElement>(null);
+  const [pendingSubfeatSlots, setPendingSubfeatSlots] = useState<{ characterFeatId: string; slot: SubfeatSlot }[]>([]);
 
   const { data: allFeats } = useQuery({
     queryKey: ["all-feats"],
@@ -192,14 +193,38 @@ const CharacterFeatPicker = ({ characterId, mode = "player", scenarioLevel }: Ch
         }
       }
     },
-    onSuccess: () => {
+    onSuccess: (_data, variables) => {
       queryClient.invalidateQueries({ queryKey: ["character-feats", characterId] });
       queryClient.invalidateQueries({ queryKey: ["character-feat-subfeats", characterId] });
-      setPickerTarget(null);
-      setSearchTerm("");
-    },
-    onError: (error) => {
-      toast.error(error.message || "Could not acquire feat");
+
+      // Check if the feat has non-fixed subfeats that need picking
+      const feat = featMap.get(variables.featId);
+      const nonFixedSlots = (feat?.subfeats ?? []).filter(s => s.kind !== "fixed");
+      if (nonFixedSlots.length > 0) {
+        // We need the inserted character_feat id — re-query to find it
+        supabase
+          .from("character_feats")
+          .select("id")
+          .eq("character_id", characterId)
+          .eq("level", variables.level)
+          .eq("is_free", false)
+          .single()
+          .then(({ data: cfRow }) => {
+            if (cfRow) {
+              const queue = nonFixedSlots.map(s => ({ characterFeatId: cfRow.id, slot: s }));
+              setPendingSubfeatSlots(queue.slice(1));
+              setSearchTerm("");
+              setExpandedFeatId(null);
+              setPickerTarget({ type: "subfeat", characterFeatId: cfRow.id, slot: queue[0].slot });
+            } else {
+              setPickerTarget(null);
+              setSearchTerm("");
+            }
+          });
+      } else {
+        setPickerTarget(null);
+        setSearchTerm("");
+      }
     },
   });
 
@@ -231,10 +256,38 @@ const CharacterFeatPicker = ({ characterId, mode = "player", scenarioLevel }: Ch
         .insert({ character_id: characterId, level: 0, feat_id: featId, is_free: true });
       if (error) throw error;
     },
-    onSuccess: () => {
+    onSuccess: (_data, featId) => {
       queryClient.invalidateQueries({ queryKey: ["character-feats", characterId] });
-      setPickerTarget(null);
-      setSearchTerm("");
+
+      // Check for non-fixed subfeats
+      const feat = featMap.get(featId);
+      const nonFixedSlots = (feat?.subfeats ?? []).filter(s => s.kind !== "fixed");
+      if (nonFixedSlots.length > 0) {
+        supabase
+          .from("character_feats")
+          .select("id")
+          .eq("character_id", characterId)
+          .eq("feat_id", featId)
+          .eq("is_free", true)
+          .order("level", { ascending: false })
+          .limit(1)
+          .single()
+          .then(({ data: cfRow }) => {
+            if (cfRow) {
+              const queue = nonFixedSlots.map(s => ({ characterFeatId: cfRow.id, slot: s }));
+              setPendingSubfeatSlots(queue.slice(1));
+              setSearchTerm("");
+              setExpandedFeatId(null);
+              setPickerTarget({ type: "subfeat", characterFeatId: cfRow.id, slot: queue[0].slot });
+            } else {
+              setPickerTarget(null);
+              setSearchTerm("");
+            }
+          });
+      } else {
+        setPickerTarget(null);
+        setSearchTerm("");
+      }
     },
   });
 
@@ -272,8 +325,18 @@ const CharacterFeatPicker = ({ characterId, mode = "player", scenarioLevel }: Ch
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["character-feat-subfeats", characterId] });
-      setPickerTarget(null);
-      setSearchTerm("");
+
+      // Advance pending subfeat queue
+      if (pendingSubfeatSlots.length > 0) {
+        const [next, ...rest] = pendingSubfeatSlots;
+        setPendingSubfeatSlots(rest);
+        setSearchTerm("");
+        setExpandedFeatId(null);
+        setPickerTarget({ type: "subfeat", characterFeatId: next.characterFeatId, slot: next.slot });
+      } else {
+        setPickerTarget(null);
+        setSearchTerm("");
+      }
     },
   });
 
