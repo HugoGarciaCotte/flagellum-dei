@@ -12,7 +12,7 @@ export function useOfflineFeats() {
       try {
         const { data } = await supabase
           .from("feats")
-          .select("id, title, categories, description")
+          .select("id, title, categories, content")
           .order("title");
         if (data) cacheFeats(data);
       } catch (e) {
