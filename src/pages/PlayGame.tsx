@@ -32,7 +32,7 @@ const PlayGame = () => {
     queryFn: async () => {
       const { data, error } = await supabase
         .from("games")
-        .select("*, scenarios(title)")
+        .select("*, scenarios(title, level)")
         .eq("id", gameId!)
         .single();
       if (error) throw error;
@@ -199,7 +199,7 @@ const PlayGame = () => {
                       )}
                       <span className="text-xs text-primary mt-2 inline-block">Active</span>
                       <div className="mt-3">
-                        <CharacterFeatPicker characterId={selectedCharacter.id} />
+                        <CharacterFeatPicker characterId={selectedCharacter.id} scenarioLevel={effectiveScenario?.level ?? undefined} />
                       </div>
                     </CardContent>
                   </Card>
