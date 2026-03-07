@@ -8,6 +8,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { ArrowLeft, Scroll, User, Plus, Check } from "lucide-react";
+import CharacterFeatPicker from "@/components/CharacterFeatPicker";
 import { useNetworkStatus } from "@/hooks/useNetworkStatus";
 import { getCachedGameSession } from "@/lib/offlineStorage";
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from "@/components/ui/sheet";
@@ -197,6 +198,9 @@ const PlayGame = () => {
                         <p className="text-sm text-muted-foreground mt-1">{selectedCharacter.description}</p>
                       )}
                       <span className="text-xs text-primary mt-2 inline-block">Active</span>
+                      <div className="mt-3">
+                        <CharacterFeatPicker characterId={selectedCharacter.id} />
+                      </div>
                     </CardContent>
                   </Card>
                 )}

@@ -11,6 +11,7 @@ import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/component
 import { toast } from "@/hooks/use-toast";
 import { useNavigate } from "react-router-dom";
 import { Crown, LogOut, Plus, DoorOpen, Scroll, Users, Settings, ChevronDown, Sword, Trash2, Pencil, ShieldCheck } from "lucide-react";
+import CharacterFeatPicker from "@/components/CharacterFeatPicker";
 import { useOfflineScenarios } from "@/hooks/useOfflineScenarios";
 import { getCachedScenarios, isOffline } from "@/lib/offlineStorage";
 import { useIsOwner } from "@/hooks/useIsOwner";
@@ -25,6 +26,7 @@ const Dashboard = () => {
   const [hostOpen, setHostOpen] = useState(false);
   const [charDialogOpen, setCharDialogOpen] = useState(false);
   const [editingChar, setEditingChar] = useState<string | null>(null);
+  const [activeCharId, setActiveCharId] = useState<string | null>(null);
   const [charName, setCharName] = useState("");
   const [charDesc, setCharDesc] = useState("");
   const { isOwner } = useIsOwner();
@@ -56,18 +58,27 @@ const Dashboard = () => {
           .update({ name: charName, description: charDesc || null })
           .eq("id", editingChar);
         if (error) throw error;
+        return editingChar;
       } else {
-        const { error } = await supabase
+        const { data, error } = await supabase
           .from("characters")
-          .insert({ user_id: user!.id, name: charName, description: charDesc || null });
+          .insert({ user_id: user!.id, name: charName, description: charDesc || null })
+          .select()
+          .single();
         if (error) throw error;
+        return data.id;
       }
     },
-    onSuccess: () => {
+    onSuccess: (charId: string) => {
       queryClient.invalidateQueries({ queryKey: ["my-characters"] });
-      setCharDialogOpen(false);
-      resetCharForm();
-      toast({ title: editingChar ? "Character updated" : "Character created" });
+      setActiveCharId(charId);
+      if (editingChar) {
+        // Already editing, just update name
+        toast({ title: "Character updated" });
+      } else {
+        setEditingChar(charId);
+        toast({ title: "Character created — now pick feats!" });
+      }
     },
     onError: (e: any) => toast({ title: "Error", description: e.message, variant: "destructive" }),
   });
@@ -87,10 +98,12 @@ const Dashboard = () => {
     setCharName("");
     setCharDesc("");
     setEditingChar(null);
+    setActiveCharId(null);
   };
 
   const openEditChar = (c: any) => {
     setEditingChar(c.id);
+    setActiveCharId(c.id);
     setCharName(c.name);
     setCharDesc(c.description || "");
     setCharDialogOpen(true);
@@ -252,7 +265,7 @@ const Dashboard = () => {
                   <Plus className="h-4 w-4" /> New Character
                 </Button>
               </DialogTrigger>
-              <DialogContent>
+              <DialogContent className="max-h-[85vh] overflow-y-auto">
                 <DialogHeader>
                   <DialogTitle className="font-display">{editingChar ? "Edit Character" : "Create Character"}</DialogTitle>
                 </DialogHeader>
@@ -275,6 +288,21 @@ const Dashboard = () => {
                   >
                     {editingChar ? "Save Changes" : "Create Character"}
                   </Button>
+
+                  {/* Feat picker — shown after character is saved */}
+                  {activeCharId && (
+                    <CharacterFeatPicker characterId={activeCharId} />
+                  )}
+
+                  {activeCharId && (
+                    <Button
+                      variant="outline"
+                      className="w-full font-display"
+                      onClick={() => { setCharDialogOpen(false); resetCharForm(); }}
+                    >
+                      Done
+                    </Button>
+                  )}
                 </div>
               </DialogContent>
             </Dialog>
