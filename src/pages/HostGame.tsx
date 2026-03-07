@@ -57,24 +57,24 @@ const HostGame = () => {
     retry: online ? 3 : 0,
   });
 
-  // Fetch characters for all players
-  const characterIds = useMemo(
-    () => (players ?? []).map((p: any) => p.character_id).filter(Boolean) as string[],
+  // Fetch ALL characters for all players (not just selected ones)
+  const playerUserIds = useMemo(
+    () => [...new Set((players ?? []).map((p: any) => p.user_id))],
     [players]
   );
 
   const { data: characters } = useQuery({
-    queryKey: ["game-characters", gameId, characterIds],
+    queryKey: ["game-characters", gameId, playerUserIds],
     queryFn: async () => {
-      if (characterIds.length === 0) return [];
+      if (playerUserIds.length === 0) return [];
       const { data, error } = await supabase
         .from("characters")
         .select("id, name, description, user_id")
-        .in("id", characterIds);
+        .in("user_id", playerUserIds);
       if (error) throw error;
       return data;
     },
-    enabled: !!gameId && characterIds.length > 0,
+    enabled: !!gameId && playerUserIds.length > 0,
     retry: online ? 3 : 0,
   });
 
