@@ -84,14 +84,18 @@ function SectionNode({
   onActivateSection,
   depth = 0,
   parentBackground = null,
+  featsMap,
 }: {
   section: WikiSection;
   activeSection: string | null;
   onActivateSection: (id: string) => void;
   depth?: number;
   parentBackground?: string | null;
+  featsMap: Map<string, any> | undefined;
 }) {
   const [open, setOpen] = useState(true);
+  const [hoveredFeat, setHoveredFeat] = useState<{ name: string; rect: DOMRect } | null>(null);
+  const contentRef = useRef<HTMLDivElement>(null);
   const isActive = activeSection === section.id;
   const hasChildren = section.children.length > 0;
   const hasContent = section.content.trim().length > 0;
@@ -113,6 +117,33 @@ function SectionNode({
     : {};
 
   const hasBgImage = !!effectiveBg;
+
+  // Style and attach hover events to .wiki-feat-link spans
+  useEffect(() => {
+    const el = contentRef.current;
+    if (!el || !featsMap) return;
+    const links = el.querySelectorAll<HTMLSpanElement>(".wiki-feat-link");
+    links.forEach((link) => {
+      link.style.color = "hsl(var(--primary))";
+      link.style.textDecoration = "underline";
+      link.style.textDecorationStyle = "dotted";
+      link.style.textUnderlineOffset = "2px";
+      link.style.cursor = "help";
+    });
+  }, [section.content, featsMap]);
+
+  const handleMouseOver = useCallback((e: React.MouseEvent) => {
+    const target = (e.target as HTMLElement).closest(".wiki-feat-link") as HTMLElement | null;
+    if (target) {
+      const feat = target.getAttribute("data-feat");
+      if (feat) setHoveredFeat({ name: feat, rect: target.getBoundingClientRect() });
+    }
+  }, []);
+
+  const handleMouseOut = useCallback((e: React.MouseEvent) => {
+    const target = (e.target as HTMLElement).closest(".wiki-feat-link");
+    if (target) setHoveredFeat(null);
+  }, []);
 
   return (
     <div
@@ -159,10 +190,16 @@ function SectionNode({
         <>
           {hasContent && (
             <div
+              ref={contentRef}
+              onMouseOver={handleMouseOver}
+              onMouseOut={handleMouseOut}
               className={cn("px-8 pb-2 text-sm leading-relaxed prose prose-sm max-w-none overflow-x-auto", isActive ? "text-primary-foreground/80" : "text-muted-foreground",
                 "[&_ul]:list-disc [&_ul]:pl-5 [&_li]:mb-1 [&_hr]:my-3 [&_p]:mb-1.5 [&_pre]:whitespace-pre-wrap [&_pre]:break-words [&_pre]:overflow-x-auto")}
               dangerouslySetInnerHTML={{ __html: section.content }}
             />
+          )}
+          {hoveredFeat && featsMap && (
+            <FeatLinkTooltip featName={hoveredFeat.name} rect={hoveredFeat.rect} featsMap={featsMap} />
           )}
           {section.children.map((child) => (
             <SectionNode
@@ -172,6 +209,7 @@ function SectionNode({
               onActivateSection={onActivateSection}
               depth={depth + 1}
               parentBackground={effectiveBg}
+              featsMap={featsMap}
             />
           ))}
         </>
