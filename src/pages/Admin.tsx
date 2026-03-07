@@ -10,6 +10,8 @@ import { Table, TableHeader, TableBody, TableHead, TableRow, TableCell } from "@
 import { toast } from "@/hooks/use-toast";
 import { ArrowLeft, Crown, Download, Loader2, Search, X, Check } from "lucide-react";
 import ManageScenarios from "@/components/ManageScenarios";
+import ImportFeatsCard from "@/components/ImportFeatsCard";
+import ManageFeats from "@/components/ManageFeats";
 
 type PreviewItem = { title: string; status: "new" | "modified" | "unchanged" };
 
@@ -107,6 +109,7 @@ const Admin = () => {
       </header>
 
       <main className="container py-8 max-w-2xl space-y-6">
+        {/* Scenarios Import */}
         <Card className="border-primary/20">
           <CardHeader>
             <CardTitle className="font-display flex items-center gap-2">
@@ -117,7 +120,6 @@ const Admin = () => {
             </CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
-            {/* Initial state: check button */}
             {!preview && !result && (
               <Button onClick={handlePreview} disabled={checking} className="gap-2 font-display">
                 {checking ? <Loader2 className="h-4 w-4 animate-spin" /> : <Search className="h-4 w-4" />}
@@ -125,7 +127,6 @@ const Admin = () => {
               </Button>
             )}
 
-            {/* Preview table */}
             {preview && (
               <div className="space-y-4">
                 <div className="flex items-center gap-3 text-sm text-muted-foreground">
@@ -174,7 +175,6 @@ const Admin = () => {
               </div>
             )}
 
-            {/* Import result */}
             {result && (
               <div className="rounded-lg border border-border p-4 space-y-2 text-sm">
                 <p className="text-foreground">
@@ -197,6 +197,11 @@ const Admin = () => {
         </Card>
 
         <ManageScenarios />
+
+        {/* Feats Import */}
+        <ImportFeatsCard />
+
+        <ManageFeats />
       </main>
     </div>
   );
