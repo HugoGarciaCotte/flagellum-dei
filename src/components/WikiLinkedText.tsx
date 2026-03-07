@@ -83,7 +83,8 @@ function stripLinks(text: string): string {
 }
 
 export default function WikiLinkedText({ text, className = "" }: WikiLinkedTextProps) {
-  const segments = useMemo(() => parseSegments(text), [text]);
+  const cleanText = useMemo(() => text.replace(/<!--[\s\S]*?-->/g, ""), [text]);
+  const segments = useMemo(() => parseSegments(cleanText), [cleanText]);
   const hasLinks = segments.some((s) => s.type === "link");
 
   const { data: featsMap } = useQuery({

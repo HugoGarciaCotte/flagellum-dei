@@ -23,6 +23,8 @@ function slugify(text: string): string {
 }
 
 function convertInlineMarkup(text: string): string {
+  // Strip HTML comments
+  text = text.replace(/<!--[\s\S]*?-->/g, "");
   // Bold+Italic: '''''text'''''
   text = text.replace(/'''''(.+?)'''''/g, "<strong><em>$1</em></strong>");
   // Bold: '''text'''
