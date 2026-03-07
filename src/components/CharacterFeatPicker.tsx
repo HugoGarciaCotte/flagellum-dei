@@ -227,10 +227,8 @@ const CharacterFeatPicker = ({ characterId, mode = "player", scenarioLevel }: Ch
       }
     },
     onError: (error: any) => {
-      toast({
-        title: "Cannot pick this feat",
+      toast.error("Cannot pick this feat", {
         description: error.message || "Prerequisites not met",
-        variant: "destructive",
       });
     },
   });
