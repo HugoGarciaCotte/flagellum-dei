@@ -145,7 +145,7 @@ ${allFeatTitles.join(", ")}`;
     method: "POST",
     headers: { Authorization: `Bearer ${apiKey}`, "Content-Type": "application/json" },
     body: JSON.stringify({
-      model: "google/gemini-3-flash-preview",
+      model: "google/gemini-2.5-flash",
       messages: [
         { role: "system", content: systemPrompt },
         { role: "user", content: `Title: ${title}\nCategories: ${categories.join(", ")}\n\nWiki Content:\n${content}` },
@@ -210,7 +210,7 @@ async function generateSpecialities(title: string, content: string, categories: 
     method: "POST",
     headers: { Authorization: `Bearer ${apiKey}`, "Content-Type": "application/json" },
     body: JSON.stringify({
-      model: "google/gemini-3-flash-preview",
+      model: "google/gemini-2.5-flash",
       messages: [
         { role: "system", content: `You are a TRPG feat analyzer. Some feats require the player to choose a speciality when they pick the feat. Analyze the feat's wiki content and determine if this feat requires the player to choose a speciality and if yes, what are all the valid speciality options. Most feats do NOT have specialities. Only return specialities if the wiki content clearly lists specific options. Return an empty array if no specialities exist.` },
         { role: "user", content: `Title: ${title}\nCategories: ${categories.join(", ")}\n\nWiki Content:\n${content}` },
@@ -250,7 +250,7 @@ async function generatePrerequisites(title: string, content: string, categories:
     method: "POST",
     headers: { Authorization: `Bearer ${apiKey}`, "Content-Type": "application/json" },
     body: JSON.stringify({
-      model: "google/gemini-3-flash-preview",
+      model: "google/gemini-2.5-flash",
       messages: [
         { role: "system", content: `You are a TRPG feat analyzer. Analyze the feat's wiki content and extract its prerequisites. Prerequisites are conditions a character must meet to take this feat (e.g. other feats, levels, attributes). Return the prerequisites as a free-form text string using wiki link syntax for feat references (e.g. "[[Prowess]], Level 3"). If the feat has no prerequisites, return an empty string.` },
         { role: "user", content: `Title: ${title}\nCategories: ${categories.join(", ")}\n\nWiki Content:\n${content}` },
@@ -290,7 +290,7 @@ async function generateBlocking(title: string, content: string, categories: stri
     method: "POST",
     headers: { Authorization: `Bearer ${apiKey}`, "Content-Type": "application/json" },
     body: JSON.stringify({
-      model: "google/gemini-3-flash-preview",
+      model: "google/gemini-2.5-flash",
       messages: [
         { role: "system", content: `You are a TRPG feat analyzer. Analyze the feat's wiki content and determine which other feats are INCOMPATIBLE with this feat. Blocking feats are feats that cannot be taken together — if a character has one, they cannot take the other. This is typically stated explicitly in the wiki content (e.g. "incompatible with X", "cannot be combined with Y", "mutually exclusive with Z"). Most feats do NOT block any other feats. Only return blocking feats if the wiki content clearly states incompatibility. Return feat titles that exist in the system.\n\nAvailable feat titles:\n${allFeatTitles.join(", ")}` },
         { role: "user", content: `Title: ${title}\nCategories: ${categories.join(", ")}\n\nWiki Content:\n${content}` },
