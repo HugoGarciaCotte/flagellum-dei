@@ -73,8 +73,8 @@ export default defineConfig(({ mode }) => ({
         ],
       },
       manifest: {
-        name: "Quest Scroll",
-        short_name: "QuestScroll",
+        name: "Prima Danse Macabre RPG Helper",
+        short_name: "PrimaDanse",
         description: "Interactive tabletop RPG scenario runner",
         theme_color: "#141318",
         background_color: "#141318",

@@ -11,7 +11,7 @@ const Home = () => {
         <div className="container mx-auto flex items-center justify-between px-6 py-4">
           <div className="flex items-center gap-3">
             <Crown className="h-7 w-7 text-primary" />
-            <span className="font-display text-xl font-bold text-primary">Quest Scroll</span>
+            <span className="font-display text-xl font-bold text-primary">Prima Danse Macabre</span>
           </div>
           <Link to="/auth">
             <Button size="sm" className="font-display tracking-wide">
@@ -29,7 +29,7 @@ const Home = () => {
             Unfold the <span className="text-primary">Story</span>
           </h1>
           <p className="mx-auto max-w-xl text-lg leading-relaxed text-muted-foreground">
-            Quest Scroll lets you host and play immersive RPG scenarios with friends — in real time, on any device, even offline.
+            Prima Danse Macabre lets you host and play immersive RPG scenarios with friends — in real time, on any device, even offline.
           </p>
           <Link to="/auth">
             <Button size="lg" className="mt-4 font-display text-lg tracking-wide px-10 py-6">
@@ -74,7 +74,7 @@ const Home = () => {
           <Smartphone className="mx-auto h-12 w-12 text-muted-foreground" />
           <h2 className="font-display text-2xl font-bold text-foreground">Install as an App</h2>
           <p className="text-muted-foreground">
-            Quest Scroll works as a native-feeling app on your phone or tablet. Install it for the best experience.
+            Prima Danse Macabre works as a native-feeling app on your phone or tablet. Install it for the best experience.
           </p>
           <Link to="/install">
             <Button variant="outline" className="font-display tracking-wide mt-2">
@@ -88,7 +88,7 @@ const Home = () => {
       <footer className="border-t border-border py-10 text-center">
         <div className="flex items-center justify-center gap-2 text-muted-foreground">
           <Crown className="h-4 w-4 text-primary" />
-          <span className="font-display text-sm">Quest Scroll</span>
+          <span className="font-display text-sm">Prima Danse Macabre</span>
         </div>
       </footer>
     </div>
