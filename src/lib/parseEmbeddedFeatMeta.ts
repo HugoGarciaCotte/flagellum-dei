@@ -1,5 +1,6 @@
 export interface EmbeddedFeatMeta {
   description: string | null;
+  prerequisites: string | null;
   specialities: string[] | null;
   subfeats: SubfeatSlot[] | null;
   unlocks_categories: string[] | null;
@@ -21,6 +22,7 @@ export interface SubfeatSlot {
 export function parseEmbeddedFeatMeta(content: string | null | undefined): EmbeddedFeatMeta {
   const result: EmbeddedFeatMeta = {
     description: null,
+    prerequisites: null,
     specialities: null,
     subfeats: null,
     unlocks_categories: null,
@@ -38,6 +40,8 @@ export function parseEmbeddedFeatMeta(content: string | null | undefined): Embed
 
     if (key === "feat_one_liner") {
       result.description = value;
+    } else if (key === "feat_prerequisites") {
+      result.prerequisites = value;
     } else if (key === "feat_specialities") {
       result.specialities = value.split(",").map((s) => s.trim()).filter(Boolean);
     } else if (key === "feat_unlocks") {
@@ -93,6 +97,9 @@ export function generateParseableBlock(meta: {
 
   if (meta.description?.trim()) {
     lines.push(`<!--@ feat_one_liner: ${meta.description.trim()} @-->`);
+  }
+  if (meta.prerequisites?.trim()) {
+    lines.push(`<!--@ feat_prerequisites: ${meta.prerequisites.trim()} @-->`);
   }
   if (meta.specialities && meta.specialities.length > 0) {
     lines.push(`<!--@ feat_specialities: ${meta.specialities.join(", ")} @-->`);
