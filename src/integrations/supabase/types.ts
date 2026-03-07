@@ -83,7 +83,6 @@ export type Database = {
       games: {
         Row: {
           created_at: string
-          current_section_id: string | null
           host_user_id: string
           id: string
           join_code: string
@@ -93,7 +92,6 @@ export type Database = {
         }
         Insert: {
           created_at?: string
-          current_section_id?: string | null
           host_user_id: string
           id?: string
           join_code: string
@@ -103,7 +101,6 @@ export type Database = {
         }
         Update: {
           created_at?: string
-          current_section_id?: string | null
           host_user_id?: string
           id?: string
           join_code?: string
@@ -112,13 +109,6 @@ export type Database = {
           updated_at?: string
         }
         Relationships: [
-          {
-            foreignKeyName: "games_current_section_id_fkey"
-            columns: ["current_section_id"]
-            isOneToOne: false
-            referencedRelation: "scenario_sections"
-            referencedColumns: ["id"]
-          },
           {
             foreignKeyName: "games_scenario_id_fkey"
             columns: ["scenario_id"]
@@ -152,62 +142,45 @@ export type Database = {
         }
         Relationships: []
       }
-      scenario_sections: {
-        Row: {
-          background_color: string
-          content: string
-          created_at: string
-          id: string
-          scenario_id: string
-          sort_order: number
-          title: string
-        }
-        Insert: {
-          background_color?: string
-          content: string
-          created_at?: string
-          id?: string
-          scenario_id: string
-          sort_order?: number
-          title: string
-        }
-        Update: {
-          background_color?: string
-          content?: string
-          created_at?: string
-          id?: string
-          scenario_id?: string
-          sort_order?: number
-          title?: string
-        }
-        Relationships: [
-          {
-            foreignKeyName: "scenario_sections_scenario_id_fkey"
-            columns: ["scenario_id"]
-            isOneToOne: false
-            referencedRelation: "scenarios"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
       scenarios: {
         Row: {
+          content: string | null
           created_at: string
           description: string | null
           id: string
           title: string
         }
         Insert: {
+          content?: string | null
           created_at?: string
           description?: string | null
           id?: string
           title: string
         }
         Update: {
+          content?: string | null
           created_at?: string
           description?: string | null
           id?: string
           title?: string
+        }
+        Relationships: []
+      }
+      user_roles: {
+        Row: {
+          id: string
+          role: Database["public"]["Enums"]["app_role"]
+          user_id: string
+        }
+        Insert: {
+          id?: string
+          role: Database["public"]["Enums"]["app_role"]
+          user_id: string
+        }
+        Update: {
+          id?: string
+          role?: Database["public"]["Enums"]["app_role"]
+          user_id?: string
         }
         Relationships: []
       }
@@ -216,10 +189,16 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
-      [_ in never]: never
+      has_role: {
+        Args: {
+          _role: Database["public"]["Enums"]["app_role"]
+          _user_id: string
+        }
+        Returns: boolean
+      }
     }
     Enums: {
-      [_ in never]: never
+      app_role: "owner" | "admin" | "user"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -346,6 +325,8 @@ export type CompositeTypes<
 
 export const Constants = {
   public: {
-    Enums: {},
+    Enums: {
+      app_role: ["owner", "admin", "user"],
+    },
   },
 } as const
