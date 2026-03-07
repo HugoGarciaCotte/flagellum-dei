@@ -32,6 +32,7 @@ const Dashboard = () => {
   const { isOwner } = useIsOwner();
   const { isGameMaster } = useIsGameMaster();
   const [gmDialogOpen, setGmDialogOpen] = useState(false);
+  const [deleteCharTarget, setDeleteCharTarget] = useState<{ id: string; name: string } | null>(null);
 
   useOfflineScenarios();
 
@@ -90,6 +91,7 @@ const Dashboard = () => {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["my-characters"] });
+      setDeleteCharTarget(null);
       toast({ title: "Character deleted" });
     },
   });
@@ -319,7 +321,7 @@ const Dashboard = () => {
                         <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => openEditChar(c)}>
                           <Pencil className="h-3.5 w-3.5" />
                         </Button>
-                        <Button variant="ghost" size="icon" className="h-7 w-7 text-destructive" onClick={() => deleteCharMutation.mutate(c.id)}>
+                        <Button variant="ghost" size="icon" className="h-7 w-7 text-destructive" onClick={() => setDeleteCharTarget({ id: c.id, name: c.name })}>
                           <Trash2 className="h-3.5 w-3.5" />
                         </Button>
                       </div>
@@ -444,6 +446,27 @@ const Dashboard = () => {
           </AlertDialog>
         )}
 
+        {/* Delete Character Confirmation */}
+        <AlertDialog open={!!deleteCharTarget} onOpenChange={(open) => { if (!open) setDeleteCharTarget(null); }}>
+          <AlertDialogContent>
+            <AlertDialogHeader>
+              <AlertDialogTitle>Delete "{deleteCharTarget?.name}"?</AlertDialogTitle>
+              <AlertDialogDescription>
+                This will permanently remove this character and all their feats.
+              </AlertDialogDescription>
+            </AlertDialogHeader>
+            <AlertDialogFooter>
+              <AlertDialogCancel disabled={deleteCharMutation.isPending}>Cancel</AlertDialogCancel>
+              <AlertDialogAction
+                onClick={() => deleteCharTarget && deleteCharMutation.mutate(deleteCharTarget.id)}
+                disabled={deleteCharMutation.isPending}
+                className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+              >
+                {deleteCharMutation.isPending ? "Deleting..." : "Delete"}
+              </AlertDialogAction>
+            </AlertDialogFooter>
+          </AlertDialogContent>
+        </AlertDialog>
       </main>
     </div>
   );
