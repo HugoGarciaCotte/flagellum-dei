@@ -1,4 +1,4 @@
-import { useEffect, useMemo } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
@@ -7,16 +7,23 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { toast } from "@/hooks/use-toast";
 import { ArrowLeft, Copy, Crown, Users, StopCircle } from "lucide-react";
-import { parseWikitext } from "@/lib/parseWikitext";
+import { parseWikitext, extractImageUrls } from "@/lib/parseWikitext";
 import WikiSectionTree from "@/components/WikiSectionTree";
+import { useOfflineGameSession } from "@/hooks/useOfflineGameSession";
+import { useNetworkStatus } from "@/hooks/useNetworkStatus";
+import { getCachedGameSession, updateCachedSection, prefetchImages } from "@/lib/offlineStorage";
 
 const HostGame = () => {
   const { gameId } = useParams<{ gameId: string }>();
   const { user } = useAuth();
   const navigate = useNavigate();
   const queryClient = useQueryClient();
+  const online = useNetworkStatus();
 
-  const { data: game } = useQuery({
+  // Local override for current_section when offline
+  const [localSection, setLocalSection] = useState<string | null>(null);
+
+  const { data: game, error: gameError } = useQuery({
     queryKey: ["game", gameId],
     queryFn: async () => {
       const { data, error } = await supabase
@@ -28,6 +35,7 @@ const HostGame = () => {
       return data;
     },
     enabled: !!gameId,
+    retry: online ? 3 : 0,
   });
 
   const { data: players } = useQuery({
@@ -41,9 +49,63 @@ const HostGame = () => {
       return data;
     },
     enabled: !!gameId,
+    retry: online ? 3 : 0,
   });
 
-  // Realtime for game updates (current_section changes)
+  // Fetch characters for all players
+  const characterIds = useMemo(
+    () => (players ?? []).map((p: any) => p.character_id).filter(Boolean) as string[],
+    [players]
+  );
+
+  const { data: characters } = useQuery({
+    queryKey: ["game-characters", gameId, characterIds],
+    queryFn: async () => {
+      if (characterIds.length === 0) return [];
+      const { data, error } = await supabase
+        .from("characters")
+        .select("id, name, description, user_id")
+        .in("id", characterIds);
+      if (error) throw error;
+      return data;
+    },
+    enabled: !!gameId && characterIds.length > 0,
+    retry: online ? 3 : 0,
+  });
+
+  // Cache session for offline use
+  useOfflineGameSession({ gameId, game, players, characters });
+
+  // Offline fallback data
+  const cachedSession = useMemo(() => {
+    if (game) return null; // online data available
+    if (!gameId) return null;
+    return getCachedGameSession(gameId);
+  }, [game, gameId, gameError]);
+
+  const effectiveGame = game ?? cachedSession?.game;
+  const effectiveScenario = game ? (game as any).scenarios : cachedSession?.scenario;
+  const effectivePlayers = players ?? cachedSession?.players ?? [];
+
+  // Prefetch scenario images
+  const scenarioContent = effectiveScenario?.content || "";
+  const sections = useMemo(() => parseWikitext(scenarioContent), [scenarioContent]);
+
+  useEffect(() => {
+    const urls = extractImageUrls(scenarioContent);
+    if (urls.length > 0) prefetchImages(urls);
+  }, [scenarioContent]);
+
+  const activeSection = localSection ?? (effectiveGame as any)?.current_section ?? null;
+
+  // Sync localSection when online data arrives
+  useEffect(() => {
+    if (game) {
+      setLocalSection(null);
+    }
+  }, [game]);
+
+  // Realtime for game updates
   useEffect(() => {
     if (!gameId) return;
     const channel = supabase
@@ -68,28 +130,35 @@ const HostGame = () => {
   }, [gameId, queryClient]);
 
   const endGame = async () => {
-    if (!game) return;
-    await supabase.from("games").update({ status: "ended" }).eq("id", game.id);
+    if (!effectiveGame) return;
+    if (!online) {
+      toast({ title: "Offline", description: "Cannot end the game while offline.", variant: "destructive" });
+      return;
+    }
+    await supabase.from("games").update({ status: "ended" }).eq("id", (effectiveGame as any).id);
     navigate("/");
   };
 
   const copyCode = () => {
-    if (game) {
-      navigator.clipboard.writeText(game.join_code);
+    if (effectiveGame) {
+      navigator.clipboard.writeText((effectiveGame as any).join_code);
       toast({ title: "Copied!", description: "Join code copied to clipboard." });
     }
   };
 
-  const scenarioContent = (game as any)?.scenarios?.content || "";
-  const sections = useMemo(() => parseWikitext(scenarioContent), [scenarioContent]);
-  const activeSection = (game as any)?.current_section ?? null;
-
   const activateSection = async (sectionId: string) => {
-    if (!game) return;
-    await supabase.from("games").update({ current_section: sectionId } as any).eq("id", game.id);
+    // Always update local state + cache immediately
+    setLocalSection(sectionId);
+    if (gameId) updateCachedSection(gameId, sectionId);
+
+    if (!effectiveGame) return;
+
+    if (online) {
+      await supabase.from("games").update({ current_section: sectionId } as any).eq("id", (effectiveGame as any).id);
+    }
   };
 
-  if (!game) {
+  if (!effectiveGame) {
     return (
       <div className="flex min-h-screen items-center justify-center bg-background">
         <div className="animate-pulse-glow text-primary font-display text-xl">Loading quest...</div>
@@ -107,15 +176,18 @@ const HostGame = () => {
             </Button>
             <h1 className="font-display text-lg font-bold text-foreground flex items-center gap-2">
               <Crown className="h-4 w-4 text-primary" />
-              {(game as any).scenarios?.title}
+              {effectiveScenario?.title}
             </h1>
+            {!online && (
+              <span className="text-xs bg-destructive/20 text-destructive px-2 py-0.5 rounded-full">Offline</span>
+            )}
           </div>
           <div className="flex items-center gap-3">
             <Button variant="outline" size="sm" onClick={copyCode} className="gap-2 border-primary/30 font-mono tracking-widest">
-              <Copy className="h-3 w-3" /> {game.join_code}
+              <Copy className="h-3 w-3" /> {(effectiveGame as any).join_code}
             </Button>
             <div className="flex items-center gap-1 text-muted-foreground text-sm">
-              <Users className="h-4 w-4" /> {players?.length ?? 0}
+              <Users className="h-4 w-4" /> {effectivePlayers.length}
             </div>
             <Button variant="destructive" size="sm" onClick={endGame} className="gap-1">
               <StopCircle className="h-3 w-3" /> End

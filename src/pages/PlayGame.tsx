@@ -5,14 +5,18 @@ import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { ArrowLeft, Scroll } from "lucide-react";
-import { parseWikitext, findSection } from "@/lib/parseWikitext";
+import { parseWikitext, findSection, extractImageUrls } from "@/lib/parseWikitext";
+import { useOfflineGameSession } from "@/hooks/useOfflineGameSession";
+import { useNetworkStatus } from "@/hooks/useNetworkStatus";
+import { getCachedGameSession, prefetchImages } from "@/lib/offlineStorage";
 
 const PlayGame = () => {
   const { gameId } = useParams<{ gameId: string }>();
   const navigate = useNavigate();
   const queryClient = useQueryClient();
+  const online = useNetworkStatus();
 
-  const { data: game } = useQuery({
+  const { data: game, error: gameError } = useQuery({
     queryKey: ["game", gameId],
     queryFn: async () => {
       const { data, error } = await supabase
@@ -24,7 +28,21 @@ const PlayGame = () => {
       return data;
     },
     enabled: !!gameId,
+    retry: online ? 3 : 0,
   });
+
+  // Cache session for offline use
+  useOfflineGameSession({ gameId, game, players: undefined, characters: undefined });
+
+  // Offline fallback
+  const cachedSession = useMemo(() => {
+    if (game) return null;
+    if (!gameId) return null;
+    return getCachedGameSession(gameId);
+  }, [game, gameId, gameError]);
+
+  const effectiveGame = game ?? cachedSession?.game;
+  const effectiveScenario = game ? (game as any).scenarios : cachedSession?.scenario;
 
   // Realtime: listen for game updates
   useEffect(() => {
@@ -38,12 +56,19 @@ const PlayGame = () => {
     return () => { supabase.removeChannel(channel); };
   }, [gameId, queryClient]);
 
-  const scenarioContent = (game as any)?.scenarios?.content || "";
+  const scenarioContent = effectiveScenario?.content || "";
   const sections = useMemo(() => parseWikitext(scenarioContent), [scenarioContent]);
-  const currentSectionId = (game as any)?.current_section ?? null;
+
+  // Prefetch images
+  useEffect(() => {
+    const urls = extractImageUrls(scenarioContent);
+    if (urls.length > 0) prefetchImages(urls);
+  }, [scenarioContent]);
+
+  const currentSectionId = (effectiveGame as any)?.current_section ?? null;
   const activeSection = currentSectionId ? findSection(sections, currentSectionId) : null;
 
-  if (!game) {
+  if (!effectiveGame) {
     return (
       <div className="flex min-h-screen items-center justify-center bg-background">
         <div className="animate-pulse-glow text-primary font-display text-xl">Joining quest...</div>
@@ -51,7 +76,7 @@ const PlayGame = () => {
     );
   }
 
-  if (game.status === "ended") {
+  if ((effectiveGame as any).status === "ended") {
     return (
       <div className="flex min-h-screen items-center justify-center bg-background flex-col gap-4">
         <p className="font-display text-xl text-muted-foreground">This quest has ended.</p>
@@ -69,8 +94,11 @@ const PlayGame = () => {
           </Button>
           <h1 className="font-display text-lg font-bold text-foreground flex items-center gap-2">
             <Scroll className="h-4 w-4 text-primary" />
-            {(game as any).scenarios?.title}
+            {effectiveScenario?.title}
           </h1>
+          {!online && (
+            <span className="text-xs bg-destructive/20 text-destructive px-2 py-0.5 rounded-full">Offline</span>
+          )}
         </div>
       </header>
 
@@ -91,9 +119,11 @@ const PlayGame = () => {
         ) : (
           <div className="text-center space-y-2">
             <div className="animate-pulse-glow text-primary font-display text-xl">
-              Waiting for the Game Master...
+              {online ? "Waiting for the Game Master..." : "Offline — showing last known state"}
             </div>
-            <p className="text-muted-foreground text-sm">The quest will begin shortly.</p>
+            <p className="text-muted-foreground text-sm">
+              {online ? "The quest will begin shortly." : "Realtime updates will resume when back online."}
+            </p>
           </div>
         )}
       </main>
