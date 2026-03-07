@@ -1,10 +1,11 @@
-import { useEffect } from "react";
+import { useEffect, useMemo } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { ArrowLeft, Scroll } from "lucide-react";
+import { parseWikitext, findSection } from "@/lib/parseWikitext";
 
 const PlayGame = () => {
   const { gameId } = useParams<{ gameId: string }>();
@@ -37,6 +38,11 @@ const PlayGame = () => {
     return () => { supabase.removeChannel(channel); };
   }, [gameId, queryClient]);
 
+  const scenarioContent = (game as any)?.scenarios?.content || "";
+  const sections = useMemo(() => parseWikitext(scenarioContent), [scenarioContent]);
+  const currentSectionId = (game as any)?.current_section ?? null;
+  const activeSection = currentSectionId ? findSection(sections, currentSectionId) : null;
+
   if (!game) {
     return (
       <div className="flex min-h-screen items-center justify-center bg-background">
@@ -54,8 +60,6 @@ const PlayGame = () => {
     );
   }
 
-  const scenarioContent = (game as any).scenarios?.content;
-
   return (
     <div className="min-h-screen bg-background flex flex-col">
       <header className="border-b border-border/50 bg-card/50 backdrop-blur sticky top-0 z-10">
@@ -71,12 +75,17 @@ const PlayGame = () => {
       </header>
 
       <main className="flex-1 container py-8 flex items-center justify-center max-w-3xl">
-        {scenarioContent ? (
+        {activeSection ? (
           <Card className="w-full border-primary/20">
             <CardContent className="p-8">
-              <div className="text-foreground text-lg leading-relaxed whitespace-pre-wrap">
-                {scenarioContent}
-              </div>
+              <h2 className="font-display text-2xl font-bold text-foreground mb-4">
+                {activeSection.title}
+              </h2>
+              <div
+                className="text-foreground text-lg leading-relaxed prose prose-lg max-w-none
+                  [&_ul]:list-disc [&_ul]:pl-5 [&_li]:mb-1 [&_hr]:my-3 [&_p]:mb-2"
+                dangerouslySetInnerHTML={{ __html: activeSection.content }}
+              />
             </CardContent>
           </Card>
         ) : (
