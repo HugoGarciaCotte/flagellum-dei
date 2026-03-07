@@ -5,8 +5,6 @@ import { supabase } from "@/integrations/supabase/client";
 import { useQuery, useQueryClient, useMutation } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
-import { Input } from "@/components/ui/input";
-import { Textarea } from "@/components/ui/textarea";
 import { ArrowLeft, Scroll, User, Plus, Check } from "lucide-react";
 import CharacterSheet from "@/components/CharacterSheet";
 import { useNetworkStatus } from "@/hooks/useNetworkStatus";
