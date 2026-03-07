@@ -73,8 +73,8 @@ export default defineConfig(({ mode }) => ({
         ],
       },
       manifest: {
-        name: "Prima TTRPG Helper",
-        short_name: "PrimaTTRPG",
+        name: "Prima TRPG Helper",
+        short_name: "PrimaTRPG",
         description: "Interactive tabletop RPG scenario runner",
         theme_color: "#141318",
         background_color: "#141318",

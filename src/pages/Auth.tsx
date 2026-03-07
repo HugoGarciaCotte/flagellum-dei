@@ -68,7 +68,7 @@ const Auth = () => {
             <Shield className="h-12 w-12 text-primary" />
           </div>
           <h1 className="font-display text-3xl font-bold text-foreground tracking-wide">
-            Prima TTRPG Helper
+            Prima TRPG Helper
           </h1>
           <p className="text-muted-foreground text-lg">Your adventure awaits</p>
         </div>

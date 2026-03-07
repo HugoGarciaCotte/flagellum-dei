@@ -60,7 +60,7 @@ async function generateSubfeats(
   const apiKey = Deno.env.get("LOVABLE_API_KEY");
   if (!apiKey) throw new Error("LOVABLE_API_KEY is not configured");
 
-  const systemPrompt = `You are a TTRPG feat analyzer. You determine whether a feat grants "subfeats" — additional feat choices a character gets when they acquire the parent feat.
+  const systemPrompt = `You are a TRPG feat analyzer. You determine whether a feat grants "subfeats" — additional feat choices a character gets when they acquire the parent feat.
 
 There are 3 kinds of subfeat slots (up to 3 slots per feat):
 1. "fixed" — A specific feat is always granted. Use "feat_title" to name it.
