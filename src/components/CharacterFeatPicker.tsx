@@ -229,12 +229,19 @@ const CharacterFeatPicker = ({ characterId, mode = "player", scenarioLevel }: Ch
       );
     }
 
+    // Hide General Feats already owned by the character
+    const ownedFeatIds = new Set((characterFeats ?? []).map(cf => cf.feat_id));
+    filtered = filtered.filter(f => {
+      if (f.categories?.includes("General Feat") && ownedFeatIds.has(f.id)) return false;
+      return true;
+    });
+
     if (searchTerm.trim()) {
       const lower = searchTerm.toLowerCase();
       filtered = filtered.filter((f) => f.title.toLowerCase().includes(lower));
     }
     return filtered.sort(sortTitlesEmojiLast);
-  }, [allFeats, filterMode, searchTerm, mode, pickerTarget]);
+  }, [allFeats, filterMode, searchTerm, mode, pickerTarget, characterFeats]);
 
   const openPicker = (target: PickerTarget) => {
     if (!online) return;
