@@ -91,6 +91,7 @@ const Dashboard = () => {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["my-characters"] });
+      setDeleteCharTarget(null);
       toast({ title: "Character deleted" });
     },
   });
