@@ -1,4 +1,4 @@
-import { useState, useMemo, useEffect, useRef } from "react";
+import { useState, useMemo, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { sortTitlesEmojiLast } from "@/lib/utils";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
@@ -87,9 +87,8 @@ const CharacterFeatPicker = ({ characterId, mode = "player", scenarioLevel }: Ch
   const [expandedFeatId, setExpandedFeatId] = useState<string | null>(null);
   const [expandedAssignedFeatId, setExpandedAssignedFeatId] = useState<string | null>(null);
   const [expandedSubfeatKey, setExpandedSubfeatKey] = useState<string | null>(null);
-  const [editingNoteId, setEditingNoteId] = useState<string | null>(null);
-  const [noteValue, setNoteValue] = useState("");
-  const noteInputRef = useRef<HTMLInputElement>(null);
+  const [localNotes, setLocalNotes] = useState<Record<string, string>>({});
+  const [notesInitialized, setNotesInitialized] = useState(false);
   const [pendingSubfeatSlots, setPendingSubfeatSlots] = useState<{ characterFeatId: string; slot: SubfeatSlot }[]>([]);
 
   const { data: allFeats } = useQuery({
@@ -308,7 +307,6 @@ const CharacterFeatPicker = ({ characterId, mode = "player", scenarioLevel }: Ch
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["character-feats", characterId] });
-      setEditingNoteId(null);
     },
   });
 
@@ -346,14 +344,39 @@ const CharacterFeatPicker = ({ characterId, mode = "player", scenarioLevel }: Ch
     },
   });
 
-  const startEditingNote = (cf: CharacterFeat) => {
-    setEditingNoteId(cf.id);
-    setNoteValue(cf.note ?? "");
-    setTimeout(() => noteInputRef.current?.focus(), 50);
+  // Initialize local notes from fetched data
+  useEffect(() => {
+    if (characterFeats && !notesInitialized) {
+      const notes: Record<string, string> = {};
+      characterFeats.forEach(cf => { notes[cf.id] = cf.note ?? ""; });
+      setLocalNotes(notes);
+      setNotesInitialized(true);
+    }
+  }, [characterFeats, notesInitialized]);
+
+  // Update local notes when characterFeats change (after mutation success)
+  useEffect(() => {
+    if (characterFeats) {
+      setLocalNotes(prev => {
+        const next = { ...prev };
+        characterFeats.forEach(cf => {
+          if (!(cf.id in next)) next[cf.id] = cf.note ?? "";
+        });
+        return next;
+      });
+    }
+  }, [characterFeats]);
+
+  const handleNoteChange = (cfId: string, value: string) => {
+    setLocalNotes(prev => ({ ...prev, [cfId]: value }));
   };
 
-  const saveNote = (id: string) => {
-    updateNoteMutation.mutate({ id, note: noteValue });
+  const handleNoteBlur = (cfId: string) => {
+    const current = localNotes[cfId] ?? "";
+    const original = characterFeats?.find(cf => cf.id === cfId)?.note ?? "";
+    if (current !== original) {
+      updateNoteMutation.mutate({ id: cfId, note: current });
+    }
   };
 
   const featMap = useMemo(() => {
@@ -713,37 +736,13 @@ const CharacterFeatPicker = ({ characterId, mode = "player", scenarioLevel }: Ch
 
               {assignedFeat ? (
                 <div className="flex-1 min-w-0">
-                  <FeatListItem
+                   <FeatListItem
                     feat={assignedFeat}
                     expanded={expandedAssignedFeatId === assigned!.id}
                     onToggleExpand={() => setExpandedAssignedFeatId(expandedAssignedFeatId === assigned!.id ? null : assigned!.id)}
-                    note={editingNoteId !== assigned!.id ? assigned!.note : undefined}
-                    noteEditor={
-                      editingNoteId === assigned!.id ? (
-                        <form
-                          className="flex items-center gap-1 shrink-0"
-                          onSubmit={(e) => { e.preventDefault(); saveNote(assigned!.id); }}
-                        >
-                          <Input
-                            ref={noteInputRef}
-                            value={noteValue}
-                            onChange={(e) => setNoteValue(e.target.value)}
-                            className="h-6 text-xs w-24"
-                            placeholder="note..."
-                            onBlur={() => saveNote(assigned!.id)}
-                          />
-                        </form>
-                      ) : online ? (
-                        <button
-                          type="button"
-                          className="shrink-0 text-muted-foreground hover:text-foreground"
-                          onClick={() => startEditingNote(assigned!)}
-                          title="Add note"
-                        >
-                          <Pencil className="h-3 w-3" />
-                        </button>
-                      ) : undefined
-                    }
+                    noteValue={localNotes[assigned!.id] ?? assigned!.note ?? ""}
+                    onNoteChange={online ? (v) => handleNoteChange(assigned!.id, v) : undefined}
+                    onNoteBlur={online ? () => handleNoteBlur(assigned!.id) : undefined}
                     actions={online ? (
                       <>
                         <Button variant="ghost" size="sm" className="h-6 px-2 text-xs" onClick={() => openPicker({ type: "level", level })}>
@@ -797,33 +796,9 @@ const CharacterFeatPicker = ({ characterId, mode = "player", scenarioLevel }: Ch
                 feat={feat}
                 expanded={expandedAssignedFeatId === cf.id}
                 onToggleExpand={() => setExpandedAssignedFeatId(expandedAssignedFeatId === cf.id ? null : cf.id)}
-                note={editingNoteId !== cf.id ? cf.note : undefined}
-                noteEditor={
-                  editingNoteId === cf.id ? (
-                    <form
-                      className="flex items-center gap-1 shrink-0"
-                      onSubmit={(e) => { e.preventDefault(); saveNote(cf.id); }}
-                    >
-                      <Input
-                        ref={noteInputRef}
-                        value={noteValue}
-                        onChange={(e) => setNoteValue(e.target.value)}
-                        className="h-6 text-xs w-24"
-                        placeholder="note..."
-                        onBlur={() => saveNote(cf.id)}
-                      />
-                    </form>
-                  ) : online ? (
-                    <button
-                      type="button"
-                      className="shrink-0 text-muted-foreground hover:text-foreground"
-                      onClick={() => startEditingNote(cf)}
-                      title="Add note"
-                    >
-                      <Pencil className="h-3 w-3" />
-                    </button>
-                  ) : undefined
-                }
+                noteValue={localNotes[cf.id] ?? cf.note ?? ""}
+                onNoteChange={online ? (v) => handleNoteChange(cf.id, v) : undefined}
+                onNoteBlur={online ? () => handleNoteBlur(cf.id) : undefined}
                 actions={mode === "gm" && online ? (
                   <Button
                     variant="ghost"

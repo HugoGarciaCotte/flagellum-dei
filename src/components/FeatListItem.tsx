@@ -1,5 +1,6 @@
 import { ReactNode } from "react";
 import { ChevronDown } from "lucide-react";
+import { Input } from "@/components/ui/input";
 import FeatCategoryBadges from "@/components/FeatCategoryBadges";
 import FeatDetailsDisplay from "@/components/FeatDetailsDisplay";
 
@@ -15,8 +16,10 @@ interface FeatListItemProps {
   feat: FeatListItemFeat;
   expanded: boolean;
   onToggleExpand: () => void;
-  note?: string | null;
-  noteEditor?: ReactNode;
+  /** Always-visible note value */
+  noteValue?: string;
+  onNoteChange?: (value: string) => void;
+  onNoteBlur?: () => void;
   actions?: ReactNode;
   expandedContent?: ReactNode;
   /** Content always visible below the header (e.g. subfeats) */
@@ -30,8 +33,9 @@ const FeatListItem = ({
   feat,
   expanded,
   onToggleExpand,
-  note,
-  noteEditor,
+  noteValue,
+  onNoteChange,
+  onNoteBlur,
   actions,
   expandedContent,
   collapsedContent,
@@ -40,7 +44,7 @@ const FeatListItem = ({
 }: FeatListItemProps) => {
   return (
     <div className={`rounded border border-border hover:border-primary/50 transition-colors ${compact ? "p-2" : ""}`}>
-      <div className={compact ? "" : ""}>
+      <div>
         <button
           type="button"
           onClick={onToggleExpand}
@@ -52,14 +56,24 @@ const FeatListItem = ({
             <ChevronDown
               className={`h-3 w-3 shrink-0 text-muted-foreground transition-transform ${expanded ? "rotate-180" : ""}`}
             />
-            {note && !noteEditor && (
-              <span className="text-xs text-muted-foreground italic shrink-0">({note})</span>
-            )}
-            {noteEditor}
             <FeatCategoryBadges categories={feat.categories} />
             {actions && <div className="ml-auto flex gap-1 shrink-0">{actions}</div>}
           </div>
         </button>
+        {onNoteChange && (
+          <div className={compact ? "mt-1" : "px-3 pb-1"} onClick={(e) => e.stopPropagation()}>
+            <Input
+              value={noteValue ?? ""}
+              onChange={(e) => onNoteChange(e.target.value)}
+              onBlur={onNoteBlur}
+              className="h-6 text-xs w-28"
+              placeholder="note..."
+            />
+          </div>
+        )}
+        {!onNoteChange && noteValue && (
+          <p className={`text-xs text-muted-foreground italic ${compact ? "mt-1" : "px-3 pb-1"}`}>({noteValue})</p>
+        )}
         {!expanded && feat.description && (
           <p className={`text-xs text-muted-foreground line-clamp-1 ${compact ? "mt-1" : "px-3 pb-2 mt-0.5"}`}>
             {feat.description}
