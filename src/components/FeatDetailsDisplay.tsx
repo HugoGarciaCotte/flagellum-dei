@@ -16,30 +16,30 @@ const FeatDetailsDisplay = ({ content, className = "" }: FeatDetailsDisplayProps
     <div className={`space-y-1.5 border-t border-border pt-1.5 mt-2 ${className}`}>
       {fields.description && (
         <div>
-          <p className="text-xs font-medium text-muted-foreground">Description</p>
-          <p className="text-xs text-muted-foreground/80 whitespace-pre-line">
+          <div className="text-xs font-medium text-muted-foreground">Description</div>
+          <div className="text-xs text-muted-foreground/80 whitespace-pre-line">
             <WikiLinkedText text={fields.description} />
-          </p>
+          </div>
         </div>
       )}
       {fields.prerequisites && (
         <div>
-          <p className="text-xs font-medium text-muted-foreground">Prerequisites</p>
-          <p className="text-xs text-muted-foreground/80">
+          <div className="text-xs font-medium text-muted-foreground">Prerequisites</div>
+          <div className="text-xs text-muted-foreground/80">
             <WikiLinkedText text={fields.prerequisites} />
-          </p>
+          </div>
         </div>
       )}
       {fields.special && (
         <div>
-          <p className="text-xs font-medium text-muted-foreground">Special</p>
-          <p className="text-xs text-muted-foreground/80 whitespace-pre-line">
+          <div className="text-xs font-medium text-muted-foreground">Special</div>
+          <div className="text-xs text-muted-foreground/80 whitespace-pre-line">
             <WikiLinkedText text={fields.special} />
-          </p>
+          </div>
         </div>
       )}
       {fields.synonyms && (
-        <p className="text-xs text-muted-foreground/60 italic">Synonyms: {fields.synonyms}</p>
+        <div className="text-xs text-muted-foreground/60 italic">Synonyms: {fields.synonyms}</div>
       )}
     </div>
   );

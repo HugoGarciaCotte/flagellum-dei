@@ -2,13 +2,12 @@ import { Fragment, useMemo } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { parseFeatFields } from "@/lib/parseFeatContent";
+import { convertInlineMarkup } from "@/lib/parseWikitext";
 import {
   HoverCard,
   HoverCardContent,
   HoverCardTrigger,
 } from "@/components/ui/hover-card";
-
-const WIKI_LINK_RE = /\[\[([^|\]]+?)(?:\|([^\]]+?))?\]\]/g;
 
 interface WikiLinkedTextProps {
   text: string;
@@ -16,28 +15,68 @@ interface WikiLinkedTextProps {
 }
 
 interface TextSegment {
-  type: "text" | "link";
+  type: "text" | "link" | "plain";
   text: string;
+  html?: string; // pre-rendered HTML for text segments
   target?: string; // feat name to look up
 }
 
+/**
+ * Parse wikitext into segments, handling:
+ * - [[Category:X]] → stripped
+ * - [[:Category:X|Label]] → plain text
+ * - [[target|label]] or [[target]] → feat link
+ * - Everything else → text (with inline wiki markup converted to HTML)
+ */
 function parseSegments(raw: string): TextSegment[] {
+  // Strip HTML comments first
+  raw = raw.replace(/<!--[\s\S]*?-->/g, "");
+
   const segments: TextSegment[] = [];
   let lastIndex = 0;
-  const re = new RegExp(WIKI_LINK_RE.source, "g");
+
+  // Match all [[ ]] patterns
+  const re = /\[\[([^\]]+)\]\]/g;
   let match;
+
   while ((match = re.exec(raw)) !== null) {
+    // Push preceding text
     if (match.index > lastIndex) {
-      segments.push({ type: "text", text: raw.slice(lastIndex, match.index) });
+      const textChunk = raw.slice(lastIndex, match.index);
+      segments.push({ type: "text", text: textChunk, html: convertInlineMarkup(textChunk) });
     }
-    const target = match[1].trim();
-    const label = match[2]?.trim() || target;
+
+    const inner = match[1];
+
+    // [[Category:X]] — strip entirely
+    if (/^Category:/i.test(inner)) {
+      lastIndex = re.lastIndex;
+      continue;
+    }
+
+    // [[:Category:X|Label]] — plain text label
+    if (/^:Category:/i.test(inner)) {
+      const pipeIdx = inner.indexOf("|");
+      const label = pipeIdx !== -1 ? inner.slice(pipeIdx + 1).trim() : inner.replace(/^:Category:/i, "").trim();
+      segments.push({ type: "plain", text: label });
+      lastIndex = re.lastIndex;
+      continue;
+    }
+
+    // Regular link: [[target|label]] or [[target]]
+    const pipeIdx = inner.indexOf("|");
+    const target = pipeIdx !== -1 ? inner.slice(0, pipeIdx).trim() : inner.trim();
+    const label = pipeIdx !== -1 ? inner.slice(pipeIdx + 1).trim() : inner.trim();
     segments.push({ type: "link", text: label, target });
     lastIndex = re.lastIndex;
   }
+
+  // Trailing text
   if (lastIndex < raw.length) {
-    segments.push({ type: "text", text: raw.slice(lastIndex) });
+    const textChunk = raw.slice(lastIndex);
+    segments.push({ type: "text", text: textChunk, html: convertInlineMarkup(textChunk) });
   }
+
   return segments;
 }
 
@@ -79,12 +118,16 @@ function FeatHoverContent({ featTitle, featsMap }: { featTitle: string; featsMap
 
 /** Strip wiki links for hover card content to avoid nested parsing */
 function stripLinks(text: string): string {
-  return text.replace(/\[\[([^|\]]+)\|([^\]]+)\]\]/g, "$2").replace(/\[\[([^\]]+)\]\]/g, "$1");
+  return text
+    .replace(/\[\[Category:[^\]]*\]\]/gi, "")
+    .replace(/\[\[:Category:[^|\]]+\|([^\]]+)\]\]/gi, "$1")
+    .replace(/\[\[:Category:[^\]]*\]\]/gi, "")
+    .replace(/\[\[([^|\]]+)\|([^\]]+)\]\]/g, "$2")
+    .replace(/\[\[([^\]]+)\]\]/g, "$1");
 }
 
 export default function WikiLinkedText({ text, className = "" }: WikiLinkedTextProps) {
-  const cleanText = useMemo(() => text.replace(/<!--[\s\S]*?-->/g, ""), [text]);
-  const segments = useMemo(() => parseSegments(cleanText), [cleanText]);
+  const segments = useMemo(() => parseSegments(text), [text]);
   const hasLinks = segments.some((s) => s.type === "link");
 
   const { data: featsMap } = useQuery({
@@ -96,7 +139,6 @@ export default function WikiLinkedText({ text, className = "" }: WikiLinkedTextP
       ]);
       const map = new Map<string, any>();
       featsRes.data?.forEach((f) => map.set(f.title.toLowerCase(), f));
-      // Add redirect entries: point from_title to the target feat
       redirectsRes.data?.forEach((r) => {
         const target = map.get(r.to_title.toLowerCase());
         if (target) map.set(r.from_title.toLowerCase(), target);
@@ -112,8 +154,12 @@ export default function WikiLinkedText({ text, className = "" }: WikiLinkedTextP
     <span className={className}>
       {segments.map((seg, i) => {
         if (seg.type === "text") {
+          return <span key={i} dangerouslySetInnerHTML={{ __html: seg.html! }} />;
+        }
+        if (seg.type === "plain") {
           return <Fragment key={i}>{seg.text}</Fragment>;
         }
+        // type === "link"
         if (!featsMap) {
           return (
             <span key={i} className="text-primary underline decoration-dotted underline-offset-2">
