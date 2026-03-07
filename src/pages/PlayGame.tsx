@@ -5,6 +5,7 @@ import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { ArrowLeft, Scroll } from "lucide-react";
+import { getCachedSectionById, isOffline } from "@/lib/offlineStorage";
 
 const PlayGame = () => {
   const { gameId } = useParams<{ gameId: string }>();
@@ -29,6 +30,10 @@ const PlayGame = () => {
     queryKey: ["current-section", game?.current_section_id],
     queryFn: async () => {
       if (!game?.current_section_id) return null;
+      if (isOffline()) {
+        const cached = getCachedSectionById(game.current_section_id);
+        if (cached) return cached;
+      }
       const { data, error } = await supabase
         .from("scenario_sections")
         .select("*")

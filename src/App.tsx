@@ -4,14 +4,27 @@ import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route } from "react-router-dom";
 import { AuthProvider } from "@/contexts/AuthContext";
+import { OfflineBanner } from "@/components/OfflineBanner";
 import Index from "./pages/Index";
 import Auth from "./pages/Auth";
 import HostGame from "./pages/HostGame";
 import PlayGame from "./pages/PlayGame";
 import ResetPassword from "./pages/ResetPassword";
+import Install from "./pages/Install";
 import NotFound from "./pages/NotFound";
 
-const queryClient = new QueryClient();
+const queryClient = new QueryClient({
+  defaultOptions: {
+    queries: {
+      staleTime: 1000 * 60 * 5,
+      gcTime: 1000 * 60 * 30,
+      retry: (failureCount, error) => {
+        if (!navigator.onLine) return false;
+        return failureCount < 3;
+      },
+    },
+  },
+});
 
 const App = () => (
   <QueryClientProvider client={queryClient}>
@@ -26,9 +39,11 @@ const App = () => (
             <Route path="/game/:gameId/host" element={<HostGame />} />
             <Route path="/game/:gameId/play" element={<PlayGame />} />
             <Route path="/reset-password" element={<ResetPassword />} />
+            <Route path="/install" element={<Install />} />
             <Route path="*" element={<NotFound />} />
           </Routes>
         </BrowserRouter>
+        <OfflineBanner />
       </TooltipProvider>
     </AuthProvider>
   </QueryClientProvider>
