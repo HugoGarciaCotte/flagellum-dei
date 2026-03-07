@@ -293,10 +293,12 @@ const ManageFeats = () => {
                             <p className="text-xs text-muted-foreground mt-1 line-clamp-1">
                               {f.description || <span className="italic">No description</span>}
                             </p>
-                            <div className="flex items-center gap-3 mt-1.5">
-                              <StatusIcon ok={hasSubfeats(f)} label="Subfeats" />
-                              <StatusIcon ok={hasSpecialities(f)} label="Specialities" />
-                            </div>
+                            {(hasSubfeats(f) || hasSpecialities(f)) && (
+                              <div className="flex items-center gap-3 mt-1.5">
+                                {hasSubfeats(f) && <StatusIcon ok={true} label="Subfeats" />}
+                                {hasSpecialities(f) && <StatusIcon ok={true} label="Specialities" />}
+                              </div>
+                            )}
                           </div>
                         </button>
                       </CollapsibleTrigger>
