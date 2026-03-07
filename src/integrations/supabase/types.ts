@@ -142,34 +142,22 @@ export type Database = {
           categories: string[]
           content: string | null
           created_at: string
-          description: string | null
           id: string
-          specialities: string[] | null
-          subfeats: Json | null
           title: string
-          unlocks_categories: string[] | null
         }
         Insert: {
           categories?: string[]
           content?: string | null
           created_at?: string
-          description?: string | null
           id?: string
-          specialities?: string[] | null
-          subfeats?: Json | null
           title: string
-          unlocks_categories?: string[] | null
         }
         Update: {
           categories?: string[]
           content?: string | null
           created_at?: string
-          description?: string | null
           id?: string
-          specialities?: string[] | null
-          subfeats?: Json | null
           title?: string
-          unlocks_categories?: string[] | null
         }
         Relationships: []
       }
