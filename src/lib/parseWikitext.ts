@@ -3,10 +3,17 @@ export interface WikiSection {
   title: string;
   level: number;
   content: string;
+  metadata: Record<string, string>;
   children: WikiSection[];
 }
 
+export interface ParsedScenario {
+  metadata: Record<string, string>;
+  sections: WikiSection[];
+}
+
 const HEADING_RE = /^(={1,6})\s*(.+?)\s*\1$/;
+const META_RE = /<!--@\s*(\w+):\s*(.+?)\s*@-->/g;
 
 function slugify(text: string): string {
   return text
@@ -43,7 +50,7 @@ function listTagFor(char: string): ListType {
 
 function convertBodyToHtml(lines: string[]): string {
   const result: string[] = [];
-  const listStack: ListType[] = []; // tracks open list tags
+  const listStack: ListType[] = [];
   let inPre = false;
 
   function closeListsTo(targetDepth: number) {
@@ -53,7 +60,6 @@ function convertBodyToHtml(lines: string[]): string {
   }
 
   for (const line of lines) {
-    // Preformatted text: lines starting with a space
     if (line.startsWith(" ") && line.trim().length > 0) {
       closeListsTo(0);
       if (!inPre) { result.push("<pre>"); inPre = true; }
@@ -64,7 +70,6 @@ function convertBodyToHtml(lines: string[]): string {
 
     const trimmed = line.trim();
 
-    // Bullet / numbered list: lines starting with * or #
     const listMatch = trimmed.match(/^([*#]+)(.*)/);
     if (listMatch) {
       const markers = listMatch[1];
@@ -72,15 +77,12 @@ function convertBodyToHtml(lines: string[]): string {
       const depth = markers.length;
       const tag = listTagFor(markers[0]);
 
-      // Close deeper or mismatched lists
       while (listStack.length > depth) {
         result.push(`</${listStack.pop()}>`);
       }
-      // Close and reopen if type changed at current depth
       if (listStack.length === depth && listStack[listStack.length - 1] !== tag) {
         result.push(`</${listStack.pop()}>`);
       }
-      // Open new lists to reach target depth
       while (listStack.length < depth) {
         result.push(`<${tag}>`);
         listStack.push(tag);
@@ -89,12 +91,10 @@ function convertBodyToHtml(lines: string[]): string {
       continue;
     }
 
-    // Definition list: ;term or :definition
     const dlMatch = trimmed.match(/^([;:])(.*)/);
     if (dlMatch) {
       const char = dlMatch[1];
       const content = dlMatch[2].trim();
-      // Close non-dl lists
       while (listStack.length > 0 && listStack[listStack.length - 1] !== "dl") {
         result.push(`</${listStack.pop()}>`);
       }
@@ -110,7 +110,6 @@ function convertBodyToHtml(lines: string[]): string {
       continue;
     }
 
-    // Regular line — close all lists first
     closeListsTo(0);
 
     if (trimmed === "") {
@@ -126,12 +125,39 @@ function convertBodyToHtml(lines: string[]): string {
   return result.join("\n");
 }
 
-export function parseWikitext(wikitext: string): WikiSection[] {
+/**
+ * Extract metadata tags from a line. Returns extracted key-value pairs.
+ * Tags use the format: <!--@ key: value @-->
+ */
+function extractMetaTags(line: string): Record<string, string> {
+  const tags: Record<string, string> = {};
+  let match;
+  const re = new RegExp(META_RE.source, "g");
+  while ((match = re.exec(line)) !== null) {
+    tags[match[1]] = match[2];
+  }
+  return tags;
+}
+
+/** Returns true if the line is purely meta tags (no other content). */
+function isMetaOnlyLine(line: string): boolean {
+  const stripped = line.replace(META_RE, "").trim();
+  return stripped === "" && META_RE.test(line);
+}
+
+export function parseWikitext(wikitext: string): ParsedScenario {
   const lines = wikitext.split("\n");
   const root: WikiSection[] = [];
   const stack: { level: number; section: WikiSection; children: WikiSection[] }[] = [];
   let currentBodyLines: string[] = [];
   let currentTarget: WikiSection | null = null;
+
+  // Scenario-level metadata (before first heading)
+  const scenarioMeta: Record<string, string> = {};
+  let seenHeading = false;
+
+  // Buffer for meta tags that appear between sections
+  let pendingMeta: Record<string, string> = {};
 
   function flushBody() {
     if (currentTarget && currentBodyLines.length > 0) {
@@ -142,9 +168,24 @@ export function parseWikitext(wikitext: string): WikiSection[] {
 
   for (const line of lines) {
     if (line.trimStart().startsWith("==>")) continue;
+
+    // Check for meta tags
+    const lineMeta = extractMetaTags(line);
+    const hasMetaTags = Object.keys(lineMeta).length > 0;
+
+    if (hasMetaTags && isMetaOnlyLine(line)) {
+      if (!seenHeading) {
+        Object.assign(scenarioMeta, lineMeta);
+      } else {
+        Object.assign(pendingMeta, lineMeta);
+      }
+      continue; // Don't add to body
+    }
+
     const match = line.match(HEADING_RE);
     if (match) {
       flushBody();
+      seenHeading = true;
       const level = match[1].length;
       const title = match[2].trim();
       const section: WikiSection = {
@@ -152,10 +193,11 @@ export function parseWikitext(wikitext: string): WikiSection[] {
         title,
         level,
         content: "",
+        metadata: { ...pendingMeta },
         children: [],
       };
+      pendingMeta = {};
 
-      // Pop stack until we find a parent with a lower level
       while (stack.length > 0 && stack[stack.length - 1].level >= level) {
         stack.pop();
       }
@@ -174,7 +216,7 @@ export function parseWikitext(wikitext: string): WikiSection[] {
   }
   flushBody();
 
-  return root;
+  return { metadata: scenarioMeta, sections: root };
 }
 
 export function findSection(sections: WikiSection[], id: string): WikiSection | null {
@@ -187,12 +229,21 @@ export function findSection(sections: WikiSection[], id: string): WikiSection | 
 }
 
 /**
+ * Resolve the effective background image for a section,
+ * falling back to the ancestor's background if the section has none.
+ */
+export function resolveBackgroundImage(
+  section: WikiSection,
+  ancestorBg: string | null
+): string | null {
+  return section.metadata.background_image || ancestorBg || null;
+}
+
+/**
  * Extract image URLs from MediaWiki wikitext.
- * Handles [[File:url]] and [[Image:url]] syntax, plus raw https image URLs.
  */
 export function extractImageUrls(wikitext: string): string[] {
   const urls: string[] = [];
-  // MediaWiki file embeds: [[File:something.png|options]] or [[Image:something.jpg]]
   const fileRe = /\[\[(?:File|Image):([^|\]]+)/gi;
   let match;
   while ((match = fileRe.exec(wikitext)) !== null) {
@@ -201,7 +252,6 @@ export function extractImageUrls(wikitext: string): string[] {
       urls.push(src);
     }
   }
-  // Raw image URLs in text
   const rawUrlRe = /https?:\/\/[^\s"'<>]+\.(?:png|jpg|jpeg|gif|webp|svg)/gi;
   while ((match = rawUrlRe.exec(wikitext)) !== null) {
     if (!urls.includes(match[0])) {
