@@ -481,8 +481,9 @@ Deno.serve(async (req) => {
           // Parse embedded wiki metadata first
           const meta = parseEmbeddedFeatMeta(content);
 
+          const isModified = item.status === "modified";
           const existingDescription = existing?.description;
-          const needsDescription = !existingDescription || existingDescription.trim() === "" || existingDescription === "Imported from prima.wiki";
+          const needsDescription = !existingDescription || existingDescription.trim() === "" || existingDescription === "Imported from prima.wiki" || isModified;
           let description: string | null = existingDescription || null;
 
           if (meta.description) {
@@ -491,13 +492,13 @@ Deno.serve(async (req) => {
             description = await generateDescription(item.title, content, item.categories);
           }
 
-          // Generate subfeats and unlocks_categories if not already set
+          // Generate subfeats and unlocks_categories if not already set or if modified
           const existingSubfeats = existing?.subfeats;
           let subfeats: any[] | null = existingSubfeats || null;
           let unlocks_categories: string[] | null = existing?.unlocks_categories || null;
           if (meta.subfeats) {
             subfeats = meta.subfeats;
-          } else if (!existingSubfeats) {
+          } else if (!existingSubfeats || isModified) {
             const result = await generateSubfeats(item.title, content, item.categories, allFeatTitles);
             subfeats = result.subfeats;
             unlocks_categories = result.unlocks_categories;
@@ -506,12 +507,12 @@ Deno.serve(async (req) => {
             unlocks_categories = meta.unlocks_categories;
           }
 
-          // Generate specialities if not already set
+          // Generate specialities if not already set or if modified
           const existingSpecialities = existing?.specialities;
           let specialities: string[] | null = existingSpecialities || null;
           if (meta.specialities) {
             specialities = meta.specialities;
-          } else if (!existingSpecialities) {
+          } else if (!existingSpecialities || isModified) {
             specialities = await generateSpecialities(item.title, content, item.categories);
           }
 
