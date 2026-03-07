@@ -265,22 +265,20 @@ const Dashboard = () => {
           {characters && characters.length > 0 ? (
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
               {characters.map((c) => (
-                <Card key={c.id} className="border-border hover:border-primary/40 transition-colors">
-                  <CardHeader className="pb-2">
-                    <div className="flex items-start justify-between">
-                      <CardTitle className="font-display text-lg">{c.name}</CardTitle>
-                      <div className="flex gap-1 shrink-0">
-                        <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => openEditChar(c)}>
-                          <Pencil className="h-3.5 w-3.5" />
-                        </Button>
-                        <Button variant="ghost" size="icon" className="h-7 w-7 text-destructive" onClick={() => setDeleteCharTarget({ id: c.id, name: c.name })}>
-                          <Trash2 className="h-3.5 w-3.5" />
-                        </Button>
-                      </div>
-                    </div>
-                    {c.description && <CardDescription>{c.description}</CardDescription>}
-                  </CardHeader>
-                </Card>
+                <CharacterListItem
+                  key={c.id}
+                  character={c}
+                  actions={
+                    <>
+                      <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => openEditChar(c)}>
+                        <Pencil className="h-3.5 w-3.5" />
+                      </Button>
+                      <Button variant="ghost" size="icon" className="h-7 w-7 text-destructive" onClick={() => setDeleteCharTarget({ id: c.id, name: c.name })}>
+                        <Trash2 className="h-3.5 w-3.5" />
+                      </Button>
+                    </>
+                  }
+                />
               ))}
             </div>
           ) : (
