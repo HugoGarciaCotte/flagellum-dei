@@ -38,7 +38,7 @@ function SectionNode({
     <div
       className={cn(
         "transition-colors duration-200 rounded-md",
-        isActive && "bg-black text-white border-l-4 border-black"
+        isActive && "bg-primary text-primary-foreground border-l-4 border-primary"
       )}
       style={{ marginLeft: depth > 0 ? 16 : 0 }}
     >
@@ -53,11 +53,11 @@ function SectionNode({
             !(hasChildren || hasContent) && "invisible"
           )}
         >
-          <ChevronRight className="h-4 w-4 text-muted-foreground" />
+          <ChevronRight className={cn("h-4 w-4", isActive ? "text-primary-foreground/70" : "text-muted-foreground")} />
         </button>
 
         {/* Title */}
-        <span className={cn("flex-1 text-foreground", TITLE_SIZES[section.level] || "text-sm")}>
+        <span className={cn("flex-1", isActive ? "text-primary-foreground" : "text-foreground", TITLE_SIZES[section.level] || "text-sm")}>
           {section.title}
         </span>
 
@@ -67,7 +67,7 @@ function SectionNode({
           size="icon"
           className={cn(
             "h-7 w-7 opacity-0 group-hover:opacity-100 transition-opacity",
-            isActive && "opacity-100 text-white"
+            isActive && "opacity-100 text-primary-foreground"
           )}
           onClick={() => onActivateSection(section.id)}
         >
@@ -80,8 +80,8 @@ function SectionNode({
         <>
           {hasContent && (
             <div
-              className="px-8 pb-2 text-sm text-muted-foreground leading-relaxed prose prose-sm max-w-none
-                [&_ul]:list-disc [&_ul]:pl-5 [&_li]:mb-1 [&_hr]:my-3 [&_p]:mb-1.5"
+              className={cn("px-8 pb-2 text-sm leading-relaxed prose prose-sm max-w-none", isActive ? "text-primary-foreground/80" : "text-muted-foreground",
+                "[&_ul]:list-disc [&_ul]:pl-5 [&_li]:mb-1 [&_hr]:my-3 [&_p]:mb-1.5")}
               dangerouslySetInnerHTML={{ __html: section.content }}
             />
           )}
