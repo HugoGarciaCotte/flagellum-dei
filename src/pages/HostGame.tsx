@@ -92,7 +92,9 @@ const HostGame = () => {
 
   // Prefetch scenario images
   const scenarioContent = effectiveScenario?.content || "";
-  const sections = useMemo(() => parseWikitext(scenarioContent), [scenarioContent]);
+  const parsed = useMemo(() => parseWikitext(scenarioContent), [scenarioContent]);
+  const sections = parsed.sections;
+  const scenarioMeta = parsed.metadata;
 
   useEffect(() => {
     const urls = extractImageUrls(scenarioContent);

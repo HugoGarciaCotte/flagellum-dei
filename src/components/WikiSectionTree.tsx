@@ -1,13 +1,13 @@
 import { useState } from "react";
 import { ChevronRight, Play } from "lucide-react";
-import { WikiSection } from "@/lib/parseWikitext";
+import { WikiSection, resolveBackgroundImage } from "@/lib/parseWikitext";
 import { cn } from "@/lib/utils";
-import { Button } from "@/components/ui/button";
 
 interface WikiSectionTreeProps {
   sections: WikiSection[];
   activeSection: string | null;
   onActivateSection: (sectionId: string) => void;
+  parentBackground?: string | null;
 }
 
 const TITLE_SIZES: Record<number, string> = {
@@ -24,24 +24,45 @@ function SectionNode({
   activeSection,
   onActivateSection,
   depth = 0,
+  parentBackground = null,
 }: {
   section: WikiSection;
   activeSection: string | null;
   onActivateSection: (id: string) => void;
   depth?: number;
+  parentBackground?: string | null;
 }) {
   const [open, setOpen] = useState(true);
   const isActive = activeSection === section.id;
   const hasChildren = section.children.length > 0;
   const hasContent = section.content.trim().length > 0;
 
+  const effectiveBg = resolveBackgroundImage(section, parentBackground);
+
+  const bgStyle: React.CSSProperties = isActive && effectiveBg
+    ? {
+        backgroundImage: `linear-gradient(hsl(var(--primary) / 0.85), hsl(var(--primary) / 0.85)), url(${effectiveBg})`,
+        backgroundSize: "cover",
+        backgroundPosition: "center",
+      }
+    : effectiveBg
+    ? {
+        backgroundImage: `linear-gradient(hsl(var(--card) / 0.88), hsl(var(--card) / 0.88)), url(${effectiveBg})`,
+        backgroundSize: "cover",
+        backgroundPosition: "center",
+      }
+    : {};
+
+  const hasBgImage = !!effectiveBg;
+
   return (
     <div
       className={cn(
         "transition-colors duration-200 rounded-md",
-        isActive && "bg-primary text-primary-foreground border-l-4 border-primary"
+        isActive && "bg-primary text-primary-foreground border-l-4 border-primary",
+        hasBgImage && "bg-cover bg-center"
       )}
-      style={{ marginLeft: depth > 0 ? 16 : 0 }}
+      style={{ marginLeft: depth > 0 ? 16 : 0, ...bgStyle }}
     >
       {/* Header row */}
       <div className="flex items-center gap-1 py-1.5 px-2 group">
@@ -57,7 +78,7 @@ function SectionNode({
           <ChevronRight className={cn("h-4 w-4", isActive ? "text-primary-foreground/70" : "text-muted-foreground")} />
         </button>
 
-        {/* Play button — always visible, next to title */}
+        {/* Play button */}
         <button
           onClick={() => onActivateSection(section.id)}
           className={cn(
@@ -91,6 +112,7 @@ function SectionNode({
               activeSection={activeSection}
               onActivateSection={onActivateSection}
               depth={depth + 1}
+              parentBackground={effectiveBg}
             />
           ))}
         </>
@@ -99,7 +121,7 @@ function SectionNode({
   );
 }
 
-export default function WikiSectionTree({ sections, activeSection, onActivateSection }: WikiSectionTreeProps) {
+export default function WikiSectionTree({ sections, activeSection, onActivateSection, parentBackground = null }: WikiSectionTreeProps) {
   return (
     <div className="space-y-1">
       {sections.map((section) => (
@@ -108,6 +130,7 @@ export default function WikiSectionTree({ sections, activeSection, onActivateSec
           section={section}
           activeSection={activeSection}
           onActivateSection={onActivateSection}
+          parentBackground={parentBackground}
         />
       ))}
     </div>
