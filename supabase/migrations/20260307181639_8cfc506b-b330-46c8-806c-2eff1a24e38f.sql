@@ -1,0 +1,1 @@
+ALTER TABLE public.character_feats ADD COLUMN note text DEFAULT null;

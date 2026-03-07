@@ -1,10 +1,10 @@
-import { useState, useMemo, useEffect } from "react";
+import { useState, useMemo, useEffect, useRef } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { sortTitlesEmojiLast } from "@/lib/utils";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { X, Search, Gift, Loader2, WifiOff, ChevronDown } from "lucide-react";
+import { X, Search, Gift, Loader2, WifiOff, ChevronDown, Pencil } from "lucide-react";
 import FeatCategoryBadges from "@/components/FeatCategoryBadges";
 import { toast } from "sonner";
 import {
@@ -41,6 +41,7 @@ type CharacterFeat = {
   level: number;
   feat_id: string;
   is_free: boolean;
+  note: string | null;
 };
 
 const MAX_LEVEL = 10;
@@ -58,6 +59,9 @@ const CharacterFeatPicker = ({ characterId, mode = "player", scenarioLevel }: Ch
   const [validatingFeat, setValidatingFeat] = useState<string | null>(null);
   const [expandedFeatId, setExpandedFeatId] = useState<string | null>(null);
   const [expandedAssignedFeatId, setExpandedAssignedFeatId] = useState<string | null>(null);
+  const [editingNoteId, setEditingNoteId] = useState<string | null>(null);
+  const [noteValue, setNoteValue] = useState("");
+  const noteInputRef = useRef<HTMLInputElement>(null);
 
   const { data: allFeats } = useQuery({
     queryKey: ["all-feats"],
@@ -173,6 +177,31 @@ const CharacterFeatPicker = ({ characterId, mode = "player", scenarioLevel }: Ch
       setSearchTerm("");
     },
   });
+
+  const updateNoteMutation = useMutation({
+    mutationFn: async ({ id, note }: { id: string; note: string }) => {
+      const trimmed = note.trim() || null;
+      const { error } = await supabase
+        .from("character_feats")
+        .update({ note: trimmed } as any)
+        .eq("id", id);
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["character-feats", characterId] });
+      setEditingNoteId(null);
+    },
+  });
+
+  const startEditingNote = (cf: CharacterFeat) => {
+    setEditingNoteId(cf.id);
+    setNoteValue(cf.note ?? "");
+    setTimeout(() => noteInputRef.current?.focus(), 50);
+  };
+
+  const saveNote = (id: string) => {
+    updateNoteMutation.mutate({ id, note: noteValue });
+  };
 
   const featMap = useMemo(() => {
     const map = new Map<string, Feat>();
@@ -301,6 +330,35 @@ const CharacterFeatPicker = ({ characterId, mode = "player", scenarioLevel }: Ch
                     >
                       {assignedFeat.title}
                     </button>
+                    {assigned!.note && editingNoteId !== assigned!.id && (
+                      <span className="text-xs text-muted-foreground italic shrink-0">({assigned!.note})</span>
+                    )}
+                    {editingNoteId === assigned!.id ? (
+                      <form
+                        className="flex items-center gap-1 shrink-0"
+                        onSubmit={(e) => { e.preventDefault(); saveNote(assigned!.id); }}
+                      >
+                        <Input
+                          ref={noteInputRef}
+                          value={noteValue}
+                          onChange={(e) => setNoteValue(e.target.value)}
+                          className="h-6 text-xs w-24"
+                          placeholder="note..."
+                          onBlur={() => saveNote(assigned!.id)}
+                        />
+                      </form>
+                    ) : (
+                      online && (
+                        <button
+                          type="button"
+                          className="shrink-0 text-muted-foreground hover:text-foreground"
+                          onClick={() => startEditingNote(assigned!)}
+                          title="Add note"
+                        >
+                          <Pencil className="h-3 w-3" />
+                        </button>
+                      )
+                    )}
                     <FeatCategoryBadges categories={assignedFeat.categories} />
                     <ChevronDown className={`h-3 w-3 shrink-0 text-muted-foreground transition-transform ${expandedAssignedFeatId === assigned!.id ? "rotate-180" : ""}`} />
                     {online && (
@@ -368,6 +426,35 @@ const CharacterFeatPicker = ({ characterId, mode = "player", scenarioLevel }: Ch
                   >
                     {feat.title}
                   </button>
+                  {cf.note && editingNoteId !== cf.id && (
+                    <span className="text-xs text-muted-foreground italic shrink-0">({cf.note})</span>
+                  )}
+                  {editingNoteId === cf.id ? (
+                    <form
+                      className="flex items-center gap-1 shrink-0"
+                      onSubmit={(e) => { e.preventDefault(); saveNote(cf.id); }}
+                    >
+                      <Input
+                        ref={noteInputRef}
+                        value={noteValue}
+                        onChange={(e) => setNoteValue(e.target.value)}
+                        className="h-6 text-xs w-24"
+                        placeholder="note..."
+                        onBlur={() => saveNote(cf.id)}
+                      />
+                    </form>
+                  ) : (
+                    online && (
+                      <button
+                        type="button"
+                        className="shrink-0 text-muted-foreground hover:text-foreground"
+                        onClick={() => startEditingNote(cf)}
+                        title="Add note"
+                      >
+                        <Pencil className="h-3 w-3" />
+                      </button>
+                    )
+                  )}
                   <FeatCategoryBadges categories={feat.categories} />
                   <ChevronDown className={`h-3 w-3 shrink-0 text-muted-foreground transition-transform ${expandedAssignedFeatId === cf.id ? "rotate-180" : ""}`} />
                   {mode === "gm" && online && (
