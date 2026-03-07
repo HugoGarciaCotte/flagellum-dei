@@ -23,6 +23,61 @@ const TITLE_SIZES: Record<number, string> = {
   6: "text-xs font-medium",
 };
 
+function stripLinks(text: string): string {
+  return text.replace(/\[\[([^|\]]+)\|([^\]]+)\]\]/g, "$2").replace(/\[\[([^\]]+)\]\]/g, "$1");
+}
+
+function FeatLinkTooltip({ featName, rect, featsMap }: { featName: string; rect: DOMRect; featsMap: Map<string, any> }) {
+  const feat = featsMap.get(featName.toLowerCase());
+  if (!feat) return null;
+  const fields = parseFeatFields(feat.content);
+
+  return createPortal(
+    <div
+      className="fixed z-[100] w-72 rounded-md border bg-popover p-3 text-popover-foreground shadow-md animate-in fade-in-0 zoom-in-95"
+      style={{ top: rect.top - 8, left: rect.left + rect.width / 2, transform: "translate(-50%, -100%)" }}
+    >
+      <div className="space-y-1.5">
+        <p className="text-sm font-semibold">{feat.title}</p>
+        {feat.description && <p className="text-xs text-muted-foreground">{feat.description}</p>}
+        {fields.description && (
+          <div>
+            <p className="text-xs font-medium text-muted-foreground">Description</p>
+            <p className="text-xs text-muted-foreground/80 whitespace-pre-line">{stripLinks(fields.description)}</p>
+          </div>
+        )}
+        {fields.prerequisites && (
+          <div>
+            <p className="text-xs font-medium text-muted-foreground">Prerequisites</p>
+            <p className="text-xs text-muted-foreground/80">{stripLinks(fields.prerequisites)}</p>
+          </div>
+        )}
+        {fields.special && (
+          <div>
+            <p className="text-xs font-medium text-muted-foreground">Special</p>
+            <p className="text-xs text-muted-foreground/80 whitespace-pre-line">{stripLinks(fields.special)}</p>
+          </div>
+        )}
+      </div>
+    </div>,
+    document.body
+  );
+}
+
+function useFeatsMap() {
+  return useQuery({
+    queryKey: ["feats-map-for-links"],
+    queryFn: async () => {
+      const { data } = await supabase.from("feats").select("title, description, content");
+      const map = new Map<string, any>();
+      data?.forEach((f) => map.set(f.title.toLowerCase(), f));
+      return map;
+    },
+    staleTime: 5 * 60 * 1000,
+    gcTime: 10 * 60 * 1000,
+  });
+}
+
 function SectionNode({
   section,
   activeSection,
