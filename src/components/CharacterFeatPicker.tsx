@@ -66,6 +66,24 @@ const CharacterFeatPicker = ({ characterId, mode = "player" }: CharacterFeatPick
 
   const upsertMutation = useMutation({
     mutationFn: async ({ level, featId }: { level: number; featId: string }) => {
+      // Validate prerequisites in player mode
+      if (mode === "player") {
+        setValidatingFeat(featId);
+        try {
+          const { data, error } = await supabase.functions.invoke("validate-feat", {
+            body: { characterId, featId },
+          });
+          if (error) {
+            console.error("Validation error:", error);
+            // Fail open on network errors
+          } else if (data && !data.allowed) {
+            throw new Error(data.reason || "Prerequisites not met");
+          }
+        } finally {
+          setValidatingFeat(null);
+        }
+      }
+
       await supabase
         .from("character_feats")
         .delete()
@@ -81,6 +99,9 @@ const CharacterFeatPicker = ({ characterId, mode = "player" }: CharacterFeatPick
       queryClient.invalidateQueries({ queryKey: ["character-feats", characterId] });
       setEditingLevel(null);
       setSearchTerm("");
+    },
+    onError: (error) => {
+      toast.error(error.message || "Could not acquire feat");
     },
   });
 
