@@ -5,3 +5,6 @@ verify_jwt = false
 
 [functions.validate-feat]
 verify_jwt = false
+
+[functions.regenerate-description]
+verify_jwt = false

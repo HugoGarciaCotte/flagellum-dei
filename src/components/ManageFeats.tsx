@@ -15,7 +15,7 @@ import {
   AlertDialogDescription, AlertDialogFooter, AlertDialogAction, AlertDialogCancel,
 } from "@/components/ui/alert-dialog";
 import { toast } from "@/hooks/use-toast";
-import { Plus, Pencil, Trash2, Sword, Loader2 } from "lucide-react";
+import { Plus, Pencil, Trash2, Sword, Loader2, Sparkles } from "lucide-react";
 import FeatCategoryBadges from "@/components/FeatCategoryBadges";
 
 type Feat = {
@@ -41,6 +41,7 @@ const ManageFeats = () => {
   const [editingId, setEditingId] = useState<string | null>(null);
   const [form, setForm] = useState<FormData>(emptyForm);
   const [deleteTarget, setDeleteTarget] = useState<Feat | null>(null);
+  const [regeneratingId, setRegeneratingId] = useState<string | null>(null);
 
   const { data: feats, isLoading } = useQuery({
     queryKey: ["admin-feats"],
@@ -96,6 +97,22 @@ const ManageFeats = () => {
     },
   });
 
+  const handleRegenerate = async (id: string) => {
+    setRegeneratingId(id);
+    try {
+      const { data, error } = await supabase.functions.invoke("regenerate-description", {
+        body: { type: "feat", id },
+      });
+      if (error) throw error;
+      queryClient.invalidateQueries({ queryKey: ["admin-feats"] });
+      toast({ title: "Description regenerated" });
+    } catch (e: any) {
+      toast({ title: "Regeneration failed", description: e.message, variant: "destructive" });
+    } finally {
+      setRegeneratingId(null);
+    }
+  };
+
   const openCreate = () => {
     setEditingId(null);
     setForm(emptyForm);
@@ -148,7 +165,7 @@ const ManageFeats = () => {
                   <TableRow>
                     <TableHead>Title</TableHead>
                     <TableHead className="hidden sm:table-cell">Description</TableHead>
-                    <TableHead className="w-24 text-right">Actions</TableHead>
+                    <TableHead className="w-28 text-right">Actions</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
@@ -160,11 +177,24 @@ const ManageFeats = () => {
                           <FeatCategoryBadges categories={f.categories} />
                         </div>
                       </TableCell>
-                      <TableCell className="hidden sm:table-cell text-muted-foreground text-sm truncate max-w-[200px]">
+                      <TableCell className="hidden sm:table-cell text-muted-foreground text-sm max-w-[300px]">
                         {f.description || "—"}
                       </TableCell>
                       <TableCell className="text-right">
                         <div className="flex justify-end gap-1">
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            onClick={() => handleRegenerate(f.id)}
+                            disabled={regeneratingId === f.id}
+                            title="Regenerate description"
+                          >
+                            {regeneratingId === f.id ? (
+                              <Loader2 className="h-4 w-4 animate-spin" />
+                            ) : (
+                              <Sparkles className="h-4 w-4 text-primary" />
+                            )}
+                          </Button>
                           <Button variant="ghost" size="icon" onClick={() => openEdit(f)}>
                             <Pencil className="h-4 w-4" />
                           </Button>
