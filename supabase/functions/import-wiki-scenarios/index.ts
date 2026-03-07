@@ -150,7 +150,13 @@ Deno.serve(async (req) => {
         if (!revisions || revisions.length === 0) continue;
 
         const content = revisions[0]["*"] || revisions[0]?.content || "";
+        // Extract scenario_level from metadata tag
+        const levelMatch = content.match(/<!--@\s*scenario_level:\s*(\d+)\s*@-->/);
+        const scenarioLevel = levelMatch ? parseInt(levelMatch[1], 10) : null;
         pageContents.set(title, content);
+        // Store level alongside content for later use
+        (pageContents as any).__levels = (pageContents as any).__levels || new Map();
+        (pageContents as any).__levels.set(title, scenarioLevel);
 
         const existing = existingMap.get(title);
         if (!existing) {
@@ -184,6 +190,7 @@ Deno.serve(async (req) => {
       const results = await Promise.allSettled(
         batch.map(async (item) => {
           const content = pageContents.get(item.title) || "";
+          const scenarioLevel = (pageContents as any).__levels?.get(item.title) ?? null;
           const existing = existingMap.get(item.title);
 
           const existingDescription = existing?.description;
@@ -197,12 +204,12 @@ Deno.serve(async (req) => {
           if (existing) {
             await adminClient
               .from("scenarios")
-              .update({ content, description: description || "Imported from prima.wiki" })
+              .update({ content, description: description || "Imported from prima.wiki", level: scenarioLevel })
               .eq("id", existing.id);
           } else {
             await adminClient
               .from("scenarios")
-              .insert({ title: item.title, content, description: description || "Imported from prima.wiki" });
+              .insert({ title: item.title, content, description: description || "Imported from prima.wiki", level: scenarioLevel });
           }
           return item.title;
         })

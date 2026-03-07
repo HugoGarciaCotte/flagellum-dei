@@ -24,6 +24,7 @@ import {
 interface CharacterFeatPickerProps {
   characterId: string;
   mode?: "player" | "gm";
+  scenarioLevel?: number;
 }
 
 type Feat = {
@@ -47,7 +48,7 @@ type PickerTarget =
   | { type: "level"; level: number }
   | { type: "free" };
 
-const CharacterFeatPicker = ({ characterId, mode = "player" }: CharacterFeatPickerProps) => {
+const CharacterFeatPicker = ({ characterId, mode = "player", scenarioLevel }: CharacterFeatPickerProps) => {
   const queryClient = useQueryClient();
   const online = useNetworkStatus();
   const [pickerTarget, setPickerTarget] = useState<PickerTarget | null>(null);
@@ -272,10 +273,12 @@ const CharacterFeatPicker = ({ characterId, mode = "player" }: CharacterFeatPick
         const assigned = levelFeats.find((cf) => cf.level === level);
         const assignedFeat = assigned ? featMap.get(assigned.feat_id) : null;
 
+        const isInactive = scenarioLevel != null && level > scenarioLevel;
+
         return (
-          <div key={level} className="border border-border rounded-md p-3">
+          <div key={level} className={`border border-border rounded-md p-3 ${isInactive ? "opacity-40 grayscale" : ""}`}>
             <div className="flex items-center gap-2">
-              <span className="text-xs font-bold bg-primary/10 text-primary rounded-full w-7 h-7 flex items-center justify-center shrink-0">
+              <span className={`text-xs font-bold rounded-full w-7 h-7 flex items-center justify-center shrink-0 ${isInactive ? "bg-muted text-muted-foreground" : "bg-primary/10 text-primary"}`}>
                 {level}
               </span>
 

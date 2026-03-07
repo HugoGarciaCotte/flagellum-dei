@@ -1,0 +1,1 @@
+ALTER TABLE public.scenarios ADD COLUMN level integer;
