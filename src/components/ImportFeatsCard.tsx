@@ -10,7 +10,7 @@ import { toast } from "@/hooks/use-toast";
 import { Sword, Loader2, Search, X, Check, Upload } from "lucide-react";
 import FeatCategoryBadges from "@/components/FeatCategoryBadges";
 
-type PreviewItem = { title: string; status: "new" | "modified" | "unchanged"; categories?: string[] };
+type PreviewItem = { title: string; status: "new" | "modified" | "unchanged"; categories?: string[]; diff?: { contentChanged: boolean; categoriesChanged: boolean; firstDiffAt: number; dbSnippet: string | null; wikiSnippet: string | null; dbLength: number; wikiLength: number } };
 type PushPreviewItem = { title: string; id: string; status: string; error?: string };
 
 const statusBadge = (status: PreviewItem["status"]) => {
