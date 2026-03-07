@@ -1,5 +1,7 @@
 import { parseFeatFields } from "@/lib/parseFeatContent";
+import { convertBodyToHtml } from "@/lib/parseWikitext";
 import WikiLinkedText from "@/components/WikiLinkedText";
+import { useMemo } from "react";
 
 interface FeatDetailsDisplayProps {
   content: string | null | undefined;
@@ -8,9 +10,35 @@ interface FeatDetailsDisplayProps {
 
 const FeatDetailsDisplay = ({ content, className = "" }: FeatDetailsDisplayProps) => {
   const fields = parseFeatFields(content);
-  const hasAny = fields.description || fields.special || fields.prerequisites || fields.synonyms;
+  const hasFields = fields.description || fields.special || fields.prerequisites || fields.synonyms;
 
-  if (!hasAny) return null;
+  // Render the full raw content through the wiki engine
+  const fullHtml = useMemo(() => {
+    if (!content) return null;
+    // Strip the outer {{Feats...}} wrapper if present, render remaining wiki markup
+    let raw = content.trim();
+    // Remove HTML comments
+    raw = raw.replace(/<!--[\s\S]*?-->/g, "");
+    // Remove the {{Feats template wrapper
+    raw = raw.replace(/^\s*\{\{\s*Feats\s*/i, "").replace(/\}\}\s*$/, "");
+    // Split by | field separators and reconstruct readable lines
+    const parts = ("\n" + raw).split(/\n\|\s*/);
+    const lines: string[] = [];
+    for (const part of parts) {
+      const eqIdx = part.indexOf("=");
+      if (eqIdx === -1) continue;
+      const key = part.slice(0, eqIdx).trim();
+      const value = part.slice(eqIdx + 1).trim();
+      if (!value || value.toLowerCase().includes("leave blank if none")) continue;
+      lines.push(`; ${key}`);
+      // Split multi-line values
+      value.split("\n").forEach(l => lines.push(`: ${l}`));
+    }
+    if (lines.length === 0) return null;
+    return convertBodyToHtml(lines);
+  }, [content]);
+
+  if (!hasFields && !fullHtml) return null;
 
   return (
     <div className={`space-y-1.5 border-t border-border pt-1.5 mt-2 ${className}`}>
@@ -40,6 +68,17 @@ const FeatDetailsDisplay = ({ content, className = "" }: FeatDetailsDisplayProps
       )}
       {fields.synonyms && (
         <div className="text-xs text-muted-foreground/60 italic">Synonyms: {fields.synonyms}</div>
+      )}
+      {fullHtml && (
+        <details className="mt-2">
+          <summary className="text-xs font-medium text-muted-foreground cursor-pointer hover:text-foreground transition-colors">
+            Full content
+          </summary>
+          <div
+            className="mt-1 text-xs text-muted-foreground/80 prose prose-xs prose-invert max-w-none [&_dt]:font-semibold [&_dt]:text-muted-foreground [&_dd]:ml-3 [&_dd]:text-muted-foreground/80"
+            dangerouslySetInnerHTML={{ __html: fullHtml }}
+          />
+        </details>
       )}
     </div>
   );
