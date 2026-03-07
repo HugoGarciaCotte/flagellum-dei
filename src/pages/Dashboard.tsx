@@ -93,7 +93,7 @@ const Dashboard = () => {
       <header className="border-b border-border/50 bg-card/50 backdrop-blur sticky top-0 z-10">
         <div className="container flex items-center justify-between h-16">
           <h1 className="font-display text-xl font-bold text-primary flex items-center gap-2">
-            <Crown className="h-5 w-5" /> Prima Danse Macabre
+            <Crown className="h-5 w-5" /> Prima TTRPG Helper
           </h1>
           <div className="flex items-center gap-2">
             {isOwner && (
