@@ -103,6 +103,7 @@ const Dashboard = () => {
 
   const openEditChar = (c: any) => {
     setEditingChar(c.id);
+    setActiveCharId(c.id);
     setCharName(c.name);
     setCharDesc(c.description || "");
     setCharDialogOpen(true);
