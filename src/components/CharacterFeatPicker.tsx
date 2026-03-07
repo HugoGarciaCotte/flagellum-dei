@@ -460,6 +460,22 @@ const CharacterFeatPicker = ({ characterId, mode = "player", scenarioLevel }: Ch
       return true;
     });
 
+    // Filter out feats blocked by currently owned feats (and vice versa)
+    const ownedFeatTitles = new Set(
+      (characterFeats ?? []).map(cf => featMap.get(cf.feat_id)?.title).filter(Boolean) as string[]
+    );
+    filtered = filtered.filter(f => {
+      // Check if any owned feat blocks this feat
+      for (const cf of characterFeats ?? []) {
+        const ownedMeta = metaMap.get(cf.feat_id);
+        if (ownedMeta?.blocking?.includes(f.title)) return false;
+      }
+      // Check if this feat blocks any owned feat
+      const thisMeta = metaMap.get(f.id);
+      if (thisMeta?.blocking?.some(b => ownedFeatTitles.has(b))) return false;
+      return true;
+    });
+
     if (searchTerm.trim()) {
       const lower = searchTerm.toLowerCase();
       filtered = filtered.filter((f) => f.title.toLowerCase().includes(lower));
