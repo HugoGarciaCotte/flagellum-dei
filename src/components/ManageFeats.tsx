@@ -298,6 +298,7 @@ const ManageFeats = () => {
                               <StatusIcon ok={hasContent(f)} label="Content" />
                               <StatusIcon ok={hasSubfeats(f)} label="Subfeats" />
                               <StatusIcon ok={hasSpecialities(f)} label="Specialities" />
+                            </div>
                           </div>
                         </button>
                       </CollapsibleTrigger>
