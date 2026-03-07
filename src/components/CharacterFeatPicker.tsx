@@ -631,10 +631,11 @@ const CharacterFeatPicker = ({ characterId, mode = "player", scenarioLevel }: Ch
                   <div className="flex items-center gap-2">
                     <button
                       type="button"
-                      className="text-sm font-medium text-foreground truncate text-left hover:underline"
+                      className="flex items-center gap-1 text-sm font-medium text-foreground truncate text-left hover:underline"
                       onClick={() => setExpandedAssignedFeatId(expandedAssignedFeatId === assigned!.id ? null : assigned!.id)}
                     >
                       {assignedFeat.title}
+                      <ChevronDown className={`h-3 w-3 shrink-0 text-muted-foreground transition-transform ${expandedAssignedFeatId === assigned!.id ? "rotate-180" : ""}`} />
                     </button>
                     {assigned!.note && editingNoteId !== assigned!.id && (
                       <span className="text-xs text-muted-foreground italic shrink-0">({assigned!.note})</span>
@@ -666,7 +667,6 @@ const CharacterFeatPicker = ({ characterId, mode = "player", scenarioLevel }: Ch
                       )
                     )}
                     <FeatCategoryBadges categories={assignedFeat.categories} />
-                    <ChevronDown className={`h-3 w-3 shrink-0 text-muted-foreground transition-transform ${expandedAssignedFeatId === assigned!.id ? "rotate-180" : ""}`} />
                     {online && (
                       <div className="ml-auto flex gap-1 shrink-0">
                         <Button variant="ghost" size="sm" className="h-6 px-2 text-xs" onClick={() => openPicker({ type: "level", level })}>
@@ -725,10 +725,11 @@ const CharacterFeatPicker = ({ characterId, mode = "player", scenarioLevel }: Ch
                 <div className="flex items-center gap-2">
                   <button
                     type="button"
-                    className="text-sm font-medium text-foreground truncate text-left hover:underline"
+                    className="flex items-center gap-1 text-sm font-medium text-foreground truncate text-left hover:underline"
                     onClick={() => setExpandedAssignedFeatId(expandedAssignedFeatId === cf.id ? null : cf.id)}
                   >
                     {feat.title}
+                    <ChevronDown className={`h-3 w-3 shrink-0 text-muted-foreground transition-transform ${expandedAssignedFeatId === cf.id ? "rotate-180" : ""}`} />
                   </button>
                   {cf.note && editingNoteId !== cf.id && (
                     <span className="text-xs text-muted-foreground italic shrink-0">({cf.note})</span>
@@ -760,7 +761,6 @@ const CharacterFeatPicker = ({ characterId, mode = "player", scenarioLevel }: Ch
                     )
                   )}
                   <FeatCategoryBadges categories={feat.categories} />
-                  <ChevronDown className={`h-3 w-3 shrink-0 text-muted-foreground transition-transform ${expandedAssignedFeatId === cf.id ? "rotate-180" : ""}`} />
                   {mode === "gm" && online && (
                     <Button
                       variant="ghost"
