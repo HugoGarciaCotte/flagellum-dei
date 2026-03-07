@@ -14,6 +14,42 @@ export type Database = {
   }
   public: {
     Tables: {
+      character_feats: {
+        Row: {
+          character_id: string
+          feat_id: string
+          id: string
+          level: number
+        }
+        Insert: {
+          character_id: string
+          feat_id: string
+          id?: string
+          level: number
+        }
+        Update: {
+          character_id?: string
+          feat_id?: string
+          id?: string
+          level?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "character_feats_character_id_fkey"
+            columns: ["character_id"]
+            isOneToOne: false
+            referencedRelation: "characters"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "character_feats_feat_id_fkey"
+            columns: ["feat_id"]
+            isOneToOne: false
+            referencedRelation: "feats"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       characters: {
         Row: {
           created_at: string
