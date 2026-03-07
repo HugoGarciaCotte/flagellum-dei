@@ -19,18 +19,21 @@ export type Database = {
           character_id: string
           feat_id: string
           id: string
+          is_free: boolean
           level: number
         }
         Insert: {
           character_id: string
           feat_id: string
           id?: string
+          is_free?: boolean
           level: number
         }
         Update: {
           character_id?: string
           feat_id?: string
           id?: string
+          is_free?: boolean
           level?: number
         }
         Relationships: [
