@@ -20,7 +20,7 @@ import {
 import { toast } from "@/hooks/use-toast";
 import {
   Plus, Pencil, Trash2, Sword, Loader2, Sparkles, Layers,
-  ChevronDown, CheckCircle2, AlertCircle, Wand2, Copy,
+  ChevronDown, CheckCircle2, AlertCircle, Wand2, Copy, Upload,
 } from "lucide-react";
 import FeatCategoryBadges from "@/components/FeatCategoryBadges";
 
@@ -62,6 +62,9 @@ const ManageFeats = () => {
   const [expandedId, setExpandedId] = useState<string | null>(null);
   const [bulkRegenerating, setBulkRegenerating] = useState(false);
   const [bulkProgress, setBulkProgress] = useState<{ current: number; total: number } | null>(null);
+  const [pushingId, setPushingId] = useState<string | null>(null);
+  const [bulkPushing, setBulkPushing] = useState(false);
+  const [bulkPushProgress, setBulkPushProgress] = useState<{ current: number; total: number } | null>(null);
 
   const { data: feats, isLoading } = useQuery({
     queryKey: ["admin-feats"],
