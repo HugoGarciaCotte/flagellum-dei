@@ -110,7 +110,7 @@ const Dashboard = () => {
     },
   });
 
-  // Active games
+  // Active games (hosted)
   const { data: myGames } = useQuery({
     queryKey: ["my-games", user?.id],
     queryFn: async () => {
@@ -124,6 +124,43 @@ const Dashboard = () => {
     },
     enabled: !!user,
   });
+
+  // Active games (joined as player)
+  const { data: joinedGames } = useQuery({
+    queryKey: ["joined-games", user?.id],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("game_players")
+        .select("game_id, games!inner(id, join_code, status, host_user_id, scenarios(title))")
+        .eq("user_id", user!.id)
+        .eq("games.status", "active");
+      if (error) throw error;
+      return data;
+    },
+    enabled: !!user,
+  });
+
+  // Merge hosted + joined games, deduplicated
+  const allActiveGames = useMemo(() => {
+    const games: { id: string; title: string; join_code: string; role: "hosting" | "playing" }[] = [];
+    const seen = new Set<string>();
+    if (myGames) {
+      for (const g of myGames) {
+        seen.add(g.id);
+        games.push({ id: g.id, title: (g as any).scenarios?.title || "Untitled", join_code: g.join_code, role: "hosting" });
+      }
+    }
+    if (joinedGames) {
+      for (const jp of joinedGames) {
+        const g = (jp as any).games;
+        if (g && !seen.has(g.id)) {
+          seen.add(g.id);
+          games.push({ id: g.id, title: g.scenarios?.title || "Untitled", join_code: g.join_code, role: "playing" });
+        }
+      }
+    }
+    return games;
+  }, [myGames, joinedGames]);
 
   const handleCreateGame = async (scenarioId: string) => {
     const letters = "ABCDEFGHIJKLMNOPQRSTUVWXYZ";
