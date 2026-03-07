@@ -7,7 +7,7 @@ import { Input } from "@/components/ui/input";
 import { X, Search, Gift, Loader2, WifiOff, Pencil, ArrowLeft } from "lucide-react";
 import { toast } from "sonner";
 import FeatListItem from "@/components/FeatListItem";
-import { ArrowLeft } from "lucide-react";
+
 import {
   Select,
   SelectContent,
