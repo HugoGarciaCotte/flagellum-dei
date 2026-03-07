@@ -112,7 +112,7 @@ async function generateSubfeats(
 There are 3 kinds of subfeat slots (up to 4 slots per feat):
 1. "fixed" — A specific feat is always granted. Use "feat_title" to name it.
 2. "list" — The player picks from a named list of feats. Use "options" array with feat titles. Set "optional" to true if the player can choose not to pick.
-3. "type" — The player picks any feat matching a category filter. Use "filter" string like "not:Archetype,not:Hidden Feat" to exclude categories. Set "optional" to false if they must pick one.
+3. "type" — The player picks any feat matching a category filter. Use "filter" string with comma-separated rules. Prefix "not:" to exclude a category (e.g. "not:Archetype,not:Hidden Feat"). Use a bare category name to REQUIRE it (e.g. "Dark Feat" means only feats in that category). You can combine both: "Dark Feat,not:Hidden Feat". Set "optional" to false if they must pick one.
 
 ARCHETYPE PATTERN: Archetypes almost always follow this pattern:
 - Slot 1: "list" with options ["Faith"] and optional:true (the character can choose Faith or not)
@@ -161,7 +161,7 @@ ${allFeatTitles.join(", ")}`;
                         kind: { type: "string", enum: ["fixed", "list", "type"] },
                         feat_title: { type: "string", description: "For 'fixed' kind: the feat title that is always granted" },
                         options: { type: "array", items: { type: "string" }, description: "For 'list' kind: array of feat titles to choose from" },
-                        filter: { type: "string", description: "For 'type' kind: comma-separated filter like 'not:Archetype,not:Hidden Feat'" },
+                        filter: { type: "string", description: "For 'type' kind: comma-separated filter. 'not:X' excludes category X, bare 'X' requires category X. E.g. 'Dark Feat' or 'not:Archetype,not:Hidden Feat'" },
                         optional: { type: "boolean", description: "Whether the player can choose not to pick a subfeat for this slot" },
                       },
                       required: ["slot", "kind"],
