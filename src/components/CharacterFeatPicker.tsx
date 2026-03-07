@@ -27,6 +27,7 @@ import {
   cacheCharacterFeats,
   getCachedCharacterFeats,
 } from "@/lib/offlineStorage";
+import FeatDetailsDisplay from "@/components/FeatDetailsDisplay";
 
 interface CharacterFeatPickerProps {
   characterId: string;
@@ -612,7 +613,7 @@ const CharacterFeatPicker = ({ characterId, mode = "player", scenarioLevel }: Ch
                     <p className="text-xs text-muted-foreground line-clamp-2 mt-1">{assignedFeat.description}</p>
                   )}
                   {expandedAssignedFeatId === assigned!.id && assignedFeat.content && (
-                    <p className="text-xs text-muted-foreground/80 whitespace-pre-line border-t border-border pt-1 mt-2">{assignedFeat.content}</p>
+                    <FeatDetailsDisplay content={assignedFeat.content} />
                   )}
                   {/* Subfeats */}
                   {assigned && assignedFeat && renderSubfeats(assigned, assignedFeat)}
@@ -701,7 +702,7 @@ const CharacterFeatPicker = ({ characterId, mode = "player", scenarioLevel }: Ch
                   <p className="text-xs text-muted-foreground line-clamp-2 mt-1">{feat.description}</p>
                 )}
                 {expandedAssignedFeatId === cf.id && feat.content && (
-                  <p className="text-xs text-muted-foreground/80 whitespace-pre-line border-t border-border pt-1 mt-2">{feat.content}</p>
+                  <FeatDetailsDisplay content={feat.content} />
                 )}
                 {/* Subfeats for free feats */}
                 {renderSubfeats(cf, feat)}
@@ -793,7 +794,7 @@ const CharacterFeatPicker = ({ characterId, mode = "player", scenarioLevel }: Ch
                           <p className="text-sm text-muted-foreground whitespace-pre-line">{feat.description}</p>
                         )}
                         {feat.content && (
-                          <p className="text-xs text-muted-foreground/80 whitespace-pre-line border-t border-border pt-1 mt-1">{feat.content}</p>
+                          <FeatDetailsDisplay content={feat.content} />
                         )}
                         <Button
                           size="sm"
