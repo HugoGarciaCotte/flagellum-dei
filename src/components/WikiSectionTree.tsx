@@ -69,7 +69,7 @@ function useFeatsMap() {
     queryKey: ["feats-map-for-links"],
     queryFn: async () => {
       const [featsRes, redirectsRes] = await Promise.all([
-        supabase.from("feats").select("title, description, content"),
+        supabase.from("feats").select("title, content"),
         supabase.from("feat_redirects").select("from_title, to_title"),
       ]);
       const map = new Map<string, any>();
