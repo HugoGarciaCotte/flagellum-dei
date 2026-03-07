@@ -312,14 +312,20 @@ const CharacterFeatPicker = ({ characterId, mode = "player" }: CharacterFeatPick
                       <button
                         key={feat.id}
                         onClick={() => upsertMutation.mutate({ level, featId: feat.id })}
-                        className="w-full text-left p-2 rounded border border-border hover:border-primary/50 hover:bg-primary/5 transition-colors"
+                        className="w-full text-left p-2 rounded border border-border hover:border-primary/50 hover:bg-primary/5 transition-colors disabled:opacity-50"
                         disabled={upsertMutation.isPending}
                       >
                         <div className="flex items-center gap-2">
+                          {validatingFeat === feat.id && (
+                            <Loader2 className="h-3 w-3 animate-spin text-primary shrink-0" />
+                          )}
                           <span className="text-sm font-medium text-foreground truncate">{feat.title}</span>
                           <FeatCategoryBadges categories={feat.categories} />
                         </div>
-                        {feat.description && (
+                        {validatingFeat === feat.id && (
+                          <p className="text-xs text-primary mt-0.5">Checking prerequisites...</p>
+                        )}
+                        {feat.description && validatingFeat !== feat.id && (
                           <p className="text-xs text-muted-foreground mt-0.5 line-clamp-1">{feat.description}</p>
                         )}
                       </button>
