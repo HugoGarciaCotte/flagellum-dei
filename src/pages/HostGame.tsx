@@ -9,6 +9,7 @@ import { toast } from "@/hooks/use-toast";
 import { ArrowLeft, Copy, Crown, Users, StopCircle } from "lucide-react";
 import { parseWikitext, extractImageUrls } from "@/lib/parseWikitext";
 import WikiSectionTree from "@/components/WikiSectionTree";
+import DiceRoller from "@/components/DiceRoller";
 import { useOfflineGameSession } from "@/hooks/useOfflineGameSession";
 import { useNetworkStatus } from "@/hooks/useNetworkStatus";
 import { getCachedGameSession, updateCachedSection, prefetchImages } from "@/lib/offlineStorage";
