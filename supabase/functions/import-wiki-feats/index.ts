@@ -200,6 +200,80 @@ ${allFeatTitles.join(", ")}`;
   }
 }
 
+async function generateSpecialities(
+  title: string,
+  content: string,
+  categories: string[]
+): Promise<string[] | null> {
+  try {
+    const apiKey = Deno.env.get("LOVABLE_API_KEY");
+    if (!apiKey) return null;
+
+    const response = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
+      method: "POST",
+      headers: {
+        Authorization: `Bearer ${apiKey}`,
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        model: "google/gemini-3-flash-preview",
+        messages: [
+          {
+            role: "system",
+            content: `You are a TRPG feat analyzer. Some feats require the player to choose a speciality when they pick the feat. For example, the "Combat" feat requires choosing a combat speciality (like Swords, Axes, Bows, etc.).
+
+Analyze the feat's wiki content and determine:
+1. Whether this feat requires the player to choose a speciality
+2. If yes, what are all the valid speciality options
+
+Most feats do NOT have specialities. Only return specialities if the wiki content clearly lists specific options the player must choose from when acquiring this feat. Return an empty array if no specialities exist.`,
+          },
+          {
+            role: "user",
+            content: `Title: ${title}\nCategories: ${categories.join(", ")}\n\nWiki Content:\n${content}`,
+          },
+        ],
+        tools: [
+          {
+            type: "function",
+            function: {
+              name: "set_specialities",
+              description: "Set the speciality options for this feat. Pass an empty array if the feat has no specialities.",
+              parameters: {
+                type: "object",
+                properties: {
+                  specialities: {
+                    type: "array",
+                    items: { type: "string" },
+                    description: "List of speciality options the player can choose from. Empty array if none.",
+                  },
+                },
+                required: ["specialities"],
+                additionalProperties: false,
+              },
+            },
+          },
+        ],
+        tool_choice: { type: "function", function: { name: "set_specialities" } },
+      }),
+    });
+
+    if (!response.ok) return null;
+
+    const data = await response.json();
+    const toolCall = data.choices?.[0]?.message?.tool_calls?.[0];
+    if (toolCall?.function?.arguments) {
+      const args = JSON.parse(toolCall.function.arguments);
+      if (Array.isArray(args.specialities) && args.specialities.length > 0) {
+        return args.specialities;
+      }
+    }
+    return null;
+  } catch {
+    return null;
+  }
+}
+
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") {
     return new Response(null, { headers: corsHeaders });
@@ -277,10 +351,10 @@ Deno.serve(async (req) => {
       );
     }
 
-    // Fetch existing feats (include description and subfeats to check if they need AI generation)
+    // Fetch existing feats (include description, subfeats, specialities to check if they need AI generation)
     const { data: existingFeats } = await adminClient
       .from("feats")
-      .select("id, title, content, categories, description, subfeats, unlocks_categories");
+      .select("id, title, content, categories, description, subfeats, unlocks_categories, specialities");
     const existingMap = new Map(
       (existingFeats || []).map((f: any) => [f.title, f])
     );
@@ -323,7 +397,7 @@ Deno.serve(async (req) => {
     // Build all-feat-titles list for subfeat AI context
     const allFeatTitles = intersectedTitles;
 
-    // Execute: upsert new + modified, generate AI descriptions + subfeats in parallel batches
+    // Execute: upsert new + modified, generate AI descriptions + subfeats + specialities in parallel batches
     let imported = 0;
     const errors: string[] = [];
     const toProcess = items.filter((i) => i.status !== "unchanged");
@@ -354,12 +428,20 @@ Deno.serve(async (req) => {
             unlocks_categories = result.unlocks_categories;
           }
 
+          // Generate specialities if not already set
+          const existingSpecialities = existing?.specialities;
+          let specialities: string[] | null = existingSpecialities || null;
+          if (!existingSpecialities) {
+            specialities = await generateSpecialities(item.title, content, item.categories);
+          }
+
           const payload: any = {
             content,
             description: description || "Imported from prima.wiki",
             categories: item.categories,
             subfeats: subfeats || null,
             unlocks_categories: unlocks_categories || null,
+            specialities: specialities || null,
           };
 
           if (existing) {
