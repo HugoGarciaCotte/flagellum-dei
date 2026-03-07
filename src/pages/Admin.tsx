@@ -73,9 +73,12 @@ const Admin = () => {
     setImporting(true);
     setResult(null);
     try {
+      const controller = new AbortController();
+      const timeout = setTimeout(() => controller.abort(), 5 * 60 * 1000);
       const { data, error } = await supabase.functions.invoke("import-wiki-scenarios", {
         body: { mode: "execute" },
       });
+      clearTimeout(timeout);
       if (error) throw error;
       setResult(data);
       setPreview(null);
