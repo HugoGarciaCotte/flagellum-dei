@@ -28,61 +28,12 @@ const Dashboard = () => {
   const queryClient = useQueryClient();
   const [joinCode, setJoinCode] = useState("");
   const [hostOpen, setHostOpen] = useState(false);
-  const [charDialogOpen, setCharDialogOpen] = useState(false);
-  const [editingChar, setEditingChar] = useState<string | null>(null);
-  const [activeCharId, setActiveCharId] = useState<string | null>(null);
-  const [charName, setCharName] = useState("");
-  const [charDesc, setCharDesc] = useState("");
+  const [newCharDialogOpen, setNewCharDialogOpen] = useState(false);
+  const [editingCharId, setEditingCharId] = useState<string | null>(null);
   const { isOwner } = useIsOwner();
   const { isGameMaster } = useIsGameMaster();
   const [gmDialogOpen, setGmDialogOpen] = useState(false);
   const [deleteCharTarget, setDeleteCharTarget] = useState<{ id: string; name: string } | null>(null);
-
-  useOfflineScenarios();
-  useOfflineFeats();
-
-  // Characters
-  const { data: characters } = useQuery({
-    queryKey: ["my-characters", user?.id],
-    queryFn: async () => {
-      const { data, error } = await supabase
-        .from("characters")
-        .select("*")
-        .eq("user_id", user!.id)
-        .order("created_at", { ascending: false });
-      if (error) throw error;
-      return data;
-    },
-    enabled: !!user,
-  });
-
-
-  const deleteCharMutation = useMutation({
-    mutationFn: async (id: string) => {
-      const { error } = await supabase.from("characters").delete().eq("id", id);
-      if (error) throw error;
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["my-characters"] });
-      setDeleteCharTarget(null);
-      toast({ title: "Character deleted" });
-    },
-  });
-
-  const resetCharForm = () => {
-    setCharName("");
-    setCharDesc("");
-    setEditingChar(null);
-    setActiveCharId(null);
-  };
-
-  const openEditChar = (c: any) => {
-    setEditingChar(c.id);
-    setActiveCharId(c.id);
-    setCharName(c.name);
-    setCharDesc(c.description || "");
-    setCharDialogOpen(true);
-  };
 
   // Scenarios
   const { data: scenarios } = useQuery({
