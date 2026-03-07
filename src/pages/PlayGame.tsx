@@ -8,7 +8,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { ArrowLeft, Scroll, User, Plus, Check } from "lucide-react";
-import CharacterFeatPicker from "@/components/CharacterFeatPicker";
+import CharacterSheet from "@/components/CharacterSheet";
 import { useNetworkStatus } from "@/hooks/useNetworkStatus";
 import { getCachedGameSession } from "@/lib/offlineStorage";
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from "@/components/ui/sheet";
@@ -191,18 +191,11 @@ const PlayGame = () => {
               <div className="mt-4 space-y-4">
                 {/* Currently selected */}
                 {selectedCharacter && (
-                  <Card className="border-primary/30">
-                    <CardContent className="p-4">
-                      <p className="font-bold text-foreground">{selectedCharacter.name}</p>
-                      {selectedCharacter.description && (
-                        <p className="text-sm text-muted-foreground mt-1">{selectedCharacter.description}</p>
-                      )}
-                      <span className="text-xs text-primary mt-2 inline-block">Active</span>
-                      <div className="mt-3">
-                        <CharacterFeatPicker characterId={selectedCharacter.id} scenarioLevel={effectiveScenario?.level ?? undefined} />
-                      </div>
-                    </CardContent>
-                  </Card>
+                  <CharacterSheet
+                    characterId={selectedCharacter.id}
+                    mode="player"
+                    scenarioLevel={effectiveScenario?.level ?? undefined}
+                  />
                 )}
 
                 {/* Character list */}

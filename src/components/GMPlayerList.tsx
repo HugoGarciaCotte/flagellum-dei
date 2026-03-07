@@ -1,16 +1,13 @@
-import { useState, useMemo } from "react";
+import { useState } from "react";
 import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
-import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { useQuery } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Textarea } from "@/components/ui/textarea";
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
+import { Card, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
-import { toast } from "@/hooks/use-toast";
 import { Users, ChevronDown, Pencil } from "lucide-react";
-import CharacterFeatPicker from "@/components/CharacterFeatPicker";
+import CharacterSheet from "@/components/CharacterSheet";
 
 interface PlayerRow {
   user_id: string;
@@ -22,11 +19,8 @@ interface PlayerRow {
 
 const GMPlayerList = () => {
   const { user } = useAuth();
-  const queryClient = useQueryClient();
   const [open, setOpen] = useState(false);
   const [editPlayer, setEditPlayer] = useState<PlayerRow | null>(null);
-  const [editName, setEditName] = useState("");
-  const [editDesc, setEditDesc] = useState("");
 
   const { data: players } = useQuery({
     queryKey: ["gm-players", user?.id],
@@ -68,25 +62,8 @@ const GMPlayerList = () => {
     enabled: !!user,
   });
 
-  const updateCharMutation = useMutation({
-    mutationFn: async ({ id, name, desc }: { id: string; name: string; desc: string }) => {
-      const { error } = await supabase
-        .from("characters")
-        .update({ name, description: desc || null })
-        .eq("id", id);
-      if (error) throw error;
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["gm-players"] });
-      toast({ title: "Character updated" });
-    },
-    onError: (e: any) => toast({ title: "Error", description: e.message, variant: "destructive" }),
-  });
-
   const openEdit = (p: PlayerRow) => {
     setEditPlayer(p);
-    setEditName(p.character_name || "");
-    setEditDesc(p.character_description || "");
   };
 
   if (!players || players.length === 0) return null;
@@ -141,34 +118,11 @@ const GMPlayerList = () => {
             </DialogTitle>
           </DialogHeader>
           {editPlayer?.character_id && (
-            <div className="space-y-4">
-              <Input
-                placeholder="Character name"
-                value={editName}
-                onChange={(e) => setEditName(e.target.value)}
-              />
-              <Textarea
-                placeholder="Description (optional)"
-                value={editDesc}
-                onChange={(e) => setEditDesc(e.target.value)}
-                rows={3}
-              />
-              <Button
-                onClick={() => updateCharMutation.mutate({ id: editPlayer.character_id!, name: editName, desc: editDesc })}
-                disabled={!editName.trim() || updateCharMutation.isPending}
-                className="w-full font-display"
-              >
-                Save Changes
-              </Button>
-              <CharacterFeatPicker characterId={editPlayer.character_id} mode="gm" />
-              <Button
-                variant="outline"
-                className="w-full font-display"
-                onClick={() => setEditPlayer(null)}
-              >
-                Done
-              </Button>
-            </div>
+            <CharacterSheet
+              characterId={editPlayer.character_id}
+              mode="gm"
+              onDone={() => setEditPlayer(null)}
+            />
           )}
         </DialogContent>
       </Dialog>

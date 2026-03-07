@@ -1,13 +1,8 @@
 import { useState } from "react";
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from "@/components/ui/sheet";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Textarea } from "@/components/ui/textarea";
-import { Users, Pencil, Check, X, Sword } from "lucide-react";
-import { supabase } from "@/integrations/supabase/client";
-import { useMutation, useQueryClient } from "@tanstack/react-query";
-import { toast } from "@/hooks/use-toast";
-import CharacterFeatPicker from "@/components/CharacterFeatPicker";
+import { Users, Pencil, Sword } from "lucide-react";
+import CharacterSheet from "@/components/CharacterSheet";
 
 interface Player {
   id: string;
@@ -30,33 +25,12 @@ interface PlayerListSheetProps {
 }
 
 const PlayerListSheet = ({ players, characters, gameId }: PlayerListSheetProps) => {
-  const queryClient = useQueryClient();
   const [editingId, setEditingId] = useState<string | null>(null);
-  const [editName, setEditName] = useState("");
-  const [editDesc, setEditDesc] = useState("");
 
   const charMap = new Map(characters.map((c) => [c.id, c]));
 
-  const updateCharMutation = useMutation({
-    mutationFn: async ({ id, name, description }: { id: string; name: string; description: string | null }) => {
-      const { error } = await supabase
-        .from("characters")
-        .update({ name, description })
-        .eq("id", id);
-      if (error) throw error;
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["game-characters", gameId] });
-      setEditingId(null);
-      toast({ title: "Character updated" });
-    },
-    onError: (e: any) => toast({ title: "Error", description: e.message, variant: "destructive" }),
-  });
-
   const startEdit = (char: Character) => {
     setEditingId(char.id);
-    setEditName(char.name);
-    setEditDesc(char.description || "");
   };
 
   const cancelEdit = () => {
@@ -92,34 +66,8 @@ const PlayerListSheet = ({ players, characters, gameId }: PlayerListSheetProps) 
 
                   {char ? (
                     isEditing ? (
-                      <div className="space-y-2 bg-muted/30 rounded-md p-2">
-                        <Input
-                          value={editName}
-                          onChange={(e) => setEditName(e.target.value)}
-                          placeholder="Character name"
-                          className="text-sm"
-                        />
-                        <Textarea
-                          value={editDesc}
-                          onChange={(e) => setEditDesc(e.target.value)}
-                          placeholder="Description (optional)"
-                          rows={2}
-                          className="text-sm"
-                        />
-                        <div className="flex gap-2">
-                          <Button
-                            size="sm"
-                            className="gap-1"
-                            disabled={!editName.trim() || updateCharMutation.isPending}
-                            onClick={() => updateCharMutation.mutate({ id: char.id, name: editName, description: editDesc || null })}
-                          >
-                            <Check className="h-3 w-3" /> Save
-                          </Button>
-                          <Button size="sm" variant="ghost" onClick={cancelEdit} className="gap-1">
-                            <X className="h-3 w-3" /> Cancel
-                          </Button>
-                        </div>
-                        <CharacterFeatPicker characterId={char.id} mode="gm" />
+                      <div className="bg-muted/30 rounded-md p-2">
+                        <CharacterSheet characterId={char.id} mode="gm" onDone={cancelEdit} />
                       </div>
                     ) : (
                       <div className="flex items-start justify-between bg-muted/30 rounded-md p-2">
