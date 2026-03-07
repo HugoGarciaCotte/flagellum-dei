@@ -13,6 +13,7 @@ import { ArrowLeft, Crown, Download, Loader2, Search, X, Check } from "lucide-re
 import ManageScenarios from "@/components/ManageScenarios";
 import ImportFeatsCard from "@/components/ImportFeatsCard";
 import ManageFeats from "@/components/ManageFeats";
+import ManageRedirects from "@/components/ManageRedirects";
 
 type PreviewItem = { title: string; status: "new" | "modified" | "unchanged" };
 
@@ -208,6 +209,8 @@ const Admin = () => {
         <ImportFeatsCard />
 
         <ManageFeats />
+
+        <ManageRedirects />
       </main>
     </div>
   );

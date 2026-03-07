@@ -90,9 +90,17 @@ export default function WikiLinkedText({ text, className = "" }: WikiLinkedTextP
   const { data: featsMap } = useQuery({
     queryKey: ["feats-map-for-links"],
     queryFn: async () => {
-      const { data } = await supabase.from("feats").select("title, description, content");
+      const [featsRes, redirectsRes] = await Promise.all([
+        supabase.from("feats").select("title, description, content"),
+        supabase.from("feat_redirects").select("from_title, to_title"),
+      ]);
       const map = new Map<string, any>();
-      data?.forEach((f) => map.set(f.title.toLowerCase(), f));
+      featsRes.data?.forEach((f) => map.set(f.title.toLowerCase(), f));
+      // Add redirect entries: point from_title to the target feat
+      redirectsRes.data?.forEach((r) => {
+        const target = map.get(r.to_title.toLowerCase());
+        if (target) map.set(r.from_title.toLowerCase(), target);
+      });
       return map;
     },
     enabled: hasLinks,
