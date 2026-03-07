@@ -12,13 +12,11 @@ Deno.serve(async (req) => {
   }
 
   try {
-    // Verify the caller is the owner
     const authHeader = req.headers.get("authorization");
     const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
     const supabaseServiceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
     const supabaseAnonKey = Deno.env.get("SUPABASE_PUBLISHABLE_KEY")!;
 
-    // Create client with user's token to verify identity
     const userClient = createClient(supabaseUrl, supabaseAnonKey, {
       global: { headers: { Authorization: authHeader! } },
     });
@@ -30,7 +28,6 @@ Deno.serve(async (req) => {
       });
     }
 
-    // Check owner role using service client
     const adminClient = createClient(supabaseUrl, supabaseServiceKey);
     const { data: roleData } = await adminClient
       .from("user_roles")
@@ -46,6 +43,15 @@ Deno.serve(async (req) => {
       });
     }
 
+    // Parse mode from body
+    let mode = "execute";
+    try {
+      const body = await req.json();
+      if (body?.mode) mode = body.mode;
+    } catch {
+      // no body = default execute
+    }
+
     // Step 1: Get all pages in Category:Scenario
     const catUrl =
       "https://prima.wiki/api.php?action=query&list=categorymembers&cmtitle=Category:Scenario&cmlimit=500&format=json";
@@ -54,15 +60,23 @@ Deno.serve(async (req) => {
     const pages = catData?.query?.categorymembers || [];
 
     if (pages.length === 0) {
-      return new Response(JSON.stringify({ success: true, imported: 0, message: "No scenarios found in category" }), {
+      return new Response(JSON.stringify({ success: true, items: [], total: 0, message: "No scenarios found in category" }), {
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
 
-    let imported = 0;
-    const errors: string[] = [];
+    // Fetch all existing scenarios in one query
+    const { data: existingScenarios } = await adminClient
+      .from("scenarios")
+      .select("id, title, content");
+    const existingMap = new Map(
+      (existingScenarios || []).map((s: any) => [s.title, s])
+    );
 
-    // Step 2: Fetch each page content and upsert
+    // Step 2: Fetch each page content
+    const items: { title: string; status: "new" | "modified" | "unchanged" }[] = [];
+    const pageContents: Map<string, string> = new Map();
+
     for (const page of pages) {
       try {
         const title = page.title as string;
@@ -71,41 +85,59 @@ Deno.serve(async (req) => {
         const pageData = await pageRes.json();
 
         const pagesObj = pageData?.query?.pages;
-        if (!pagesObj) {
-          errors.push(`No data for ${title}`);
-          continue;
-        }
+        if (!pagesObj) continue;
 
         const pageId = Object.keys(pagesObj)[0];
         const revisions = pagesObj[pageId]?.revisions;
-        if (!revisions || revisions.length === 0) {
-          errors.push(`No revisions for ${title}`);
-          continue;
-        }
+        if (!revisions || revisions.length === 0) continue;
 
         const content = revisions[0]["*"] || revisions[0]?.content || "";
+        pageContents.set(title, content);
 
-        // Upsert by title
-        const { data: existing } = await adminClient
-          .from("scenarios")
-          .select("id")
-          .eq("title", title)
-          .maybeSingle();
+        const existing = existingMap.get(title);
+        if (!existing) {
+          items.push({ title, status: "new" });
+        } else if (existing.content !== content) {
+          items.push({ title, status: "modified" });
+        } else {
+          items.push({ title, status: "unchanged" });
+        }
+      } catch (e) {
+        items.push({ title: page.title, status: "new" });
+      }
+    }
+
+    // Preview mode: return the list without writing
+    if (mode === "preview") {
+      return new Response(
+        JSON.stringify({ success: true, items, total: items.length }),
+        { headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
+
+    // Execute mode: upsert only new + modified
+    let imported = 0;
+    const errors: string[] = [];
+
+    for (const item of items) {
+      if (item.status === "unchanged") continue;
+      try {
+        const content = pageContents.get(item.title) || "";
+        const existing = existingMap.get(item.title);
 
         if (existing) {
           await adminClient
             .from("scenarios")
-            .update({ content, description: `Imported from prima.wiki` })
+            .update({ content, description: "Imported from prima.wiki" })
             .eq("id", existing.id);
         } else {
           await adminClient
             .from("scenarios")
-            .insert({ title, content, description: `Imported from prima.wiki` });
+            .insert({ title: item.title, content, description: "Imported from prima.wiki" });
         }
-
         imported++;
-      } catch (e) {
-        errors.push(`Error processing ${page.title}: ${e.message}`);
+      } catch (e: any) {
+        errors.push(`Error processing ${item.title}: ${e.message}`);
       }
     }
 
@@ -113,7 +145,7 @@ Deno.serve(async (req) => {
       JSON.stringify({ success: true, imported, total: pages.length, errors }),
       { headers: { ...corsHeaders, "Content-Type": "application/json" } }
     );
-  } catch (error) {
+  } catch (error: any) {
     console.error("Import error:", error);
     return new Response(
       JSON.stringify({ success: false, error: error.message }),
