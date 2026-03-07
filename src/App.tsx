@@ -11,6 +11,7 @@ import HostGame from "./pages/HostGame";
 import PlayGame from "./pages/PlayGame";
 import ResetPassword from "./pages/ResetPassword";
 import Install from "./pages/Install";
+import Admin from "./pages/Admin";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient({
@@ -40,6 +41,7 @@ const App = () => (
             <Route path="/game/:gameId/play" element={<PlayGame />} />
             <Route path="/reset-password" element={<ResetPassword />} />
             <Route path="/install" element={<Install />} />
+            <Route path="/admin" element={<Admin />} />
             <Route path="*" element={<NotFound />} />
           </Routes>
         </BrowserRouter>
