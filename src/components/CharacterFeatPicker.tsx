@@ -759,7 +759,7 @@ const CharacterFeatPicker = ({ characterId, mode = "player", scenarioLevel }: Ch
                         </Button>
                       </>
                     ) : undefined}
-                    expandedContent={assigned && assignedFeat ? renderSubfeats(assigned, assignedFeat) : undefined}
+                    collapsedContent={assigned && assignedFeat ? renderSubfeats(assigned, assignedFeat) : undefined}
                     compact
                   />
                 </div>
@@ -834,7 +834,7 @@ const CharacterFeatPicker = ({ characterId, mode = "player", scenarioLevel }: Ch
                     <X className="h-3 w-3" />
                   </Button>
                 ) : undefined}
-                expandedContent={renderSubfeats(cf, feat)}
+                collapsedContent={renderSubfeats(cf, feat)}
                 compact
               />
             );
