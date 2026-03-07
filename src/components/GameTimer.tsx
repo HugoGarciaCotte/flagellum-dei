@@ -31,10 +31,13 @@ const GameTimer = () => {
       <div className="fixed bottom-6 left-6 z-50">
         <Button
           onClick={() => setOpen(true)}
-          className="h-14 w-14 rounded-full shadow-lg bg-primary text-primary-foreground hover:bg-primary/90"
+          className="h-14 rounded-full shadow-lg bg-primary text-primary-foreground hover:bg-primary/90 gap-2 px-4"
           size="icon"
         >
-          <Timer className="h-6 w-6" />
+          <Timer className="h-5 w-5" />
+          <span className="font-display font-bold tabular-nums text-sm">
+            {minutes}<span className="text-xs font-normal opacity-75 ml-0.5">m</span>
+          </span>
         </Button>
       </div>
     );
