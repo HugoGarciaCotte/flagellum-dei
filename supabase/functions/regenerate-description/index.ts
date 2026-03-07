@@ -3,6 +3,7 @@ import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 
 interface EmbeddedFeatMeta {
   description: string | null;
+  prerequisites: string | null;
   specialities: string[] | null;
   subfeats: any[] | null;
   unlocks_categories: string[] | null;
@@ -10,7 +11,7 @@ interface EmbeddedFeatMeta {
 
 function parseEmbeddedFeatMeta(content: string): EmbeddedFeatMeta {
   const result: EmbeddedFeatMeta = {
-    description: null, specialities: null, subfeats: null, unlocks_categories: null,
+    description: null, prerequisites: null, specialities: null, subfeats: null, unlocks_categories: null,
   };
   const tagRegex = /<!--@\s*([\w:]+)\s*:\s*(.*?)\s*@-->/g;
   let match: RegExpExecArray | null;
@@ -19,6 +20,7 @@ function parseEmbeddedFeatMeta(content: string): EmbeddedFeatMeta {
     const key = match[1].trim();
     const value = match[2].trim();
     if (key === "feat_one_liner") result.description = value;
+    else if (key === "feat_prerequisites") result.prerequisites = value;
     else if (key === "feat_specialities") result.specialities = value.split(",").map(s => s.trim()).filter(Boolean);
     else if (key === "feat_unlocks") result.unlocks_categories = value.split(",").map(s => s.trim()).filter(Boolean);
     else if (key.startsWith("feat_subfeat:")) {
@@ -44,6 +46,8 @@ function parseEmbeddedFeatMeta(content: string): EmbeddedFeatMeta {
 function generateParseableBlock(meta: EmbeddedFeatMeta): string {
   const lines: string[] = [];
   if (meta.description?.trim()) lines.push(`<!--@ feat_one_liner: ${meta.description.trim()} @-->`);
+  if (meta.prerequisites?.trim()) lines.push(`<!--@ feat_prerequisites: ${meta.prerequisites.trim()} @-->`);
+
   if (meta.specialities && meta.specialities.length > 0) lines.push(`<!--@ feat_specialities: ${meta.specialities.join(", ")} @-->`);
   if (meta.subfeats && meta.subfeats.length > 0) {
     for (const s of meta.subfeats) {
@@ -235,6 +239,46 @@ async function generateSpecialities(title: string, content: string, categories: 
   return null;
 }
 
+async function generatePrerequisites(title: string, content: string, categories: string[]): Promise<string | null> {
+  const apiKey = Deno.env.get("LOVABLE_API_KEY");
+  if (!apiKey) throw new Error("LOVABLE_API_KEY is not configured");
+
+  const response = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
+    method: "POST",
+    headers: { Authorization: `Bearer ${apiKey}`, "Content-Type": "application/json" },
+    body: JSON.stringify({
+      model: "google/gemini-3-flash-preview",
+      messages: [
+        { role: "system", content: `You are a TRPG feat analyzer. Analyze the feat's wiki content and extract its prerequisites. Prerequisites are conditions a character must meet to take this feat (e.g. other feats, levels, attributes). Return the prerequisites as a free-form text string using wiki link syntax for feat references (e.g. "[[Prowess]], Level 3"). If the feat has no prerequisites, return an empty string.` },
+        { role: "user", content: `Title: ${title}\nCategories: ${categories.join(", ")}\n\nWiki Content:\n${content}` },
+      ],
+      tools: [{
+        type: "function",
+        function: {
+          name: "set_prerequisites",
+          description: "Set the prerequisites for this feat. Pass an empty string if the feat has no prerequisites.",
+          parameters: {
+            type: "object",
+            properties: { prerequisites: { type: "string" } },
+            required: ["prerequisites"],
+            additionalProperties: false,
+          },
+        },
+      }],
+      tool_choice: { type: "function", function: { name: "set_prerequisites" } },
+    }),
+  });
+
+  if (!response.ok) throw new Error(`AI gateway error: ${response.status}`);
+  const data = await response.json();
+  const toolCall = data.choices?.[0]?.message?.tool_calls?.[0];
+  if (toolCall?.function?.arguments) {
+    const args = JSON.parse(toolCall.function.arguments);
+    if (args.prerequisites?.trim()) return args.prerequisites.trim();
+  }
+  return null;
+}
+
 serve(async (req) => {
   if (req.method === "OPTIONS") {
     return new Response(null, { headers: corsHeaders });
@@ -308,14 +352,16 @@ serve(async (req) => {
       const { data: allFeats } = await adminClient.from("feats").select("title");
       const allFeatTitles = (allFeats || []).map((f: any) => f.title);
 
-      const [description, subfeatResult, specialities] = await Promise.all([
+      const [description, subfeatResult, specialities, prerequisites] = await Promise.all([
         generateDescription(feat.title, cleanContent, feat.categories || []),
         generateSubfeats(feat.title, cleanContent, feat.categories || [], allFeatTitles),
         generateSpecialities(feat.title, cleanContent, feat.categories || []),
+        generatePrerequisites(feat.title, cleanContent, feat.categories || []),
       ]);
 
       const newMeta: EmbeddedFeatMeta = {
         description,
+        prerequisites,
         subfeats: subfeatResult.subfeats,
         specialities,
         unlocks_categories: subfeatResult.unlocks_categories,

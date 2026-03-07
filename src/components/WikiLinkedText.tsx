@@ -87,10 +87,10 @@ function FeatHoverContent({ featTitle, featsMap }: { featTitle: string; featsMap
           <p className="text-xs text-muted-foreground/80 whitespace-pre-line">{stripLinks(fields.description)}</p>
         </div>
       )}
-      {fields.prerequisites && (
+      {(meta.prerequisites || fields.prerequisites) && (
         <div>
           <p className="text-xs font-medium text-muted-foreground">Prerequisites</p>
-          <p className="text-xs text-muted-foreground/80">{stripLinks(fields.prerequisites)}</p>
+          <p className="text-xs text-muted-foreground/80">{stripLinks(meta.prerequisites || fields.prerequisites!)}</p>
         </div>
       )}
       {fields.special && (
