@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
@@ -110,7 +110,7 @@ const Dashboard = () => {
     },
   });
 
-  // Active games
+  // Active games (hosted)
   const { data: myGames } = useQuery({
     queryKey: ["my-games", user?.id],
     queryFn: async () => {
@@ -124,6 +124,43 @@ const Dashboard = () => {
     },
     enabled: !!user,
   });
+
+  // Active games (joined as player)
+  const { data: joinedGames } = useQuery({
+    queryKey: ["joined-games", user?.id],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("game_players")
+        .select("game_id, games!inner(id, join_code, status, host_user_id, scenarios(title))")
+        .eq("user_id", user!.id)
+        .eq("games.status", "active");
+      if (error) throw error;
+      return data;
+    },
+    enabled: !!user,
+  });
+
+  // Merge hosted + joined games, deduplicated
+  const allActiveGames = useMemo(() => {
+    const games: { id: string; title: string; join_code: string; role: "hosting" | "playing" }[] = [];
+    const seen = new Set<string>();
+    if (myGames) {
+      for (const g of myGames) {
+        seen.add(g.id);
+        games.push({ id: g.id, title: (g as any).scenarios?.title || "Untitled", join_code: g.join_code, role: "hosting" });
+      }
+    }
+    if (joinedGames) {
+      for (const jp of joinedGames) {
+        const g = (jp as any).games;
+        if (g && !seen.has(g.id)) {
+          seen.add(g.id);
+          games.push({ id: g.id, title: g.scenarios?.title || "Untitled", join_code: g.join_code, role: "playing" });
+        }
+      }
+    }
+    return games;
+  }, [myGames, joinedGames]);
 
   const handleCreateGame = async (scenarioId: string) => {
     const letters = "ABCDEFGHIJKLMNOPQRSTUVWXYZ";
@@ -276,20 +313,25 @@ const Dashboard = () => {
         </section>
 
         {/* Active Games */}
-        {myGames && myGames.length > 0 && (
+        {allActiveGames.length > 0 && (
           <section className="space-y-4">
             <h2 className="font-display text-xl text-foreground flex items-center gap-2">
               <Users className="h-5 w-5 text-primary" /> Your Active Games
             </h2>
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-              {myGames.map((game) => (
+              {allActiveGames.map((game) => (
                 <Card
                   key={game.id}
                   className="cursor-pointer border-primary/20 hover:border-primary/50 transition-colors"
-                  onClick={() => navigate(`/game/${game.id}/host`)}
+                  onClick={() => navigate(game.role === "hosting" ? `/game/${game.id}/host` : `/game/${game.id}/play`)}
                 >
                   <CardHeader className="pb-2">
-                    <CardTitle className="font-display text-lg">{(game as any).scenarios?.title}</CardTitle>
+                    <div className="flex items-center justify-between">
+                      <CardTitle className="font-display text-lg">{game.title}</CardTitle>
+                      <span className={`text-xs font-display px-2 py-0.5 rounded-full ${game.role === "hosting" ? "bg-primary/15 text-primary" : "bg-accent text-accent-foreground"}`}>
+                        {game.role === "hosting" ? "Hosting" : "Playing"}
+                      </span>
+                    </div>
                     <CardDescription>Code: <span className="font-mono text-primary tracking-widest">{game.join_code}</span></CardDescription>
                   </CardHeader>
                 </Card>
