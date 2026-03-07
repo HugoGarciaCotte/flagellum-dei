@@ -330,6 +330,35 @@ const CharacterFeatPicker = ({ characterId, mode = "player", scenarioLevel }: Ch
                     >
                       {assignedFeat.title}
                     </button>
+                    {assigned!.note && editingNoteId !== assigned!.id && (
+                      <span className="text-xs text-muted-foreground italic shrink-0">({assigned!.note})</span>
+                    )}
+                    {editingNoteId === assigned!.id ? (
+                      <form
+                        className="flex items-center gap-1 shrink-0"
+                        onSubmit={(e) => { e.preventDefault(); saveNote(assigned!.id); }}
+                      >
+                        <Input
+                          ref={noteInputRef}
+                          value={noteValue}
+                          onChange={(e) => setNoteValue(e.target.value)}
+                          className="h-6 text-xs w-24"
+                          placeholder="note..."
+                          onBlur={() => saveNote(assigned!.id)}
+                        />
+                      </form>
+                    ) : (
+                      online && (
+                        <button
+                          type="button"
+                          className="shrink-0 text-muted-foreground hover:text-foreground"
+                          onClick={() => startEditingNote(assigned!)}
+                          title="Add note"
+                        >
+                          <Pencil className="h-3 w-3" />
+                        </button>
+                      )
+                    )}
                     <FeatCategoryBadges categories={assignedFeat.categories} />
                     <ChevronDown className={`h-3 w-3 shrink-0 text-muted-foreground transition-transform ${expandedAssignedFeatId === assigned!.id ? "rotate-180" : ""}`} />
                     {online && (
@@ -397,6 +426,35 @@ const CharacterFeatPicker = ({ characterId, mode = "player", scenarioLevel }: Ch
                   >
                     {feat.title}
                   </button>
+                  {cf.note && editingNoteId !== cf.id && (
+                    <span className="text-xs text-muted-foreground italic shrink-0">({cf.note})</span>
+                  )}
+                  {editingNoteId === cf.id ? (
+                    <form
+                      className="flex items-center gap-1 shrink-0"
+                      onSubmit={(e) => { e.preventDefault(); saveNote(cf.id); }}
+                    >
+                      <Input
+                        ref={noteInputRef}
+                        value={noteValue}
+                        onChange={(e) => setNoteValue(e.target.value)}
+                        className="h-6 text-xs w-24"
+                        placeholder="note..."
+                        onBlur={() => saveNote(cf.id)}
+                      />
+                    </form>
+                  ) : (
+                    online && (
+                      <button
+                        type="button"
+                        className="shrink-0 text-muted-foreground hover:text-foreground"
+                        onClick={() => startEditingNote(cf)}
+                        title="Add note"
+                      >
+                        <Pencil className="h-3 w-3" />
+                      </button>
+                    )
+                  )}
                   <FeatCategoryBadges categories={feat.categories} />
                   <ChevronDown className={`h-3 w-3 shrink-0 text-muted-foreground transition-transform ${expandedAssignedFeatId === cf.id ? "rotate-180" : ""}`} />
                   {mode === "gm" && online && (
