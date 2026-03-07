@@ -72,6 +72,22 @@ const DiceRoller = () => {
   const [displayValue, setDisplayValue] = useState(1);
   const [phase, setPhase] = useState<"idle" | "rolling" | "result">("idle");
   const intervalRef = useRef<ReturnType<typeof setInterval>>();
+  const settleTimeoutRef = useRef<ReturnType<typeof setTimeout>>();
+  const dismissTimeoutRef = useRef<ReturnType<typeof setTimeout>>();
+  const finalValueRef = useRef(1);
+
+  const showResult = useCallback((value: number) => {
+    clearInterval(intervalRef.current);
+    clearTimeout(settleTimeoutRef.current);
+    setResult(value);
+    setDisplayValue(value);
+    setPhase("result");
+
+    dismissTimeoutRef.current = setTimeout(() => {
+      setPhase("idle");
+      setRolling(false);
+    }, 1800);
+  }, []);
 
   const roll = useCallback(() => {
     if (rolling) return;
@@ -81,29 +97,34 @@ const DiceRoller = () => {
     setPhase("rolling");
     setResult(null);
 
-    // Rapidly cycle displayed number
+    // Pre-compute final result
+    finalValueRef.current = Math.floor(Math.random() * 6) + 1;
+
     intervalRef.current = setInterval(() => {
       setDisplayValue((v) => (v % 6) + 1);
     }, 60);
 
-    // After 1.2s, settle on result
-    setTimeout(() => {
-      clearInterval(intervalRef.current);
-      const finalValue = Math.floor(Math.random() * 6) + 1;
-      setResult(finalValue);
-      setDisplayValue(finalValue);
-      setPhase("result");
-
-      // Auto-dismiss after 1.8s
-      setTimeout(() => {
-        setPhase("idle");
-        setRolling(false);
-      }, 1800);
+    settleTimeoutRef.current = setTimeout(() => {
+      showResult(finalValueRef.current);
     }, 1200);
-  }, [rolling]);
+  }, [rolling, showResult]);
+
+  const handleOverlayClick = useCallback(() => {
+    if (phase === "rolling") {
+      showResult(finalValueRef.current);
+    } else if (phase === "result") {
+      clearTimeout(dismissTimeoutRef.current);
+      setPhase("idle");
+      setRolling(false);
+    }
+  }, [phase, showResult]);
 
   useEffect(() => {
-    return () => clearInterval(intervalRef.current);
+    return () => {
+      clearInterval(intervalRef.current);
+      clearTimeout(settleTimeoutRef.current);
+      clearTimeout(dismissTimeoutRef.current);
+    };
   }, []);
 
   return (
@@ -123,10 +144,8 @@ const DiceRoller = () => {
       {/* Full-screen overlay */}
       {phase !== "idle" && (
         <div
-          className="fixed inset-0 z-[100] flex items-center justify-center bg-background/70 backdrop-blur-sm"
-          style={{
-            animation: phase === "result" ? "none" : undefined,
-          }}
+          className="fixed inset-0 z-[100] flex items-center justify-center bg-background/70 backdrop-blur-sm cursor-pointer"
+          onClick={handleOverlayClick}
         >
           <div
             className="flex flex-col items-center gap-4"
