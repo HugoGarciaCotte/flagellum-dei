@@ -130,7 +130,6 @@ async function getPageContent(title: string, session: WikiSession): Promise<stri
   url.searchParams.set("titles", title);
   url.searchParams.set("prop", "revisions");
   url.searchParams.set("rvprop", "content");
-  url.searchParams.set("rvslots", "main");
   url.searchParams.set("format", "json");
   const res = await fetch(url.toString(), { headers: { Cookie: session.cookies.join("; ") } });
   const data = await res.json();
@@ -138,7 +137,7 @@ async function getPageContent(title: string, session: WikiSession): Promise<stri
   if (!pages) return null;
   const pageId = Object.keys(pages)[0];
   if (pageId === "-1") return null;
-  return pages[pageId]?.revisions?.[0]?.slots?.main?.["*"] ?? null;
+  return pages[pageId]?.revisions?.[0]?.["*"] ?? null;
 }
 
 async function editPage(title: string, content: string, token: string, session: WikiSession, summary: string): Promise<void> {
