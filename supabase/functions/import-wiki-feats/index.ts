@@ -1,5 +1,73 @@
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 
+interface EmbeddedFeatMeta {
+  description: string | null;
+  specialities: string[] | null;
+  subfeats: any[] | null;
+  unlocks_categories: string[] | null;
+}
+
+function parseEmbeddedFeatMeta(content: string): EmbeddedFeatMeta {
+  const result: EmbeddedFeatMeta = {
+    description: null,
+    specialities: null,
+    subfeats: null,
+    unlocks_categories: null,
+  };
+
+  const tagRegex = /<!--@\s*([\w:]+)\s*:\s*(.*?)\s*@-->/g;
+  let match: RegExpExecArray | null;
+  const subfeatSlots: any[] = [];
+
+  while ((match = tagRegex.exec(content)) !== null) {
+    const key = match[1].trim();
+    const value = match[2].trim();
+
+    if (key === "feat_one_liner") {
+      result.description = value;
+    } else if (key === "feat_specialities") {
+      result.specialities = value.split(",").map((s) => s.trim()).filter(Boolean);
+    } else if (key === "feat_unlocks") {
+      result.unlocks_categories = value.split(",").map((s) => s.trim()).filter(Boolean);
+    } else if (key.startsWith("feat_subfeat:")) {
+      const slotNum = parseInt(key.split(":")[1], 10);
+      if (isNaN(slotNum)) continue;
+
+      // Format: kind, [optional,] value
+      const parts = value.split(",").map((s) => s.trim());
+      if (parts.length < 2) continue;
+
+      const kind = parts[0] as "fixed" | "list" | "type";
+      let optional = false;
+      let valueStart = 1;
+
+      if (parts[1] === "optional") {
+        optional = true;
+        valueStart = 2;
+      }
+
+      const rest = parts.slice(valueStart).join(",").trim();
+      const slot: any = { slot: slotNum, kind, optional };
+
+      if (kind === "fixed") {
+        slot.feat_title = rest;
+      } else if (kind === "list") {
+        slot.options = rest.split("|").map((s) => s.trim()).filter(Boolean);
+      } else if (kind === "type") {
+        slot.filter = rest;
+      }
+
+      subfeatSlots.push(slot);
+    }
+  }
+
+  if (subfeatSlots.length > 0) {
+    result.subfeats = subfeatSlots.sort((a, b) => a.slot - b.slot);
+  }
+
+  return result;
+}
+
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
   "Access-Control-Allow-Headers":
@@ -410,11 +478,16 @@ Deno.serve(async (req) => {
           const content = pageContents.get(item.title) || "";
           const existing = existingMap.get(item.title);
 
+          // Parse embedded wiki metadata first
+          const meta = parseEmbeddedFeatMeta(content);
+
           const existingDescription = existing?.description;
           const needsDescription = !existingDescription || existingDescription.trim() === "" || existingDescription === "Imported from prima.wiki";
           let description: string | null = existingDescription || null;
 
-          if (needsDescription) {
+          if (meta.description) {
+            description = meta.description;
+          } else if (needsDescription) {
             description = await generateDescription(item.title, content, item.categories);
           }
 
@@ -422,16 +495,23 @@ Deno.serve(async (req) => {
           const existingSubfeats = existing?.subfeats;
           let subfeats: any[] | null = existingSubfeats || null;
           let unlocks_categories: string[] | null = existing?.unlocks_categories || null;
-          if (!existingSubfeats) {
+          if (meta.subfeats) {
+            subfeats = meta.subfeats;
+          } else if (!existingSubfeats) {
             const result = await generateSubfeats(item.title, content, item.categories, allFeatTitles);
             subfeats = result.subfeats;
             unlocks_categories = result.unlocks_categories;
+          }
+          if (meta.unlocks_categories) {
+            unlocks_categories = meta.unlocks_categories;
           }
 
           // Generate specialities if not already set
           const existingSpecialities = existing?.specialities;
           let specialities: string[] | null = existingSpecialities || null;
-          if (!existingSpecialities) {
+          if (meta.specialities) {
+            specialities = meta.specialities;
+          } else if (!existingSpecialities) {
             specialities = await generateSpecialities(item.title, content, item.categories);
           }
 

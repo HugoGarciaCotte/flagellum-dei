@@ -20,7 +20,7 @@ import {
 import { toast } from "@/hooks/use-toast";
 import {
   Plus, Pencil, Trash2, Sword, Loader2, Sparkles, Layers,
-  ChevronDown, CheckCircle2, AlertCircle, Wand2,
+  ChevronDown, CheckCircle2, AlertCircle, Wand2, Copy,
 } from "lucide-react";
 import FeatCategoryBadges from "@/components/FeatCategoryBadges";
 
@@ -222,6 +222,41 @@ const ManageFeats = () => {
     );
   };
 
+  const generateWikiTags = (f: Feat): string => {
+    const lines: string[] = [];
+    if (f.description?.trim()) {
+      lines.push(`<!--@ feat_one_liner: ${f.description.trim()} @-->`);
+    }
+    if (f.specialities && f.specialities.length > 0) {
+      lines.push(`<!--@ feat_specialities: ${f.specialities.join(", ")} @-->`);
+    }
+    if (f.subfeats && f.subfeats.length > 0) {
+      for (const s of f.subfeats) {
+        const parts: string[] = [s.kind];
+        if (s.optional) parts.push("optional");
+        if (s.kind === "fixed" && s.feat_title) parts.push(s.feat_title);
+        else if (s.kind === "list" && s.options) parts.push(s.options.join("|"));
+        else if (s.kind === "type" && s.filter) parts.push(s.filter);
+        lines.push(`<!--@ feat_subfeat:${s.slot}: ${parts.join(", ")} @-->`);
+      }
+    }
+    const rawFeat = feats?.find(feat => feat.id === f.id) as any;
+    if (rawFeat?.unlocks_categories && rawFeat.unlocks_categories.length > 0) {
+      lines.push(`<!--@ feat_unlocks: ${rawFeat.unlocks_categories.join(", ")} @-->`);
+    }
+    return lines.join("\n");
+  };
+
+  const handleCopyWikiTags = (f: Feat) => {
+    const tags = generateWikiTags(f);
+    if (!tags) {
+      toast({ title: "No wiki tags to copy", description: "This feat has no metadata to export.", variant: "destructive" });
+      return;
+    }
+    navigator.clipboard.writeText(tags);
+    toast({ title: "Wiki tags copied to clipboard" });
+  };
+
   return (
     <>
       <Card className="border-primary/20">
@@ -353,6 +388,14 @@ const ManageFeats = () => {
                             >
                               {isRegenerating ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Sparkles className="h-3.5 w-3.5" />}
                               Regenerate AI
+                            </Button>
+                            <Button
+                              size="sm"
+                              variant="outline"
+                              className="gap-1.5"
+                              onClick={(e) => { e.stopPropagation(); handleCopyWikiTags(f); }}
+                            >
+                              <Copy className="h-3.5 w-3.5" /> Copy Wiki Tags
                             </Button>
                             <Button size="sm" variant="outline" className="gap-1.5" onClick={(e) => { e.stopPropagation(); openEdit(f); }}>
                               <Pencil className="h-3.5 w-3.5" /> Edit
