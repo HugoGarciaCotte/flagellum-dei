@@ -48,8 +48,6 @@ export function convertInlineMarkup(text: string): string {
   return text;
 }
 
-/** Convert multi-line wikitext body to HTML (lists, preformatted, paragraphs). */
-export { convertBodyToHtml as renderWikiBlockHtml };
 
 
 type ListType = "ul" | "ol" | "dl";
