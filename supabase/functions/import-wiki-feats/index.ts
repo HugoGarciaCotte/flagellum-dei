@@ -39,6 +39,64 @@ const CATEGORY_MAP: Record<string, string> = {
   "Dark Feats": "Dark Feat",
 };
 
+async function generateDescription(title: string, content: string, categories: string[]): Promise<string | null> {
+  try {
+    const apiKey = Deno.env.get("LOVABLE_API_KEY");
+    if (!apiKey) return null;
+
+    const response = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
+      method: "POST",
+      headers: {
+        Authorization: `Bearer ${apiKey}`,
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        model: "google/gemini-3-flash-preview",
+        messages: [
+          {
+            role: "system",
+            content: "You are a TTRPG content summarizer. Given a feat's title, categories, and wiki content, write a concise 1-2 sentence description suitable for display in a feat list. Focus on what the feat does mechanically.",
+          },
+          {
+            role: "user",
+            content: `Title: ${title}\nCategories: ${categories.join(", ")}\n\nContent:\n${content}`,
+          },
+        ],
+        tools: [
+          {
+            type: "function",
+            function: {
+              name: "set_description",
+              description: "Set the generated description for this feat.",
+              parameters: {
+                type: "object",
+                properties: {
+                  description: { type: "string" },
+                },
+                required: ["description"],
+                additionalProperties: false,
+              },
+            },
+          },
+        ],
+        tool_choice: { type: "function", function: { name: "set_description" } },
+      }),
+    });
+
+    if (!response.ok) return null;
+
+    const data = await response.json();
+    const toolCall = data.choices?.[0]?.message?.tool_calls?.[0];
+    if (toolCall?.function?.arguments) {
+      const args = JSON.parse(toolCall.function.arguments);
+      return args.description || null;
+    }
+    return null;
+  } catch {
+    return null;
+  }
+}
+
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") {
     return new Response(null, { headers: corsHeaders });
@@ -116,10 +174,10 @@ Deno.serve(async (req) => {
       );
     }
 
-    // Fetch existing feats
+    // Fetch existing feats (include description to check if it needs AI generation)
     const { data: existingFeats } = await adminClient
       .from("feats")
-      .select("id, title, content, categories");
+      .select("id, title, content, categories, description");
     const existingMap = new Map(
       (existingFeats || []).map((f: any) => [f.title, f])
     );
@@ -165,7 +223,7 @@ Deno.serve(async (req) => {
       );
     }
 
-    // Execute: upsert new + modified
+    // Execute: upsert new + modified, generate AI descriptions when empty
     let imported = 0;
     const errors: string[] = [];
 
@@ -175,15 +233,24 @@ Deno.serve(async (req) => {
         const content = pageContents.get(item.title) || "";
         const existing = existingMap.get(item.title);
 
+        // Check if we need to generate a description
+        const existingDescription = existing?.description;
+        const needsDescription = !existingDescription || existingDescription.trim() === "";
+        let description: string | null = existingDescription || null;
+
+        if (needsDescription) {
+          description = await generateDescription(item.title, content, item.categories);
+        }
+
         if (existing) {
           await adminClient
             .from("feats")
-            .update({ content, description: "Imported from prima.wiki", categories: item.categories })
+            .update({ content, description: description || "Imported from prima.wiki", categories: item.categories })
             .eq("id", existing.id);
         } else {
           await adminClient
             .from("feats")
-            .insert({ title: item.title, content, description: "Imported from prima.wiki", categories: item.categories });
+            .insert({ title: item.title, content, description: description || "Imported from prima.wiki", categories: item.categories });
         }
         imported++;
       } catch (e: any) {

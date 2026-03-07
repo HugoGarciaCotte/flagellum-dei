@@ -6,6 +6,64 @@ const corsHeaders = {
     "authorization, x-client-info, apikey, content-type, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version",
 };
 
+async function generateDescription(title: string, content: string): Promise<string | null> {
+  try {
+    const apiKey = Deno.env.get("LOVABLE_API_KEY");
+    if (!apiKey) return null;
+
+    const response = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
+      method: "POST",
+      headers: {
+        Authorization: `Bearer ${apiKey}`,
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        model: "google/gemini-3-flash-preview",
+        messages: [
+          {
+            role: "system",
+            content: "You are a TTRPG content summarizer. Write a concise 1-2 sentence summary of this TTRPG scenario suitable for a scenario selection list. Focus on the setting and premise.",
+          },
+          {
+            role: "user",
+            content: `Title: ${title}\n\nContent:\n${content}`,
+          },
+        ],
+        tools: [
+          {
+            type: "function",
+            function: {
+              name: "set_description",
+              description: "Set the generated description for this scenario.",
+              parameters: {
+                type: "object",
+                properties: {
+                  description: { type: "string" },
+                },
+                required: ["description"],
+                additionalProperties: false,
+              },
+            },
+          },
+        ],
+        tool_choice: { type: "function", function: { name: "set_description" } },
+      }),
+    });
+
+    if (!response.ok) return null;
+
+    const data = await response.json();
+    const toolCall = data.choices?.[0]?.message?.tool_calls?.[0];
+    if (toolCall?.function?.arguments) {
+      const args = JSON.parse(toolCall.function.arguments);
+      return args.description || null;
+    }
+    return null;
+  } catch {
+    return null;
+  }
+}
+
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") {
     return new Response(null, { headers: corsHeaders });
@@ -65,10 +123,10 @@ Deno.serve(async (req) => {
       });
     }
 
-    // Fetch all existing scenarios in one query
+    // Fetch all existing scenarios (include description)
     const { data: existingScenarios } = await adminClient
       .from("scenarios")
-      .select("id, title, content");
+      .select("id, title, content, description");
     const existingMap = new Map(
       (existingScenarios || []).map((s: any) => [s.title, s])
     );
@@ -115,7 +173,7 @@ Deno.serve(async (req) => {
       );
     }
 
-    // Execute mode: upsert only new + modified
+    // Execute mode: upsert only new + modified, generate AI descriptions when empty
     let imported = 0;
     const errors: string[] = [];
 
@@ -125,15 +183,24 @@ Deno.serve(async (req) => {
         const content = pageContents.get(item.title) || "";
         const existing = existingMap.get(item.title);
 
+        // Check if we need to generate a description
+        const existingDescription = existing?.description;
+        const needsDescription = !existingDescription || existingDescription.trim() === "";
+        let description: string | null = existingDescription || null;
+
+        if (needsDescription) {
+          description = await generateDescription(item.title, content);
+        }
+
         if (existing) {
           await adminClient
             .from("scenarios")
-            .update({ content, description: "Imported from prima.wiki" })
+            .update({ content, description: description || "Imported from prima.wiki" })
             .eq("id", existing.id);
         } else {
           await adminClient
             .from("scenarios")
-            .insert({ title: item.title, content, description: "Imported from prima.wiki" });
+            .insert({ title: item.title, content, description: description || "Imported from prima.wiki" });
         }
         imported++;
       } catch (e: any) {
