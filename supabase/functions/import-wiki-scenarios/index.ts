@@ -22,7 +22,7 @@ async function generateDescription(title: string, content: string): Promise<stri
         messages: [
           {
             role: "system",
-            content: "You are a TTRPG content summarizer. Given a scenario's title and wiki content, write a single short sentence (under 20 words) summarizing the scenario's premise, suitable for a compact list view.",
+            content: "You are a TRPG content summarizer. Given a scenario's title and wiki content, write a single short sentence (under 20 words) summarizing the scenario's premise, suitable for a compact list view.",
           },
           {
             role: "user",

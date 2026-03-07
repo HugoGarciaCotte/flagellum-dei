@@ -110,7 +110,7 @@ serve(async (req) => {
       });
     }
 
-    const systemPrompt = `You are a TTRPG rules validator for the Prima system. Your job is to determine if a character meets all prerequisites to acquire a new feat.
+    const systemPrompt = `You are a TRPG rules validator for the Prima system. Your job is to determine if a character meets all prerequisites to acquire a new feat.
 
 Rules:
 - Check the new feat's content/description for any prerequisite requirements (e.g. "Prerequisite: ...", "Requires: ...", or similar phrasing).

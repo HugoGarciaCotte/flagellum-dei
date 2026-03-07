@@ -55,7 +55,7 @@ async function generateDescription(title: string, content: string, categories: s
         messages: [
           {
             role: "system",
-            content: "You are a TTRPG content summarizer. Given a feat's title, categories, and wiki content, write a single short sentence (under 15 words) describing the feat's mechanical effect, suitable for a compact list view.",
+            content: "You are a TRPG content summarizer. Given a feat's title, categories, and wiki content, write a single short sentence (under 15 words) describing the feat's mechanical effect, suitable for a compact list view.",
           },
           {
             role: "user",
@@ -107,7 +107,7 @@ async function generateSubfeats(
     const apiKey = Deno.env.get("LOVABLE_API_KEY");
     if (!apiKey) return { subfeats: null, unlocks_categories: null };
 
-    const systemPrompt = `You are a TTRPG feat analyzer. You determine whether a feat grants "subfeats" — additional feat choices a character gets when they acquire the parent feat.
+    const systemPrompt = `You are a TRPG feat analyzer. You determine whether a feat grants "subfeats" — additional feat choices a character gets when they acquire the parent feat.
 
 There are 3 kinds of subfeat slots (up to 3 slots per feat):
 1. "fixed" — A specific feat is always granted. Use "feat_title" to name it.

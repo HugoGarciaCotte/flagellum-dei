@@ -41,7 +41,7 @@ const Install = () => {
       <div className="w-full max-w-md space-y-6">
         <div className="text-center space-y-2">
           <Shield className="h-12 w-12 text-primary mx-auto" />
-          <h1 className="font-display text-3xl font-bold text-foreground">Install Prima TTRPG Helper</h1>
+          <h1 className="font-display text-3xl font-bold text-foreground">Install Prima TRPG Helper</h1>
           <p className="text-muted-foreground">Play offline, anytime.</p>
         </div>
 
@@ -72,7 +72,7 @@ const Install = () => {
         </Card>
 
         <Button variant="ghost" onClick={() => navigate("/")} className="w-full font-display">
-          Back to Prima TTRPG Helper
+          Back to Prima TRPG Helper
         </Button>
       </div>
     </div>

@@ -168,7 +168,7 @@ const Dashboard = () => {
     <div className="min-h-screen bg-background">
       {/* Header */}
       <PageHeader
-        title="Prima TTRPG Helper"
+        title="Prima TRPG Helper"
         icon={<Crown className="h-5 w-5 text-primary" />}
         rightActions={
           <>
