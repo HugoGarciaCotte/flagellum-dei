@@ -56,33 +56,19 @@ const Dashboard = () => {
 
   const saveCharMutation = useMutation({
     mutationFn: async () => {
-      if (editingChar) {
-        const { error } = await supabase
-          .from("characters")
-          .update({ name: charName, description: charDesc || null })
-          .eq("id", editingChar);
-        if (error) throw error;
-        return editingChar;
-      } else {
-        const { data, error } = await supabase
-          .from("characters")
-          .insert({ user_id: user!.id, name: charName, description: charDesc || null })
-          .select()
-          .single();
-        if (error) throw error;
-        return data.id;
-      }
+      const { data, error } = await supabase
+        .from("characters")
+        .insert({ user_id: user!.id, name: charName, description: charDesc || null })
+        .select()
+        .single();
+      if (error) throw error;
+      return data.id;
     },
     onSuccess: (charId: string) => {
       queryClient.invalidateQueries({ queryKey: ["my-characters"] });
       setActiveCharId(charId);
-      if (editingChar) {
-        // Already editing, just update name
-        toast({ title: "Character updated" });
-      } else {
-        setEditingChar(charId);
-        toast({ title: "Character created — now pick feats!" });
-      }
+      setEditingChar(charId);
+      toast({ title: "Character created — now pick feats!" });
     },
     onError: (e: any) => toast({ title: "Error", description: e.message, variant: "destructive" }),
   });
