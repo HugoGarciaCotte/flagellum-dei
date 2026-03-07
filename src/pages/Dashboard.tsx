@@ -36,6 +36,7 @@ const Dashboard = () => {
   const [deleteCharTarget, setDeleteCharTarget] = useState<{ id: string; name: string } | null>(null);
 
   useOfflineScenarios();
+  useOfflineFeats();
 
   // Characters
   const { data: characters } = useQuery({
