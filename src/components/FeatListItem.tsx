@@ -1,8 +1,14 @@
 import { ReactNode } from "react";
 import { ChevronDown } from "lucide-react";
-import { Input } from "@/components/ui/input";
 import FeatCategoryBadges from "@/components/FeatCategoryBadges";
 import FeatDetailsDisplay from "@/components/FeatDetailsDisplay";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 
 interface FeatListItemFeat {
   id: string;
@@ -16,10 +22,12 @@ interface FeatListItemProps {
   feat: FeatListItemFeat;
   expanded: boolean;
   onToggleExpand: () => void;
-  /** Always-visible note value */
-  noteValue?: string;
-  onNoteChange?: (value: string) => void;
-  onNoteBlur?: () => void;
+  /** Speciality options for this feat (from feats.specialities) */
+  specialities?: string[] | null;
+  /** Currently chosen speciality value (stored in character_feats.note) */
+  specialityValue?: string;
+  /** Called when the user picks a speciality */
+  onSpecialityChange?: (value: string) => void;
   actions?: ReactNode;
   expandedContent?: ReactNode;
   /** Content always visible below the header (e.g. subfeats) */
@@ -33,15 +41,17 @@ const FeatListItem = ({
   feat,
   expanded,
   onToggleExpand,
-  noteValue,
-  onNoteChange,
-  onNoteBlur,
+  specialities,
+  specialityValue,
+  onSpecialityChange,
   actions,
   expandedContent,
   collapsedContent,
   compact,
   titlePrefix,
 }: FeatListItemProps) => {
+  const hasSpecialities = specialities && specialities.length > 0;
+
   return (
     <div className={`rounded border border-border hover:border-primary/50 transition-colors ${compact ? "p-2" : ""}`}>
       <div>
@@ -60,19 +70,28 @@ const FeatListItem = ({
             {actions && <div className="ml-auto flex gap-1 shrink-0">{actions}</div>}
           </div>
         </button>
-        {onNoteChange && (
+        {/* Speciality dropdown (editable) */}
+        {hasSpecialities && onSpecialityChange && (
           <div className={compact ? "mt-1" : "px-3 pb-1"} onClick={(e) => e.stopPropagation()}>
-            <Input
-              value={noteValue ?? ""}
-              onChange={(e) => onNoteChange(e.target.value)}
-              onBlur={onNoteBlur}
-              className="h-6 text-xs w-28"
-              placeholder="note..."
-            />
+            <Select
+              value={specialityValue || "__none__"}
+              onValueChange={(val) => onSpecialityChange(val === "__none__" ? "" : val)}
+            >
+              <SelectTrigger className="h-6 text-xs w-32">
+                <SelectValue placeholder="Speciality..." />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="__none__">— Pick —</SelectItem>
+                {specialities!.map((s) => (
+                  <SelectItem key={s} value={s}>{s}</SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
           </div>
         )}
-        {!onNoteChange && noteValue && (
-          <p className={`text-xs text-muted-foreground italic ${compact ? "mt-1" : "px-3 pb-1"}`}>({noteValue})</p>
+        {/* Speciality read-only display */}
+        {hasSpecialities && !onSpecialityChange && specialityValue && (
+          <p className={`text-xs text-muted-foreground italic ${compact ? "mt-1" : "px-3 pb-1"}`}>({specialityValue})</p>
         )}
         {!expanded && feat.description && (
           <p className={`text-xs text-muted-foreground line-clamp-1 ${compact ? "mt-1" : "px-3 pb-2 mt-0.5"}`}>

@@ -144,6 +144,7 @@ export type Database = {
           created_at: string
           description: string | null
           id: string
+          specialities: string[] | null
           subfeats: Json | null
           title: string
           unlocks_categories: string[] | null
@@ -154,6 +155,7 @@ export type Database = {
           created_at?: string
           description?: string | null
           id?: string
+          specialities?: string[] | null
           subfeats?: Json | null
           title: string
           unlocks_categories?: string[] | null
@@ -164,6 +166,7 @@ export type Database = {
           created_at?: string
           description?: string | null
           id?: string
+          specialities?: string[] | null
           subfeats?: Json | null
           title?: string
           unlocks_categories?: string[] | null

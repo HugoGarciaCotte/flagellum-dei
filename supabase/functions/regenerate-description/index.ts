@@ -148,6 +148,80 @@ ${allFeatTitles.join(", ")}`;
   return null;
 }
 
+async function generateSpecialities(
+  title: string,
+  content: string,
+  categories: string[]
+): Promise<string[] | null> {
+  const apiKey = Deno.env.get("LOVABLE_API_KEY");
+  if (!apiKey) throw new Error("LOVABLE_API_KEY is not configured");
+
+  const response = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
+    method: "POST",
+    headers: {
+      Authorization: `Bearer ${apiKey}`,
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify({
+      model: "google/gemini-3-flash-preview",
+      messages: [
+        {
+          role: "system",
+          content: `You are a TRPG feat analyzer. Some feats require the player to choose a speciality when they pick the feat. For example, the "Combat" feat requires choosing a combat speciality (like Swords, Axes, Bows, etc.).
+
+Analyze the feat's wiki content and determine:
+1. Whether this feat requires the player to choose a speciality
+2. If yes, what are all the valid speciality options
+
+Most feats do NOT have specialities. Only return specialities if the wiki content clearly lists specific options the player must choose from when acquiring this feat. Return an empty array if no specialities exist.`,
+        },
+        {
+          role: "user",
+          content: `Title: ${title}\nCategories: ${categories.join(", ")}\n\nWiki Content:\n${content}`,
+        },
+      ],
+      tools: [
+        {
+          type: "function",
+          function: {
+            name: "set_specialities",
+            description: "Set the speciality options for this feat. Pass an empty array if the feat has no specialities.",
+            parameters: {
+              type: "object",
+              properties: {
+                specialities: {
+                  type: "array",
+                  items: { type: "string" },
+                  description: "List of speciality options the player can choose from. Empty array if none.",
+                },
+              },
+              required: ["specialities"],
+              additionalProperties: false,
+            },
+          },
+        },
+      ],
+      tool_choice: { type: "function", function: { name: "set_specialities" } },
+    }),
+  });
+
+  if (!response.ok) {
+    const text = await response.text();
+    console.error("AI gateway error:", response.status, text);
+    throw new Error(`AI gateway error: ${response.status}`);
+  }
+
+  const data = await response.json();
+  const toolCall = data.choices?.[0]?.message?.tool_calls?.[0];
+  if (toolCall?.function?.arguments) {
+    const args = JSON.parse(toolCall.function.arguments);
+    if (Array.isArray(args.specialities) && args.specialities.length > 0) {
+      return args.specialities;
+    }
+  }
+  return null;
+}
+
 serve(async (req) => {
   if (req.method === "OPTIONS") {
     return new Response(null, { headers: corsHeaders });
@@ -199,6 +273,46 @@ serve(async (req) => {
     }
 
     const { type, id, action } = await req.json();
+
+    // Handle speciality regeneration
+    if (action === "regenerate_specialities") {
+      if (!id) {
+        return new Response(JSON.stringify({ error: "Need id for speciality regeneration" }), {
+          status: 400,
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
+
+      const { data: feat, error: fetchError } = await adminClient
+        .from("feats")
+        .select("*")
+        .eq("id", id)
+        .single();
+
+      if (fetchError || !feat) {
+        return new Response(JSON.stringify({ error: "Feat not found" }), {
+          status: 404,
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
+
+      const specialities = await generateSpecialities(
+        feat.title,
+        feat.content || "",
+        feat.categories || []
+      );
+
+      const { error: updateError } = await adminClient
+        .from("feats")
+        .update({ specialities: specialities || null })
+        .eq("id", id);
+
+      if (updateError) throw updateError;
+
+      return new Response(JSON.stringify({ specialities: specialities || null }), {
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
 
     // Handle subfeat regeneration
     if (action === "regenerate_subfeats") {

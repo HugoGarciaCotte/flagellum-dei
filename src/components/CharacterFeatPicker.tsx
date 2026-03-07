@@ -38,6 +38,7 @@ type Feat = {
   content: string | null;
   subfeats: SubfeatSlot[] | null;
   unlocks_categories: string[] | null;
+  specialities: string[] | null;
 };
 
 type SubfeatSlot = {
@@ -82,8 +83,8 @@ const CharacterFeatPicker = ({ characterId, mode = "player", scenarioLevel }: Ch
   const [expandedFeatId, setExpandedFeatId] = useState<string | null>(null);
   const [expandedAssignedFeatId, setExpandedAssignedFeatId] = useState<string | null>(null);
   const [expandedSubfeatKey, setExpandedSubfeatKey] = useState<string | null>(null);
-  const [localNotes, setLocalNotes] = useState<Record<string, string>>({});
-  const [notesInitialized, setNotesInitialized] = useState(false);
+  const [localSpecialities, setLocalSpecialities] = useState<Record<string, string>>({});
+  const [specialitiesInitialized, setSpecialitiesInitialized] = useState(false);
   const [pendingSubfeatSlots, setPendingSubfeatSlots] = useState<{ characterFeatId: string; slot: SubfeatSlot }[]>([]);
 
   const { data: allFeats } = useQuery({
@@ -91,7 +92,7 @@ const CharacterFeatPicker = ({ characterId, mode = "player", scenarioLevel }: Ch
     queryFn: async () => {
       const { data, error } = await supabase
         .from("feats")
-        .select("id, title, categories, description, content, subfeats, unlocks_categories")
+        .select("id, title, categories, description, content, subfeats, unlocks_categories, specialities")
         .order("title");
       if (error) throw error;
       return data as unknown as Feat[];
@@ -339,20 +340,20 @@ const CharacterFeatPicker = ({ characterId, mode = "player", scenarioLevel }: Ch
     },
   });
 
-  // Initialize local notes from fetched data
+  // Initialize local specialities from fetched data
   useEffect(() => {
-    if (characterFeats && !notesInitialized) {
-      const notes: Record<string, string> = {};
-      characterFeats.forEach(cf => { notes[cf.id] = cf.note ?? ""; });
-      setLocalNotes(notes);
-      setNotesInitialized(true);
+    if (characterFeats && !specialitiesInitialized) {
+      const specs: Record<string, string> = {};
+      characterFeats.forEach(cf => { specs[cf.id] = cf.note ?? ""; });
+      setLocalSpecialities(specs);
+      setSpecialitiesInitialized(true);
     }
-  }, [characterFeats, notesInitialized]);
+  }, [characterFeats, specialitiesInitialized]);
 
-  // Update local notes when characterFeats change (after mutation success)
+  // Update local specialities when characterFeats change
   useEffect(() => {
     if (characterFeats) {
-      setLocalNotes(prev => {
+      setLocalSpecialities(prev => {
         const next = { ...prev };
         characterFeats.forEach(cf => {
           if (!(cf.id in next)) next[cf.id] = cf.note ?? "";
@@ -362,16 +363,9 @@ const CharacterFeatPicker = ({ characterId, mode = "player", scenarioLevel }: Ch
     }
   }, [characterFeats]);
 
-  const handleNoteChange = (cfId: string, value: string) => {
-    setLocalNotes(prev => ({ ...prev, [cfId]: value }));
-  };
-
-  const handleNoteBlur = (cfId: string) => {
-    const current = localNotes[cfId] ?? "";
-    const original = characterFeats?.find(cf => cf.id === cfId)?.note ?? "";
-    if (current !== original) {
-      updateNoteMutation.mutate({ id: cfId, note: current });
-    }
+  const handleSpecialityChange = (cfId: string, value: string) => {
+    setLocalSpecialities(prev => ({ ...prev, [cfId]: value }));
+    updateNoteMutation.mutate({ id: cfId, note: value });
   };
 
   const featMap = useMemo(() => {
@@ -820,9 +814,9 @@ const CharacterFeatPicker = ({ characterId, mode = "player", scenarioLevel }: Ch
                     feat={assignedFeat}
                     expanded={expandedAssignedFeatId === assigned!.id}
                     onToggleExpand={() => setExpandedAssignedFeatId(expandedAssignedFeatId === assigned!.id ? null : assigned!.id)}
-                    noteValue={localNotes[assigned!.id] ?? assigned!.note ?? ""}
-                    onNoteChange={online ? (v) => handleNoteChange(assigned!.id, v) : undefined}
-                    onNoteBlur={online ? () => handleNoteBlur(assigned!.id) : undefined}
+                    specialities={assignedFeat.specialities}
+                    specialityValue={localSpecialities[assigned!.id] ?? assigned!.note ?? ""}
+                    onSpecialityChange={online ? (v) => handleSpecialityChange(assigned!.id, v) : undefined}
                     actions={online ? (
                       <>
                         <Button variant="ghost" size="sm" className="h-6 px-2 text-xs" onClick={() => openPicker({ type: "level", level })}>
@@ -876,9 +870,9 @@ const CharacterFeatPicker = ({ characterId, mode = "player", scenarioLevel }: Ch
                 feat={feat}
                 expanded={expandedAssignedFeatId === cf.id}
                 onToggleExpand={() => setExpandedAssignedFeatId(expandedAssignedFeatId === cf.id ? null : cf.id)}
-                noteValue={localNotes[cf.id] ?? cf.note ?? ""}
-                onNoteChange={online ? (v) => handleNoteChange(cf.id, v) : undefined}
-                onNoteBlur={online ? () => handleNoteBlur(cf.id) : undefined}
+                specialities={feat.specialities}
+                specialityValue={localSpecialities[cf.id] ?? cf.note ?? ""}
+                onSpecialityChange={online ? (v) => handleSpecialityChange(cf.id, v) : undefined}
                 actions={mode === "gm" && online ? (
                   <Button
                     variant="ghost"
