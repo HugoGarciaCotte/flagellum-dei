@@ -16,63 +16,112 @@ function slugify(text: string): string {
 }
 
 function convertInlineMarkup(text: string): string {
+  // Bold+Italic: '''''text'''''
+  text = text.replace(/'''''(.+?)'''''/g, "<strong><em>$1</em></strong>");
   // Bold: '''text'''
   text = text.replace(/'''(.+?)'''/g, "<strong>$1</strong>");
   // Italic: ''text''
   text = text.replace(/''(.+?)''/g, "<em>$1</em>");
-  // Links: [[target|label]] or [[target]]
+  // Internal links: [[target|label]] or [[target]]
   text = text.replace(/\[\[([^|\]]+)\|([^\]]+)\]\]/g, "$2");
   text = text.replace(/\[\[([^\]]+)\]\]/g, "$1");
+  // External links: [url text] or [url]
+  text = text.replace(/\[(https?:\/\/[^\s\]]+)\s+([^\]]+)\]/g, '<a href="$1" target="_blank" rel="noopener">$2</a>');
+  text = text.replace(/\[(https?:\/\/[^\s\]]+)\]/g, '<a href="$1" target="_blank" rel="noopener">$1</a>');
   // Horizontal rule
   text = text.replace(/^----$/gm, "<hr>");
   return text;
 }
 
+type ListType = "ul" | "ol" | "dl";
+
+function listTagFor(char: string): ListType {
+  if (char === "#") return "ol";
+  if (char === ";" || char === ":") return "dl";
+  return "ul";
+}
+
 function convertBodyToHtml(lines: string[]): string {
   const result: string[] = [];
-  let inList = false;
-  let inSubList = false;
+  const listStack: ListType[] = []; // tracks open list tags
+  let inPre = false;
 
-  for (const line of lines) {
-    const trimmed = line.trim();
-    if (trimmed.startsWith("** ")) {
-      if (!inList) {
-        result.push("<ul>");
-        inList = true;
-      }
-      if (!inSubList) {
-        result.push("<ul>");
-        inSubList = true;
-      }
-      result.push(`<li>${convertInlineMarkup(trimmed.slice(3))}</li>`);
-    } else if (trimmed.startsWith("* ")) {
-      if (inSubList) {
-        result.push("</ul>");
-        inSubList = false;
-      }
-      if (!inList) {
-        result.push("<ul>");
-        inList = true;
-      }
-      result.push(`<li>${convertInlineMarkup(trimmed.slice(2))}</li>`);
-    } else {
-      if (inSubList) {
-        result.push("</ul>");
-        inSubList = false;
-      }
-      if (inList) {
-        result.push("</ul>");
-        inList = false;
-      }
-      if (trimmed === "") {
-        result.push("<br>");
-      } else {
-        result.push(`<p>${convertInlineMarkup(trimmed)}</p>`);
-      }
+  function closeListsTo(targetDepth: number) {
+    while (listStack.length > targetDepth) {
+      result.push(`</${listStack.pop()}>`);
     }
   }
-  if (inSubList) result.push("</ul>");
-  if (inList) result.push("</ul>");
+
+  for (const line of lines) {
+    // Preformatted text: lines starting with a space
+    if (line.startsWith(" ") && line.trim().length > 0) {
+      closeListsTo(0);
+      if (!inPre) { result.push("<pre>"); inPre = true; }
+      result.push(convertInlineMarkup(line.slice(1)));
+      continue;
+    }
+    if (inPre) { result.push("</pre>"); inPre = false; }
+
+    const trimmed = line.trim();
+
+    // Bullet / numbered list: lines starting with * or #
+    const listMatch = trimmed.match(/^([*#]+)(.*)/);
+    if (listMatch) {
+      const markers = listMatch[1];
+      const content = listMatch[2].trim();
+      const depth = markers.length;
+      const tag = listTagFor(markers[0]);
+
+      // Close deeper or mismatched lists
+      while (listStack.length > depth) {
+        result.push(`</${listStack.pop()}>`);
+      }
+      // Close and reopen if type changed at current depth
+      if (listStack.length === depth && listStack[listStack.length - 1] !== tag) {
+        result.push(`</${listStack.pop()}>`);
+      }
+      // Open new lists to reach target depth
+      while (listStack.length < depth) {
+        result.push(`<${tag}>`);
+        listStack.push(tag);
+      }
+      result.push(`<li>${convertInlineMarkup(content)}</li>`);
+      continue;
+    }
+
+    // Definition list: ;term or :definition
+    const dlMatch = trimmed.match(/^([;:])(.*)/);
+    if (dlMatch) {
+      const char = dlMatch[1];
+      const content = dlMatch[2].trim();
+      // Close non-dl lists
+      while (listStack.length > 0 && listStack[listStack.length - 1] !== "dl") {
+        result.push(`</${listStack.pop()}>`);
+      }
+      if (listStack.length === 0) {
+        result.push("<dl>");
+        listStack.push("dl");
+      }
+      if (char === ";") {
+        result.push(`<dt>${convertInlineMarkup(content)}</dt>`);
+      } else {
+        result.push(`<dd>${convertInlineMarkup(content)}</dd>`);
+      }
+      continue;
+    }
+
+    // Regular line — close all lists first
+    closeListsTo(0);
+
+    if (trimmed === "") {
+      result.push("<br>");
+    } else {
+      result.push(`<p>${convertInlineMarkup(trimmed)}</p>`);
+    }
+  }
+
+  if (inPre) result.push("</pre>");
+  closeListsTo(0);
 
   return result.join("\n");
 }
