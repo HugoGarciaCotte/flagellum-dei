@@ -86,6 +86,7 @@ const CharacterFeatPicker = ({ characterId, mode = "player", scenarioLevel }: Ch
   const [validatingFeat, setValidatingFeat] = useState<string | null>(null);
   const [expandedFeatId, setExpandedFeatId] = useState<string | null>(null);
   const [expandedAssignedFeatId, setExpandedAssignedFeatId] = useState<string | null>(null);
+  const [expandedSubfeatKey, setExpandedSubfeatKey] = useState<string | null>(null);
   const [editingNoteId, setEditingNoteId] = useState<string | null>(null);
   const [noteValue, setNoteValue] = useState("");
   const noteInputRef = useRef<HTMLInputElement>(null);
@@ -507,18 +508,35 @@ const CharacterFeatPicker = ({ characterId, mode = "player", scenarioLevel }: Ch
     const subs = subfeatMap.get(cf.id) || [];
 
     return (
-      <div className="ml-6 mt-1 space-y-1">
+      <div className="ml-4 mt-1 space-y-1">
         {feat.subfeats.map((slot) => {
           const assigned = subs.find(s => s.slot === slot.slot);
           const assignedFeat = assigned ? featMap.get(assigned.subfeat_id) : null;
+          const subfeatKey = `${cf.id}-${slot.slot}`;
 
           if (slot.kind === "fixed") {
             const fixedFeat = assignedFeat || (slot.feat_title ? featByTitle.get(slot.feat_title) : null);
+            if (!fixedFeat) {
+              return (
+                <div key={slot.slot} className="flex items-center gap-2 text-xs border-l-2 border-primary/30 pl-2">
+                  <span className="text-muted-foreground">↳</span>
+                  <span className="font-medium text-foreground">{slot.feat_title || "—"}</span>
+                  <span className="text-muted-foreground italic">(granted)</span>
+                </div>
+              );
+            }
             return (
-              <div key={slot.slot} className="flex items-center gap-2 text-xs border-l-2 border-primary/30 pl-2">
-                <span className="text-muted-foreground">↳</span>
-                <span className="font-medium text-foreground">{fixedFeat?.title || slot.feat_title || "—"}</span>
-                <span className="text-muted-foreground italic">(granted)</span>
+              <div key={slot.slot} className="flex items-center gap-1">
+                <span className="text-muted-foreground text-xs">↳</span>
+                <div className="flex-1 min-w-0">
+                  <FeatListItem
+                    feat={fixedFeat}
+                    expanded={expandedSubfeatKey === subfeatKey}
+                    onToggleExpand={() => setExpandedSubfeatKey(expandedSubfeatKey === subfeatKey ? null : subfeatKey)}
+                    compact
+                    actions={<span className="text-xs text-muted-foreground italic">(granted)</span>}
+                  />
+                </div>
               </div>
             );
           }
@@ -527,12 +545,62 @@ const CharacterFeatPicker = ({ characterId, mode = "player", scenarioLevel }: Ch
             const options = slot.options || [];
             const featOptions = options.map(t => featByTitle.get(t)).filter(Boolean) as Feat[];
 
+            if (assignedFeat) {
+              return (
+                <div key={slot.slot} className="flex items-center gap-1">
+                  <span className="text-muted-foreground text-xs">↳</span>
+                  <div className="flex-1 min-w-0">
+                    <FeatListItem
+                      feat={assignedFeat}
+                      expanded={expandedSubfeatKey === subfeatKey}
+                      onToggleExpand={() => setExpandedSubfeatKey(expandedSubfeatKey === subfeatKey ? null : subfeatKey)}
+                      compact
+                      actions={online ? (
+                        <>
+                          <Select
+                            value={assigned?.subfeat_id || "__none__"}
+                            onValueChange={(val) => {
+                              setSubfeatMutation.mutate({
+                                characterFeatId: cf.id,
+                                slot: slot.slot,
+                                subfeatId: val === "__none__" ? null : val,
+                              });
+                            }}
+                          >
+                            <SelectTrigger className="h-5 w-5 border-0 p-0 [&>svg]:hidden" asChild>
+                              <Button variant="ghost" size="sm" className="h-5 w-5 p-0">
+                                <Pencil className="h-3 w-3" />
+                              </Button>
+                            </SelectTrigger>
+                            <SelectContent>
+                              <SelectItem value="__none__">None</SelectItem>
+                              {featOptions.map(f => (
+                                <SelectItem key={f.id} value={f.id}>{f.title}</SelectItem>
+                              ))}
+                            </SelectContent>
+                          </Select>
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            className="h-5 w-5 p-0 text-destructive"
+                            onClick={() => setSubfeatMutation.mutate({ characterFeatId: cf.id, slot: slot.slot, subfeatId: null })}
+                          >
+                            <X className="h-3 w-3" />
+                          </Button>
+                        </>
+                      ) : undefined}
+                    />
+                  </div>
+                </div>
+              );
+            }
+            // Not assigned yet
             return (
-              <div key={slot.slot} className="flex items-center gap-2 text-xs border-l-2 border-primary/30 pl-2">
+              <div key={slot.slot} className="flex items-center gap-2 text-xs ml-1">
                 <span className="text-muted-foreground">↳</span>
                 {online ? (
                   <Select
-                    value={assigned?.subfeat_id || "__none__"}
+                    value="__none__"
                     onValueChange={(val) => {
                       setSubfeatMutation.mutate({
                         characterFeatId: cf.id,
@@ -542,7 +610,7 @@ const CharacterFeatPicker = ({ characterId, mode = "player", scenarioLevel }: Ch
                     }}
                   >
                     <SelectTrigger className="h-6 text-xs w-auto min-w-[120px]">
-                      <SelectValue placeholder="Pick..." />
+                      <SelectValue placeholder="+ Choose subfeat" />
                     </SelectTrigger>
                     <SelectContent>
                       <SelectItem value="__none__">None</SelectItem>
@@ -552,41 +620,53 @@ const CharacterFeatPicker = ({ characterId, mode = "player", scenarioLevel }: Ch
                     </SelectContent>
                   </Select>
                 ) : (
-                  <span className="font-medium text-foreground">{assignedFeat?.title || "—"}</span>
+                  <span className="text-muted-foreground italic">—</span>
                 )}
               </div>
             );
           }
 
           if (slot.kind === "type") {
-            return (
-              <div key={slot.slot} className="flex items-center gap-2 text-xs border-l-2 border-primary/30 pl-2">
-                <span className="text-muted-foreground">↳</span>
-                {assignedFeat ? (
-                  <div className="flex items-center gap-1">
-                    <span className="font-medium text-foreground">{assignedFeat.title}</span>
-                    {online && (
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        className="h-5 px-1 text-xs"
-                        onClick={() => openPicker({ type: "subfeat", characterFeatId: cf.id, slot })}
-                      >
-                        Edit
-                      </Button>
-                    )}
-                    {online && (
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        className="h-5 px-1 text-destructive"
-                        onClick={() => setSubfeatMutation.mutate({ characterFeatId: cf.id, slot: slot.slot, subfeatId: null })}
-                      >
-                        <X className="h-3 w-3" />
-                      </Button>
-                    )}
+            if (assignedFeat) {
+              return (
+                <div key={slot.slot} className="flex items-center gap-1">
+                  <span className="text-muted-foreground text-xs">↳</span>
+                  <div className="flex-1 min-w-0">
+                    <FeatListItem
+                      feat={assignedFeat}
+                      expanded={expandedSubfeatKey === subfeatKey}
+                      onToggleExpand={() => setExpandedSubfeatKey(expandedSubfeatKey === subfeatKey ? null : subfeatKey)}
+                      compact
+                      actions={online ? (
+                        <>
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            className="h-5 w-5 p-0"
+                            onClick={() => openPicker({ type: "subfeat", characterFeatId: cf.id, slot })}
+                          >
+                            <Pencil className="h-3 w-3" />
+                          </Button>
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            className="h-5 w-5 p-0 text-destructive"
+                            onClick={() => setSubfeatMutation.mutate({ characterFeatId: cf.id, slot: slot.slot, subfeatId: null })}
+                          >
+                            <X className="h-3 w-3" />
+                          </Button>
+                        </>
+                      ) : undefined}
+                    />
                   </div>
-                ) : online ? (
+                </div>
+              );
+            }
+            // Not assigned
+            return (
+              <div key={slot.slot} className="flex items-center gap-2 text-xs ml-1">
+                <span className="text-muted-foreground">↳</span>
+                {online ? (
                   <Button
                     variant="ghost"
                     size="sm"
@@ -679,7 +759,7 @@ const CharacterFeatPicker = ({ characterId, mode = "player", scenarioLevel }: Ch
                         </Button>
                       </>
                     ) : undefined}
-                    expandedContent={assigned && assignedFeat ? renderSubfeats(assigned, assignedFeat) : undefined}
+                    collapsedContent={assigned && assignedFeat ? renderSubfeats(assigned, assignedFeat) : undefined}
                     compact
                   />
                 </div>
@@ -754,7 +834,7 @@ const CharacterFeatPicker = ({ characterId, mode = "player", scenarioLevel }: Ch
                     <X className="h-3 w-3" />
                   </Button>
                 ) : undefined}
-                expandedContent={renderSubfeats(cf, feat)}
+                collapsedContent={renderSubfeats(cf, feat)}
                 compact
               />
             );
