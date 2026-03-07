@@ -20,7 +20,7 @@ import {
 import { toast } from "@/hooks/use-toast";
 import {
   Plus, Pencil, Trash2, Sword, Loader2, Sparkles, Layers,
-  ChevronDown, CheckCircle2, AlertCircle, Wand2, Copy,
+  ChevronDown, CheckCircle2, AlertCircle, Wand2, Copy, Upload,
 } from "lucide-react";
 import FeatCategoryBadges from "@/components/FeatCategoryBadges";
 
@@ -62,6 +62,9 @@ const ManageFeats = () => {
   const [expandedId, setExpandedId] = useState<string | null>(null);
   const [bulkRegenerating, setBulkRegenerating] = useState(false);
   const [bulkProgress, setBulkProgress] = useState<{ current: number; total: number } | null>(null);
+  const [pushingId, setPushingId] = useState<string | null>(null);
+  const [bulkPushing, setBulkPushing] = useState(false);
+  const [bulkPushProgress, setBulkPushProgress] = useState<{ current: number; total: number } | null>(null);
 
   const { data: feats, isLoading } = useQuery({
     queryKey: ["admin-feats"],
@@ -165,6 +168,50 @@ const ManageFeats = () => {
     toast({
       title: "Bulk regeneration complete",
       description: errors > 0 ? `${errors} feat(s) had errors.` : `All ${feats.length} feats processed.`,
+    });
+  };
+
+  const handlePushToWiki = async (id: string) => {
+    setPushingId(id);
+    try {
+      const { data, error } = await supabase.functions.invoke("push-wiki-feats", {
+        body: { id },
+      });
+      if (error) throw error;
+      const result = data?.results?.[0];
+      if (result?.status === "error") throw new Error(result.error);
+      toast({ title: result?.status === "unchanged" ? "Wiki already up to date" : "Pushed to wiki" });
+    } catch (e: any) {
+      toast({ title: "Push failed", description: e.message, variant: "destructive" });
+    } finally {
+      setPushingId(null);
+    }
+  };
+
+  const handleBulkPush = async () => {
+    if (!feats?.length) return;
+    setBulkPushing(true);
+    setBulkPushProgress({ current: 0, total: feats.length });
+    let errors = 0;
+    // Push in batches of 5
+    for (let i = 0; i < feats.length; i += 5) {
+      const batch = feats.slice(i, i + 5);
+      setBulkPushProgress({ current: Math.min(i + 5, feats.length), total: feats.length });
+      try {
+        const { data, error } = await supabase.functions.invoke("push-wiki-feats", {
+          body: { ids: batch.map((f) => f.id) },
+        });
+        if (error) throw error;
+        errors += (data?.results || []).filter((r: any) => r.status === "error").length;
+      } catch {
+        errors += batch.length;
+      }
+    }
+    setBulkPushing(false);
+    setBulkPushProgress(null);
+    toast({
+      title: "Bulk push complete",
+      description: errors > 0 ? `${errors} feat(s) had errors.` : `All ${feats.length} feats pushed.`,
     });
   };
 
@@ -281,6 +328,16 @@ const ManageFeats = () => {
                 {bulkRegenerating ? <Loader2 className="h-4 w-4 animate-spin" /> : <Wand2 className="h-4 w-4" />}
                 Regenerate All AI
               </Button>
+              <Button
+                onClick={handleBulkPush}
+                size="sm"
+                variant="outline"
+                className="gap-2 font-display"
+                disabled={bulkPushing || !feats?.length}
+              >
+                {bulkPushing ? <Loader2 className="h-4 w-4 animate-spin" /> : <Upload className="h-4 w-4" />}
+                Push All to Wiki
+              </Button>
               <Button onClick={openCreate} size="sm" className="gap-2 font-display">
                 <Plus className="h-4 w-4" /> New
               </Button>
@@ -293,6 +350,15 @@ const ManageFeats = () => {
                 <span>{Math.round((bulkProgress.current / bulkProgress.total) * 100)}%</span>
               </div>
               <Progress value={(bulkProgress.current / bulkProgress.total) * 100} className="h-2" />
+            </div>
+          )}
+          {bulkPushProgress && (
+            <div className="mt-3 space-y-1.5">
+              <div className="flex items-center justify-between text-xs text-muted-foreground">
+                <span>Pushing feat {bulkPushProgress.current} of {bulkPushProgress.total}...</span>
+                <span>{Math.round((bulkPushProgress.current / bulkPushProgress.total) * 100)}%</span>
+              </div>
+              <Progress value={(bulkPushProgress.current / bulkPushProgress.total) * 100} className="h-2" />
             </div>
           )}
         </CardHeader>
@@ -388,6 +454,16 @@ const ManageFeats = () => {
                             >
                               {isRegenerating ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Sparkles className="h-3.5 w-3.5" />}
                               Regenerate AI
+                            </Button>
+                            <Button
+                              size="sm"
+                              variant="outline"
+                              className="gap-1.5"
+                              onClick={(e) => { e.stopPropagation(); handlePushToWiki(f.id); }}
+                              disabled={pushingId === f.id}
+                            >
+                              {pushingId === f.id ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Upload className="h-3.5 w-3.5" />}
+                              Push to Wiki
                             </Button>
                             <Button
                               size="sm"

@@ -11,3 +11,6 @@ verify_jwt = false
 
 [functions.check-wiki-redirects]
 verify_jwt = false
+
+[functions.push-wiki-feats]
+verify_jwt = false
