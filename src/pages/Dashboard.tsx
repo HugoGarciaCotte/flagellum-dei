@@ -1,14 +1,16 @@
 import { useState } from "react";
 import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { Textarea } from "@/components/ui/textarea";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import { toast } from "@/hooks/use-toast";
 import { useNavigate } from "react-router-dom";
-import { Crown, LogOut, Plus, DoorOpen, Scroll, Users, Settings } from "lucide-react";
+import { Crown, LogOut, Plus, DoorOpen, Scroll, Users, Settings, ChevronDown, Sword, Trash2, Pencil } from "lucide-react";
 import { useOfflineScenarios } from "@/hooks/useOfflineScenarios";
 import { getCachedScenarios, isOffline } from "@/lib/offlineStorage";
 import { useIsOwner } from "@/hooks/useIsOwner";
@@ -16,13 +18,81 @@ import { useIsOwner } from "@/hooks/useIsOwner";
 const Dashboard = () => {
   const { user, signOut } = useAuth();
   const navigate = useNavigate();
+  const queryClient = useQueryClient();
   const [joinCode, setJoinCode] = useState("");
-  const [joinOpen, setJoinOpen] = useState(false);
+  const [hostOpen, setHostOpen] = useState(false);
+  const [charDialogOpen, setCharDialogOpen] = useState(false);
+  const [editingChar, setEditingChar] = useState<string | null>(null);
+  const [charName, setCharName] = useState("");
+  const [charDesc, setCharDesc] = useState("");
   const { isOwner } = useIsOwner();
 
-  // Prefetch all scenario data for offline use
   useOfflineScenarios();
 
+  // Characters
+  const { data: characters } = useQuery({
+    queryKey: ["my-characters", user?.id],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("characters")
+        .select("*")
+        .eq("user_id", user!.id)
+        .order("created_at", { ascending: false });
+      if (error) throw error;
+      return data;
+    },
+    enabled: !!user,
+  });
+
+  const saveCharMutation = useMutation({
+    mutationFn: async () => {
+      if (editingChar) {
+        const { error } = await supabase
+          .from("characters")
+          .update({ name: charName, description: charDesc || null })
+          .eq("id", editingChar);
+        if (error) throw error;
+      } else {
+        const { error } = await supabase
+          .from("characters")
+          .insert({ user_id: user!.id, name: charName, description: charDesc || null });
+        if (error) throw error;
+      }
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["my-characters"] });
+      setCharDialogOpen(false);
+      resetCharForm();
+      toast({ title: editingChar ? "Character updated" : "Character created" });
+    },
+    onError: (e: any) => toast({ title: "Error", description: e.message, variant: "destructive" }),
+  });
+
+  const deleteCharMutation = useMutation({
+    mutationFn: async (id: string) => {
+      const { error } = await supabase.from("characters").delete().eq("id", id);
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["my-characters"] });
+      toast({ title: "Character deleted" });
+    },
+  });
+
+  const resetCharForm = () => {
+    setCharName("");
+    setCharDesc("");
+    setEditingChar(null);
+  };
+
+  const openEditChar = (c: any) => {
+    setEditingChar(c.id);
+    setCharName(c.name);
+    setCharDesc(c.description || "");
+    setCharDialogOpen(true);
+  };
+
+  // Scenarios
   const { data: scenarios } = useQuery({
     queryKey: ["scenarios"],
     queryFn: async () => {
@@ -36,6 +106,7 @@ const Dashboard = () => {
     },
   });
 
+  // Active games
   const { data: myGames } = useQuery({
     queryKey: ["my-games", user?.id],
     queryFn: async () => {
@@ -51,10 +122,10 @@ const Dashboard = () => {
   });
 
   const handleCreateGame = async (scenarioId: string) => {
-    const joinCode = Math.random().toString(36).substring(2, 8).toUpperCase();
+    const code = Math.random().toString(36).substring(2, 8).toUpperCase();
     const { data, error } = await supabase
       .from("games")
-      .insert({ host_user_id: user!.id, scenario_id: scenarioId, join_code: joinCode })
+      .insert({ host_user_id: user!.id, scenario_id: scenarioId, join_code: code })
       .select()
       .single();
     if (error) {
@@ -65,6 +136,7 @@ const Dashboard = () => {
   };
 
   const handleJoinGame = async () => {
+    if (!joinCode.trim()) return;
     const { data: game, error } = await supabase
       .from("games")
       .select("*")
@@ -75,7 +147,6 @@ const Dashboard = () => {
       toast({ title: "Game not found", description: "Check the code and try again.", variant: "destructive" });
       return;
     }
-    // Add player
     const { error: joinError } = await supabase
       .from("game_players")
       .insert({ game_id: game.id, user_id: user!.id });
@@ -83,7 +154,6 @@ const Dashboard = () => {
       toast({ title: "Error joining", description: joinError.message, variant: "destructive" });
       return;
     }
-    setJoinOpen(false);
     navigate(`/game/${game.id}/play`);
   };
 
@@ -108,31 +178,97 @@ const Dashboard = () => {
         </div>
       </header>
 
-      <main className="container py-8 space-y-10">
-        {/* Quick Actions */}
-        <div className="flex flex-wrap gap-4">
-          <Dialog open={joinOpen} onOpenChange={setJoinOpen}>
-            <DialogTrigger asChild>
-              <Button variant="outline" className="gap-2 border-primary/30 hover:border-primary">
-                <DoorOpen className="h-4 w-4" /> Join a Game
-              </Button>
-            </DialogTrigger>
-            <DialogContent>
-              <DialogHeader>
-                <DialogTitle className="font-display">Join a Game</DialogTitle>
-              </DialogHeader>
-              <div className="space-y-4">
-                <Input
-                  placeholder="Enter join code"
-                  value={joinCode}
-                  onChange={(e) => setJoinCode(e.target.value)}
-                  className="text-center font-display text-lg tracking-widest uppercase"
-                />
-                <Button onClick={handleJoinGame} className="w-full font-display">Enter the Game</Button>
-              </div>
-            </DialogContent>
-          </Dialog>
-        </div>
+      <main className="container py-8 space-y-10 max-w-2xl">
+        {/* Section 1: Join a Game */}
+        <section className="space-y-3">
+          <h2 className="font-display text-2xl text-foreground flex items-center gap-2">
+            <DoorOpen className="h-6 w-6 text-primary" /> Join a Game
+          </h2>
+          <div className="flex gap-2">
+            <Input
+              placeholder="Enter join code"
+              value={joinCode}
+              onChange={(e) => setJoinCode(e.target.value)}
+              onKeyDown={(e) => e.key === "Enter" && handleJoinGame()}
+              className="font-display text-lg tracking-widest uppercase text-center"
+            />
+            <Button onClick={handleJoinGame} className="font-display px-6 shrink-0">
+              Join
+            </Button>
+          </div>
+        </section>
+
+        {/* Section 2: My Characters */}
+        <section className="space-y-4">
+          <div className="flex items-center justify-between">
+            <h2 className="font-display text-2xl text-foreground flex items-center gap-2">
+              <Sword className="h-6 w-6 text-primary" /> My Characters
+            </h2>
+            <Dialog open={charDialogOpen} onOpenChange={(open) => { setCharDialogOpen(open); if (!open) resetCharForm(); }}>
+              <DialogTrigger asChild>
+                <Button size="sm" className="gap-2 font-display">
+                  <Plus className="h-4 w-4" /> New Character
+                </Button>
+              </DialogTrigger>
+              <DialogContent>
+                <DialogHeader>
+                  <DialogTitle className="font-display">{editingChar ? "Edit Character" : "Create Character"}</DialogTitle>
+                </DialogHeader>
+                <div className="space-y-4">
+                  <Input
+                    placeholder="Character name"
+                    value={charName}
+                    onChange={(e) => setCharName(e.target.value)}
+                  />
+                  <Textarea
+                    placeholder="Description (optional)"
+                    value={charDesc}
+                    onChange={(e) => setCharDesc(e.target.value)}
+                    rows={3}
+                  />
+                  <Button
+                    onClick={() => saveCharMutation.mutate()}
+                    disabled={!charName.trim() || saveCharMutation.isPending}
+                    className="w-full font-display"
+                  >
+                    {editingChar ? "Save Changes" : "Create Character"}
+                  </Button>
+                </div>
+              </DialogContent>
+            </Dialog>
+          </div>
+
+          {characters && characters.length > 0 ? (
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+              {characters.map((c) => (
+                <Card key={c.id} className="border-border hover:border-primary/40 transition-colors">
+                  <CardHeader className="pb-2">
+                    <div className="flex items-start justify-between">
+                      <CardTitle className="font-display text-lg">{c.name}</CardTitle>
+                      <div className="flex gap-1 shrink-0">
+                        <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => openEditChar(c)}>
+                          <Pencil className="h-3.5 w-3.5" />
+                        </Button>
+                        <Button variant="ghost" size="icon" className="h-7 w-7 text-destructive" onClick={() => deleteCharMutation.mutate(c.id)}>
+                          <Trash2 className="h-3.5 w-3.5" />
+                        </Button>
+                      </div>
+                    </div>
+                    {c.description && <CardDescription>{c.description}</CardDescription>}
+                  </CardHeader>
+                </Card>
+              ))}
+            </div>
+          ) : (
+            <Card className="border-dashed border-muted-foreground/30">
+              <CardContent className="py-8 text-center text-muted-foreground">
+                <Sword className="h-8 w-8 mx-auto mb-2 opacity-40" />
+                <p className="font-display">No characters yet</p>
+                <p className="text-sm mt-1">Create a character to get started.</p>
+              </CardContent>
+            </Card>
+          )}
+        </section>
 
         {/* Active Games */}
         {myGames && myGames.length > 0 && (
@@ -140,7 +276,7 @@ const Dashboard = () => {
             <h2 className="font-display text-xl text-foreground flex items-center gap-2">
               <Users className="h-5 w-5 text-primary" /> Your Active Games
             </h2>
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
               {myGames.map((game) => (
                 <Card
                   key={game.id}
@@ -157,39 +293,38 @@ const Dashboard = () => {
           </section>
         )}
 
-        {/* Scenarios */}
-        <section className="space-y-4">
-          <h2 className="font-display text-xl text-foreground flex items-center gap-2">
-            <Scroll className="h-5 w-5 text-primary" /> Available Scenarios
-          </h2>
-          {scenarios && scenarios.length > 0 ? (
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-              {scenarios.map((scenario) => (
-                <Card key={scenario.id} className="border-border hover:border-primary/40 transition-colors">
-                  <CardHeader>
-                    <CardTitle className="font-display text-lg">{scenario.title}</CardTitle>
-                    {scenario.description && (
-                      <CardDescription>{scenario.description}</CardDescription>
-                    )}
-                  </CardHeader>
-                  <CardContent>
-                    <Button onClick={() => handleCreateGame(scenario.id)} className="w-full gap-2 font-display" size="sm">
-                      <Plus className="h-4 w-4" /> Host Game
-                    </Button>
-                  </CardContent>
-                </Card>
-              ))}
-            </div>
-          ) : (
-            <Card className="border-dashed border-muted-foreground/30">
-              <CardContent className="py-12 text-center text-muted-foreground">
-                <Scroll className="h-10 w-10 mx-auto mb-3 opacity-40" />
-                <p className="font-display">No scenarios available yet</p>
-                <p className="text-sm mt-1">Scenarios will appear here once added.</p>
-              </CardContent>
-            </Card>
-          )}
-        </section>
+        {/* Section 3: Host a Game (collapsible) */}
+        <Collapsible open={hostOpen} onOpenChange={setHostOpen}>
+          <CollapsibleTrigger asChild>
+            <Button variant="ghost" className="gap-2 text-muted-foreground hover:text-foreground font-display w-full justify-between">
+              <span className="flex items-center gap-2">
+                <Scroll className="h-4 w-4" /> Host a Game
+              </span>
+              <ChevronDown className={`h-4 w-4 transition-transform ${hostOpen ? "rotate-180" : ""}`} />
+            </Button>
+          </CollapsibleTrigger>
+          <CollapsibleContent className="mt-4 space-y-4">
+            {scenarios && scenarios.length > 0 ? (
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                {scenarios.map((scenario) => (
+                  <Card key={scenario.id} className="border-border hover:border-primary/40 transition-colors">
+                    <CardHeader className="pb-2">
+                      <CardTitle className="font-display text-base">{scenario.title}</CardTitle>
+                      {scenario.description && <CardDescription className="text-xs">{scenario.description}</CardDescription>}
+                    </CardHeader>
+                    <CardContent>
+                      <Button onClick={() => handleCreateGame(scenario.id)} variant="outline" className="w-full gap-2 font-display" size="sm">
+                        <Plus className="h-3.5 w-3.5" /> Host
+                      </Button>
+                    </CardContent>
+                  </Card>
+                ))}
+              </div>
+            ) : (
+              <p className="text-sm text-muted-foreground text-center py-4">No scenarios available yet.</p>
+            )}
+          </CollapsibleContent>
+        </Collapsible>
       </main>
     </div>
   );
