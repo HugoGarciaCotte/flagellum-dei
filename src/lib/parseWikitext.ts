@@ -58,7 +58,7 @@ function listTagFor(char: string): ListType {
   return "ul";
 }
 
-function convertBodyToHtml(lines: string[]): string {
+export function convertBodyToHtml(lines: string[]): string {
   const result: string[] = [];
   const listStack: ListType[] = [];
   let inPre = false;

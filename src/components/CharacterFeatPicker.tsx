@@ -540,7 +540,7 @@ const CharacterFeatPicker = ({ characterId, mode = "player", scenarioLevel }: Ch
                       <SelectValue placeholder="Pick..." />
                     </SelectTrigger>
                     <SelectContent>
-                      {slot.optional && <SelectItem value="__none__">None</SelectItem>}
+                      <SelectItem value="__none__">None</SelectItem>
                       {featOptions.map(f => (
                         <SelectItem key={f.id} value={f.id}>{f.title}</SelectItem>
                       ))}
@@ -570,7 +570,7 @@ const CharacterFeatPicker = ({ characterId, mode = "player", scenarioLevel }: Ch
                         Edit
                       </Button>
                     )}
-                    {online && slot.optional && (
+                    {online && (
                       <Button
                         variant="ghost"
                         size="sm"
