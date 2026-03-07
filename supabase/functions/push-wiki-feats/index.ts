@@ -67,19 +67,8 @@ function generateParseableBlock(meta: EmbeddedFeatMeta): string {
   return `<!--@ PARSEABLE FIELDS START @-->\n${lines.join("\n")}\n<!--@ PARSEABLE FIELDS END @-->`;
 }
 
-function mergeParseableBlock(existingContent: string, newBlock: string): string {
-  const startMarker = "<!--@ PARSEABLE FIELDS START @-->";
-  const endMarker = "<!--@ PARSEABLE FIELDS END @-->";
-  const startIdx = existingContent.indexOf(startMarker);
-  const endIdx = existingContent.indexOf(endMarker);
-  if (startIdx !== -1 && endIdx !== -1) {
-    const before = existingContent.substring(0, startIdx).trimEnd();
-    const after = existingContent.substring(endIdx + endMarker.length).trimStart();
-    if (!newBlock) return (before + (after ? "\n" + after : "")).trimEnd();
-    return (before + "\n" + newBlock + (after ? "\n" + after : "")).trimEnd();
-  }
-  if (!newBlock) return existingContent;
-  return existingContent.trimEnd() + "\n\n" + newBlock;
+function stripParseableBlock(content: string): string {
+  return content.replace(/\n*<!--@ PARSEABLE FIELDS START @-->[\s\S]*?<!--@ PARSEABLE FIELDS END @-->\n*/g, "").trimEnd();
 }
 
 interface WikiSession {
@@ -169,7 +158,7 @@ Deno.serve(async (req: Request) => {
     const supabaseKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
     const supabase = createClient(supabaseUrl, supabaseKey);
 
-    const { id, ids } = await req.json();
+    const { id, ids, mode } = await req.json();
     const featIds: string[] = ids || (id ? [id] : []);
     if (featIds.length === 0) {
       return new Response(JSON.stringify({ error: "No feat id(s) provided" }), {
@@ -189,8 +178,44 @@ Deno.serve(async (req: Request) => {
     }
 
     const session = await wikiLogin();
-    const editToken = await getEditToken(session);
 
+    // ===== PREVIEW MODE =====
+    if (mode === "preview") {
+      const results: { title: string; id: string; status: string; error?: string }[] = [];
+      for (const feat of feats) {
+        try {
+          const pageContent = await getPageContent(feat.title, session);
+          if (pageContent === null) {
+            results.push({ title: feat.title, id: feat.id, status: "not_found" });
+            continue;
+          }
+
+          // Compare parseable blocks
+          const dbMeta = parseEmbeddedFeatMeta(feat.content || "");
+          const dbBlock = generateParseableBlock(dbMeta);
+          const wikiMeta = parseEmbeddedFeatMeta(pageContent);
+          const wikiBlock = generateParseableBlock(wikiMeta);
+
+          if (dbBlock === wikiBlock) {
+            results.push({ title: feat.title, id: feat.id, status: "unchanged" });
+          } else if (!dbBlock && wikiBlock) {
+            results.push({ title: feat.title, id: feat.id, status: "delete" });
+          } else if (dbBlock && !wikiBlock) {
+            results.push({ title: feat.title, id: feat.id, status: "new" });
+          } else {
+            results.push({ title: feat.title, id: feat.id, status: "modified" });
+          }
+        } catch (e: any) {
+          results.push({ title: feat.title, id: feat.id, status: "error", error: e.message });
+        }
+      }
+      return new Response(JSON.stringify({ results }), {
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
+    // ===== EXECUTE MODE =====
+    const editToken = await getEditToken(session);
     const results: { title: string; status: string; error?: string }[] = [];
 
     for (const feat of feats) {
@@ -201,12 +226,17 @@ Deno.serve(async (req: Request) => {
           continue;
         }
 
-        // Parse metadata from the DB content and generate block
+        // Parse metadata from DB content
         const meta = parseEmbeddedFeatMeta(feat.content || "");
         const newBlock = generateParseableBlock(meta);
-        const updatedContent = mergeParseableBlock(pageContent, newBlock);
 
-        if (updatedContent === pageContent) {
+        // Strip old parseable block from wiki source, append new one
+        const strippedWiki = stripParseableBlock(pageContent);
+        const updatedContent = newBlock
+          ? strippedWiki + "\n\n" + newBlock
+          : strippedWiki;
+
+        if (updatedContent.trimEnd() === pageContent.trimEnd()) {
           results.push({ title: feat.title, status: "unchanged" });
           continue;
         }
