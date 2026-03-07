@@ -115,3 +115,28 @@ export function findSection(sections: WikiSection[], id: string): WikiSection | 
   }
   return null;
 }
+
+/**
+ * Extract image URLs from MediaWiki wikitext.
+ * Handles [[File:url]] and [[Image:url]] syntax, plus raw https image URLs.
+ */
+export function extractImageUrls(wikitext: string): string[] {
+  const urls: string[] = [];
+  // MediaWiki file embeds: [[File:something.png|options]] or [[Image:something.jpg]]
+  const fileRe = /\[\[(?:File|Image):([^|\]]+)/gi;
+  let match;
+  while ((match = fileRe.exec(wikitext)) !== null) {
+    const src = match[1].trim();
+    if (src.startsWith("http")) {
+      urls.push(src);
+    }
+  }
+  // Raw image URLs in text
+  const rawUrlRe = /https?:\/\/[^\s"'<>]+\.(?:png|jpg|jpeg|gif|webp|svg)/gi;
+  while ((match = rawUrlRe.exec(wikitext)) !== null) {
+    if (!urls.includes(match[0])) {
+      urls.push(match[0]);
+    }
+  }
+  return urls;
+}
