@@ -1,5 +1,6 @@
 import { ReactNode } from "react";
 import { ChevronDown } from "lucide-react";
+import { Input } from "@/components/ui/input";
 import FeatCategoryBadges from "@/components/FeatCategoryBadges";
 import FeatDetailsDisplay from "@/components/FeatDetailsDisplay";
 
@@ -15,8 +16,10 @@ interface FeatListItemProps {
   feat: FeatListItemFeat;
   expanded: boolean;
   onToggleExpand: () => void;
-  note?: string | null;
-  noteEditor?: ReactNode;
+  /** Always-visible note value */
+  noteValue?: string;
+  onNoteChange?: (value: string) => void;
+  onNoteBlur?: () => void;
   actions?: ReactNode;
   expandedContent?: ReactNode;
   /** Content always visible below the header (e.g. subfeats) */
