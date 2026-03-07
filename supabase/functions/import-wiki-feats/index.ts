@@ -55,7 +55,7 @@ async function generateDescription(title: string, content: string, categories: s
         messages: [
           {
             role: "system",
-            content: "You are a TTRPG content summarizer. Given a feat's title, categories, and wiki content, write a concise 1-2 sentence description suitable for display in a feat list. Focus on what the feat does mechanically.",
+            content: "You are a TTRPG content summarizer. Given a feat's title, categories, and wiki content, write a single short sentence (under 15 words) describing the feat's mechanical effect, suitable for a compact list view.",
           },
           {
             role: "user",
@@ -223,38 +223,43 @@ Deno.serve(async (req) => {
       );
     }
 
-    // Execute: upsert new + modified, generate AI descriptions when empty
+    // Execute: upsert new + modified, generate AI descriptions in parallel batches
     let imported = 0;
     const errors: string[] = [];
+    const toProcess = items.filter((i) => i.status !== "unchanged");
 
-    for (const item of items) {
-      if (item.status === "unchanged") continue;
-      try {
-        const content = pageContents.get(item.title) || "";
-        const existing = existingMap.get(item.title);
+    const BATCH_SIZE = 5;
+    for (let i = 0; i < toProcess.length; i += BATCH_SIZE) {
+      const batch = toProcess.slice(i, i + BATCH_SIZE);
+      const results = await Promise.allSettled(
+        batch.map(async (item) => {
+          const content = pageContents.get(item.title) || "";
+          const existing = existingMap.get(item.title);
 
-        // Check if we need to generate a description
-        const existingDescription = existing?.description;
-        const needsDescription = !existingDescription || existingDescription.trim() === "";
-        let description: string | null = existingDescription || null;
+          const existingDescription = existing?.description;
+          const needsDescription = !existingDescription || existingDescription.trim() === "" || existingDescription === "Imported from prima.wiki";
+          let description: string | null = existingDescription || null;
 
-        if (needsDescription) {
-          description = await generateDescription(item.title, content, item.categories);
-        }
+          if (needsDescription) {
+            description = await generateDescription(item.title, content, item.categories);
+          }
 
-        if (existing) {
-          await adminClient
-            .from("feats")
-            .update({ content, description: description || "Imported from prima.wiki", categories: item.categories })
-            .eq("id", existing.id);
-        } else {
-          await adminClient
-            .from("feats")
-            .insert({ title: item.title, content, description: description || "Imported from prima.wiki", categories: item.categories });
-        }
-        imported++;
-      } catch (e: any) {
-        errors.push(`Error processing ${item.title}: ${e.message}`);
+          if (existing) {
+            await adminClient
+              .from("feats")
+              .update({ content, description: description || "Imported from prima.wiki", categories: item.categories })
+              .eq("id", existing.id);
+          } else {
+            await adminClient
+              .from("feats")
+              .insert({ title: item.title, content, description: description || "Imported from prima.wiki", categories: item.categories });
+          }
+          return item.title;
+        })
+      );
+      for (const r of results) {
+        if (r.status === "fulfilled") imported++;
+        else errors.push(r.reason?.message || "Unknown error");
       }
     }
 
