@@ -67,7 +67,8 @@ function SectionNode({
           variant="ghost"
           size="icon"
           className={cn(
-            "h-7 w-7 opacity-0 group-hover:opacity-100 transition-opacity",
+            "h-7 w-7 transition-opacity",
+            section.level > 1 ? "opacity-100" : "opacity-0 group-hover:opacity-100",
             isActive && "opacity-100 text-primary-foreground"
           )}
           onClick={() => onActivateSection(section.id)}
