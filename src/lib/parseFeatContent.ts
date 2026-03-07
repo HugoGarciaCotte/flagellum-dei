@@ -15,6 +15,7 @@ function stripWikiLinks(text: string): string {
 export function parseFeatFields(content: string | null | undefined): FeatFields {
   const empty: FeatFields = { description: null, special: null, prerequisites: null, synonyms: null };
   if (!content) return empty;
+  content = content.replace(/<!--[\s\S]*?-->/g, "");
 
   const inner = content
     .replace(/^\s*\{\{\s*Feats\s*/i, "")
