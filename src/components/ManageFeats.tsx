@@ -283,16 +283,6 @@ const ManageFeats = () => {
     );
   };
 
-  const handleCopyWikiTags = (f: Feat) => {
-    const meta = getMeta(f);
-    const block = generateParseableBlock(meta);
-    if (!block) {
-      toast({ title: "No wiki tags to copy", description: "This feat has no metadata to export.", variant: "destructive" });
-      return;
-    }
-    navigator.clipboard.writeText(block);
-    toast({ title: "Wiki tags copied to clipboard" });
-  };
 
   const handlePushToWiki = async (f: Feat) => {
     setPushingId(f.id);
@@ -483,14 +473,6 @@ const ManageFeats = () => {
                             >
                               {isRegenerating ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Sparkles className="h-3.5 w-3.5" />}
                               Regenerate AI
-                            </Button>
-                            <Button
-                              size="sm"
-                              variant="outline"
-                              className="gap-1.5"
-                              onClick={(e) => { e.stopPropagation(); handleCopyWikiTags(f); }}
-                            >
-                              <Copy className="h-3.5 w-3.5" /> Copy Wiki Tags
                             </Button>
                             <Button
                               size="sm"
