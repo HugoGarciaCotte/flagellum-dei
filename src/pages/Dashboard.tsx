@@ -28,6 +28,8 @@ const Dashboard = () => {
   const [charName, setCharName] = useState("");
   const [charDesc, setCharDesc] = useState("");
   const { isOwner } = useIsOwner();
+  const { isGameMaster } = useIsGameMaster();
+  const [gmDialogOpen, setGmDialogOpen] = useState(false);
 
   useOfflineScenarios();
 
