@@ -389,9 +389,11 @@ serve(async (req) => {
       }
 
       // Strip existing parseable block — we regenerate everything fresh
-      const cleanContent = stripParseableBlock(feat.content || "");
+      // Use raw_content for parsing/regeneration since it preserves HTML comments
+      const sourceContent = feat.raw_content || feat.content || "";
+      const cleanContent = stripParseableBlock(sourceContent);
 
-      // Generate all 3 fields in parallel
+      // Generate all fields in parallel
       const { data: allFeats } = await adminClient.from("feats").select("title");
       const allFeatTitles = (allFeats || []).map((f: any) => f.title);
 
@@ -413,11 +415,12 @@ serve(async (req) => {
       };
 
       const block = generateParseableBlock(newMeta);
-      const updatedContent = mergeParseableBlock(feat.content || "", block);
+      // Merge parseable block into raw_content only; content stays as expanded (display) content
+      const updatedRawContent = mergeParseableBlock(sourceContent, block);
 
       const { error: updateError } = await adminClient
         .from("feats")
-        .update({ content: updatedContent })
+        .update({ raw_content: updatedRawContent })
         .eq("id", id);
 
       if (updateError) throw updateError;

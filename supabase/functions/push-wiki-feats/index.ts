@@ -205,7 +205,7 @@ Deno.serve(async (req: Request) => {
           }
 
           // Compare parseable blocks
-          const dbMeta = parseEmbeddedFeatMeta(feat.content || "");
+          const dbMeta = parseEmbeddedFeatMeta(feat.raw_content || feat.content || "");
           const dbBlock = generateParseableBlock(dbMeta);
           const wikiMeta = parseEmbeddedFeatMeta(pageContent);
           const wikiBlock = generateParseableBlock(wikiMeta);
@@ -241,7 +241,7 @@ Deno.serve(async (req: Request) => {
         }
 
         // Parse metadata from DB content
-        const meta = parseEmbeddedFeatMeta(feat.content || "");
+        const meta = parseEmbeddedFeatMeta(feat.raw_content || feat.content || "");
         const newBlock = generateParseableBlock(meta);
 
         // Strip old parseable block from wiki source, append new one
