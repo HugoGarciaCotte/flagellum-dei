@@ -138,18 +138,12 @@ Deno.serve(async (req) => {
     for (const page of pages) {
       try {
         const title = page.title as string;
-        const pageUrl = `https://prima.wiki/api.php?action=query&prop=revisions&titles=${encodeURIComponent(title)}&rvprop=content&format=json`;
+        const pageUrl = `https://prima.wiki/api.php?action=expandtemplates&title=${encodeURIComponent(title)}&text={{:${encodeURIComponent(title)}}}&prop=wikitext&format=json`;
         const pageRes = await fetch(pageUrl);
         const pageData = await pageRes.json();
 
-        const pagesObj = pageData?.query?.pages;
-        if (!pagesObj) continue;
-
-        const pageId = Object.keys(pagesObj)[0];
-        const revisions = pagesObj[pageId]?.revisions;
-        if (!revisions || revisions.length === 0) continue;
-
-        const content = revisions[0]["*"] || revisions[0]?.content || "";
+        const content = pageData?.expandtemplates?.wikitext || "";
+        if (!content) continue;
         // Extract scenario_level from metadata tag
         const levelMatch = content.match(/<!--@\s*scenario_level:\s*(\d+)\s*@-->/);
         const scenarioLevel = levelMatch ? parseInt(levelMatch[1], 10) : null;
