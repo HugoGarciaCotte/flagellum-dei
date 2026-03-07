@@ -3,8 +3,9 @@ import { supabase } from "@/integrations/supabase/client";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { X, Search, Gift } from "lucide-react";
+import { X, Search, Gift, Loader2 } from "lucide-react";
 import FeatCategoryBadges from "@/components/FeatCategoryBadges";
+import { toast } from "sonner";
 
 interface CharacterFeatPickerProps {
   characterId: string;
