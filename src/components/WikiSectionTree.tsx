@@ -32,9 +32,9 @@ function FeatLinkTooltip({ featName, rect, featsMap }: { featName: string; rect:
   if (!feat) return null;
   const fields = parseFeatFields(feat.content);
 
-  // Parse embedded meta for prerequisites
+  // Parse embedded meta from raw_content (preserves HTML comments)
   const metaTagRegex = /<!--@\s*feat_prerequisites\s*:\s*(.*?)\s*@-->/;
-  const metaPrereqMatch = (feat.content || "").match(metaTagRegex);
+  const metaPrereqMatch = (feat.raw_content || feat.content || "").match(metaTagRegex);
   const prerequisites = metaPrereqMatch?.[1] || fields.prerequisites;
 
   return createPortal(
@@ -74,7 +74,7 @@ function useFeatsMap() {
     queryKey: ["feats-map-for-links"],
     queryFn: async () => {
       const [featsRes, redirectsRes] = await Promise.all([
-        supabase.from("feats").select("title, content"),
+        supabase.from("feats").select("title, content, raw_content"),
         supabase.from("feat_redirects").select("from_title, to_title"),
       ]);
       const map = new Map<string, any>();

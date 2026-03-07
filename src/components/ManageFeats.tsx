@@ -31,6 +31,7 @@ type Feat = {
   id: string;
   title: string;
   content: string | null;
+  raw_content: string | null;
   categories: string[] | null;
   created_at: string;
 };
@@ -247,7 +248,7 @@ const ManageFeats = () => {
     saveMutation.mutate({ ...form, id: editingId ?? undefined });
   };
 
-  const getMeta = (f: Feat) => parseEmbeddedFeatMeta(f.content);
+  const getMeta = (f: Feat) => parseEmbeddedFeatMeta(f.raw_content || f.content);
   const hasDescription = (f: Feat) => !!getMeta(f).description?.trim();
   const hasSubfeats = (f: Feat) => { const m = getMeta(f); return Array.isArray(m.subfeats) && m.subfeats.length > 0; };
   const hasSpecialities = (f: Feat) => { const m = getMeta(f); return Array.isArray(m.specialities) && m.specialities.length > 0; };

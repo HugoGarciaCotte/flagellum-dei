@@ -73,7 +73,7 @@ function FeatHoverContent({ featTitle, featsMap }: { featTitle: string; featsMap
   }
 
   const fields = parseFeatFields(feat.content);
-  const meta = parseEmbeddedFeatMeta(feat.content);
+  const meta = parseEmbeddedFeatMeta(feat.raw_content || feat.content);
 
   return (
     <div className="space-y-1.5">
@@ -126,7 +126,7 @@ export default function WikiLinkedText({ text, className = "" }: WikiLinkedTextP
     queryKey: ["feats-map-for-links"],
     queryFn: async () => {
       const [featsRes, redirectsRes] = await Promise.all([
-        supabase.from("feats").select("title, content"),
+        supabase.from("feats").select("title, content, raw_content"),
         supabase.from("feat_redirects").select("from_title, to_title"),
       ]);
       const map = new Map<string, any>();
