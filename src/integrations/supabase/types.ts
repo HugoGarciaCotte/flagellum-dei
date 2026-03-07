@@ -14,6 +14,42 @@ export type Database = {
   }
   public: {
     Tables: {
+      character_feat_subfeats: {
+        Row: {
+          character_feat_id: string
+          id: string
+          slot: number
+          subfeat_id: string
+        }
+        Insert: {
+          character_feat_id: string
+          id?: string
+          slot: number
+          subfeat_id: string
+        }
+        Update: {
+          character_feat_id?: string
+          id?: string
+          slot?: number
+          subfeat_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "character_feat_subfeats_character_feat_id_fkey"
+            columns: ["character_feat_id"]
+            isOneToOne: false
+            referencedRelation: "character_feats"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "character_feat_subfeats_subfeat_id_fkey"
+            columns: ["subfeat_id"]
+            isOneToOne: false
+            referencedRelation: "feats"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       character_feats: {
         Row: {
           character_id: string
@@ -90,6 +126,7 @@ export type Database = {
           created_at: string
           description: string | null
           id: string
+          subfeats: Json | null
           title: string
         }
         Insert: {
@@ -98,6 +135,7 @@ export type Database = {
           created_at?: string
           description?: string | null
           id?: string
+          subfeats?: Json | null
           title: string
         }
         Update: {
@@ -106,6 +144,7 @@ export type Database = {
           created_at?: string
           description?: string | null
           id?: string
+          subfeats?: Json | null
           title?: string
         }
         Relationships: []
