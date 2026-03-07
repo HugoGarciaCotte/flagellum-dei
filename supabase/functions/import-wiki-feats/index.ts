@@ -97,6 +97,104 @@ async function generateDescription(title: string, content: string, categories: s
   }
 }
 
+async function generateSubfeats(
+  title: string,
+  content: string,
+  categories: string[],
+  allFeatTitles: string[]
+): Promise<any[] | null> {
+  try {
+    const apiKey = Deno.env.get("LOVABLE_API_KEY");
+    if (!apiKey) return null;
+
+    const systemPrompt = `You are a TTRPG feat analyzer. You determine whether a feat grants "subfeats" — additional feat choices a character gets when they acquire the parent feat.
+
+There are 3 kinds of subfeat slots (up to 3 slots per feat):
+1. "fixed" — A specific feat is always granted. Use "feat_title" to name it.
+2. "list" — The player picks from a named list of feats. Use "options" array with feat titles. Set "optional" to true if the player can choose not to pick.
+3. "type" — The player picks any feat matching a category filter. Use "filter" string like "not:Archetype,not:Hidden Feat" to exclude categories. Set "optional" to false if they must pick one.
+
+ARCHETYPE PATTERN: Archetypes almost always follow this pattern:
+- Slot 1: "list" with options ["Faith"] and optional:true (the character can choose Faith or not)
+- Slot 2: "fixed" with one default feat (e.g. Knowledge for Alchemist)
+- Slot 3: "list" with specific feats the archetype can learn from, optional:true
+
+NON-ARCHETYPE PATTERN: Some general feats like "Foreigner" grant a subfeat of type "type" where the player picks any non-Archetype, non-Hidden feat.
+
+Most feats do NOT grant subfeats. Only return subfeats if the wiki content clearly indicates the feat grants additional feats.
+
+Available feat titles for reference:
+${allFeatTitles.join(", ")}`;
+
+    const response = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
+      method: "POST",
+      headers: {
+        Authorization: `Bearer ${apiKey}`,
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        model: "google/gemini-3-flash-preview",
+        messages: [
+          { role: "system", content: systemPrompt },
+          {
+            role: "user",
+            content: `Title: ${title}\nCategories: ${categories.join(", ")}\n\nWiki Content:\n${content}`,
+          },
+        ],
+        tools: [
+          {
+            type: "function",
+            function: {
+              name: "set_subfeats",
+              description: "Set the subfeat definitions for this feat. Pass an empty array if the feat does not grant any subfeats.",
+              parameters: {
+                type: "object",
+                properties: {
+                  subfeats: {
+                    type: "array",
+                    items: {
+                      type: "object",
+                      properties: {
+                        slot: { type: "integer", description: "Slot number 1-3" },
+                        kind: { type: "string", enum: ["fixed", "list", "type"] },
+                        feat_title: { type: "string", description: "For 'fixed' kind: the feat title that is always granted" },
+                        options: { type: "array", items: { type: "string" }, description: "For 'list' kind: array of feat titles to choose from" },
+                        filter: { type: "string", description: "For 'type' kind: comma-separated filter like 'not:Archetype,not:Hidden Feat'" },
+                        optional: { type: "boolean", description: "Whether the player can choose not to pick a subfeat for this slot" },
+                      },
+                      required: ["slot", "kind"],
+                      additionalProperties: false,
+                    },
+                  },
+                },
+                required: ["subfeats"],
+                additionalProperties: false,
+              },
+            },
+          },
+        ],
+        tool_choice: { type: "function", function: { name: "set_subfeats" } },
+      }),
+    });
+
+    if (!response.ok) return null;
+
+    const data = await response.json();
+    const toolCall = data.choices?.[0]?.message?.tool_calls?.[0];
+    if (toolCall?.function?.arguments) {
+      const args = JSON.parse(toolCall.function.arguments);
+      const subfeats = args.subfeats;
+      if (Array.isArray(subfeats) && subfeats.length > 0) {
+        return subfeats;
+      }
+      return null;
+    }
+    return null;
+  } catch {
+    return null;
+  }
+}
+
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") {
     return new Response(null, { headers: corsHeaders });
@@ -174,10 +272,10 @@ Deno.serve(async (req) => {
       );
     }
 
-    // Fetch existing feats (include description to check if it needs AI generation)
+    // Fetch existing feats (include description and subfeats to check if they need AI generation)
     const { data: existingFeats } = await adminClient
       .from("feats")
-      .select("id, title, content, categories, description");
+      .select("id, title, content, categories, description, subfeats");
     const existingMap = new Map(
       (existingFeats || []).map((f: any) => [f.title, f])
     );
@@ -223,7 +321,10 @@ Deno.serve(async (req) => {
       );
     }
 
-    // Execute: upsert new + modified, generate AI descriptions in parallel batches
+    // Build all-feat-titles list for subfeat AI context
+    const allFeatTitles = intersectedTitles;
+
+    // Execute: upsert new + modified, generate AI descriptions + subfeats in parallel batches
     let imported = 0;
     const errors: string[] = [];
     const toProcess = items.filter((i) => i.status !== "unchanged");
@@ -244,15 +345,29 @@ Deno.serve(async (req) => {
             description = await generateDescription(item.title, content, item.categories);
           }
 
+          // Generate subfeats if not already set
+          const existingSubfeats = existing?.subfeats;
+          let subfeats: any[] | null = existingSubfeats || null;
+          if (!existingSubfeats) {
+            subfeats = await generateSubfeats(item.title, content, item.categories, allFeatTitles);
+          }
+
+          const payload: any = {
+            content,
+            description: description || "Imported from prima.wiki",
+            categories: item.categories,
+            subfeats: subfeats || null,
+          };
+
           if (existing) {
             await adminClient
               .from("feats")
-              .update({ content, description: description || "Imported from prima.wiki", categories: item.categories })
+              .update(payload)
               .eq("id", existing.id);
           } else {
             await adminClient
               .from("feats")
-              .insert({ title: item.title, content, description: description || "Imported from prima.wiki", categories: item.categories });
+              .insert({ title: item.title, ...payload });
           }
           return item.title;
         })

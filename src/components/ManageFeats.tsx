@@ -15,8 +15,17 @@ import {
   AlertDialogDescription, AlertDialogFooter, AlertDialogAction, AlertDialogCancel,
 } from "@/components/ui/alert-dialog";
 import { toast } from "@/hooks/use-toast";
-import { Plus, Pencil, Trash2, Sword, Loader2, Sparkles } from "lucide-react";
+import { Plus, Pencil, Trash2, Sword, Loader2, Sparkles, Layers } from "lucide-react";
 import FeatCategoryBadges from "@/components/FeatCategoryBadges";
+
+type SubfeatSlot = {
+  slot: number;
+  kind: "fixed" | "list" | "type";
+  feat_title?: string;
+  options?: string[];
+  filter?: string;
+  optional?: boolean;
+};
 
 type Feat = {
   id: string;
@@ -24,6 +33,7 @@ type Feat = {
   content: string | null;
   description: string | null;
   categories: string[] | null;
+  subfeats: SubfeatSlot[] | null;
   created_at: string;
 };
 
@@ -42,6 +52,7 @@ const ManageFeats = () => {
   const [form, setForm] = useState<FormData>(emptyForm);
   const [deleteTarget, setDeleteTarget] = useState<Feat | null>(null);
   const [regeneratingId, setRegeneratingId] = useState<string | null>(null);
+  const [regeneratingSubfeatsId, setRegeneratingSubfeatsId] = useState<string | null>(null);
 
   const { data: feats, isLoading } = useQuery({
     queryKey: ["admin-feats"],
@@ -51,7 +62,7 @@ const ManageFeats = () => {
         .select("*")
         .order("title");
       if (error) throw error;
-      return data as Feat[];
+      return data as unknown as Feat[];
     },
   });
 
@@ -113,6 +124,22 @@ const ManageFeats = () => {
     }
   };
 
+  const handleRegenerateSubfeats = async (id: string) => {
+    setRegeneratingSubfeatsId(id);
+    try {
+      const { data, error } = await supabase.functions.invoke("regenerate-description", {
+        body: { action: "regenerate_subfeats", id },
+      });
+      if (error) throw error;
+      queryClient.invalidateQueries({ queryKey: ["admin-feats"] });
+      toast({ title: "Subfeats regenerated" });
+    } catch (e: any) {
+      toast({ title: "Subfeat regeneration failed", description: e.message, variant: "destructive" });
+    } finally {
+      setRegeneratingSubfeatsId(null);
+    }
+  };
+
   const openCreate = () => {
     setEditingId(null);
     setForm(emptyForm);
@@ -131,6 +158,34 @@ const ManageFeats = () => {
       return;
     }
     saveMutation.mutate({ ...form, id: editingId ?? undefined });
+  };
+
+  const renderSubfeatsBadge = (subfeats: SubfeatSlot[] | null) => {
+    if (!subfeats || subfeats.length === 0) return null;
+    return (
+      <span className="inline-flex items-center gap-1 text-xs bg-accent text-accent-foreground rounded px-1.5 py-0.5">
+        <Layers className="h-3 w-3" />
+        {subfeats.length} subfeat{subfeats.length > 1 ? "s" : ""}
+      </span>
+    );
+  };
+
+  const renderSubfeatsDetail = (subfeats: SubfeatSlot[] | null) => {
+    if (!subfeats || subfeats.length === 0) return null;
+    return (
+      <div className="mt-2 space-y-1">
+        <p className="text-xs font-medium text-muted-foreground">Subfeats:</p>
+        {subfeats.map((s) => (
+          <div key={s.slot} className="text-xs text-muted-foreground pl-2 border-l-2 border-primary/30">
+            <span className="font-medium">Slot {s.slot}</span>
+            {" — "}
+            {s.kind === "fixed" && <span>Fixed: {s.feat_title}</span>}
+            {s.kind === "list" && <span>List: [{s.options?.join(", ")}]{s.optional ? " (optional)" : ""}</span>}
+            {s.kind === "type" && <span>Type filter: {s.filter}{s.optional ? " (optional)" : ""}</span>}
+          </div>
+        ))}
+      </div>
+    );
   };
 
   return (
@@ -165,7 +220,7 @@ const ManageFeats = () => {
                   <TableRow>
                     <TableHead>Title</TableHead>
                     <TableHead className="hidden sm:table-cell">Description</TableHead>
-                    <TableHead className="w-28 text-right">Actions</TableHead>
+                    <TableHead className="w-36 text-right">Actions</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
@@ -175,6 +230,7 @@ const ManageFeats = () => {
                         <div className="flex items-center gap-2 flex-wrap">
                           {f.title}
                           <FeatCategoryBadges categories={f.categories} />
+                          {renderSubfeatsBadge(f.subfeats)}
                         </div>
                       </TableCell>
                       <TableCell className="hidden sm:table-cell text-muted-foreground text-sm max-w-[300px]">
@@ -182,6 +238,19 @@ const ManageFeats = () => {
                       </TableCell>
                       <TableCell className="text-right">
                         <div className="flex justify-end gap-1">
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            onClick={() => handleRegenerateSubfeats(f.id)}
+                            disabled={regeneratingSubfeatsId === f.id}
+                            title="Regenerate subfeats"
+                          >
+                            {regeneratingSubfeatsId === f.id ? (
+                              <Loader2 className="h-4 w-4 animate-spin" />
+                            ) : (
+                              <Layers className="h-4 w-4 text-primary" />
+                            )}
+                          </Button>
                           <Button
                             variant="ghost"
                             size="icon"
@@ -253,6 +322,11 @@ const ManageFeats = () => {
                 className="font-mono text-xs"
               />
             </div>
+            {/* Show subfeats if editing */}
+            {editingId && (() => {
+              const feat = feats?.find(f => f.id === editingId);
+              return feat ? renderSubfeatsDetail(feat.subfeats) : null;
+            })()}
           </div>
           <DialogFooter>
             <Button variant="outline" onClick={() => setDialogOpen(false)} disabled={saveMutation.isPending}>
