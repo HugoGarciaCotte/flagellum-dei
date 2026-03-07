@@ -102,10 +102,10 @@ async function generateSubfeats(
   content: string,
   categories: string[],
   allFeatTitles: string[]
-): Promise<any[] | null> {
+): Promise<{ subfeats: any[] | null; unlocks_categories: string[] | null }> {
   try {
     const apiKey = Deno.env.get("LOVABLE_API_KEY");
-    if (!apiKey) return null;
+    if (!apiKey) return { subfeats: null, unlocks_categories: null };
 
     const systemPrompt = `You are a TTRPG feat analyzer. You determine whether a feat grants "subfeats" — additional feat choices a character gets when they acquire the parent feat.
 
@@ -184,21 +184,19 @@ ${allFeatTitles.join(", ")}`;
       }),
     });
 
-    if (!response.ok) return null;
+    if (!response.ok) return { subfeats: null, unlocks_categories: null };
 
     const data = await response.json();
     const toolCall = data.choices?.[0]?.message?.tool_calls?.[0];
     if (toolCall?.function?.arguments) {
       const args = JSON.parse(toolCall.function.arguments);
-      const subfeats = args.subfeats;
-      if (Array.isArray(subfeats) && subfeats.length > 0) {
-        return subfeats;
-      }
-      return null;
+      const subfeats = Array.isArray(args.subfeats) && args.subfeats.length > 0 ? args.subfeats : null;
+      const unlocks = Array.isArray(args.unlocks_categories) && args.unlocks_categories.length > 0 ? args.unlocks_categories : null;
+      return { subfeats, unlocks_categories: unlocks };
     }
-    return null;
+    return { subfeats: null, unlocks_categories: null };
   } catch {
-    return null;
+    return { subfeats: null, unlocks_categories: null };
   }
 }
 
@@ -352,11 +350,14 @@ Deno.serve(async (req) => {
             description = await generateDescription(item.title, content, item.categories);
           }
 
-          // Generate subfeats if not already set
+          // Generate subfeats and unlocks_categories if not already set
           const existingSubfeats = existing?.subfeats;
           let subfeats: any[] | null = existingSubfeats || null;
+          let unlocks_categories: string[] | null = existing?.unlocks_categories || null;
           if (!existingSubfeats) {
-            subfeats = await generateSubfeats(item.title, content, item.categories, allFeatTitles);
+            const result = await generateSubfeats(item.title, content, item.categories, allFeatTitles);
+            subfeats = result.subfeats;
+            unlocks_categories = result.unlocks_categories;
           }
 
           const payload: any = {
@@ -364,6 +365,7 @@ Deno.serve(async (req) => {
             description: description || "Imported from prima.wiki",
             categories: item.categories,
             subfeats: subfeats || null,
+            unlocks_categories: unlocks_categories || null,
           };
 
           if (existing) {

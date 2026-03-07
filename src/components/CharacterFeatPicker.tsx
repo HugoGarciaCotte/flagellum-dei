@@ -42,6 +42,7 @@ type Feat = {
   description: string | null;
   content: string | null;
   subfeats: SubfeatSlot[] | null;
+  unlocks_categories: string[] | null;
 };
 
 type SubfeatSlot = {
@@ -94,7 +95,7 @@ const CharacterFeatPicker = ({ characterId, mode = "player", scenarioLevel }: Ch
     queryFn: async () => {
       const { data, error } = await supabase
         .from("feats")
-        .select("id, title, categories, description, content, subfeats")
+        .select("id, title, categories, description, content, subfeats, unlocks_categories")
         .order("title");
       if (error) throw error;
       return data as unknown as Feat[];
@@ -363,9 +364,19 @@ const CharacterFeatPicker = ({ characterId, mode = "player", scenarioLevel }: Ch
     } else if (filterMode === "archetype") {
       filtered = allFeats.filter((f) => f.categories?.includes("Archetype"));
     } else {
+      // Gather unlocked categories from owned feats
+      const unlockedCategories = new Set<string>();
+      for (const cf of characterFeats ?? []) {
+        const feat = featMap?.get(cf.feat_id);
+        if (feat?.unlocks_categories) {
+          feat.unlocks_categories.forEach((c: string) => unlockedCategories.add(c));
+        }
+      }
       filtered = allFeats.filter(
         (f) =>
-          (f.categories?.includes("General Feat") || f.categories?.includes("Prowess")) &&
+          (f.categories?.includes("General Feat") ||
+            f.categories?.includes("Prowess") ||
+            f.categories?.some((c) => unlockedCategories.has(c))) &&
           !f.categories?.includes("Hidden Feat")
       );
     }
