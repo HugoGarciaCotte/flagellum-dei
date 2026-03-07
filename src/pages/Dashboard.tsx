@@ -121,7 +121,7 @@ const Dashboard = () => {
         const cached = getCachedScenarios();
         if (cached) return cached;
       }
-      const { data, error } = await supabase.from("scenarios").select("*");
+      const { data, error } = await supabase.from("scenarios").select("*").order("title");
       if (error) throw error;
       return data;
     },
