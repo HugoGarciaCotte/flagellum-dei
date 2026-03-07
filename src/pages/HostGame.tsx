@@ -10,6 +10,7 @@ import { ArrowLeft, Copy, Crown, Users, StopCircle } from "lucide-react";
 import { parseWikitext, extractImageUrls } from "@/lib/parseWikitext";
 import WikiSectionTree from "@/components/WikiSectionTree";
 import DiceRoller from "@/components/DiceRoller";
+import GameTimer from "@/components/GameTimer";
 import { useOfflineGameSession } from "@/hooks/useOfflineGameSession";
 import { useNetworkStatus } from "@/hooks/useNetworkStatus";
 import { getCachedGameSession, updateCachedSection, prefetchImages } from "@/lib/offlineStorage";
@@ -219,6 +220,7 @@ const HostGame = () => {
         )}
       </main>
 
+      <GameTimer />
       <DiceRoller />
     </div>
   );
