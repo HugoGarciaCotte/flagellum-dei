@@ -193,14 +193,38 @@ const CharacterFeatPicker = ({ characterId, mode = "player", scenarioLevel }: Ch
         }
       }
     },
-    onSuccess: () => {
+    onSuccess: (_data, variables) => {
       queryClient.invalidateQueries({ queryKey: ["character-feats", characterId] });
       queryClient.invalidateQueries({ queryKey: ["character-feat-subfeats", characterId] });
-      setPickerTarget(null);
-      setSearchTerm("");
-    },
-    onError: (error) => {
-      toast.error(error.message || "Could not acquire feat");
+
+      // Check if the feat has non-fixed subfeats that need picking
+      const feat = featMap.get(variables.featId);
+      const nonFixedSlots = (feat?.subfeats ?? []).filter(s => s.kind !== "fixed");
+      if (nonFixedSlots.length > 0) {
+        // We need the inserted character_feat id — re-query to find it
+        supabase
+          .from("character_feats")
+          .select("id")
+          .eq("character_id", characterId)
+          .eq("level", variables.level)
+          .eq("is_free", false)
+          .single()
+          .then(({ data: cfRow }) => {
+            if (cfRow) {
+              const queue = nonFixedSlots.map(s => ({ characterFeatId: cfRow.id, slot: s }));
+              setPendingSubfeatSlots(queue.slice(1));
+              setSearchTerm("");
+              setExpandedFeatId(null);
+              setPickerTarget({ type: "subfeat", characterFeatId: cfRow.id, slot: queue[0].slot });
+            } else {
+              setPickerTarget(null);
+              setSearchTerm("");
+            }
+          });
+      } else {
+        setPickerTarget(null);
+        setSearchTerm("");
+      }
     },
   });
 
