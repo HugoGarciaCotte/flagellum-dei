@@ -7,6 +7,12 @@ import { Input } from "@/components/ui/input";
 import { X, Search, Gift, Loader2 } from "lucide-react";
 import FeatCategoryBadges from "@/components/FeatCategoryBadges";
 import { toast } from "sonner";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
 
 interface CharacterFeatPickerProps {
   characterId: string;
@@ -30,13 +36,15 @@ type CharacterFeat = {
 
 const MAX_LEVEL = 10;
 
+type PickerTarget =
+  | { type: "level"; level: number }
+  | { type: "free" };
+
 const CharacterFeatPicker = ({ characterId, mode = "player" }: CharacterFeatPickerProps) => {
   const queryClient = useQueryClient();
-  const [editingLevel, setEditingLevel] = useState<number | null>(null);
+  const [pickerTarget, setPickerTarget] = useState<PickerTarget | null>(null);
   const [searchTerm, setSearchTerm] = useState("");
   const [filterMode, setFilterMode] = useState<"archetype" | "feat">("feat");
-  const [addingFree, setAddingFree] = useState(false);
-  const [freeSearch, setFreeSearch] = useState("");
   const [validatingFeat, setValidatingFeat] = useState<string | null>(null);
 
   const { data: allFeats } = useQuery({
@@ -67,7 +75,6 @@ const CharacterFeatPicker = ({ characterId, mode = "player" }: CharacterFeatPick
 
   const upsertMutation = useMutation({
     mutationFn: async ({ level, featId }: { level: number; featId: string }) => {
-      // Validate prerequisites in player mode
       if (mode === "player") {
         setValidatingFeat(featId);
         try {
@@ -76,7 +83,6 @@ const CharacterFeatPicker = ({ characterId, mode = "player" }: CharacterFeatPick
           });
           if (error) {
             console.error("Validation error:", error);
-            // Fail open on network errors
           } else if (data && !data.allowed) {
             throw new Error(data.reason || "Prerequisites not met");
           }
@@ -98,7 +104,7 @@ const CharacterFeatPicker = ({ characterId, mode = "player" }: CharacterFeatPick
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["character-feats", characterId] });
-      setEditingLevel(null);
+      setPickerTarget(null);
       setSearchTerm("");
     },
     onError: (error) => {
@@ -135,7 +141,8 @@ const CharacterFeatPicker = ({ characterId, mode = "player" }: CharacterFeatPick
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["character-feats", characterId] });
-      setFreeSearch("");
+      setPickerTarget(null);
+      setSearchTerm("");
     },
   });
 
@@ -170,11 +177,19 @@ const CharacterFeatPicker = ({ characterId, mode = "player" }: CharacterFeatPick
 
   const levelsToShow = Math.min(Math.max(maxFilledLevel + 1, 1), MAX_LEVEL);
 
+  const canPickArchetype = (level: number) => {
+    if (mode === "gm") return false;
+    if (!hasArchetype) return true;
+    return archetypeLevel === level;
+  };
+
+  const showArchetypeToggle = pickerTarget?.type === "level" && mode === "player" && canPickArchetype(pickerTarget.level);
+
   const filteredFeats = useMemo(() => {
     if (!allFeats) return [];
     let filtered: Feat[];
 
-    if (mode === "gm") {
+    if (pickerTarget?.type === "free" || mode === "gm") {
       filtered = [...allFeats];
     } else if (filterMode === "archetype") {
       filtered = allFeats.filter((f) => f.categories?.includes("Archetype"));
@@ -191,42 +206,37 @@ const CharacterFeatPicker = ({ characterId, mode = "player" }: CharacterFeatPick
       filtered = filtered.filter((f) => f.title.toLowerCase().includes(lower));
     }
     return filtered.sort(sortTitlesEmojiLast);
-  }, [allFeats, filterMode, searchTerm, mode]);
+  }, [allFeats, filterMode, searchTerm, mode, pickerTarget]);
 
-  const filteredFreeFeats = useMemo(() => {
-    if (!allFeats) return [];
-    let filtered = [...allFeats];
-    if (freeSearch.trim()) {
-      const lower = freeSearch.toLowerCase();
-      filtered = filtered.filter((f) => f.title.toLowerCase().includes(lower));
-    }
-    return filtered.sort(sortTitlesEmojiLast);
-  }, [allFeats, freeSearch]);
-
-  const canPickArchetype = (level: number) => {
-    if (mode === "gm") return false; // GM sees all feats, no archetype toggle needed
-    if (!hasArchetype) return true;
-    return archetypeLevel === level;
-  };
-
-  const openSelector = (level: number) => {
-    setEditingLevel(level);
+  const openPicker = (target: PickerTarget) => {
+    setPickerTarget(target);
     setSearchTerm("");
-    if (mode === "gm") {
-      setFilterMode("feat");
+    if (target.type === "level" && mode !== "gm") {
+      setFilterMode(canPickArchetype(target.level) ? "archetype" : "feat");
     } else {
-      setFilterMode(canPickArchetype(level) ? "archetype" : "feat");
+      setFilterMode("feat");
     }
   };
+
+  const handleFeatSelect = (featId: string) => {
+    if (!pickerTarget) return;
+    if (pickerTarget.type === "level") {
+      upsertMutation.mutate({ level: pickerTarget.level, featId });
+    } else {
+      addFreeFeatMutation.mutate(featId);
+    }
+  };
+
+  const dialogTitle = pickerTarget?.type === "level"
+    ? `Choose Feat — Level ${pickerTarget.level}`
+    : "Add Free Feat";
 
   return (
     <div className="space-y-2">
-      {/* Level-based feats */}
       <p className="text-sm font-medium text-muted-foreground">Feats per Level</p>
       {Array.from({ length: levelsToShow }, (_, i) => i + 1).map((level) => {
         const assigned = levelFeats.find((cf) => cf.level === level);
         const assignedFeat = assigned ? featMap.get(assigned.feat_id) : null;
-        const isEditing = editingLevel === level;
 
         return (
           <div key={level} className="border border-border rounded-md p-3">
@@ -235,12 +245,12 @@ const CharacterFeatPicker = ({ characterId, mode = "player" }: CharacterFeatPick
                 {level}
               </span>
 
-              {!isEditing && assignedFeat ? (
+              {assignedFeat ? (
                 <div className="flex items-center gap-2 flex-1 min-w-0">
                   <span className="text-sm font-medium text-foreground truncate">{assignedFeat.title}</span>
                   <FeatCategoryBadges categories={assignedFeat.categories} />
                   <div className="ml-auto flex gap-1 shrink-0">
-                    <Button variant="ghost" size="sm" className="h-6 px-2 text-xs" onClick={() => openSelector(level)}>
+                    <Button variant="ghost" size="sm" className="h-6 px-2 text-xs" onClick={() => openPicker({ type: "level", level })}>
                       Edit
                     </Button>
                     <Button
@@ -253,88 +263,12 @@ const CharacterFeatPicker = ({ characterId, mode = "player" }: CharacterFeatPick
                     </Button>
                   </div>
                 </div>
-              ) : !isEditing ? (
-                <Button variant="ghost" size="sm" className="text-xs text-muted-foreground" onClick={() => openSelector(level)}>
+              ) : (
+                <Button variant="ghost" size="sm" className="text-xs text-muted-foreground" onClick={() => openPicker({ type: "level", level })}>
                   + Choose feat
                 </Button>
-              ) : null}
+              )}
             </div>
-
-            {isEditing && (
-              <div className="mt-2 space-y-2">
-                {mode === "player" && (
-                  <div className="flex gap-1">
-                    {canPickArchetype(level) && (
-                      <Button
-                        size="sm"
-                        variant={filterMode === "archetype" ? "default" : "outline"}
-                        className="h-7 text-xs"
-                        onClick={() => setFilterMode("archetype")}
-                      >
-                        Archetype
-                      </Button>
-                    )}
-                    <Button
-                      size="sm"
-                      variant={filterMode === "feat" ? "default" : "outline"}
-                      className="h-7 text-xs"
-                      onClick={() => setFilterMode("feat")}
-                    >
-                      Feat
-                    </Button>
-                    <Button size="sm" variant="ghost" className="h-7 text-xs ml-auto" onClick={() => setEditingLevel(null)}>
-                      Cancel
-                    </Button>
-                  </div>
-                )}
-                {mode === "gm" && (
-                  <div className="flex gap-1 justify-end">
-                    <Button size="sm" variant="ghost" className="h-7 text-xs" onClick={() => setEditingLevel(null)}>
-                      Cancel
-                    </Button>
-                  </div>
-                )}
-
-                <div className="relative">
-                  <Search className="absolute left-2 top-1/2 -translate-y-1/2 h-3 w-3 text-muted-foreground" />
-                  <Input
-                    placeholder="Search feats..."
-                    value={searchTerm}
-                    onChange={(e) => setSearchTerm(e.target.value)}
-                    className="h-8 pl-7 text-xs"
-                  />
-                </div>
-
-                <div className="max-h-48 overflow-y-auto space-y-1">
-                  {filteredFeats.length === 0 ? (
-                    <p className="text-xs text-muted-foreground text-center py-4">No feats found</p>
-                  ) : (
-                    filteredFeats.map((feat) => (
-                      <button
-                        key={feat.id}
-                        onClick={() => upsertMutation.mutate({ level, featId: feat.id })}
-                        className="w-full text-left p-2 rounded border border-border hover:border-primary/50 hover:bg-primary/5 transition-colors disabled:opacity-50"
-                        disabled={upsertMutation.isPending}
-                      >
-                        <div className="flex items-center gap-2">
-                          {validatingFeat === feat.id && (
-                            <Loader2 className="h-3 w-3 animate-spin text-primary shrink-0" />
-                          )}
-                          <span className="text-sm font-medium text-foreground truncate">{feat.title}</span>
-                          <FeatCategoryBadges categories={feat.categories} />
-                        </div>
-                        {validatingFeat === feat.id && (
-                          <p className="text-xs text-primary mt-0.5">Checking prerequisites...</p>
-                        )}
-                        {feat.description && validatingFeat !== feat.id && (
-                          <p className="text-xs text-muted-foreground mt-0.5 line-clamp-1">{feat.description}</p>
-                        )}
-                      </button>
-                    ))
-                  )}
-                </div>
-              </div>
-            )}
           </div>
         );
       })}
@@ -346,7 +280,7 @@ const CharacterFeatPicker = ({ characterId, mode = "player" }: CharacterFeatPick
             <Gift className="h-4 w-4" /> Free Feats
           </p>
 
-          {freeFeats.length === 0 && mode === "gm" && !addingFree && (
+          {freeFeats.length === 0 && mode === "gm" && (
             <p className="text-xs text-muted-foreground italic">No free feats granted yet.</p>
           )}
 
@@ -371,54 +305,83 @@ const CharacterFeatPicker = ({ characterId, mode = "player" }: CharacterFeatPick
             );
           })}
 
-          {mode === "gm" && !addingFree && (
-            <Button variant="ghost" size="sm" className="text-xs text-muted-foreground" onClick={() => setAddingFree(true)}>
+          {mode === "gm" && (
+            <Button variant="ghost" size="sm" className="text-xs text-muted-foreground" onClick={() => openPicker({ type: "free" })}>
               + Add free feat
             </Button>
           )}
-
-          {mode === "gm" && addingFree && (
-            <div className="space-y-2 border border-border rounded-md p-3">
-              <div className="flex gap-1 justify-end">
-                <Button size="sm" variant="ghost" className="h-7 text-xs" onClick={() => { setAddingFree(false); setFreeSearch(""); }}>
-                  Cancel
-                </Button>
-              </div>
-              <div className="relative">
-                <Search className="absolute left-2 top-1/2 -translate-y-1/2 h-3 w-3 text-muted-foreground" />
-                <Input
-                  placeholder="Search all feats..."
-                  value={freeSearch}
-                  onChange={(e) => setFreeSearch(e.target.value)}
-                  className="h-8 pl-7 text-xs"
-                />
-              </div>
-              <div className="max-h-48 overflow-y-auto space-y-1">
-                {filteredFreeFeats.length === 0 ? (
-                  <p className="text-xs text-muted-foreground text-center py-4">No feats found</p>
-                ) : (
-                  filteredFreeFeats.map((feat) => (
-                    <button
-                      key={feat.id}
-                      onClick={() => addFreeFeatMutation.mutate(feat.id)}
-                      className="w-full text-left p-2 rounded border border-border hover:border-primary/50 hover:bg-primary/5 transition-colors"
-                      disabled={addFreeFeatMutation.isPending}
-                    >
-                      <div className="flex items-center gap-2">
-                        <span className="text-sm font-medium text-foreground truncate">{feat.title}</span>
-                        <FeatCategoryBadges categories={feat.categories} />
-                      </div>
-                      {feat.description && (
-                        <p className="text-xs text-muted-foreground mt-0.5 line-clamp-1">{feat.description}</p>
-                      )}
-                    </button>
-                  ))
-                )}
-              </div>
-            </div>
-          )}
         </div>
       )}
+
+      {/* Fullscreen Feat Picker Dialog */}
+      <Dialog open={pickerTarget !== null} onOpenChange={(open) => { if (!open) { setPickerTarget(null); setSearchTerm(""); } }}>
+        <DialogContent className="max-w-none w-full h-full m-0 rounded-none flex flex-col">
+          <DialogHeader>
+            <DialogTitle>{dialogTitle}</DialogTitle>
+          </DialogHeader>
+
+          {showArchetypeToggle && (
+            <div className="flex gap-1">
+              <Button
+                size="sm"
+                variant={filterMode === "archetype" ? "default" : "outline"}
+                className="h-7 text-xs"
+                onClick={() => setFilterMode("archetype")}
+              >
+                Archetype
+              </Button>
+              <Button
+                size="sm"
+                variant={filterMode === "feat" ? "default" : "outline"}
+                className="h-7 text-xs"
+                onClick={() => setFilterMode("feat")}
+              >
+                Feat
+              </Button>
+            </div>
+          )}
+
+          <div className="relative">
+            <Search className="absolute left-2 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+            <Input
+              placeholder="Search feats..."
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+              className="pl-8"
+              autoFocus
+            />
+          </div>
+
+          <div className="flex-1 overflow-y-auto space-y-1">
+            {filteredFeats.length === 0 ? (
+              <p className="text-sm text-muted-foreground text-center py-8">No feats found</p>
+            ) : (
+              filteredFeats.map((feat) => (
+                <button
+                  key={feat.id}
+                  onClick={() => handleFeatSelect(feat.id)}
+                  className="w-full text-left p-3 rounded border border-border hover:border-primary/50 hover:bg-primary/5 transition-colors disabled:opacity-50"
+                  disabled={upsertMutation.isPending || addFreeFeatMutation.isPending}
+                >
+                  <div className="flex items-center gap-2">
+                    {validatingFeat === feat.id && (
+                      <Loader2 className="h-3 w-3 animate-spin text-primary shrink-0" />
+                    )}
+                    <span className="text-sm font-medium text-foreground truncate">{feat.title}</span>
+                    <FeatCategoryBadges categories={feat.categories} />
+                  </div>
+                  {validatingFeat === feat.id && (
+                    <p className="text-xs text-primary mt-0.5">Checking prerequisites...</p>
+                  )}
+                  {feat.description && validatingFeat !== feat.id && (
+                    <p className="text-xs text-muted-foreground mt-0.5 line-clamp-1">{feat.description}</p>
+                  )}
+                </button>
+              ))
+            )}
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 };
