@@ -9,6 +9,7 @@ import { Badge } from "@/components/ui/badge";
 import { Table, TableHeader, TableBody, TableHead, TableRow, TableCell } from "@/components/ui/table";
 import { toast } from "@/hooks/use-toast";
 import { ArrowLeft, Crown, Download, Loader2, Search, X, Check } from "lucide-react";
+import ManageScenarios from "@/components/ManageScenarios";
 
 type PreviewItem = { title: string; status: "new" | "modified" | "unchanged" };
 
@@ -194,6 +195,8 @@ const Admin = () => {
             )}
           </CardContent>
         </Card>
+
+        <ManageScenarios />
       </main>
     </div>
   );
