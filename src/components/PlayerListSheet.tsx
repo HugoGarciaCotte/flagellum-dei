@@ -7,6 +7,7 @@ import { Users, Pencil, Check, X, Sword } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { toast } from "@/hooks/use-toast";
+import CharacterFeatPicker from "@/components/CharacterFeatPicker";
 
 interface Player {
   id: string;
@@ -118,6 +119,7 @@ const PlayerListSheet = ({ players, characters, gameId }: PlayerListSheetProps) 
                             <X className="h-3 w-3" /> Cancel
                           </Button>
                         </div>
+                        <CharacterFeatPicker characterId={char.id} mode="gm" />
                       </div>
                     ) : (
                       <div className="flex items-start justify-between bg-muted/30 rounded-md p-2">
