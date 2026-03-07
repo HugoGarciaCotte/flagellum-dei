@@ -328,6 +328,16 @@ const ManageFeats = () => {
                 {bulkRegenerating ? <Loader2 className="h-4 w-4 animate-spin" /> : <Wand2 className="h-4 w-4" />}
                 Regenerate All AI
               </Button>
+              <Button
+                onClick={handleBulkPush}
+                size="sm"
+                variant="outline"
+                className="gap-2 font-display"
+                disabled={bulkPushing || !feats?.length}
+              >
+                {bulkPushing ? <Loader2 className="h-4 w-4 animate-spin" /> : <Upload className="h-4 w-4" />}
+                Push All to Wiki
+              </Button>
               <Button onClick={openCreate} size="sm" className="gap-2 font-display">
                 <Plus className="h-4 w-4" /> New
               </Button>
