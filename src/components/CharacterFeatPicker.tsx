@@ -325,8 +325,18 @@ const CharacterFeatPicker = ({ characterId, mode = "player", scenarioLevel }: Ch
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["character-feat-subfeats", characterId] });
-      setPickerTarget(null);
-      setSearchTerm("");
+
+      // Advance pending subfeat queue
+      if (pendingSubfeatSlots.length > 0) {
+        const [next, ...rest] = pendingSubfeatSlots;
+        setPendingSubfeatSlots(rest);
+        setSearchTerm("");
+        setExpandedFeatId(null);
+        setPickerTarget({ type: "subfeat", characterFeatId: next.characterFeatId, slot: next.slot });
+      } else {
+        setPickerTarget(null);
+        setSearchTerm("");
+      }
     },
   });
 
