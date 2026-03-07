@@ -3,6 +3,7 @@ import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from "@/co
 import { Button } from "@/components/ui/button";
 import { Users, Pencil, Sword } from "lucide-react";
 import CharacterSheet from "@/components/CharacterSheet";
+import CharacterListItem from "@/components/CharacterListItem";
 
 interface Player {
   id: string;
@@ -28,10 +29,6 @@ const PlayerListSheet = ({ players, characters, gameId }: PlayerListSheetProps) 
   const [editingId, setEditingId] = useState<string | null>(null);
 
   const charMap = new Map(characters.map((c) => [c.id, c]));
-
-  const startEdit = (char: Character) => {
-    setEditingId(char.id);
-  };
 
   const cancelEdit = () => {
     setEditingId(null);
@@ -61,8 +58,8 @@ const PlayerListSheet = ({ players, characters, gameId }: PlayerListSheetProps) 
               const isEditing = editingId === char?.id;
 
               return (
-                <div key={player.id} className="border border-border rounded-lg p-3 space-y-2">
-                  <p className="font-display font-semibold text-foreground">{displayName}</p>
+                <div key={player.id} className="space-y-1">
+                  <p className="text-xs font-medium text-muted-foreground px-1">{displayName}</p>
 
                   {char ? (
                     isEditing ? (
@@ -70,23 +67,17 @@ const PlayerListSheet = ({ players, characters, gameId }: PlayerListSheetProps) 
                         <CharacterSheet characterId={char.id} mode="gm" onDone={cancelEdit} />
                       </div>
                     ) : (
-                      <div className="flex items-start justify-between bg-muted/30 rounded-md p-2">
-                        <div className="flex items-start gap-2 min-w-0">
-                          <Sword className="h-4 w-4 text-primary mt-0.5 shrink-0" />
-                          <div className="min-w-0">
-                            <p className="font-display text-sm font-medium text-foreground">{char.name}</p>
-                            {char.description && (
-                              <p className="text-xs text-muted-foreground mt-0.5 line-clamp-2">{char.description}</p>
-                            )}
-                          </div>
-                        </div>
-                        <Button variant="ghost" size="icon" className="h-7 w-7 shrink-0" onClick={() => startEdit(char)}>
-                          <Pencil className="h-3.5 w-3.5" />
-                        </Button>
-                      </div>
+                      <CharacterListItem
+                        character={{ id: char.id, name: char.name, description: char.description }}
+                        actions={
+                          <Button variant="ghost" size="icon" className="h-7 w-7 shrink-0" onClick={() => setEditingId(char.id)}>
+                            <Pencil className="h-3.5 w-3.5" />
+                          </Button>
+                        }
+                      />
                     )
                   ) : (
-                    <p className="text-xs text-muted-foreground italic">No character selected</p>
+                    <p className="text-xs text-muted-foreground italic px-1">No character selected</p>
                   )}
                 </div>
               );
