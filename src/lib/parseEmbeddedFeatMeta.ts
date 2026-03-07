@@ -4,6 +4,7 @@ export interface EmbeddedFeatMeta {
   specialities: string[] | null;
   subfeats: SubfeatSlot[] | null;
   unlocks_categories: string[] | null;
+  blocking: string[] | null;
 }
 
 export interface SubfeatSlot {
@@ -26,6 +27,7 @@ export function parseEmbeddedFeatMeta(content: string | null | undefined): Embed
     specialities: null,
     subfeats: null,
     unlocks_categories: null,
+    blocking: null,
   };
 
   if (!content) return result;
@@ -46,6 +48,8 @@ export function parseEmbeddedFeatMeta(content: string | null | undefined): Embed
       result.specialities = value.split(",").map((s) => s.trim()).filter(Boolean);
     } else if (key === "feat_unlocks") {
       result.unlocks_categories = value.split(",").map((s) => s.trim()).filter(Boolean);
+    } else if (key === "feat_blocking") {
+      result.blocking = value.split(",").map((s) => s.trim()).filter(Boolean);
     } else if (key.startsWith("feat_subfeat:")) {
       const slotNum = parseInt(key.split(":")[1], 10);
       if (isNaN(slotNum)) continue;
@@ -93,6 +97,7 @@ export function generateParseableBlock(meta: {
   specialities?: string[] | null;
   subfeats?: SubfeatSlot[] | null;
   unlocks_categories?: string[] | null;
+  blocking?: string[] | null;
 }): string {
   const lines: string[] = [];
 
@@ -117,6 +122,9 @@ export function generateParseableBlock(meta: {
   }
   if (meta.unlocks_categories && meta.unlocks_categories.length > 0) {
     lines.push(`<!--@ feat_unlocks: ${meta.unlocks_categories.join(", ")} @-->`);
+  }
+  if (meta.blocking && meta.blocking.length > 0) {
+    lines.push(`<!--@ feat_blocking: ${meta.blocking.join(", ")} @-->`);
   }
 
   if (lines.length === 0) return "";

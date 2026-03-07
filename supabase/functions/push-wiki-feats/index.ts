@@ -14,11 +14,12 @@ interface EmbeddedFeatMeta {
   specialities: string[] | null;
   subfeats: any[] | null;
   unlocks_categories: string[] | null;
+  blocking: string[] | null;
 }
 
 function parseEmbeddedFeatMeta(content: string): EmbeddedFeatMeta {
   const result: EmbeddedFeatMeta = {
-    description: null, prerequisites: null, specialities: null, subfeats: null, unlocks_categories: null,
+    description: null, prerequisites: null, specialities: null, subfeats: null, unlocks_categories: null, blocking: null,
   };
   const tagRegex = /<!--@\s*([\w:]+)\s*:\s*(.*?)\s*@-->/g;
   let match: RegExpExecArray | null;
@@ -30,6 +31,7 @@ function parseEmbeddedFeatMeta(content: string): EmbeddedFeatMeta {
     else if (key === "feat_prerequisites") result.prerequisites = value;
     else if (key === "feat_specialities") result.specialities = value.split(",").map(s => s.trim()).filter(Boolean);
     else if (key === "feat_unlocks") result.unlocks_categories = value.split(",").map(s => s.trim()).filter(Boolean);
+    else if (key === "feat_blocking") result.blocking = value.split(",").map(s => s.trim()).filter(Boolean);
     else if (key.startsWith("feat_subfeat:")) {
       const slotNum = parseInt(key.split(":")[1], 10);
       if (isNaN(slotNum)) continue;
@@ -66,6 +68,7 @@ function generateParseableBlock(meta: EmbeddedFeatMeta): string {
     }
   }
   if (meta.unlocks_categories && meta.unlocks_categories.length > 0) lines.push(`<!--@ feat_unlocks: ${meta.unlocks_categories.join(", ")} @-->`);
+  if (meta.blocking && meta.blocking.length > 0) lines.push(`<!--@ feat_blocking: ${meta.blocking.join(", ")} @-->`);
   if (lines.length === 0) return "";
   return `<!--@ PARSEABLE FIELDS START @-->\n${lines.join("\n")}\n<!--@ PARSEABLE FIELDS END @-->`;
 }

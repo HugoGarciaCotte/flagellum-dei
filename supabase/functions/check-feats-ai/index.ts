@@ -7,11 +7,12 @@ interface EmbeddedFeatMeta {
   specialities: string[] | null;
   subfeats: any[] | null;
   unlocks_categories: string[] | null;
+  blocking: string[] | null;
 }
 
 function parseEmbeddedFeatMeta(content: string): EmbeddedFeatMeta {
   const result: EmbeddedFeatMeta = {
-    description: null, prerequisites: null, specialities: null, subfeats: null, unlocks_categories: null,
+    description: null, prerequisites: null, specialities: null, subfeats: null, unlocks_categories: null, blocking: null,
   };
   const tagRegex = /<!--@\s*([\w:]+)\s*:\s*(.*?)\s*@-->/g;
   let match: RegExpExecArray | null;
@@ -23,6 +24,7 @@ function parseEmbeddedFeatMeta(content: string): EmbeddedFeatMeta {
     else if (key === "feat_prerequisites") result.prerequisites = value;
     else if (key === "feat_specialities") result.specialities = value.split(",").map(s => s.trim()).filter(Boolean);
     else if (key === "feat_unlocks") result.unlocks_categories = value.split(",").map(s => s.trim()).filter(Boolean);
+    else if (key === "feat_blocking") result.blocking = value.split(",").map(s => s.trim()).filter(Boolean);
     else if (key.startsWith("feat_subfeat:")) {
       const slotNum = parseInt(key.split(":")[1], 10);
       if (isNaN(slotNum)) continue;
@@ -76,6 +78,7 @@ async function checkFeatWithAI(
     specialities: currentMeta.specialities,
     subfeats: currentMeta.subfeats,
     unlocks_categories: currentMeta.unlocks_categories,
+    blocking: currentMeta.blocking,
   }, null, 2);
 
   const systemPrompt = `You are a TRPG feat metadata reviewer. Given a feat's wiki content and its current parseable metadata fields, determine if each field is accurate, missing, or should be removed.
@@ -86,6 +89,7 @@ Fields to review:
 - specialities: List of speciality options the player must choose from (most feats have none)
 - subfeats: Subfeat slot definitions (fixed/list/type) — most feats have none
 - unlocks_categories: Categories this feat unlocks for the character (most feats unlock nothing)
+- blocking: List of feat titles that are incompatible with this feat (most feats block nothing)
 
 For each field, compare the current value against what the wiki content suggests. Return suggestions for fields that need to be added, modified, or deleted.
 
@@ -114,7 +118,7 @@ ${allFeatTitles.join(", ")}`;
                 items: {
                   type: "object",
                   properties: {
-                    field: { type: "string", enum: ["description", "prerequisites", "specialities", "subfeats", "unlocks_categories"] },
+                    field: { type: "string", enum: ["description", "prerequisites", "specialities", "subfeats", "unlocks_categories", "blocking"] },
                     action: { type: "string", enum: ["add", "modify", "delete"] },
                     reason: { type: "string", description: "Brief explanation of why this change is needed" },
                     suggested_value: { type: "string", description: "The suggested new value (as a string representation). For arrays use comma-separated. For subfeats describe the slots." },
