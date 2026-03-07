@@ -6,50 +6,50 @@
 
 @layer base {
   :root {
-    --background: 240 12% 8%;
-    --foreground: 45 20% 90%;
+    --background: 39 30% 92%;
+    --foreground: 240 10% 12%;
 
-    --card: 240 10% 12%;
-    --card-foreground: 45 20% 90%;
+    --card: 39 25% 88%;
+    --card-foreground: 240 10% 12%;
 
-    --popover: 240 10% 14%;
-    --popover-foreground: 45 20% 90%;
+    --popover: 39 25% 90%;
+    --popover-foreground: 240 10% 12%;
 
-    --primary: 35 80% 50%;
-    --primary-foreground: 240 12% 8%;
+    --primary: 35 80% 38%;
+    --primary-foreground: 39 30% 95%;
 
-    --secondary: 240 8% 18%;
-    --secondary-foreground: 45 15% 80%;
+    --secondary: 39 20% 82%;
+    --secondary-foreground: 240 10% 20%;
 
-    --muted: 240 8% 16%;
-    --muted-foreground: 240 5% 55%;
+    --muted: 39 15% 85%;
+    --muted-foreground: 240 5% 45%;
 
-    --accent: 280 40% 45%;
-    --accent-foreground: 45 20% 95%;
+    --accent: 280 30% 55%;
+    --accent-foreground: 240 10% 10%;
 
     --destructive: 0 65% 50%;
     --destructive-foreground: 0 0% 98%;
 
-    --border: 240 8% 20%;
-    --input: 240 8% 20%;
+    --border: 35 20% 78%;
+    --input: 35 20% 78%;
     --ring: 35 80% 50%;
 
     --radius: 0.5rem;
 
-    --sidebar-background: 240 12% 6%;
-    --sidebar-foreground: 45 20% 90%;
-    --sidebar-primary: 35 80% 50%;
-    --sidebar-primary-foreground: 240 12% 8%;
-    --sidebar-accent: 240 8% 16%;
-    --sidebar-accent-foreground: 45 20% 90%;
-    --sidebar-border: 240 8% 18%;
+    --sidebar-background: 39 30% 89%;
+    --sidebar-foreground: 240 10% 12%;
+    --sidebar-primary: 35 80% 38%;
+    --sidebar-primary-foreground: 39 30% 95%;
+    --sidebar-accent: 39 15% 85%;
+    --sidebar-accent-foreground: 240 10% 12%;
+    --sidebar-border: 35 20% 78%;
     --sidebar-ring: 35 80% 50%;
 
-    --gold: 35 80% 50%;
-    --gold-dim: 35 60% 35%;
-    --parchment: 40 30% 85%;
+    --gold: 35 80% 38%;
+    --gold-dim: 35 60% 30%;
+    --parchment: 39 30% 92%;
     --blood: 0 70% 40%;
-    --mystic: 280 40% 45%;
+    --mystic: 280 30% 55%;
   }
 }
 
