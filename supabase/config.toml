@@ -2,3 +2,6 @@ project_id = "bcisbkompyqtfrtzccit"
 
 [functions.import-wiki-feats]
 verify_jwt = false
+
+[functions.validate-feat]
+verify_jwt = false

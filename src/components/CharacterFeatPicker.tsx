@@ -3,8 +3,9 @@ import { supabase } from "@/integrations/supabase/client";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { X, Search, Gift } from "lucide-react";
+import { X, Search, Gift, Loader2 } from "lucide-react";
 import FeatCategoryBadges from "@/components/FeatCategoryBadges";
+import { toast } from "sonner";
 
 interface CharacterFeatPickerProps {
   characterId: string;
@@ -35,6 +36,7 @@ const CharacterFeatPicker = ({ characterId, mode = "player" }: CharacterFeatPick
   const [filterMode, setFilterMode] = useState<"archetype" | "feat">("feat");
   const [addingFree, setAddingFree] = useState(false);
   const [freeSearch, setFreeSearch] = useState("");
+  const [validatingFeat, setValidatingFeat] = useState<string | null>(null);
 
   const { data: allFeats } = useQuery({
     queryKey: ["all-feats"],
@@ -64,6 +66,24 @@ const CharacterFeatPicker = ({ characterId, mode = "player" }: CharacterFeatPick
 
   const upsertMutation = useMutation({
     mutationFn: async ({ level, featId }: { level: number; featId: string }) => {
+      // Validate prerequisites in player mode
+      if (mode === "player") {
+        setValidatingFeat(featId);
+        try {
+          const { data, error } = await supabase.functions.invoke("validate-feat", {
+            body: { characterId, featId },
+          });
+          if (error) {
+            console.error("Validation error:", error);
+            // Fail open on network errors
+          } else if (data && !data.allowed) {
+            throw new Error(data.reason || "Prerequisites not met");
+          }
+        } finally {
+          setValidatingFeat(null);
+        }
+      }
+
       await supabase
         .from("character_feats")
         .delete()
@@ -79,6 +99,9 @@ const CharacterFeatPicker = ({ characterId, mode = "player" }: CharacterFeatPick
       queryClient.invalidateQueries({ queryKey: ["character-feats", characterId] });
       setEditingLevel(null);
       setSearchTerm("");
+    },
+    onError: (error) => {
+      toast.error(error.message || "Could not acquire feat");
     },
   });
 
@@ -289,14 +312,20 @@ const CharacterFeatPicker = ({ characterId, mode = "player" }: CharacterFeatPick
                       <button
                         key={feat.id}
                         onClick={() => upsertMutation.mutate({ level, featId: feat.id })}
-                        className="w-full text-left p-2 rounded border border-border hover:border-primary/50 hover:bg-primary/5 transition-colors"
+                        className="w-full text-left p-2 rounded border border-border hover:border-primary/50 hover:bg-primary/5 transition-colors disabled:opacity-50"
                         disabled={upsertMutation.isPending}
                       >
                         <div className="flex items-center gap-2">
+                          {validatingFeat === feat.id && (
+                            <Loader2 className="h-3 w-3 animate-spin text-primary shrink-0" />
+                          )}
                           <span className="text-sm font-medium text-foreground truncate">{feat.title}</span>
                           <FeatCategoryBadges categories={feat.categories} />
                         </div>
-                        {feat.description && (
+                        {validatingFeat === feat.id && (
+                          <p className="text-xs text-primary mt-0.5">Checking prerequisites...</p>
+                        )}
+                        {feat.description && validatingFeat !== feat.id && (
                           <p className="text-xs text-muted-foreground mt-0.5 line-clamp-1">{feat.description}</p>
                         )}
                       </button>
