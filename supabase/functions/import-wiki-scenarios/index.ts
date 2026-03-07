@@ -52,9 +52,9 @@ Deno.serve(async (req) => {
       // no body = default execute
     }
 
-    // Step 1: Get all pages in Category:Scenario
+    // Step 1: Get all pages in Category:Official Scenarios
     const catUrl =
-      "https://prima.wiki/api.php?action=query&list=categorymembers&cmtitle=Category:Scenario&cmlimit=500&format=json";
+      "https://prima.wiki/api.php?action=query&list=categorymembers&cmtitle=Category:Official%20Scenarios&cmlimit=500&format=json";
     const catRes = await fetch(catUrl);
     const catData = await catRes.json();
     const pages = catData?.query?.categorymembers || [];
