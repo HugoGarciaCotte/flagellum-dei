@@ -219,6 +219,8 @@ function SectionNode({
 }
 
 export default function WikiSectionTree({ sections, activeSection, onActivateSection, parentBackground = null }: WikiSectionTreeProps) {
+  const { data: featsMap } = useFeatsMap();
+
   return (
     <div className="space-y-1">
       {sections.map((section) => (
@@ -228,6 +230,7 @@ export default function WikiSectionTree({ sections, activeSection, onActivateSec
           activeSection={activeSection}
           onActivateSection={onActivateSection}
           parentBackground={parentBackground}
+          featsMap={featsMap}
         />
       ))}
     </div>
