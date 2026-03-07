@@ -7,6 +7,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { toast } from "@/hooks/use-toast";
 import { ArrowLeft, ArrowRight, Copy, Crown, Users, StopCircle } from "lucide-react";
+import { getCachedSections, isOffline } from "@/lib/offlineStorage";
 
 const HostGame = () => {
   const { gameId } = useParams<{ gameId: string }>();
@@ -31,6 +32,10 @@ const HostGame = () => {
   const { data: sections } = useQuery({
     queryKey: ["sections", game?.scenario_id],
     queryFn: async () => {
+      if (isOffline()) {
+        const cached = getCachedSections(game!.scenario_id);
+        if (cached && cached.length > 0) return cached;
+      }
       const { data, error } = await supabase
         .from("scenario_sections")
         .select("*")

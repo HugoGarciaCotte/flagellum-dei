@@ -9,6 +9,8 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from 
 import { toast } from "@/hooks/use-toast";
 import { useNavigate } from "react-router-dom";
 import { Crown, LogOut, Plus, DoorOpen, Scroll, Users } from "lucide-react";
+import { useOfflineScenarios } from "@/hooks/useOfflineScenarios";
+import { getCachedScenarios, isOffline } from "@/lib/offlineStorage";
 
 const Dashboard = () => {
   const { user, signOut } = useAuth();
@@ -16,9 +18,16 @@ const Dashboard = () => {
   const [joinCode, setJoinCode] = useState("");
   const [joinOpen, setJoinOpen] = useState(false);
 
+  // Prefetch all scenario data for offline use
+  useOfflineScenarios();
+
   const { data: scenarios } = useQuery({
     queryKey: ["scenarios"],
     queryFn: async () => {
+      if (isOffline()) {
+        const cached = getCachedScenarios();
+        if (cached) return cached;
+      }
       const { data, error } = await supabase.from("scenarios").select("*, scenario_sections(count)");
       if (error) throw error;
       return data;
