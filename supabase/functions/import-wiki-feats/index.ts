@@ -31,6 +31,14 @@ async function fetchCategoryMembers(category: string): Promise<string[]> {
   return titles;
 }
 
+function findFirstDiff(a: string, b: string): number {
+  const len = Math.min(a.length, b.length);
+  for (let i = 0; i < len; i++) {
+    if (a[i] !== b[i]) return i;
+  }
+  return a.length !== b.length ? len : -1;
+}
+
 const CATEGORY_MAP: Record<string, string> = {
   Archetypes: "Archetype",
   Prowesses: "Prowess",
@@ -125,7 +133,7 @@ Deno.serve(async (req) => {
     );
 
     // Fetch each page content via expandtemplates
-    const items: { title: string; status: "new" | "modified" | "unchanged"; categories: string[] }[] = [];
+    const items: { title: string; status: "new" | "modified" | "unchanged"; categories: string[]; diff?: any }[] = [];
     const pageContents = new Map<string, string>();
 
     for (const title of intersectedTitles) {
@@ -143,11 +151,23 @@ Deno.serve(async (req) => {
         if (!existing) {
           items.push({ title, status: "new", categories });
         } else {
-          // Compare content and categories for changes
           const existingContent = (existing.content || "").trim();
           const newContent = content.trim();
-          if (existingContent !== newContent || JSON.stringify(existing.categories || []) !== JSON.stringify(categories)) {
-            items.push({ title, status: "modified", categories });
+          const contentChanged = existingContent !== newContent;
+          const categoriesChanged = JSON.stringify(existing.categories || []) !== JSON.stringify(categories);
+          if (contentChanged || categoriesChanged) {
+            const pad = 40;
+            const idx = findFirstDiff(existingContent, newContent);
+            const diff = {
+              contentChanged,
+              categoriesChanged,
+              firstDiffAt: idx,
+              dbSnippet: idx >= 0 ? JSON.stringify(existingContent.slice(Math.max(0, idx - pad), idx + pad)) : null,
+              wikiSnippet: idx >= 0 ? JSON.stringify(newContent.slice(Math.max(0, idx - pad), idx + pad)) : null,
+              dbLength: existingContent.length,
+              wikiLength: newContent.length,
+            };
+            items.push({ title, status: "modified", categories, diff });
           } else {
             items.push({ title, status: "unchanged", categories });
           }
