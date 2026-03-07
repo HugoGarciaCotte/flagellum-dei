@@ -15,6 +15,8 @@ import GameTimer from "@/components/GameTimer";
 import { useOfflineGameSession } from "@/hooks/useOfflineGameSession";
 import { useNetworkStatus } from "@/hooks/useNetworkStatus";
 import { getCachedGameSession, updateCachedSection, prefetchImages } from "@/lib/offlineStorage";
+import FullPageLoader from "@/components/FullPageLoader";
+import PageHeader from "@/components/PageHeader";
 
 const HostGame = () => {
   const { gameId } = useParams<{ gameId: string }>();
@@ -164,35 +166,33 @@ const HostGame = () => {
   };
 
   if (!effectiveGame) {
-    return (
-      <div className="flex min-h-screen items-center justify-center bg-background">
-        <div className="animate-pulse-glow text-primary font-display text-xl">Loading quest...</div>
-      </div>
-    );
+    return <FullPageLoader message="Loading quest..." />;
   }
 
   return (
     <div className="min-h-screen bg-background flex flex-col">
-      <header className="border-b border-border/50 bg-card/50 backdrop-blur sticky top-0 z-10">
-        <div className="container flex items-center justify-between h-14">
-          <div className="flex items-center gap-3">
-            <Button variant="ghost" size="icon" onClick={() => navigate("/")}>
-              <ArrowLeft className="h-4 w-4" />
-            </Button>
-            <h1 className="font-display text-lg font-bold text-foreground flex items-center gap-2">
-              <Crown className="h-4 w-4 text-primary" />
-              {effectiveScenario?.title}
-              {scenarioMeta.scenario_level && (
-                <span className="text-xs font-normal bg-primary/20 text-primary px-2 py-0.5 rounded-full">
-                  Lv. {scenarioMeta.scenario_level}
-                </span>
-              )}
-            </h1>
+      <PageHeader
+        title={effectiveScenario?.title ?? ""}
+        icon={<Crown className="h-4 w-4 text-primary" />}
+        leftAction={
+          <Button variant="ghost" size="icon" onClick={() => navigate("/")}>
+            <ArrowLeft className="h-4 w-4" />
+          </Button>
+        }
+        badge={
+          <>
+            {scenarioMeta.scenario_level && (
+              <span className="text-xs font-normal bg-primary/20 text-primary px-2 py-0.5 rounded-full">
+                Lv. {scenarioMeta.scenario_level}
+              </span>
+            )}
             {!online && (
               <span className="text-xs bg-destructive/20 text-destructive px-2 py-0.5 rounded-full">Offline</span>
             )}
-          </div>
-          <div className="flex items-center gap-3">
+          </>
+        }
+        rightActions={
+          <>
             <Button variant="outline" size="sm" onClick={copyCode} className="gap-2 border-primary/30 font-mono tracking-widest">
               <Copy className="h-3 w-3" /> {(effectiveGame as any).join_code}
             </Button>
@@ -204,9 +204,9 @@ const HostGame = () => {
             <Button variant="destructive" size="sm" onClick={endGame} className="gap-1">
               <StopCircle className="h-3 w-3" /> End
             </Button>
-          </div>
-        </div>
-      </header>
+          </>
+        }
+      />
 
       <main className="flex-1 container py-6 max-w-5xl">
         {sections.length > 0 ? (

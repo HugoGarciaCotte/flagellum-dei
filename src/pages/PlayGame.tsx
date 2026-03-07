@@ -14,6 +14,9 @@ import { getCachedGameSession } from "@/lib/offlineStorage";
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from "@/components/ui/sheet";
 import { toast } from "@/hooks/use-toast";
 import DiceRoller from "@/components/DiceRoller";
+import FullPageLoader from "@/components/FullPageLoader";
+import PageHeader from "@/components/PageHeader";
+import CreateCharacterForm from "@/components/CreateCharacterForm";
 
 const PlayGame = () => {
   const { gameId } = useParams<{ gameId: string }>();
@@ -22,8 +25,6 @@ const PlayGame = () => {
   const queryClient = useQueryClient();
   const online = useNetworkStatus();
 
-  const [newCharName, setNewCharName] = useState("");
-  const [newCharDesc, setNewCharDesc] = useState("");
   const [creatingChar, setCreatingChar] = useState(false);
 
   // Fetch game WITHOUT scenario content — only title
@@ -95,25 +96,6 @@ const PlayGame = () => {
     },
   });
 
-  // Create character mutation
-  const createCharMutation = useMutation({
-    mutationFn: async () => {
-      const { data, error } = await supabase
-        .from("characters")
-        .insert({ name: newCharName, description: newCharDesc || null, user_id: user!.id })
-        .select()
-        .single();
-      if (error) throw error;
-      return data;
-    },
-    onSuccess: (data) => {
-      queryClient.invalidateQueries({ queryKey: ["my-characters", user?.id] });
-      selectCharMutation.mutate(data.id);
-      setNewCharName("");
-      setNewCharDesc("");
-      setCreatingChar(false);
-    },
-  });
 
   // Offline fallback
   const cachedSession = useMemo(() => {
@@ -145,11 +127,7 @@ const PlayGame = () => {
     : null;
 
   if (!effectiveGame) {
-    return (
-      <div className="flex min-h-screen items-center justify-center bg-background">
-        <div className="animate-pulse-glow text-primary font-display text-xl">Joining quest...</div>
-      </div>
-    );
+    return <FullPageLoader message="Joining quest..." />;
   }
 
   if ((effectiveGame as any).status === "ended") {
@@ -163,20 +141,20 @@ const PlayGame = () => {
 
   return (
     <div className="min-h-screen bg-background flex flex-col">
-      <header className="border-b border-border/50 bg-card/50 backdrop-blur sticky top-0 z-10">
-        <div className="container flex items-center h-14 gap-3">
+      <PageHeader
+        title={effectiveScenario?.title ?? ""}
+        icon={<Scroll className="h-4 w-4 text-primary" />}
+        leftAction={
           <Button variant="ghost" size="icon" onClick={() => navigate("/")}>
             <ArrowLeft className="h-4 w-4" />
           </Button>
-          <h1 className="font-display text-lg font-bold text-foreground flex items-center gap-2 flex-1">
-            <Scroll className="h-4 w-4 text-primary" />
-            {effectiveScenario?.title}
-          </h1>
-          {!online && (
+        }
+        badge={
+          !online ? (
             <span className="text-xs bg-destructive/20 text-destructive px-2 py-0.5 rounded-full">Offline</span>
-          )}
-
-          {/* Character sheet button */}
+          ) : undefined
+        }
+        rightActions={
           <Sheet>
             <SheetTrigger asChild>
               <Button variant="outline" size="sm" className="gap-2">
@@ -189,7 +167,6 @@ const PlayGame = () => {
                 <SheetTitle>Your Character</SheetTitle>
               </SheetHeader>
               <div className="mt-4 space-y-4">
-                {/* Currently selected */}
                 {selectedCharacter && (
                   <CharacterSheet
                     characterId={selectedCharacter.id}
@@ -198,7 +175,6 @@ const PlayGame = () => {
                   />
                 )}
 
-                {/* Character list */}
                 <div>
                   <p className="text-sm font-medium text-muted-foreground mb-2">Your characters</p>
                   {(myCharacters ?? []).length === 0 && !creatingChar && (
@@ -227,32 +203,16 @@ const PlayGame = () => {
                   </div>
                 </div>
 
-                {/* Create new character */}
                 {creatingChar ? (
-                  <div className="space-y-2 border border-border rounded-md p-3">
-                    <Input
-                      placeholder="Character name"
-                      value={newCharName}
-                      onChange={(e) => setNewCharName(e.target.value)}
+                  <div className="border border-border rounded-md p-3">
+                    <CreateCharacterForm
+                      submitLabel="Create & Select"
+                      onCreated={(id) => {
+                        selectCharMutation.mutate(id);
+                        setCreatingChar(false);
+                      }}
+                      onCancel={() => setCreatingChar(false)}
                     />
-                    <Textarea
-                      placeholder="Description (optional)"
-                      value={newCharDesc}
-                      onChange={(e) => setNewCharDesc(e.target.value)}
-                      rows={3}
-                    />
-                    <div className="flex gap-2">
-                      <Button
-                        size="sm"
-                        onClick={() => createCharMutation.mutate()}
-                        disabled={!newCharName.trim() || createCharMutation.isPending}
-                      >
-                        Create & Select
-                      </Button>
-                      <Button size="sm" variant="ghost" onClick={() => setCreatingChar(false)}>
-                        Cancel
-                      </Button>
-                    </div>
                   </div>
                 ) : (
                   <Button variant="outline" size="sm" className="gap-2 w-full" onClick={() => setCreatingChar(true)}>
@@ -262,8 +222,8 @@ const PlayGame = () => {
               </div>
             </SheetContent>
           </Sheet>
-        </div>
-      </header>
+        }
+      />
 
       <main className="flex-1 container py-8 flex items-center justify-center max-w-3xl">
         {sectionTitle ? (

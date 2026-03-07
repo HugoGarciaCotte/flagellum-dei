@@ -14,6 +14,8 @@ import { Crown, LogOut, Plus, DoorOpen, Scroll, Users, Settings, ChevronDown, Sw
 import CharacterSheet from "@/components/CharacterSheet";
 import { useOfflineScenarios } from "@/hooks/useOfflineScenarios";
 import { useOfflineFeats } from "@/hooks/useOfflineFeats";
+import PageHeader from "@/components/PageHeader";
+import CreateCharacterForm from "@/components/CreateCharacterForm";
 import { getCachedScenarios, isOffline } from "@/lib/offlineStorage";
 import { useIsOwner } from "@/hooks/useIsOwner";
 import { useIsGameMaster } from "@/hooks/useIsGameMaster";
@@ -54,24 +56,6 @@ const Dashboard = () => {
     enabled: !!user,
   });
 
-  const saveCharMutation = useMutation({
-    mutationFn: async () => {
-      const { data, error } = await supabase
-        .from("characters")
-        .insert({ user_id: user!.id, name: charName, description: charDesc || null })
-        .select()
-        .single();
-      if (error) throw error;
-      return data.id;
-    },
-    onSuccess: (charId: string) => {
-      queryClient.invalidateQueries({ queryKey: ["my-characters"] });
-      setActiveCharId(charId);
-      setEditingChar(charId);
-      toast({ title: "Character created — now pick feats!" });
-    },
-    onError: (e: any) => toast({ title: "Error", description: e.message, variant: "destructive" }),
-  });
 
   const deleteCharMutation = useMutation({
     mutationFn: async (id: string) => {
@@ -206,12 +190,11 @@ const Dashboard = () => {
   return (
     <div className="min-h-screen bg-background">
       {/* Header */}
-      <header className="border-b border-border/50 bg-card/50 backdrop-blur sticky top-0 z-10">
-        <div className="container flex items-center justify-between h-16">
-          <h1 className="font-display text-xl font-bold text-primary flex items-center gap-2">
-            <Crown className="h-5 w-5" /> Prima TTRPG Helper
-          </h1>
-          <div className="flex items-center gap-2">
+      <PageHeader
+        title="Prima TTRPG Helper"
+        icon={<Crown className="h-5 w-5 text-primary" />}
+        rightActions={
+          <>
             {isOwner && (
               <Button variant="ghost" size="sm" onClick={() => navigate("/admin")} className="gap-2">
                 <Settings className="h-4 w-4" /> Admin
@@ -220,9 +203,9 @@ const Dashboard = () => {
             <Button variant="ghost" size="sm" onClick={signOut} className="gap-2">
               <LogOut className="h-4 w-4" /> Sign Out
             </Button>
-          </div>
-        </div>
-      </header>
+          </>
+        }
+      />
 
       <main className="container py-8 space-y-10 max-w-2xl">
         {/* Section 1: Join a Game */}
@@ -267,26 +250,13 @@ const Dashboard = () => {
                     onDone={() => { setCharDialogOpen(false); resetCharForm(); }}
                   />
                 ) : (
-                  <div className="space-y-4">
-                    <Input
-                      placeholder="Character name"
-                      value={charName}
-                      onChange={(e) => setCharName(e.target.value)}
-                    />
-                    <Textarea
-                      placeholder="Description (optional)"
-                      value={charDesc}
-                      onChange={(e) => setCharDesc(e.target.value)}
-                      rows={3}
-                    />
-                    <Button
-                      onClick={() => saveCharMutation.mutate()}
-                      disabled={!charName.trim() || saveCharMutation.isPending}
-                      className="w-full font-display"
-                    >
-                      Create Character
-                    </Button>
-                  </div>
+                  <CreateCharacterForm
+                    onCreated={(charId) => {
+                      setActiveCharId(charId);
+                      setEditingChar(charId);
+                      toast({ title: "Character created — now pick feats!" });
+                    }}
+                  />
                 )}
               </DialogContent>
             </Dialog>

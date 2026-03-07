@@ -14,6 +14,8 @@ import ManageScenarios from "@/components/ManageScenarios";
 import ImportFeatsCard from "@/components/ImportFeatsCard";
 import ManageFeats from "@/components/ManageFeats";
 import ManageRedirects from "@/components/ManageRedirects";
+import FullPageLoader from "@/components/FullPageLoader";
+import PageHeader from "@/components/PageHeader";
 
 type PreviewItem = { title: string; status: "new" | "modified" | "unchanged" };
 
@@ -39,11 +41,7 @@ const Admin = () => {
   const [result, setResult] = useState<{ imported: number; total: number; errors: string[] } | null>(null);
 
   if (roleLoading) {
-    return (
-      <div className="flex min-h-screen items-center justify-center bg-background">
-        <div className="animate-pulse-glow text-primary font-display text-xl">Loading...</div>
-      </div>
-    );
+    return <FullPageLoader />;
   }
 
   if (!isOwner) {
@@ -104,16 +102,15 @@ const Admin = () => {
 
   return (
     <div className="min-h-screen bg-background">
-      <header className="border-b border-border/50 bg-card/50 backdrop-blur sticky top-0 z-10">
-        <div className="container flex items-center h-16 gap-3">
+      <PageHeader
+        title="Admin Panel"
+        icon={<Crown className="h-5 w-5 text-primary" />}
+        leftAction={
           <Button variant="ghost" size="icon" onClick={() => navigate("/")}>
             <ArrowLeft className="h-4 w-4" />
           </Button>
-          <h1 className="font-display text-xl font-bold text-primary flex items-center gap-2">
-            <Crown className="h-5 w-5" /> Admin Panel
-          </h1>
-        </div>
-      </header>
+        }
+      />
 
       <main className="container py-8 max-w-2xl space-y-6">
         {/* Scenarios Import */}

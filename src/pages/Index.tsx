@@ -1,16 +1,13 @@
 import { useAuth } from "@/contexts/AuthContext";
 import Dashboard from "@/pages/Dashboard";
 import Home from "@/pages/Home";
+import FullPageLoader from "@/components/FullPageLoader";
 
 const Index = () => {
   const { user, loading } = useAuth();
 
   if (loading) {
-    return (
-      <div className="flex min-h-screen items-center justify-center bg-background">
-        <div className="animate-pulse-glow text-primary font-display text-2xl">Loading...</div>
-      </div>
-    );
+    return <FullPageLoader />;
   }
 
   if (!user) return <Home />;
