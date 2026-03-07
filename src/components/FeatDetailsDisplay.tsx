@@ -1,5 +1,6 @@
 import { parseFeatFields } from "@/lib/parseFeatContent";
 import { convertBodyToHtml } from "@/lib/parseWikitext";
+import { parseEmbeddedFeatMeta } from "@/lib/parseEmbeddedFeatMeta";
 import WikiLinkedText from "@/components/WikiLinkedText";
 import { useMemo } from "react";
 
@@ -10,7 +11,9 @@ interface FeatDetailsDisplayProps {
 
 const FeatDetailsDisplay = ({ content, className = "" }: FeatDetailsDisplayProps) => {
   const fields = parseFeatFields(content);
-  const hasFields = fields.description || fields.special || fields.prerequisites || fields.synonyms;
+  const meta = parseEmbeddedFeatMeta(content);
+  const prerequisites = meta.prerequisites || fields.prerequisites;
+  const hasFields = fields.description || fields.special || prerequisites || fields.synonyms;
 
   // Render the full raw content through the wiki engine
   const fullHtml = useMemo(() => {
@@ -50,11 +53,11 @@ const FeatDetailsDisplay = ({ content, className = "" }: FeatDetailsDisplayProps
           </div>
         </div>
       )}
-      {fields.prerequisites && (
+      {prerequisites && (
         <div>
           <div className="text-xs font-medium text-muted-foreground">Prerequisites</div>
           <div className="text-xs text-muted-foreground/80">
-            <WikiLinkedText text={fields.prerequisites} />
+            <WikiLinkedText text={prerequisites} />
           </div>
         </div>
       )}

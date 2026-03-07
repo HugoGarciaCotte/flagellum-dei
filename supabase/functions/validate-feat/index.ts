@@ -99,7 +99,22 @@ serve(async (req) => {
       .filter(Boolean)
       .join("\n");
 
-    const targetFeatFormatted = `Title: ${targetFeat.title}\nCategories: ${targetFeat.categories?.join(", ") || "none"}\nFull Content:\n${targetFeat.content || "N/A"}`;
+    // Parse embedded meta for prerequisites
+    const metaTagRegex = /<!--@\s*([\w:]+)\s*:\s*(.*?)\s*@-->/g;
+    let metaMatch: RegExpExecArray | null;
+    let featPrerequisites: string | null = null;
+    while ((metaMatch = metaTagRegex.exec(targetFeat.content || "")) !== null) {
+      if (metaMatch[1].trim() === "feat_prerequisites") {
+        featPrerequisites = metaMatch[2].trim();
+        break;
+      }
+    }
+
+    const prerequisitesLine = featPrerequisites
+      ? `\nParsed Prerequisites: ${featPrerequisites}`
+      : "";
+
+    const targetFeatFormatted = `Title: ${targetFeat.title}\nCategories: ${targetFeat.categories?.join(", ") || "none"}${prerequisitesLine}\nFull Content:\n${targetFeat.content || "N/A"}`;
 
     const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
     if (!LOVABLE_API_KEY) {

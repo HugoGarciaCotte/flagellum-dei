@@ -72,6 +72,7 @@ async function checkFeatWithAI(
 
   const currentFieldsStr = JSON.stringify({
     description: currentMeta.description,
+    prerequisites: currentMeta.prerequisites,
     specialities: currentMeta.specialities,
     subfeats: currentMeta.subfeats,
     unlocks_categories: currentMeta.unlocks_categories,
@@ -81,6 +82,7 @@ async function checkFeatWithAI(
 
 Fields to review:
 - description: A short (under 15 words) mechanical summary
+- prerequisites: Free-form text listing what is required to take this feat (e.g. "Level 3, [[Prowess]]"). Most feats have none.
 - specialities: List of speciality options the player must choose from (most feats have none)
 - subfeats: Subfeat slot definitions (fixed/list/type) — most feats have none
 - unlocks_categories: Categories this feat unlocks for the character (most feats unlock nothing)
@@ -112,7 +114,7 @@ ${allFeatTitles.join(", ")}`;
                 items: {
                   type: "object",
                   properties: {
-                    field: { type: "string", enum: ["description", "specialities", "subfeats", "unlocks_categories"] },
+                    field: { type: "string", enum: ["description", "prerequisites", "specialities", "subfeats", "unlocks_categories"] },
                     action: { type: "string", enum: ["add", "modify", "delete"] },
                     reason: { type: "string", description: "Brief explanation of why this change is needed" },
                     suggested_value: { type: "string", description: "The suggested new value (as a string representation). For arrays use comma-separated. For subfeats describe the slots." },

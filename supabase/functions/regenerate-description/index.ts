@@ -239,6 +239,46 @@ async function generateSpecialities(title: string, content: string, categories: 
   return null;
 }
 
+async function generatePrerequisites(title: string, content: string, categories: string[]): Promise<string | null> {
+  const apiKey = Deno.env.get("LOVABLE_API_KEY");
+  if (!apiKey) throw new Error("LOVABLE_API_KEY is not configured");
+
+  const response = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
+    method: "POST",
+    headers: { Authorization: `Bearer ${apiKey}`, "Content-Type": "application/json" },
+    body: JSON.stringify({
+      model: "google/gemini-3-flash-preview",
+      messages: [
+        { role: "system", content: `You are a TRPG feat analyzer. Analyze the feat's wiki content and extract its prerequisites. Prerequisites are conditions a character must meet to take this feat (e.g. other feats, levels, attributes). Return the prerequisites as a free-form text string using wiki link syntax for feat references (e.g. "[[Prowess]], Level 3"). If the feat has no prerequisites, return an empty string.` },
+        { role: "user", content: `Title: ${title}\nCategories: ${categories.join(", ")}\n\nWiki Content:\n${content}` },
+      ],
+      tools: [{
+        type: "function",
+        function: {
+          name: "set_prerequisites",
+          description: "Set the prerequisites for this feat. Pass an empty string if the feat has no prerequisites.",
+          parameters: {
+            type: "object",
+            properties: { prerequisites: { type: "string" } },
+            required: ["prerequisites"],
+            additionalProperties: false,
+          },
+        },
+      }],
+      tool_choice: { type: "function", function: { name: "set_prerequisites" } },
+    }),
+  });
+
+  if (!response.ok) throw new Error(`AI gateway error: ${response.status}`);
+  const data = await response.json();
+  const toolCall = data.choices?.[0]?.message?.tool_calls?.[0];
+  if (toolCall?.function?.arguments) {
+    const args = JSON.parse(toolCall.function.arguments);
+    if (args.prerequisites?.trim()) return args.prerequisites.trim();
+  }
+  return null;
+}
+
 serve(async (req) => {
   if (req.method === "OPTIONS") {
     return new Response(null, { headers: corsHeaders });
@@ -312,14 +352,16 @@ serve(async (req) => {
       const { data: allFeats } = await adminClient.from("feats").select("title");
       const allFeatTitles = (allFeats || []).map((f: any) => f.title);
 
-      const [description, subfeatResult, specialities] = await Promise.all([
+      const [description, subfeatResult, specialities, prerequisites] = await Promise.all([
         generateDescription(feat.title, cleanContent, feat.categories || []),
         generateSubfeats(feat.title, cleanContent, feat.categories || [], allFeatTitles),
         generateSpecialities(feat.title, cleanContent, feat.categories || []),
+        generatePrerequisites(feat.title, cleanContent, feat.categories || []),
       ]);
 
       const newMeta: EmbeddedFeatMeta = {
         description,
+        prerequisites,
         subfeats: subfeatResult.subfeats,
         specialities,
         unlocks_categories: subfeatResult.unlocks_categories,

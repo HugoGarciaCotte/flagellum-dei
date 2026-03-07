@@ -32,6 +32,11 @@ function FeatLinkTooltip({ featName, rect, featsMap }: { featName: string; rect:
   if (!feat) return null;
   const fields = parseFeatFields(feat.content);
 
+  // Parse embedded meta for prerequisites
+  const metaTagRegex = /<!--@\s*feat_prerequisites\s*:\s*(.*?)\s*@-->/;
+  const metaPrereqMatch = (feat.content || "").match(metaTagRegex);
+  const prerequisites = metaPrereqMatch?.[1] || fields.prerequisites;
+
   return createPortal(
     <div
       className="fixed z-[100] w-72 rounded-md border bg-popover p-3 text-popover-foreground shadow-md animate-in fade-in-0 zoom-in-95"
@@ -46,10 +51,10 @@ function FeatLinkTooltip({ featName, rect, featsMap }: { featName: string; rect:
             <p className="text-xs text-muted-foreground/80 whitespace-pre-line">{stripLinks(fields.description)}</p>
           </div>
         )}
-        {fields.prerequisites && (
+        {prerequisites && (
           <div>
             <p className="text-xs font-medium text-muted-foreground">Prerequisites</p>
-            <p className="text-xs text-muted-foreground/80">{stripLinks(fields.prerequisites)}</p>
+            <p className="text-xs text-muted-foreground/80">{stripLinks(prerequisites)}</p>
           </div>
         )}
         {fields.special && (

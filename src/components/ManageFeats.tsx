@@ -21,7 +21,7 @@ import {
 import { toast } from "@/hooks/use-toast";
 import {
   Plus, Pencil, Trash2, Sword, Loader2, Sparkles, Layers,
-  ChevronDown, CheckCircle2, AlertCircle, Wand2, Copy, Unlock, Eye,
+  ChevronDown, CheckCircle2, AlertCircle, Wand2, Copy, Unlock, Eye, ShieldCheck,
 } from "lucide-react";
 import FeatCategoryBadges from "@/components/FeatCategoryBadges";
 import { parseEmbeddedFeatMeta, generateParseableBlock, type SubfeatSlot } from "@/lib/parseEmbeddedFeatMeta";
@@ -248,6 +248,7 @@ const ManageFeats = () => {
   const hasSubfeats = (f: Feat) => { const m = getMeta(f); return Array.isArray(m.subfeats) && m.subfeats.length > 0; };
   const hasSpecialities = (f: Feat) => { const m = getMeta(f); return Array.isArray(m.specialities) && m.specialities.length > 0; };
   const hasUnlocks = (f: Feat) => { const m = getMeta(f); return Array.isArray(m.unlocks_categories) && m.unlocks_categories.length > 0; };
+  const hasPrerequisites = (f: Feat) => !!getMeta(f).prerequisites?.trim();
 
   const StatusIcon = ({ ok, label, icon: Icon }: { ok: boolean; label: string; icon?: React.ComponentType<{ className?: string }> }) => (
     <span className="inline-flex items-center gap-1 text-xs" title={label}>
@@ -382,8 +383,9 @@ const ManageFeats = () => {
                             <p className="text-xs text-muted-foreground mt-1 line-clamp-1">
                               {meta.description || <span className="italic">No description</span>}
                             </p>
-                            {(hasSubfeats(f) || hasSpecialities(f) || hasUnlocks(f)) && (
+                            {(hasSubfeats(f) || hasSpecialities(f) || hasUnlocks(f) || hasPrerequisites(f)) && (
                               <div className="flex items-center gap-3 mt-1.5">
+                                {hasPrerequisites(f) && <StatusIcon ok={true} label="Prerequisites" icon={ShieldCheck} />}
                                 {hasSubfeats(f) && <StatusIcon ok={true} label="Subfeats" icon={Layers} />}
                                 {hasSpecialities(f) && <StatusIcon ok={true} label="Specialities" icon={Sparkles} />}
                                 {hasUnlocks(f) && <StatusIcon ok={true} label="Unlocks" icon={Unlock} />}
@@ -399,6 +401,13 @@ const ManageFeats = () => {
                             <p className="text-xs font-medium text-muted-foreground mb-1">Description</p>
                             <p className="text-sm text-foreground">
                               {meta.description || <span className="italic text-muted-foreground">None</span>}
+                            </p>
+                          </div>
+
+                          <div>
+                            <p className="text-xs font-medium text-muted-foreground mb-1">Prerequisites</p>
+                            <p className="text-sm text-foreground">
+                              {meta.prerequisites || <span className="italic text-muted-foreground">None</span>}
                             </p>
                           </div>
 
