@@ -4,9 +4,9 @@ import { sortTitlesEmojiLast } from "@/lib/utils";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { X, Search, Gift, Loader2, WifiOff, ChevronDown, Pencil } from "lucide-react";
-import FeatCategoryBadges from "@/components/FeatCategoryBadges";
+import { X, Search, Gift, Loader2, WifiOff, Pencil } from "lucide-react";
 import { toast } from "sonner";
+import FeatListItem from "@/components/FeatListItem";
 import {
   Dialog,
   DialogContent,
@@ -27,7 +27,7 @@ import {
   cacheCharacterFeats,
   getCachedCharacterFeats,
 } from "@/lib/offlineStorage";
-import FeatDetailsDisplay from "@/components/FeatDetailsDisplay";
+
 
 interface CharacterFeatPickerProps {
   characterId: string;
@@ -628,34 +628,27 @@ const CharacterFeatPicker = ({ characterId, mode = "player", scenarioLevel }: Ch
 
               {assignedFeat ? (
                 <div className="flex-1 min-w-0">
-                  <div className="flex items-center gap-2">
-                    <button
-                      type="button"
-                      className="flex items-center gap-1 text-sm font-medium text-foreground truncate text-left hover:underline"
-                      onClick={() => setExpandedAssignedFeatId(expandedAssignedFeatId === assigned!.id ? null : assigned!.id)}
-                    >
-                      {assignedFeat.title}
-                      <ChevronDown className={`h-3 w-3 shrink-0 text-muted-foreground transition-transform ${expandedAssignedFeatId === assigned!.id ? "rotate-180" : ""}`} />
-                    </button>
-                    {assigned!.note && editingNoteId !== assigned!.id && (
-                      <span className="text-xs text-muted-foreground italic shrink-0">({assigned!.note})</span>
-                    )}
-                    {editingNoteId === assigned!.id ? (
-                      <form
-                        className="flex items-center gap-1 shrink-0"
-                        onSubmit={(e) => { e.preventDefault(); saveNote(assigned!.id); }}
-                      >
-                        <Input
-                          ref={noteInputRef}
-                          value={noteValue}
-                          onChange={(e) => setNoteValue(e.target.value)}
-                          className="h-6 text-xs w-24"
-                          placeholder="note..."
-                          onBlur={() => saveNote(assigned!.id)}
-                        />
-                      </form>
-                    ) : (
-                      online && (
+                  <FeatListItem
+                    feat={assignedFeat}
+                    expanded={expandedAssignedFeatId === assigned!.id}
+                    onToggleExpand={() => setExpandedAssignedFeatId(expandedAssignedFeatId === assigned!.id ? null : assigned!.id)}
+                    note={editingNoteId !== assigned!.id ? assigned!.note : undefined}
+                    noteEditor={
+                      editingNoteId === assigned!.id ? (
+                        <form
+                          className="flex items-center gap-1 shrink-0"
+                          onSubmit={(e) => { e.preventDefault(); saveNote(assigned!.id); }}
+                        >
+                          <Input
+                            ref={noteInputRef}
+                            value={noteValue}
+                            onChange={(e) => setNoteValue(e.target.value)}
+                            className="h-6 text-xs w-24"
+                            placeholder="note..."
+                            onBlur={() => saveNote(assigned!.id)}
+                          />
+                        </form>
+                      ) : online ? (
                         <button
                           type="button"
                           className="shrink-0 text-muted-foreground hover:text-foreground"
@@ -664,11 +657,10 @@ const CharacterFeatPicker = ({ characterId, mode = "player", scenarioLevel }: Ch
                         >
                           <Pencil className="h-3 w-3" />
                         </button>
-                      )
-                    )}
-                    <FeatCategoryBadges categories={assignedFeat.categories} />
-                    {online && (
-                      <div className="ml-auto flex gap-1 shrink-0">
+                      ) : undefined
+                    }
+                    actions={online ? (
+                      <>
                         <Button variant="ghost" size="sm" className="h-6 px-2 text-xs" onClick={() => openPicker({ type: "level", level })}>
                           Edit
                         </Button>
@@ -680,17 +672,11 @@ const CharacterFeatPicker = ({ characterId, mode = "player", scenarioLevel }: Ch
                         >
                           <X className="h-3 w-3" />
                         </Button>
-                      </div>
-                    )}
-                  </div>
-                  {assignedFeat.description && (
-                    <p className="text-xs text-muted-foreground line-clamp-2 mt-1">{assignedFeat.description}</p>
-                  )}
-                  {expandedAssignedFeatId === assigned!.id && assignedFeat.content && (
-                    <FeatDetailsDisplay content={assignedFeat.content} />
-                  )}
-                  {/* Subfeats */}
-                  {assigned && assignedFeat && renderSubfeats(assigned, assignedFeat)}
+                      </>
+                    ) : undefined}
+                    expandedContent={assigned && assignedFeat ? renderSubfeats(assigned, assignedFeat) : undefined}
+                    compact
+                  />
                 </div>
               ) : (
                 online ? (
@@ -721,20 +707,14 @@ const CharacterFeatPicker = ({ characterId, mode = "player", scenarioLevel }: Ch
             const feat = featMap.get(cf.feat_id);
             if (!feat) return null;
             return (
-              <div key={cf.id} className="border border-border rounded-md p-2">
-                <div className="flex items-center gap-2">
-                  <button
-                    type="button"
-                    className="flex items-center gap-1 text-sm font-medium text-foreground truncate text-left hover:underline"
-                    onClick={() => setExpandedAssignedFeatId(expandedAssignedFeatId === cf.id ? null : cf.id)}
-                  >
-                    {feat.title}
-                    <ChevronDown className={`h-3 w-3 shrink-0 text-muted-foreground transition-transform ${expandedAssignedFeatId === cf.id ? "rotate-180" : ""}`} />
-                  </button>
-                  {cf.note && editingNoteId !== cf.id && (
-                    <span className="text-xs text-muted-foreground italic shrink-0">({cf.note})</span>
-                  )}
-                  {editingNoteId === cf.id ? (
+              <FeatListItem
+                key={cf.id}
+                feat={feat}
+                expanded={expandedAssignedFeatId === cf.id}
+                onToggleExpand={() => setExpandedAssignedFeatId(expandedAssignedFeatId === cf.id ? null : cf.id)}
+                note={editingNoteId !== cf.id ? cf.note : undefined}
+                noteEditor={
+                  editingNoteId === cf.id ? (
                     <form
                       className="flex items-center gap-1 shrink-0"
                       onSubmit={(e) => { e.preventDefault(); saveNote(cf.id); }}
@@ -748,39 +728,30 @@ const CharacterFeatPicker = ({ characterId, mode = "player", scenarioLevel }: Ch
                         onBlur={() => saveNote(cf.id)}
                       />
                     </form>
-                  ) : (
-                    online && (
-                      <button
-                        type="button"
-                        className="shrink-0 text-muted-foreground hover:text-foreground"
-                        onClick={() => startEditingNote(cf)}
-                        title="Add note"
-                      >
-                        <Pencil className="h-3 w-3" />
-                      </button>
-                    )
-                  )}
-                  <FeatCategoryBadges categories={feat.categories} />
-                  {mode === "gm" && online && (
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      className="h-6 px-1 text-destructive ml-auto shrink-0"
-                      onClick={() => deleteMutation.mutate({ level: 0, isFree: true, id: cf.id })}
+                  ) : online ? (
+                    <button
+                      type="button"
+                      className="shrink-0 text-muted-foreground hover:text-foreground"
+                      onClick={() => startEditingNote(cf)}
+                      title="Add note"
                     >
-                      <X className="h-3 w-3" />
-                    </Button>
-                  )}
-                </div>
-                {feat.description && (
-                  <p className="text-xs text-muted-foreground line-clamp-2 mt-1">{feat.description}</p>
-                )}
-                {expandedAssignedFeatId === cf.id && feat.content && (
-                  <FeatDetailsDisplay content={feat.content} />
-                )}
-                {/* Subfeats for free feats */}
-                {renderSubfeats(cf, feat)}
-              </div>
+                      <Pencil className="h-3 w-3" />
+                    </button>
+                  ) : undefined
+                }
+                actions={mode === "gm" && online ? (
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    className="h-6 px-1 text-destructive ml-auto shrink-0"
+                    onClick={() => deleteMutation.mutate({ level: 0, isFree: true, id: cf.id })}
+                  >
+                    <X className="h-3 w-3" />
+                  </Button>
+                ) : undefined}
+                expandedContent={renderSubfeats(cf, feat)}
+                compact
+              />
             );
           })}
 
@@ -838,37 +809,18 @@ const CharacterFeatPicker = ({ characterId, mode = "player", scenarioLevel }: Ch
               filteredFeats.map((feat) => {
                 const isExpanded = expandedFeatId === feat.id;
                 return (
-                  <div
+                  <FeatListItem
                     key={feat.id}
-                    className="rounded border border-border hover:border-primary/50 transition-colors"
-                  >
-                    <button
-                      type="button"
-                      onClick={() => setExpandedFeatId(isExpanded ? null : feat.id)}
-                      className="w-full text-left p-3"
-                    >
-                      <div className="flex items-center gap-2">
-                        {validatingFeat === feat.id && (
-                          <Loader2 className="h-3 w-3 animate-spin text-primary shrink-0" />
-                        )}
-                        <span className="text-sm font-medium text-foreground truncate">{feat.title}</span>
-                        <FeatCategoryBadges categories={feat.categories} />
-                        <ChevronDown className={`h-4 w-4 ml-auto shrink-0 text-muted-foreground transition-transform ${isExpanded ? "rotate-180" : ""}`} />
-                      </div>
-                      {!isExpanded && feat.description && validatingFeat !== feat.id && (
-                        <p className="text-xs text-muted-foreground mt-0.5 line-clamp-1">{feat.description}</p>
-                      )}
-                    </button>
-                    {isExpanded && (
-                      <div className="px-3 pb-3 space-y-2">
+                    feat={feat}
+                    expanded={isExpanded}
+                    onToggleExpand={() => setExpandedFeatId(isExpanded ? null : feat.id)}
+                    titlePrefix={validatingFeat === feat.id ? (
+                      <Loader2 className="h-3 w-3 animate-spin text-primary shrink-0" />
+                    ) : undefined}
+                    expandedContent={
+                      <>
                         {validatingFeat === feat.id && (
                           <p className="text-xs text-primary">Checking prerequisites...</p>
-                        )}
-                        {feat.description && (
-                          <p className="text-sm text-muted-foreground whitespace-pre-line">{feat.description}</p>
-                        )}
-                        {feat.content && (
-                          <FeatDetailsDisplay content={feat.content} />
                         )}
                         <Button
                           size="sm"
@@ -877,9 +829,9 @@ const CharacterFeatPicker = ({ characterId, mode = "player", scenarioLevel }: Ch
                         >
                           Pick this feat
                         </Button>
-                      </div>
-                    )}
-                  </div>
+                      </>
+                    }
+                  />
                 );
               })
             )}
