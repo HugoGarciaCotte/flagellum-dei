@@ -1,6 +1,73 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 
+interface EmbeddedFeatMeta {
+  description: string | null;
+  specialities: string[] | null;
+  subfeats: any[] | null;
+  unlocks_categories: string[] | null;
+}
+
+function parseEmbeddedFeatMeta(content: string): EmbeddedFeatMeta {
+  const result: EmbeddedFeatMeta = {
+    description: null,
+    specialities: null,
+    subfeats: null,
+    unlocks_categories: null,
+  };
+
+  const tagRegex = /<!--@\s*([\w:]+)\s*:\s*(.*?)\s*@-->/g;
+  let match: RegExpExecArray | null;
+  const subfeatSlots: any[] = [];
+
+  while ((match = tagRegex.exec(content)) !== null) {
+    const key = match[1].trim();
+    const value = match[2].trim();
+
+    if (key === "feat_one_liner") {
+      result.description = value;
+    } else if (key === "feat_specialities") {
+      result.specialities = value.split(",").map((s) => s.trim()).filter(Boolean);
+    } else if (key === "feat_unlocks") {
+      result.unlocks_categories = value.split(",").map((s) => s.trim()).filter(Boolean);
+    } else if (key.startsWith("feat_subfeat:")) {
+      const slotNum = parseInt(key.split(":")[1], 10);
+      if (isNaN(slotNum)) continue;
+
+      const parts = value.split(",").map((s) => s.trim());
+      if (parts.length < 2) continue;
+
+      const kind = parts[0] as "fixed" | "list" | "type";
+      let optional = false;
+      let valueStart = 1;
+
+      if (parts[1] === "optional") {
+        optional = true;
+        valueStart = 2;
+      }
+
+      const rest = parts.slice(valueStart).join(",").trim();
+      const slot: any = { slot: slotNum, kind, optional };
+
+      if (kind === "fixed") {
+        slot.feat_title = rest;
+      } else if (kind === "list") {
+        slot.options = rest.split("|").map((s) => s.trim()).filter(Boolean);
+      } else if (kind === "type") {
+        slot.filter = rest;
+      }
+
+      subfeatSlots.push(slot);
+    }
+  }
+
+  if (subfeatSlots.length > 0) {
+    result.subfeats = subfeatSlots.sort((a, b) => a.slot - b.slot);
+  }
+
+  return result;
+}
+
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
   "Access-Control-Allow-Headers":
