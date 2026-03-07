@@ -19,6 +19,8 @@ interface FeatListItemProps {
   noteEditor?: ReactNode;
   actions?: ReactNode;
   expandedContent?: ReactNode;
+  /** Content always visible below the header (e.g. subfeats) */
+  collapsedContent?: ReactNode;
   compact?: boolean;
   /** Extra inline content after title (e.g. validation spinner) */
   titlePrefix?: ReactNode;
@@ -32,6 +34,7 @@ const FeatListItem = ({
   noteEditor,
   actions,
   expandedContent,
+  collapsedContent,
   compact,
   titlePrefix,
 }: FeatListItemProps) => {
@@ -63,6 +66,7 @@ const FeatListItem = ({
           </p>
         )}
       </div>
+      {collapsedContent}
       {expanded && (
         <div className={`space-y-2 ${compact ? "mt-1" : "px-3 pb-3"}`}>
           {feat.description && (
