@@ -6,7 +6,8 @@ import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { toast } from "@/hooks/use-toast";
-import { ArrowLeft, Copy, Crown, Users, StopCircle } from "lucide-react";
+import { ArrowLeft, Copy, Crown, StopCircle } from "lucide-react";
+import PlayerListSheet from "@/components/PlayerListSheet";
 import { parseWikitext, extractImageUrls } from "@/lib/parseWikitext";
 import WikiSectionTree from "@/components/WikiSectionTree";
 import DiceRoller from "@/components/DiceRoller";
@@ -188,9 +189,11 @@ const HostGame = () => {
             <Button variant="outline" size="sm" onClick={copyCode} className="gap-2 border-primary/30 font-mono tracking-widest">
               <Copy className="h-3 w-3" /> {(effectiveGame as any).join_code}
             </Button>
-            <div className="flex items-center gap-1 text-muted-foreground text-sm">
-              <Users className="h-4 w-4" /> {effectivePlayers.length}
-            </div>
+            <PlayerListSheet
+              players={effectivePlayers}
+              characters={characters ?? []}
+              gameId={gameId!}
+            />
             <Button variant="destructive" size="sm" onClick={endGame} className="gap-1">
               <StopCircle className="h-3 w-3" /> End
             </Button>
