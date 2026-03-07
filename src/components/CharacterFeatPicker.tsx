@@ -67,7 +67,7 @@ const CharacterFeatPicker = ({ characterId, mode = "player", scenarioLevel }: Ch
   const [pickerTarget, setPickerTarget] = useState<PickerTarget | null>(null);
   const [searchTerm, setSearchTerm] = useState("");
   const [filterMode, setFilterMode] = useState<"archetype" | "feat">("feat");
-  const [validatingFeat, setValidatingFeat] = useState<string | null>(null);
+  
   const [expandedFeatId, setExpandedFeatId] = useState<string | null>(null);
   const [expandedAssignedFeatId, setExpandedAssignedFeatId] = useState<string | null>(null);
   const [expandedSubfeatKey, setExpandedSubfeatKey] = useState<string | null>(null);
@@ -137,22 +137,56 @@ const CharacterFeatPicker = ({ characterId, mode = "player", scenarioLevel }: Ch
     enabled: !!characterId && (characterFeats ?? []).length > 0,
   });
 
+  // Programmatic prerequisite & blocking validation (no AI)
+  const validateFeatLocally = (featId: string) => {
+    const meta = metaMap.get(featId);
+    if (!meta) return;
+
+    // Check blocking (safety net — picker already filters these)
+    if (meta.blocking && meta.blocking.length > 0) {
+      const ownedTitles = new Set(
+        (characterFeats ?? []).map(cf => featMap.get(cf.feat_id)?.title).filter(Boolean)
+      );
+      const conflict = meta.blocking.find(b => ownedTitles.has(b));
+      if (conflict) {
+        throw new Error(`Blocked: incompatible with "${conflict}" which the character already has`);
+      }
+    }
+
+    // Check if any owned feat blocks this one
+    const targetTitle = featMap.get(featId)?.title;
+    if (targetTitle) {
+      for (const cf of characterFeats ?? []) {
+        const cfMeta = metaMap.get(cf.feat_id);
+        if (cfMeta?.blocking?.includes(targetTitle)) {
+          const blockerTitle = featMap.get(cf.feat_id)?.title ?? "an owned feat";
+          throw new Error(`Blocked: "${blockerTitle}" is incompatible with this feat`);
+        }
+      }
+    }
+
+    // Check prerequisites
+    if (!meta.prerequisites) return;
+
+    const prereqStr = meta.prerequisites;
+    // Extract feat titles in square brackets like [Prowess A]
+    const bracketMatches = [...prereqStr.matchAll(/\[([^\]]+)\]/g)].map(m => m[1]);
+    if (bracketMatches.length === 0) return; // No parseable prerequisites
+
+    const ownedTitles = new Set(
+      (characterFeats ?? []).map(cf => featMap.get(cf.feat_id)?.title).filter(Boolean)
+    );
+
+    const missing = bracketMatches.filter(title => !ownedTitles.has(title));
+    if (missing.length > 0) {
+      throw new Error(`Missing prerequisites: ${missing.join(", ")}`);
+    }
+  };
+
   const upsertMutation = useMutation({
     mutationFn: async ({ level, featId }: { level: number; featId: string }) => {
       if (mode === "player") {
-        setValidatingFeat(featId);
-        try {
-          const { data, error } = await supabase.functions.invoke("validate-feat", {
-            body: { characterId, featId },
-          });
-          if (error) {
-            console.error("Validation error:", error);
-          } else if (data && !data.allowed) {
-            throw new Error(data.reason || "Prerequisites not met");
-          }
-        } finally {
-          setValidatingFeat(null);
-        }
+        validateFeatLocally(featId);
       }
 
       await supabase
@@ -760,14 +794,8 @@ const CharacterFeatPicker = ({ characterId, mode = "player", scenarioLevel }: Ch
                   feat={{ ...feat, description: meta?.description ?? null }}
                   expanded={isExpanded}
                   onToggleExpand={() => setExpandedFeatId(isExpanded ? null : feat.id)}
-                  titlePrefix={validatingFeat === feat.id ? (
-                    <Loader2 className="h-3 w-3 animate-spin text-primary shrink-0" />
-                  ) : undefined}
                   expandedContent={
                     <>
-                      {validatingFeat === feat.id && (
-                        <p className="text-xs text-primary">Checking prerequisites...</p>
-                      )}
                       <Button
                         size="sm"
                         onClick={() => handleFeatSelect(feat.id)}
