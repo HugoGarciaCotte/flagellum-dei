@@ -188,17 +188,15 @@ Deno.serve(async (req) => {
           if (expandedChanged || rawChanged || categoriesChanged) {
             const pad = 40;
             const idx = findFirstDiff(dbExpanded, newExpanded);
-            const diff = {
-              expandedChanged,
-              rawChanged,
-              categoriesChanged,
+            console.log(`[modified] ${title}`, {
+              expandedChanged, rawChanged, categoriesChanged,
               firstDiffAt: idx,
-              dbSnippet: idx >= 0 ? JSON.stringify(dbExpanded.slice(Math.max(0, idx - pad), idx + pad)) : null,
-              wikiSnippet: idx >= 0 ? JSON.stringify(newExpanded.slice(Math.max(0, idx - pad), idx + pad)) : null,
+              dbSnippet: idx >= 0 ? dbExpanded.slice(Math.max(0, idx - pad), idx + pad) : null,
+              wikiSnippet: idx >= 0 ? newExpanded.slice(Math.max(0, idx - pad), idx + pad) : null,
               dbLength: dbExpanded.length,
               wikiLength: newExpanded.length,
-            };
-            items.push({ title, status: "modified", categories, diff });
+            });
+            items.push({ title, status: "modified", categories });
           } else {
             items.push({ title, status: "unchanged", categories });
           }
