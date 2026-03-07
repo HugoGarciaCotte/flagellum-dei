@@ -27,6 +27,7 @@ import {
   cacheCharacterFeats,
   getCachedCharacterFeats,
 } from "@/lib/offlineStorage";
+import FeatDetailsDisplay from "@/components/FeatDetailsDisplay";
 
 interface CharacterFeatPickerProps {
   characterId: string;
