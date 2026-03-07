@@ -31,6 +31,14 @@ async function fetchCategoryMembers(category: string): Promise<string[]> {
   return titles;
 }
 
+const CATEGORY_MAP: Record<string, string> = {
+  Archetypes: "Archetype",
+  Prowesses: "Prowess",
+  "General Feats": "General Feat",
+  Hidden: "Hidden Feat",
+  "Dark Feats": "Dark Feat",
+};
+
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") {
     return new Response(null, { headers: corsHeaders });
@@ -76,14 +84,30 @@ Deno.serve(async (req) => {
       // no body = default execute
     }
 
-    // Fetch both categories and intersect
-    const [featTitles, officialTitles] = await Promise.all([
+    // Fetch Feats, Official, and all type categories in parallel
+    const categoryKeys = Object.keys(CATEGORY_MAP);
+    const [featTitles, officialTitles, ...typeLists] = await Promise.all([
       fetchCategoryMembers("Feats"),
       fetchCategoryMembers("Official"),
+      ...categoryKeys.map((cat) => fetchCategoryMembers(cat)),
     ]);
 
     const officialSet = new Set(officialTitles);
     const intersectedTitles = featTitles.filter((t) => officialSet.has(t));
+
+    // Build category lookup: title -> string[]
+    const categoryLookup = new Map<string, string[]>();
+    typeLists.forEach((list, idx) => {
+      const label = CATEGORY_MAP[categoryKeys[idx]];
+      for (const title of list) {
+        const existing = categoryLookup.get(title);
+        if (existing) {
+          existing.push(label);
+        } else {
+          categoryLookup.set(title, [label]);
+        }
+      }
+    });
 
     if (intersectedTitles.length === 0) {
       return new Response(
@@ -95,16 +119,17 @@ Deno.serve(async (req) => {
     // Fetch existing feats
     const { data: existingFeats } = await adminClient
       .from("feats")
-      .select("id, title, content");
+      .select("id, title, content, categories");
     const existingMap = new Map(
       (existingFeats || []).map((f: any) => [f.title, f])
     );
 
     // Fetch each page content
-    const items: { title: string; status: "new" | "modified" | "unchanged" }[] = [];
+    const items: { title: string; status: "new" | "modified" | "unchanged"; categories: string[] }[] = [];
     const pageContents = new Map<string, string>();
 
     for (const title of intersectedTitles) {
+      const categories = categoryLookup.get(title) || [];
       try {
         const pageUrl = `https://prima.wiki/api.php?action=query&prop=revisions&titles=${encodeURIComponent(title)}&rvprop=content&format=json`;
         const pageRes = await fetch(pageUrl);
@@ -122,14 +147,14 @@ Deno.serve(async (req) => {
 
         const existing = existingMap.get(title);
         if (!existing) {
-          items.push({ title, status: "new" });
-        } else if (existing.content !== content) {
-          items.push({ title, status: "modified" });
+          items.push({ title, status: "new", categories });
+        } else if (existing.content !== content || JSON.stringify(existing.categories || []) !== JSON.stringify(categories)) {
+          items.push({ title, status: "modified", categories });
         } else {
-          items.push({ title, status: "unchanged" });
+          items.push({ title, status: "unchanged", categories });
         }
       } catch {
-        items.push({ title, status: "new" });
+        items.push({ title, status: "new", categories });
       }
     }
 
@@ -153,12 +178,12 @@ Deno.serve(async (req) => {
         if (existing) {
           await adminClient
             .from("feats")
-            .update({ content, description: "Imported from prima.wiki" })
+            .update({ content, description: "Imported from prima.wiki", categories: item.categories })
             .eq("id", existing.id);
         } else {
           await adminClient
             .from("feats")
-            .insert({ title: item.title, content, description: "Imported from prima.wiki" });
+            .insert({ title: item.title, content, description: "Imported from prima.wiki", categories: item.categories });
         }
         imported++;
       } catch (e: any) {
