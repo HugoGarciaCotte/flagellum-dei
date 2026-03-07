@@ -10,10 +10,12 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from 
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import { toast } from "@/hooks/use-toast";
 import { useNavigate } from "react-router-dom";
-import { Crown, LogOut, Plus, DoorOpen, Scroll, Users, Settings, ChevronDown, Sword, Trash2, Pencil } from "lucide-react";
+import { Crown, LogOut, Plus, DoorOpen, Scroll, Users, Settings, ChevronDown, Sword, Trash2, Pencil, ShieldCheck } from "lucide-react";
 import { useOfflineScenarios } from "@/hooks/useOfflineScenarios";
 import { getCachedScenarios, isOffline } from "@/lib/offlineStorage";
 import { useIsOwner } from "@/hooks/useIsOwner";
+import { useIsGameMaster } from "@/hooks/useIsGameMaster";
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
 
 const Dashboard = () => {
   const { user, signOut } = useAuth();
@@ -26,6 +28,8 @@ const Dashboard = () => {
   const [charName, setCharName] = useState("");
   const [charDesc, setCharDesc] = useState("");
   const { isOwner } = useIsOwner();
+  const { isGameMaster } = useIsGameMaster();
+  const [gmDialogOpen, setGmDialogOpen] = useState(false);
 
   useOfflineScenarios();
 
@@ -294,37 +298,81 @@ const Dashboard = () => {
         )}
 
         {/* Section 3: Host a Game (collapsible) */}
-        <Collapsible open={hostOpen} onOpenChange={setHostOpen}>
-          <CollapsibleTrigger asChild>
-            <Button variant="ghost" className="gap-2 text-muted-foreground hover:text-foreground font-display w-full justify-between">
-              <span className="flex items-center gap-2">
-                <Scroll className="h-4 w-4" /> Host a Game
-              </span>
-              <ChevronDown className={`h-4 w-4 transition-transform ${hostOpen ? "rotate-180" : ""}`} />
-            </Button>
-          </CollapsibleTrigger>
-          <CollapsibleContent className="mt-4 space-y-4">
-            {scenarios && scenarios.length > 0 ? (
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                {scenarios.map((scenario) => (
-                  <Card key={scenario.id} className="border-border hover:border-primary/40 transition-colors">
-                    <CardHeader className="pb-2">
-                      <CardTitle className="font-display text-base">{scenario.title}</CardTitle>
-                      {scenario.description && <CardDescription className="text-xs">{scenario.description}</CardDescription>}
-                    </CardHeader>
-                    <CardContent>
-                      <Button onClick={() => handleCreateGame(scenario.id)} variant="outline" className="w-full gap-2 font-display" size="sm">
-                        <Plus className="h-3.5 w-3.5" /> Host
-                      </Button>
-                    </CardContent>
-                  </Card>
-                ))}
-              </div>
-            ) : (
-              <p className="text-sm text-muted-foreground text-center py-4">No scenarios available yet.</p>
-            )}
-          </CollapsibleContent>
-        </Collapsible>
+        {isGameMaster ? (
+          /* Game Master: show Host a Game */
+          <Collapsible open={hostOpen} onOpenChange={setHostOpen}>
+            <CollapsibleTrigger asChild>
+              <Button variant="ghost" className="gap-2 text-muted-foreground hover:text-foreground font-display w-full justify-between">
+                <span className="flex items-center gap-2">
+                  <Scroll className="h-4 w-4" /> Host a Game
+                </span>
+                <ChevronDown className={`h-4 w-4 transition-transform ${hostOpen ? "rotate-180" : ""}`} />
+              </Button>
+            </CollapsibleTrigger>
+            <CollapsibleContent className="mt-4 space-y-4">
+              {scenarios && scenarios.length > 0 ? (
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                  {scenarios.map((scenario) => (
+                    <Card key={scenario.id} className="border-border hover:border-primary/40 transition-colors">
+                      <CardHeader className="pb-2">
+                        <CardTitle className="font-display text-base">{scenario.title}</CardTitle>
+                        {scenario.description && <CardDescription className="text-xs">{scenario.description}</CardDescription>}
+                      </CardHeader>
+                      <CardContent>
+                        <Button onClick={() => handleCreateGame(scenario.id)} variant="outline" className="w-full gap-2 font-display" size="sm">
+                          <Plus className="h-3.5 w-3.5" /> Host
+                        </Button>
+                      </CardContent>
+                    </Card>
+                  ))}
+                </div>
+              ) : (
+                <p className="text-sm text-muted-foreground text-center py-4">No scenarios available yet.</p>
+              )}
+            </CollapsibleContent>
+          </Collapsible>
+        ) : (
+          /* Player: show Become a Game Master */
+          <AlertDialog open={gmDialogOpen} onOpenChange={setGmDialogOpen}>
+            <AlertDialogTrigger asChild>
+              <Button variant="outline" className="gap-2 font-display w-full justify-center border-dashed border-muted-foreground/30 text-muted-foreground hover:text-foreground hover:border-primary/40">
+                <ShieldCheck className="h-4 w-4" /> Become a Game Master
+              </Button>
+            </AlertDialogTrigger>
+            <AlertDialogContent>
+              <AlertDialogHeader>
+                <AlertDialogTitle className="font-display flex items-center gap-2">
+                  <ShieldCheck className="h-5 w-5 text-primary" /> Become a Game Master
+                </AlertDialogTitle>
+                <AlertDialogDescription className="text-sm leading-relaxed">
+                  You are currently a <strong>player</strong>. As a Game Master, you'll be able to host games and guide other players through scenarios.
+                  <br /><br />
+                  Would you like to become a Game Master?
+                </AlertDialogDescription>
+              </AlertDialogHeader>
+              <AlertDialogFooter>
+                <AlertDialogCancel className="font-display">Stay as Player</AlertDialogCancel>
+                <AlertDialogAction
+                  className="font-display gap-2"
+                  onClick={async () => {
+                    const { error } = await supabase
+                      .from("user_roles")
+                      .insert({ user_id: user!.id, role: "game_master" as any });
+                    if (error) {
+                      toast({ title: "Error", description: error.message, variant: "destructive" });
+                      return;
+                    }
+                    queryClient.invalidateQueries({ queryKey: ["user-role-game-master"] });
+                    toast({ title: "You are now a Game Master!", description: "You can now host games." });
+                  }}
+                >
+                  <ShieldCheck className="h-4 w-4" /> Become Game Master
+                </AlertDialogAction>
+              </AlertDialogFooter>
+            </AlertDialogContent>
+          </AlertDialog>
+        )}
+
       </main>
     </div>
   );
