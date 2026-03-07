@@ -3,7 +3,9 @@ import {
   cacheGameSession,
   getCachedGameSession,
   CachedGameSession,
+  cacheCharacterFeats,
 } from "@/lib/offlineStorage";
+import { supabase } from "@/integrations/supabase/client";
 
 interface UseOfflineGameSessionOptions {
   gameId: string | undefined;
@@ -14,6 +16,7 @@ interface UseOfflineGameSessionOptions {
 
 /**
  * Caches game session data on every successful fetch.
+ * Also caches character feats for each player's character so the GM can view them offline.
  * Returns cached data for offline fallback.
  */
 export function useOfflineGameSession({
@@ -50,6 +53,32 @@ export function useOfflineGameSession({
 
     cacheGameSession(gameId, session);
   }, [gameId, game, players, characters]);
+
+  // Cache character feats for each player's character
+  useEffect(() => {
+    if (!characters || characters.length === 0) return;
+
+    const cacheAllCharFeats = async () => {
+      for (const char of characters) {
+        try {
+          const { data } = await supabase
+            .from("character_feats")
+            .select("*")
+            .eq("character_id", char.id)
+            .order("level");
+          if (data) {
+            cacheCharacterFeats(char.id, data);
+          }
+        } catch (e) {
+          console.warn("Failed to cache character feats for", char.id, e);
+        }
+      }
+    };
+
+    if (navigator.onLine) {
+      cacheAllCharFeats();
+    }
+  }, [characters]);
 
   const getCached = (): CachedGameSession | null => {
     if (!gameId) return null;
