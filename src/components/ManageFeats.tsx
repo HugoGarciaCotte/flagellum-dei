@@ -352,6 +352,15 @@ const ManageFeats = () => {
               <Progress value={(bulkProgress.current / bulkProgress.total) * 100} className="h-2" />
             </div>
           )}
+          {bulkPushProgress && (
+            <div className="mt-3 space-y-1.5">
+              <div className="flex items-center justify-between text-xs text-muted-foreground">
+                <span>Pushing feat {bulkPushProgress.current} of {bulkPushProgress.total}...</span>
+                <span>{Math.round((bulkPushProgress.current / bulkPushProgress.total) * 100)}%</span>
+              </div>
+              <Progress value={(bulkPushProgress.current / bulkPushProgress.total) * 100} className="h-2" />
+            </div>
+          )}
         </CardHeader>
         <CardContent>
           {isLoading ? (
