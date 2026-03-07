@@ -673,6 +673,27 @@ const ManageFeats = () => {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      {/* Push to Wiki confirmation dialog */}
+      <AlertDialog open={!!pushPreviewFeat} onOpenChange={(open) => { if (!open) { setPushPreviewFeat(null); setPushPreviewStatus(null); } }}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Push to Wiki</AlertDialogTitle>
+            <AlertDialogDescription>
+              <span className="font-medium">{pushPreviewFeat?.title}</span> has{" "}
+              {pushPreviewStatus === "modified" ? "modified metadata" : pushPreviewStatus === "new" ? "new metadata to add" : pushPreviewStatus === "delete" ? "metadata to remove" : "changes"}{" "}
+              compared to the wiki. Push these changes?
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={pushConfirming}>Cancel</AlertDialogCancel>
+            <AlertDialogAction onClick={handleConfirmPush} disabled={pushConfirming} className="gap-2">
+              {pushConfirming ? <Loader2 className="h-4 w-4 animate-spin" /> : <Upload className="h-4 w-4" />}
+              Confirm Push
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </>
   );
 };
