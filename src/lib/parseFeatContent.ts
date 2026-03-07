@@ -38,9 +38,9 @@ export function parseFeatFields(content: string | null | undefined): FeatFields 
   const cleanSpecial = special && special.toLowerCase().includes("leave blank if none") ? null : special;
 
   return {
-    description: desc ? stripWikiLinks(desc) : null,
-    special: cleanSpecial ? stripWikiLinks(cleanSpecial) : null,
-    prerequisites: prereqs ? stripWikiLinks(prereqs) : null,
+    description: desc || null,
+    special: cleanSpecial || null,
+    prerequisites: prereqs || null,
     synonyms: synonyms ? stripWikiLinks(synonyms) : null,
   };
 }

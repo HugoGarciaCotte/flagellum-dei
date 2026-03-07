@@ -29,9 +29,9 @@ function convertInlineMarkup(text: string): string {
   text = text.replace(/'''(.+?)'''/g, "<strong>$1</strong>");
   // Italic: ''text''
   text = text.replace(/''(.+?)''/g, "<em>$1</em>");
-  // Internal links: [[target|label]] or [[target]]
-  text = text.replace(/\[\[([^|\]]+)\|([^\]]+)\]\]/g, "$2");
-  text = text.replace(/\[\[([^\]]+)\]\]/g, "$1");
+  // Internal links: [[target|label]] or [[target]] → hoverable spans
+  text = text.replace(/\[\[([^|\]]+)\|([^\]]+)\]\]/g, '<span class="wiki-feat-link" data-feat="$1">$2</span>');
+  text = text.replace(/\[\[([^\]]+)\]\]/g, '<span class="wiki-feat-link" data-feat="$1">$1</span>');
   // External links: [url text] or [url]
   text = text.replace(/\[(https?:\/\/[^\s\]]+)\s+([^\]]+)\]/g, '<a href="$1" target="_blank" rel="noopener">$2</a>');
   text = text.replace(/\[(https?:\/\/[^\s\]]+)\]/g, '<a href="$1" target="_blank" rel="noopener">$1</a>');

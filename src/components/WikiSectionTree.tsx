@@ -1,7 +1,11 @@
-import { useState } from "react";
+import { useState, useRef, useEffect, useCallback } from "react";
+import { createPortal } from "react-dom";
+import { useQuery } from "@tanstack/react-query";
 import { ChevronRight, Play } from "lucide-react";
 import { WikiSection, resolveBackgroundImage } from "@/lib/parseWikitext";
 import { cn } from "@/lib/utils";
+import { supabase } from "@/integrations/supabase/client";
+import { parseFeatFields } from "@/lib/parseFeatContent";
 
 interface WikiSectionTreeProps {
   sections: WikiSection[];
@@ -19,20 +23,79 @@ const TITLE_SIZES: Record<number, string> = {
   6: "text-xs font-medium",
 };
 
+function stripLinks(text: string): string {
+  return text.replace(/\[\[([^|\]]+)\|([^\]]+)\]\]/g, "$2").replace(/\[\[([^\]]+)\]\]/g, "$1");
+}
+
+function FeatLinkTooltip({ featName, rect, featsMap }: { featName: string; rect: DOMRect; featsMap: Map<string, any> }) {
+  const feat = featsMap.get(featName.toLowerCase());
+  if (!feat) return null;
+  const fields = parseFeatFields(feat.content);
+
+  return createPortal(
+    <div
+      className="fixed z-[100] w-72 rounded-md border bg-popover p-3 text-popover-foreground shadow-md animate-in fade-in-0 zoom-in-95"
+      style={{ top: rect.top - 8, left: rect.left + rect.width / 2, transform: "translate(-50%, -100%)" }}
+    >
+      <div className="space-y-1.5">
+        <p className="text-sm font-semibold">{feat.title}</p>
+        {feat.description && <p className="text-xs text-muted-foreground">{feat.description}</p>}
+        {fields.description && (
+          <div>
+            <p className="text-xs font-medium text-muted-foreground">Description</p>
+            <p className="text-xs text-muted-foreground/80 whitespace-pre-line">{stripLinks(fields.description)}</p>
+          </div>
+        )}
+        {fields.prerequisites && (
+          <div>
+            <p className="text-xs font-medium text-muted-foreground">Prerequisites</p>
+            <p className="text-xs text-muted-foreground/80">{stripLinks(fields.prerequisites)}</p>
+          </div>
+        )}
+        {fields.special && (
+          <div>
+            <p className="text-xs font-medium text-muted-foreground">Special</p>
+            <p className="text-xs text-muted-foreground/80 whitespace-pre-line">{stripLinks(fields.special)}</p>
+          </div>
+        )}
+      </div>
+    </div>,
+    document.body
+  );
+}
+
+function useFeatsMap() {
+  return useQuery({
+    queryKey: ["feats-map-for-links"],
+    queryFn: async () => {
+      const { data } = await supabase.from("feats").select("title, description, content");
+      const map = new Map<string, any>();
+      data?.forEach((f) => map.set(f.title.toLowerCase(), f));
+      return map;
+    },
+    staleTime: 5 * 60 * 1000,
+    gcTime: 10 * 60 * 1000,
+  });
+}
+
 function SectionNode({
   section,
   activeSection,
   onActivateSection,
   depth = 0,
   parentBackground = null,
+  featsMap,
 }: {
   section: WikiSection;
   activeSection: string | null;
   onActivateSection: (id: string) => void;
   depth?: number;
   parentBackground?: string | null;
+  featsMap: Map<string, any> | undefined;
 }) {
   const [open, setOpen] = useState(true);
+  const [hoveredFeat, setHoveredFeat] = useState<{ name: string; rect: DOMRect } | null>(null);
+  const contentRef = useRef<HTMLDivElement>(null);
   const isActive = activeSection === section.id;
   const hasChildren = section.children.length > 0;
   const hasContent = section.content.trim().length > 0;
@@ -54,6 +117,33 @@ function SectionNode({
     : {};
 
   const hasBgImage = !!effectiveBg;
+
+  // Style and attach hover events to .wiki-feat-link spans
+  useEffect(() => {
+    const el = contentRef.current;
+    if (!el || !featsMap) return;
+    const links = el.querySelectorAll<HTMLSpanElement>(".wiki-feat-link");
+    links.forEach((link) => {
+      link.style.color = "hsl(var(--primary))";
+      link.style.textDecoration = "underline";
+      link.style.textDecorationStyle = "dotted";
+      link.style.textUnderlineOffset = "2px";
+      link.style.cursor = "help";
+    });
+  }, [section.content, featsMap]);
+
+  const handleMouseOver = useCallback((e: React.MouseEvent) => {
+    const target = (e.target as HTMLElement).closest(".wiki-feat-link") as HTMLElement | null;
+    if (target) {
+      const feat = target.getAttribute("data-feat");
+      if (feat) setHoveredFeat({ name: feat, rect: target.getBoundingClientRect() });
+    }
+  }, []);
+
+  const handleMouseOut = useCallback((e: React.MouseEvent) => {
+    const target = (e.target as HTMLElement).closest(".wiki-feat-link");
+    if (target) setHoveredFeat(null);
+  }, []);
 
   return (
     <div
@@ -100,10 +190,16 @@ function SectionNode({
         <>
           {hasContent && (
             <div
+              ref={contentRef}
+              onMouseOver={handleMouseOver}
+              onMouseOut={handleMouseOut}
               className={cn("px-8 pb-2 text-sm leading-relaxed prose prose-sm max-w-none overflow-x-auto", isActive ? "text-primary-foreground/80" : "text-muted-foreground",
                 "[&_ul]:list-disc [&_ul]:pl-5 [&_li]:mb-1 [&_hr]:my-3 [&_p]:mb-1.5 [&_pre]:whitespace-pre-wrap [&_pre]:break-words [&_pre]:overflow-x-auto")}
               dangerouslySetInnerHTML={{ __html: section.content }}
             />
+          )}
+          {hoveredFeat && featsMap && (
+            <FeatLinkTooltip featName={hoveredFeat.name} rect={hoveredFeat.rect} featsMap={featsMap} />
           )}
           {section.children.map((child) => (
             <SectionNode
@@ -113,6 +209,7 @@ function SectionNode({
               onActivateSection={onActivateSection}
               depth={depth + 1}
               parentBackground={effectiveBg}
+              featsMap={featsMap}
             />
           ))}
         </>
@@ -122,6 +219,8 @@ function SectionNode({
 }
 
 export default function WikiSectionTree({ sections, activeSection, onActivateSection, parentBackground = null }: WikiSectionTreeProps) {
+  const { data: featsMap } = useFeatsMap();
+
   return (
     <div className="space-y-1">
       {sections.map((section) => (
@@ -131,6 +230,7 @@ export default function WikiSectionTree({ sections, activeSection, onActivateSec
           activeSection={activeSection}
           onActivateSection={onActivateSection}
           parentBackground={parentBackground}
+          featsMap={featsMap}
         />
       ))}
     </div>
