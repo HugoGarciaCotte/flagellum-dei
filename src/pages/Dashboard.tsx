@@ -371,7 +371,8 @@ const Dashboard = () => {
               </AlertDialogFooter>
             </AlertDialogContent>
           </AlertDialog>
-        )
+        )}
+
       </main>
     </div>
   );
