@@ -30,6 +30,7 @@ const statusBadge = (status: PreviewItem["status"]) => {
 const Admin = () => {
   const navigate = useNavigate();
   const { user } = useAuth();
+  const queryClient = useQueryClient();
   const { isOwner, isLoading: roleLoading } = useIsOwner();
   const [checking, setChecking] = useState(false);
   const [importing, setImporting] = useState(false);
@@ -83,6 +84,7 @@ const Admin = () => {
       if (error) throw error;
       setResult(data);
       setPreview(null);
+      queryClient.invalidateQueries({ queryKey: ["admin-scenarios"] });
       toast({
         title: "Import complete",
         description: `Imported ${data.imported} of ${data.total} scenarios.`,

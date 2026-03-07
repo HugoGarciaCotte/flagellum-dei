@@ -23,6 +23,7 @@ const statusBadge = (status: PreviewItem["status"]) => {
 };
 
 const ImportFeatsCard = () => {
+  const queryClient = useQueryClient();
   const [checking, setChecking] = useState(false);
   const [importing, setImporting] = useState(false);
   const [preview, setPreview] = useState<PreviewItem[] | null>(null);
@@ -58,6 +59,7 @@ const ImportFeatsCard = () => {
       if (error) throw error;
       setResult(data);
       setPreview(null);
+      queryClient.invalidateQueries({ queryKey: ["admin-feats"] });
       toast({
         title: "Import complete",
         description: `Imported ${data.imported} of ${data.total} feats.`,
