@@ -83,6 +83,7 @@ export type Database = {
       games: {
         Row: {
           created_at: string
+          current_section: string | null
           host_user_id: string
           id: string
           join_code: string
@@ -92,6 +93,7 @@ export type Database = {
         }
         Insert: {
           created_at?: string
+          current_section?: string | null
           host_user_id: string
           id?: string
           join_code: string
@@ -101,6 +103,7 @@ export type Database = {
         }
         Update: {
           created_at?: string
+          current_section?: string | null
           host_user_id?: string
           id?: string
           join_code?: string
