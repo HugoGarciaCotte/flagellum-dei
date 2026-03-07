@@ -171,6 +171,50 @@ const ManageFeats = () => {
     });
   };
 
+  const handlePushToWiki = async (id: string) => {
+    setPushingId(id);
+    try {
+      const { data, error } = await supabase.functions.invoke("push-wiki-feats", {
+        body: { id },
+      });
+      if (error) throw error;
+      const result = data?.results?.[0];
+      if (result?.status === "error") throw new Error(result.error);
+      toast({ title: result?.status === "unchanged" ? "Wiki already up to date" : "Pushed to wiki" });
+    } catch (e: any) {
+      toast({ title: "Push failed", description: e.message, variant: "destructive" });
+    } finally {
+      setPushingId(null);
+    }
+  };
+
+  const handleBulkPush = async () => {
+    if (!feats?.length) return;
+    setBulkPushing(true);
+    setBulkPushProgress({ current: 0, total: feats.length });
+    let errors = 0;
+    // Push in batches of 5
+    for (let i = 0; i < feats.length; i += 5) {
+      const batch = feats.slice(i, i + 5);
+      setBulkPushProgress({ current: Math.min(i + 5, feats.length), total: feats.length });
+      try {
+        const { data, error } = await supabase.functions.invoke("push-wiki-feats", {
+          body: { ids: batch.map((f) => f.id) },
+        });
+        if (error) throw error;
+        errors += (data?.results || []).filter((r: any) => r.status === "error").length;
+      } catch {
+        errors += batch.length;
+      }
+    }
+    setBulkPushing(false);
+    setBulkPushProgress(null);
+    toast({
+      title: "Bulk push complete",
+      description: errors > 0 ? `${errors} feat(s) had errors.` : `All ${feats.length} feats pushed.`,
+    });
+  };
+
   const openCreate = () => {
     setEditingId(null);
     setForm(emptyForm);
