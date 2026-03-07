@@ -39,6 +39,7 @@ type Feat = {
 type FormData = {
   title: string;
   content: string;
+  raw_content: string;
 };
 
 type AISuggestion = {
@@ -55,7 +56,7 @@ type AICheckResult = {
   suggestions: AISuggestion[];
 };
 
-const emptyForm: FormData = { title: "", content: "" };
+const emptyForm: FormData = { title: "", content: "", raw_content: "" };
 
 const ManageFeats = () => {
   const queryClient = useQueryClient();
@@ -95,10 +96,13 @@ const ManageFeats = () => {
 
   const saveMutation = useMutation({
     mutationFn: async (formData: FormData & { id?: string }) => {
-      const payload = {
+      const payload: Record<string, any> = {
         title: formData.title,
         content: formData.content || null,
       };
+      if (formData.id) {
+        payload.raw_content = formData.raw_content || null;
+      }
       if (formData.id) {
         const { error } = await supabase.from("feats").update(payload).eq("id", formData.id);
         if (error) throw error;
@@ -236,7 +240,7 @@ const ManageFeats = () => {
 
   const openEdit = (f: Feat) => {
     setEditingId(f.id);
-    setForm({ title: f.title, content: f.content || "" });
+    setForm({ title: f.title, content: f.content || "", raw_content: f.raw_content || "" });
     setDialogOpen(true);
   };
 
@@ -486,9 +490,18 @@ const ManageFeats = () => {
 
                           {f.content && (
                             <div>
-                              <p className="text-xs font-medium text-muted-foreground mb-1">Content</p>
+                              <p className="text-xs font-medium text-muted-foreground mb-1">Content (expanded)</p>
                               <pre className="text-xs text-muted-foreground font-mono bg-muted/50 rounded p-2 max-h-96 overflow-y-auto whitespace-pre-wrap">
                                 {f.content}
+                              </pre>
+                            </div>
+                          )}
+
+                          {f.raw_content && (
+                            <div>
+                              <p className="text-xs font-medium text-muted-foreground mb-1">Raw Content (parseable fields)</p>
+                              <pre className="text-xs text-muted-foreground font-mono bg-muted/50 rounded p-2 max-h-96 overflow-y-auto whitespace-pre-wrap">
+                                {f.raw_content}
                               </pre>
                             </div>
                           )}
@@ -554,16 +567,29 @@ const ManageFeats = () => {
               />
             </div>
             <div className="space-y-2">
-              <Label htmlFor="feat-content">Content (MediaWiki markup)</Label>
+              <Label htmlFor="feat-content">Content (expanded, display only)</Label>
               <Textarea
                 id="feat-content"
                 value={form.content}
                 onChange={(e) => setForm((f) => ({ ...f, content: e.target.value }))}
-                placeholder="== Section ==&#10;Content here...&#10;&#10;<!--@ feat_one_liner: Short description @-->"
-                rows={12}
+                placeholder="== Section ==&#10;Content here..."
+                rows={10}
                 className="font-mono text-xs"
               />
             </div>
+            {editingId && (
+              <div className="space-y-2">
+                <Label htmlFor="feat-raw-content">Raw Content (parseable fields live here)</Label>
+                <Textarea
+                  id="feat-raw-content"
+                  value={form.raw_content}
+                  onChange={(e) => setForm((f) => ({ ...f, raw_content: e.target.value }))}
+                  placeholder="Raw wikitext with <!--@ ... @--> tags"
+                  rows={10}
+                  className="font-mono text-xs"
+                />
+              </div>
+            )}
             {editingId && (() => {
               const feat = feats?.find(f => f.id === editingId);
               if (!feat) return null;
