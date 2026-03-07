@@ -145,7 +145,7 @@ const CharacterFeatPicker = ({ characterId, mode = "player", scenarioLevel }: Ch
     // Check blocking (safety net — picker already filters these)
     if (meta.blocking && meta.blocking.length > 0) {
       const ownedTitles = new Set(
-        (characterFeats ?? []).map(cf => featById.get(cf.feat_id)?.title).filter(Boolean)
+        (characterFeats ?? []).map(cf => featMap.get(cf.feat_id)?.title).filter(Boolean)
       );
       const conflict = meta.blocking.find(b => ownedTitles.has(b));
       if (conflict) {
@@ -154,12 +154,12 @@ const CharacterFeatPicker = ({ characterId, mode = "player", scenarioLevel }: Ch
     }
 
     // Check if any owned feat blocks this one
-    const targetTitle = featById.get(featId)?.title;
+    const targetTitle = featMap.get(featId)?.title;
     if (targetTitle) {
       for (const cf of characterFeats ?? []) {
         const cfMeta = metaMap.get(cf.feat_id);
         if (cfMeta?.blocking?.includes(targetTitle)) {
-          const blockerTitle = featById.get(cf.feat_id)?.title ?? "an owned feat";
+          const blockerTitle = featMap.get(cf.feat_id)?.title ?? "an owned feat";
           throw new Error(`Blocked: "${blockerTitle}" is incompatible with this feat`);
         }
       }
@@ -174,7 +174,7 @@ const CharacterFeatPicker = ({ characterId, mode = "player", scenarioLevel }: Ch
     if (bracketMatches.length === 0) return; // No parseable prerequisites
 
     const ownedTitles = new Set(
-      (characterFeats ?? []).map(cf => featById.get(cf.feat_id)?.title).filter(Boolean)
+      (characterFeats ?? []).map(cf => featMap.get(cf.feat_id)?.title).filter(Boolean)
     );
 
     const missing = bracketMatches.filter(title => !ownedTitles.has(title));
@@ -794,14 +794,8 @@ const CharacterFeatPicker = ({ characterId, mode = "player", scenarioLevel }: Ch
                   feat={{ ...feat, description: meta?.description ?? null }}
                   expanded={isExpanded}
                   onToggleExpand={() => setExpandedFeatId(isExpanded ? null : feat.id)}
-                  titlePrefix={validatingFeat === feat.id ? (
-                    <Loader2 className="h-3 w-3 animate-spin text-primary shrink-0" />
-                  ) : undefined}
                   expandedContent={
                     <>
-                      {validatingFeat === feat.id && (
-                        <p className="text-xs text-primary">Checking prerequisites...</p>
-                      )}
                       <Button
                         size="sm"
                         onClick={() => handleFeatSelect(feat.id)}
