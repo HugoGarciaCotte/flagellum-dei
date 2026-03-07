@@ -3,11 +3,11 @@ import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
 import { useQuery } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
-import { Card, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import { Users, ChevronDown, Pencil } from "lucide-react";
 import CharacterSheet from "@/components/CharacterSheet";
+import CharacterListItem from "@/components/CharacterListItem";
 
 interface PlayerRow {
   user_id: string;
@@ -25,7 +25,6 @@ const GMPlayerList = () => {
   const { data: players } = useQuery({
     queryKey: ["gm-players", user?.id],
     queryFn: async () => {
-      // Get all game_players from games hosted by this user
       const { data, error } = await supabase
         .from("game_players")
         .select(`
@@ -38,11 +37,10 @@ const GMPlayerList = () => {
         .eq("games.host_user_id", user!.id);
       if (error) throw error;
 
-      // Deduplicate by user_id, prefer entries with a character
       const map = new Map<string, PlayerRow>();
       for (const row of data ?? []) {
         const uid = row.user_id;
-        if (uid === user!.id) continue; // skip self
+        if (uid === user!.id) continue;
         const existing = map.get(uid);
         const char = row.characters as any;
         const profile = row.profiles as any;
@@ -62,10 +60,6 @@ const GMPlayerList = () => {
     enabled: !!user,
   });
 
-  const openEdit = (p: PlayerRow) => {
-    setEditPlayer(p);
-  };
-
   if (!players || players.length === 0) return null;
 
   return (
@@ -82,34 +76,26 @@ const GMPlayerList = () => {
         <CollapsibleContent className="mt-4 space-y-3">
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
             {players.map((p) => (
-              <Card key={p.user_id} className="border-border hover:border-primary/40 transition-colors">
-                <CardHeader className="pb-2">
-                  <div className="flex items-start justify-between">
-                    <div>
-                      <CardTitle className="font-display text-base">{p.display_name || "Unknown"}</CardTitle>
-                      {p.character_name && (
-                        <CardDescription className="text-xs mt-1">
-                          Playing: <span className="text-foreground font-medium">{p.character_name}</span>
-                        </CardDescription>
-                      )}
-                      {!p.character_name && (
-                        <CardDescription className="text-xs mt-1 italic">No character selected</CardDescription>
-                      )}
-                    </div>
-                    {p.character_id && (
-                      <Button variant="ghost" size="icon" className="h-7 w-7 shrink-0" onClick={() => openEdit(p)}>
+              <div key={p.user_id} className="space-y-1">
+                <p className="text-xs font-medium text-muted-foreground px-1">{p.display_name || "Unknown"}</p>
+                {p.character_id ? (
+                  <CharacterListItem
+                    character={{ id: p.character_id, name: p.character_name || "Unnamed", description: p.character_description }}
+                    actions={
+                      <Button variant="ghost" size="icon" className="h-7 w-7 shrink-0" onClick={() => setEditPlayer(p)}>
                         <Pencil className="h-3.5 w-3.5" />
                       </Button>
-                    )}
-                  </div>
-                </CardHeader>
-              </Card>
+                    }
+                  />
+                ) : (
+                  <p className="text-xs text-muted-foreground italic px-1">No character selected</p>
+                )}
+              </div>
             ))}
           </div>
         </CollapsibleContent>
       </Collapsible>
 
-      {/* Edit Player Character Dialog */}
       <Dialog open={!!editPlayer} onOpenChange={(o) => { if (!o) setEditPlayer(null); }}>
         <DialogContent className="max-h-[85vh] overflow-y-auto">
           <DialogHeader>
