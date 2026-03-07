@@ -182,6 +182,11 @@ const HostGame = () => {
             <h1 className="font-display text-lg font-bold text-foreground flex items-center gap-2">
               <Crown className="h-4 w-4 text-primary" />
               {effectiveScenario?.title}
+              {scenarioMeta.scenario_level && (
+                <span className="text-xs font-normal bg-primary/20 text-primary px-2 py-0.5 rounded-full">
+                  Lv. {scenarioMeta.scenario_level}
+                </span>
+              )}
             </h1>
             {!online && (
               <span className="text-xs bg-destructive/20 text-destructive px-2 py-0.5 rounded-full">Offline</span>
