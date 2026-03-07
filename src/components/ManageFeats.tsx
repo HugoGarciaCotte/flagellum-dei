@@ -65,6 +65,9 @@ const ManageFeats = () => {
   const [regeneratingId, setRegeneratingId] = useState<string | null>(null);
   const [expandedId, setExpandedId] = useState<string | null>(null);
   const [pushingId, setPushingId] = useState<string | null>(null);
+  const [pushPreviewFeat, setPushPreviewFeat] = useState<Feat | null>(null);
+  const [pushPreviewStatus, setPushPreviewStatus] = useState<string | null>(null);
+  const [pushConfirming, setPushConfirming] = useState(false);
   const [bulkRegenerating, setBulkRegenerating] = useState(false);
   const [bulkProgress, setBulkProgress] = useState<{ current: number; total: number } | null>(null);
 
@@ -288,23 +291,49 @@ const ManageFeats = () => {
     setPushingId(f.id);
     try {
       const { data, error } = await supabase.functions.invoke("push-wiki-feats", {
-        body: { id: f.id, mode: "execute" },
+        body: { id: f.id, mode: "preview" },
+      });
+      if (error) throw error;
+      const result = data?.results?.[0];
+      if (!result) throw new Error("No result returned");
+      if (result.status === "error") throw new Error(result.error || "Preview failed");
+      if (result.status === "not_found") {
+        toast({ title: "Not found", description: `${f.title} does not exist on the wiki.`, variant: "destructive" });
+      } else if (result.status === "unchanged") {
+        toast({ title: "Already up to date", description: `${f.title} is already in sync with the wiki.` });
+      } else {
+        setPushPreviewFeat(f);
+        setPushPreviewStatus(result.status);
+      }
+    } catch (e: any) {
+      toast({ title: "Preview failed", description: e.message, variant: "destructive" });
+    } finally {
+      setPushingId(null);
+    }
+  };
+
+  const handleConfirmPush = async () => {
+    if (!pushPreviewFeat) return;
+    setPushConfirming(true);
+    try {
+      const { data, error } = await supabase.functions.invoke("push-wiki-feats", {
+        body: { id: pushPreviewFeat.id, mode: "execute" },
       });
       if (error) throw error;
       const result = data?.results?.[0];
       if (!result) throw new Error("No result returned");
       if (result.status === "error") throw new Error(result.error || "Push failed");
-      if (result.status === "skipped") {
-        toast({ title: "Skipped", description: result.error || "Page not found on wiki", variant: "destructive" });
-      } else if (result.status === "unchanged") {
-        toast({ title: "Already up to date", description: `${f.title} is already in sync with the wiki.` });
+      if (result.status === "unchanged") {
+        toast({ title: "Already up to date", description: `${pushPreviewFeat.title} is already in sync.` });
       } else {
-        toast({ title: "Pushed to wiki", description: `${f.title} updated on wiki.` });
+        toast({ title: "Pushed to wiki", description: `${pushPreviewFeat.title} updated on wiki.` });
       }
     } catch (e: any) {
       toast({ title: "Push failed", description: e.message, variant: "destructive" });
     } finally {
-      setPushingId(null);
+      setPushConfirming(false);
+      setPushPreviewFeat(null);
+      setPushPreviewStatus(null);
     }
   };
 
