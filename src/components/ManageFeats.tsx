@@ -294,8 +294,6 @@ const ManageFeats = () => {
                               {f.description || <span className="italic">No description</span>}
                             </p>
                             <div className="flex items-center gap-3 mt-1.5">
-                              <StatusIcon ok={hasDescription(f)} label="Description" />
-                              <StatusIcon ok={hasContent(f)} label="Content" />
                               <StatusIcon ok={hasSubfeats(f)} label="Subfeats" />
                               <StatusIcon ok={hasSpecialities(f)} label="Specialities" />
                             </div>
