@@ -363,11 +363,19 @@ serve(async (req) => {
         });
       }
 
-      const specialities = await generateSpecialities(
-        feat.title,
-        feat.content || "",
-        feat.categories || []
-      );
+      // Check wiki metadata first
+      const meta = parseEmbeddedFeatMeta(feat.content || "");
+      let specialities: string[] | null;
+
+      if (meta.specialities) {
+        specialities = meta.specialities;
+      } else {
+        specialities = await generateSpecialities(
+          feat.title,
+          feat.content || "",
+          feat.categories || []
+        );
+      }
 
       const { error: updateError } = await adminClient
         .from("feats")
@@ -376,7 +384,7 @@ serve(async (req) => {
 
       if (updateError) throw updateError;
 
-      return new Response(JSON.stringify({ specialities: specialities || null }), {
+      return new Response(JSON.stringify({ specialities: specialities || null, fromWiki: !!meta.specialities }), {
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
@@ -403,25 +411,38 @@ serve(async (req) => {
         });
       }
 
-      // Fetch all feat titles for context
-      const { data: allFeats } = await adminClient.from("feats").select("title");
-      const allFeatTitles = (allFeats || []).map((f: any) => f.title);
+      // Check wiki metadata first
+      const meta = parseEmbeddedFeatMeta(feat.content || "");
+      let subfeats: any[] | null;
 
-      const subfeats = await generateSubfeats(
-        feat.title,
-        feat.content || "",
-        feat.categories || [],
-        allFeatTitles
-      );
+      if (meta.subfeats) {
+        subfeats = meta.subfeats;
+      } else {
+        // Fetch all feat titles for context
+        const { data: allFeats } = await adminClient.from("feats").select("title");
+        const allFeatTitles = (allFeats || []).map((f: any) => f.title);
+
+        subfeats = await generateSubfeats(
+          feat.title,
+          feat.content || "",
+          feat.categories || [],
+          allFeatTitles
+        );
+      }
+
+      const updatePayload: any = { subfeats: subfeats || null };
+      if (meta.unlocks_categories) {
+        updatePayload.unlocks_categories = meta.unlocks_categories;
+      }
 
       const { error: updateError } = await adminClient
         .from("feats")
-        .update({ subfeats: subfeats || null })
+        .update(updatePayload)
         .eq("id", id);
 
       if (updateError) throw updateError;
 
-      return new Response(JSON.stringify({ subfeats: subfeats || null }), {
+      return new Response(JSON.stringify({ subfeats: subfeats || null, fromWiki: !!meta.subfeats }), {
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
@@ -448,12 +469,28 @@ serve(async (req) => {
       });
     }
 
-    const description = await generateDescription(
-      item.title,
-      item.content || "",
-      type === "feat" ? item.categories : undefined,
-      type
-    );
+    // Check wiki metadata for feats
+    let description: string;
+    if (type === "feat") {
+      const meta = parseEmbeddedFeatMeta(item.content || "");
+      if (meta.description) {
+        description = meta.description;
+      } else {
+        description = await generateDescription(
+          item.title,
+          item.content || "",
+          item.categories,
+          type
+        );
+      }
+    } else {
+      description = await generateDescription(
+        item.title,
+        item.content || "",
+        undefined,
+        type
+      );
+    }
 
     const { error: updateError } = await adminClient
       .from(table)

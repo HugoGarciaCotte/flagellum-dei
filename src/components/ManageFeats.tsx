@@ -20,7 +20,7 @@ import {
 import { toast } from "@/hooks/use-toast";
 import {
   Plus, Pencil, Trash2, Sword, Loader2, Sparkles, Layers,
-  ChevronDown, CheckCircle2, AlertCircle, Wand2,
+  ChevronDown, CheckCircle2, AlertCircle, Wand2, Copy,
 } from "lucide-react";
 import FeatCategoryBadges from "@/components/FeatCategoryBadges";
 
@@ -353,6 +353,14 @@ const ManageFeats = () => {
                             >
                               {isRegenerating ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Sparkles className="h-3.5 w-3.5" />}
                               Regenerate AI
+                            </Button>
+                            <Button
+                              size="sm"
+                              variant="outline"
+                              className="gap-1.5"
+                              onClick={(e) => { e.stopPropagation(); handleCopyWikiTags(f); }}
+                            >
+                              <Copy className="h-3.5 w-3.5" /> Copy Wiki Tags
                             </Button>
                             <Button size="sm" variant="outline" className="gap-1.5" onClick={(e) => { e.stopPropagation(); openEdit(f); }}>
                               <Pencil className="h-3.5 w-3.5" /> Edit
