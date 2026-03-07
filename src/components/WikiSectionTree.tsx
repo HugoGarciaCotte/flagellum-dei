@@ -11,6 +11,7 @@ interface WikiSectionTreeProps {
 }
 
 const TITLE_SIZES: Record<number, string> = {
+  1: "text-2xl font-bold",
   2: "text-xl font-bold",
   3: "text-lg font-semibold",
   4: "text-base font-semibold",

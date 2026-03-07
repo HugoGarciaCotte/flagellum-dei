@@ -6,7 +6,7 @@ export interface WikiSection {
   children: WikiSection[];
 }
 
-const HEADING_RE = /^(={2,6})\s*(.+?)\s*\1$/;
+const HEADING_RE = /^(={1,6})\s*(.+?)\s*\1$/;
 
 function slugify(text: string): string {
   return text
@@ -31,16 +31,35 @@ function convertInlineMarkup(text: string): string {
 function convertBodyToHtml(lines: string[]): string {
   const result: string[] = [];
   let inList = false;
+  let inSubList = false;
 
   for (const line of lines) {
     const trimmed = line.trim();
-    if (trimmed.startsWith("* ")) {
+    if (trimmed.startsWith("** ")) {
+      if (!inList) {
+        result.push("<ul>");
+        inList = true;
+      }
+      if (!inSubList) {
+        result.push("<ul>");
+        inSubList = true;
+      }
+      result.push(`<li>${convertInlineMarkup(trimmed.slice(3))}</li>`);
+    } else if (trimmed.startsWith("* ")) {
+      if (inSubList) {
+        result.push("</ul>");
+        inSubList = false;
+      }
       if (!inList) {
         result.push("<ul>");
         inList = true;
       }
       result.push(`<li>${convertInlineMarkup(trimmed.slice(2))}</li>`);
     } else {
+      if (inSubList) {
+        result.push("</ul>");
+        inSubList = false;
+      }
       if (inList) {
         result.push("</ul>");
         inList = false;
@@ -52,6 +71,7 @@ function convertBodyToHtml(lines: string[]): string {
       }
     }
   }
+  if (inSubList) result.push("</ul>");
   if (inList) result.push("</ul>");
 
   return result.join("\n");
@@ -72,6 +92,7 @@ export function parseWikitext(wikitext: string): WikiSection[] {
   }
 
   for (const line of lines) {
+    if (line.trimStart().startsWith("==>")) continue;
     const match = line.match(HEADING_RE);
     if (match) {
       flushBody();
