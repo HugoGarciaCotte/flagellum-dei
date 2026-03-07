@@ -43,6 +43,7 @@ export type Database = {
       }
       feats: {
         Row: {
+          categories: string[]
           content: string | null
           created_at: string
           description: string | null
@@ -50,6 +51,7 @@ export type Database = {
           title: string
         }
         Insert: {
+          categories?: string[]
           content?: string | null
           created_at?: string
           description?: string | null
@@ -57,6 +59,7 @@ export type Database = {
           title: string
         }
         Update: {
+          categories?: string[]
           content?: string | null
           created_at?: string
           description?: string | null
