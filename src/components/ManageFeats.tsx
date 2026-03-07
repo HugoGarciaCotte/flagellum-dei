@@ -21,7 +21,7 @@ import {
 import { toast } from "@/hooks/use-toast";
 import {
   Plus, Pencil, Trash2, Sword, Loader2, Sparkles, Layers,
-  ChevronDown, CheckCircle2, AlertCircle, Wand2, Copy, Unlock, Eye, ShieldCheck, Ban,
+  ChevronDown, CheckCircle2, AlertCircle, Wand2, Copy, Unlock, Eye, ShieldCheck, Ban, Upload,
 } from "lucide-react";
 import FeatCategoryBadges from "@/components/FeatCategoryBadges";
 import { parseEmbeddedFeatMeta, generateParseableBlock, type SubfeatSlot } from "@/lib/parseEmbeddedFeatMeta";
@@ -64,6 +64,7 @@ const ManageFeats = () => {
   const [deleteTarget, setDeleteTarget] = useState<Feat | null>(null);
   const [regeneratingId, setRegeneratingId] = useState<string | null>(null);
   const [expandedId, setExpandedId] = useState<string | null>(null);
+  const [pushingId, setPushingId] = useState<string | null>(null);
   const [bulkRegenerating, setBulkRegenerating] = useState(false);
   const [bulkProgress, setBulkProgress] = useState<{ current: number; total: number } | null>(null);
 
@@ -293,6 +294,30 @@ const ManageFeats = () => {
     toast({ title: "Wiki tags copied to clipboard" });
   };
 
+  const handlePushToWiki = async (f: Feat) => {
+    setPushingId(f.id);
+    try {
+      const { data, error } = await supabase.functions.invoke("push-wiki-feats", {
+        body: { id: f.id, mode: "execute" },
+      });
+      if (error) throw error;
+      const result = data?.results?.[0];
+      if (!result) throw new Error("No result returned");
+      if (result.status === "error") throw new Error(result.error || "Push failed");
+      if (result.status === "skipped") {
+        toast({ title: "Skipped", description: result.error || "Page not found on wiki", variant: "destructive" });
+      } else if (result.status === "unchanged") {
+        toast({ title: "Already up to date", description: `${f.title} is already in sync with the wiki.` });
+      } else {
+        toast({ title: "Pushed to wiki", description: `${f.title} updated on wiki.` });
+      }
+    } catch (e: any) {
+      toast({ title: "Push failed", description: e.message, variant: "destructive" });
+    } finally {
+      setPushingId(null);
+    }
+  };
+
   const actionBadge = (action: string) => {
     switch (action) {
       case "add": return <Badge className="bg-emerald-500/20 text-emerald-400 border-emerald-500/30">Add</Badge>;
@@ -466,6 +491,16 @@ const ManageFeats = () => {
                               onClick={(e) => { e.stopPropagation(); handleCopyWikiTags(f); }}
                             >
                               <Copy className="h-3.5 w-3.5" /> Copy Wiki Tags
+                            </Button>
+                            <Button
+                              size="sm"
+                              variant="outline"
+                              className="gap-1.5"
+                              onClick={(e) => { e.stopPropagation(); handlePushToWiki(f); }}
+                              disabled={pushingId === f.id}
+                            >
+                              {pushingId === f.id ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Upload className="h-3.5 w-3.5" />}
+                              Push to Wiki
                             </Button>
                             <Button size="sm" variant="outline" className="gap-1.5" onClick={(e) => { e.stopPropagation(); openEdit(f); }}>
                               <Pencil className="h-3.5 w-3.5" /> Edit
