@@ -3,10 +3,10 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
-import { Table, TableHeader, TableBody, TableHead, TableRow, TableCell } from "@/components/ui/table";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
+import { Progress } from "@/components/ui/progress";
 import {
   Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter,
 } from "@/components/ui/dialog";
@@ -14,8 +14,14 @@ import {
   AlertDialog, AlertDialogContent, AlertDialogHeader, AlertDialogTitle,
   AlertDialogDescription, AlertDialogFooter, AlertDialogAction, AlertDialogCancel,
 } from "@/components/ui/alert-dialog";
+import {
+  Collapsible, CollapsibleContent, CollapsibleTrigger,
+} from "@/components/ui/collapsible";
 import { toast } from "@/hooks/use-toast";
-import { Plus, Pencil, Trash2, Sword, Loader2, Sparkles, Layers } from "lucide-react";
+import {
+  Plus, Pencil, Trash2, Sword, Loader2, Sparkles, Layers,
+  ChevronDown, CheckCircle2, AlertCircle, Wand2,
+} from "lucide-react";
 import FeatCategoryBadges from "@/components/FeatCategoryBadges";
 
 type SubfeatSlot = {
@@ -52,7 +58,9 @@ const ManageFeats = () => {
   const [form, setForm] = useState<FormData>(emptyForm);
   const [deleteTarget, setDeleteTarget] = useState<Feat | null>(null);
   const [regeneratingId, setRegeneratingId] = useState<string | null>(null);
-  const [regeneratingSubfeatsId, setRegeneratingSubfeatsId] = useState<string | null>(null);
+  const [expandedId, setExpandedId] = useState<string | null>(null);
+  const [bulkRegenerating, setBulkRegenerating] = useState(false);
+  const [bulkProgress, setBulkProgress] = useState<{ current: number; total: number } | null>(null);
 
   const { data: feats, isLoading } = useQuery({
     queryKey: ["admin-feats"],
@@ -108,15 +116,17 @@ const ManageFeats = () => {
     },
   });
 
-  const handleRegenerate = async (id: string) => {
+  const handleRegenerateAll = async (id: string) => {
     setRegeneratingId(id);
     try {
-      const { data, error } = await supabase.functions.invoke("regenerate-description", {
+      await supabase.functions.invoke("regenerate-description", {
         body: { type: "feat", id },
       });
-      if (error) throw error;
+      await supabase.functions.invoke("regenerate-description", {
+        body: { action: "regenerate_subfeats", id },
+      });
       queryClient.invalidateQueries({ queryKey: ["admin-feats"] });
-      toast({ title: "Description regenerated" });
+      toast({ title: "AI content regenerated" });
     } catch (e: any) {
       toast({ title: "Regeneration failed", description: e.message, variant: "destructive" });
     } finally {
@@ -124,20 +134,31 @@ const ManageFeats = () => {
     }
   };
 
-  const handleRegenerateSubfeats = async (id: string) => {
-    setRegeneratingSubfeatsId(id);
-    try {
-      const { data, error } = await supabase.functions.invoke("regenerate-description", {
-        body: { action: "regenerate_subfeats", id },
-      });
-      if (error) throw error;
-      queryClient.invalidateQueries({ queryKey: ["admin-feats"] });
-      toast({ title: "Subfeats regenerated" });
-    } catch (e: any) {
-      toast({ title: "Subfeat regeneration failed", description: e.message, variant: "destructive" });
-    } finally {
-      setRegeneratingSubfeatsId(null);
+  const handleBulkRegenerate = async () => {
+    if (!feats?.length) return;
+    setBulkRegenerating(true);
+    setBulkProgress({ current: 0, total: feats.length });
+    let errors = 0;
+    for (let i = 0; i < feats.length; i++) {
+      setBulkProgress({ current: i + 1, total: feats.length });
+      try {
+        await supabase.functions.invoke("regenerate-description", {
+          body: { type: "feat", id: feats[i].id },
+        });
+        await supabase.functions.invoke("regenerate-description", {
+          body: { action: "regenerate_subfeats", id: feats[i].id },
+        });
+      } catch {
+        errors++;
+      }
     }
+    queryClient.invalidateQueries({ queryKey: ["admin-feats"] });
+    setBulkRegenerating(false);
+    setBulkProgress(null);
+    toast({
+      title: "Bulk regeneration complete",
+      description: errors > 0 ? `${errors} feat(s) had errors.` : `All ${feats.length} feats processed.`,
+    });
   };
 
   const openCreate = () => {
@@ -160,20 +181,25 @@ const ManageFeats = () => {
     saveMutation.mutate({ ...form, id: editingId ?? undefined });
   };
 
-  const renderSubfeatsBadge = (subfeats: SubfeatSlot[] | null) => {
-    if (!subfeats || subfeats.length === 0) return null;
-    return (
-      <span className="inline-flex items-center gap-1 text-xs bg-accent text-accent-foreground rounded px-1.5 py-0.5">
-        <Layers className="h-3 w-3" />
-        {subfeats.length} subfeat{subfeats.length > 1 ? "s" : ""}
-      </span>
-    );
-  };
+  const hasDescription = (f: Feat) => !!f.description?.trim();
+  const hasContent = (f: Feat) => !!f.content?.trim();
+  const hasSubfeats = (f: Feat) => Array.isArray(f.subfeats) && f.subfeats.length > 0;
+
+  const StatusIcon = ({ ok, label }: { ok: boolean; label: string }) => (
+    <span className="inline-flex items-center gap-1 text-xs" title={label}>
+      {ok ? (
+        <CheckCircle2 className="h-3.5 w-3.5 text-emerald-500" />
+      ) : (
+        <AlertCircle className="h-3.5 w-3.5 text-amber-500" />
+      )}
+      <span className={ok ? "text-emerald-500" : "text-amber-500"}>{label}</span>
+    </span>
+  );
 
   const renderSubfeatsDetail = (subfeats: SubfeatSlot[] | null) => {
     if (!subfeats || subfeats.length === 0) return null;
     return (
-      <div className="mt-2 space-y-1">
+      <div className="space-y-1">
         <p className="text-xs font-medium text-muted-foreground">Subfeats:</p>
         {subfeats.map((s) => (
           <div key={s.slot} className="text-xs text-muted-foreground pl-2 border-l-2 border-primary/30">
@@ -201,10 +227,31 @@ const ManageFeats = () => {
                 Create, edit, or delete feats. Content uses raw MediaWiki markup.
               </CardDescription>
             </div>
-            <Button onClick={openCreate} size="sm" className="gap-2 font-display">
-              <Plus className="h-4 w-4" /> New
-            </Button>
+            <div className="flex items-center gap-2">
+              <Button
+                onClick={handleBulkRegenerate}
+                size="sm"
+                variant="outline"
+                className="gap-2 font-display"
+                disabled={bulkRegenerating || !feats?.length}
+              >
+                {bulkRegenerating ? <Loader2 className="h-4 w-4 animate-spin" /> : <Wand2 className="h-4 w-4" />}
+                Regenerate All AI
+              </Button>
+              <Button onClick={openCreate} size="sm" className="gap-2 font-display">
+                <Plus className="h-4 w-4" /> New
+              </Button>
+            </div>
           </div>
+          {bulkProgress && (
+            <div className="mt-3 space-y-1.5">
+              <div className="flex items-center justify-between text-xs text-muted-foreground">
+                <span>Processing feat {bulkProgress.current} of {bulkProgress.total}...</span>
+                <span>{Math.round((bulkProgress.current / bulkProgress.total) * 100)}%</span>
+              </div>
+              <Progress value={(bulkProgress.current / bulkProgress.total) * 100} className="h-2" />
+            </div>
+          )}
         </CardHeader>
         <CardContent>
           {isLoading ? (
@@ -214,68 +261,93 @@ const ManageFeats = () => {
           ) : !feats?.length ? (
             <p className="text-sm text-muted-foreground py-4">No feats yet.</p>
           ) : (
-            <div className="rounded-lg border border-border overflow-hidden max-h-[28rem] overflow-y-auto">
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead>Title</TableHead>
-                    <TableHead className="hidden sm:table-cell">Description</TableHead>
-                    <TableHead className="w-36 text-right">Actions</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {feats.map((f) => (
-                    <TableRow key={f.id}>
-                      <TableCell className="font-medium">
-                        <div className="flex items-center gap-2 flex-wrap">
-                          {f.title}
-                          <FeatCategoryBadges categories={f.categories} />
-                          {renderSubfeatsBadge(f.subfeats)}
+            <div className="space-y-1 max-h-[36rem] overflow-y-auto pr-1">
+              {feats.map((f) => {
+                const isExpanded = expandedId === f.id;
+                const isRegenerating = regeneratingId === f.id;
+                return (
+                  <Collapsible
+                    key={f.id}
+                    open={isExpanded}
+                    onOpenChange={(open) => setExpandedId(open ? f.id : null)}
+                  >
+                    <div className="rounded-lg border border-border hover:border-primary/30 transition-colors">
+                      <CollapsibleTrigger asChild>
+                        <button className="w-full text-left p-3 flex items-start gap-3 cursor-pointer">
+                          <ChevronDown
+                            className={`h-4 w-4 mt-0.5 shrink-0 text-muted-foreground transition-transform ${isExpanded ? "rotate-180" : ""}`}
+                          />
+                          <div className="flex-1 min-w-0">
+                            <div className="flex items-center gap-2 flex-wrap">
+                              <span className="font-medium text-sm">{f.title}</span>
+                              <FeatCategoryBadges categories={f.categories} />
+                            </div>
+                            <p className="text-xs text-muted-foreground mt-1 line-clamp-1">
+                              {f.description || <span className="italic">No description</span>}
+                            </p>
+                            <div className="flex items-center gap-3 mt-1.5">
+                              <StatusIcon ok={hasDescription(f)} label="Description" />
+                              <StatusIcon ok={hasContent(f)} label="Content" />
+                              <StatusIcon ok={hasSubfeats(f)} label="Subfeats" />
+                            </div>
+                          </div>
+                        </button>
+                      </CollapsibleTrigger>
+
+                      <CollapsibleContent>
+                        <div className="px-3 pb-3 pt-0 border-t border-border space-y-3">
+                          {/* Full description */}
+                          <div className="pt-3">
+                            <p className="text-xs font-medium text-muted-foreground mb-1">Description</p>
+                            <p className="text-sm text-foreground">
+                              {f.description || <span className="italic text-muted-foreground">None</span>}
+                            </p>
+                          </div>
+
+                          {/* Subfeats detail */}
+                          {renderSubfeatsDetail(f.subfeats)}
+                          {!hasSubfeats(f) && (
+                            <div>
+                              <p className="text-xs font-medium text-muted-foreground mb-1">Subfeats</p>
+                              <p className="text-xs italic text-muted-foreground">None configured</p>
+                            </div>
+                          )}
+
+                          {/* Content preview */}
+                          {f.content && (
+                            <div>
+                              <p className="text-xs font-medium text-muted-foreground mb-1">Content preview</p>
+                              <pre className="text-xs text-muted-foreground font-mono bg-muted/50 rounded p-2 max-h-32 overflow-y-auto whitespace-pre-wrap">
+                                {f.content.slice(0, 500)}{f.content.length > 500 ? "..." : ""}
+                              </pre>
+                            </div>
+                          )}
+
+                          {/* Actions */}
+                          <div className="flex items-center gap-2 pt-1">
+                            <Button
+                              size="sm"
+                              variant="outline"
+                              className="gap-1.5"
+                              onClick={(e) => { e.stopPropagation(); handleRegenerateAll(f.id); }}
+                              disabled={isRegenerating}
+                            >
+                              {isRegenerating ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Sparkles className="h-3.5 w-3.5" />}
+                              Regenerate AI
+                            </Button>
+                            <Button size="sm" variant="outline" className="gap-1.5" onClick={(e) => { e.stopPropagation(); openEdit(f); }}>
+                              <Pencil className="h-3.5 w-3.5" /> Edit
+                            </Button>
+                            <Button size="sm" variant="outline" className="gap-1.5 text-destructive hover:text-destructive" onClick={(e) => { e.stopPropagation(); setDeleteTarget(f); }}>
+                              <Trash2 className="h-3.5 w-3.5" /> Delete
+                            </Button>
+                          </div>
                         </div>
-                      </TableCell>
-                      <TableCell className="hidden sm:table-cell text-muted-foreground text-sm max-w-[300px]">
-                        {f.description || "—"}
-                      </TableCell>
-                      <TableCell className="text-right">
-                        <div className="flex justify-end gap-1">
-                          <Button
-                            variant="ghost"
-                            size="icon"
-                            onClick={() => handleRegenerateSubfeats(f.id)}
-                            disabled={regeneratingSubfeatsId === f.id}
-                            title="Regenerate subfeats"
-                          >
-                            {regeneratingSubfeatsId === f.id ? (
-                              <Loader2 className="h-4 w-4 animate-spin" />
-                            ) : (
-                              <Layers className="h-4 w-4 text-primary" />
-                            )}
-                          </Button>
-                          <Button
-                            variant="ghost"
-                            size="icon"
-                            onClick={() => handleRegenerate(f.id)}
-                            disabled={regeneratingId === f.id}
-                            title="Regenerate description"
-                          >
-                            {regeneratingId === f.id ? (
-                              <Loader2 className="h-4 w-4 animate-spin" />
-                            ) : (
-                              <Sparkles className="h-4 w-4 text-primary" />
-                            )}
-                          </Button>
-                          <Button variant="ghost" size="icon" onClick={() => openEdit(f)}>
-                            <Pencil className="h-4 w-4" />
-                          </Button>
-                          <Button variant="ghost" size="icon" onClick={() => setDeleteTarget(f)}>
-                            <Trash2 className="h-4 w-4 text-destructive" />
-                          </Button>
-                        </div>
-                      </TableCell>
-                    </TableRow>
-                  ))}
-                </TableBody>
-              </Table>
+                      </CollapsibleContent>
+                    </div>
+                  </Collapsible>
+                );
+              })}
             </div>
           )}
         </CardContent>
@@ -322,7 +394,6 @@ const ManageFeats = () => {
                 className="font-mono text-xs"
               />
             </div>
-            {/* Show subfeats if editing */}
             {editingId && (() => {
               const feat = feats?.find(f => f.id === editingId);
               return feat ? renderSubfeatsDetail(feat.subfeats) : null;
