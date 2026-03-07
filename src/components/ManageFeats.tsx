@@ -96,18 +96,18 @@ const ManageFeats = () => {
 
   const saveMutation = useMutation({
     mutationFn: async (formData: FormData & { id?: string }) => {
-      const payload: Record<string, any> = {
-        title: formData.title,
-        content: formData.content || null,
-      };
       if (formData.id) {
-        payload.raw_content = formData.raw_content || null;
-      }
-      if (formData.id) {
-        const { error } = await supabase.from("feats").update(payload).eq("id", formData.id);
+        const { error } = await supabase.from("feats").update({
+          title: formData.title,
+          content: formData.content || null,
+          raw_content: formData.raw_content || null,
+        }).eq("id", formData.id);
         if (error) throw error;
       } else {
-        const { error } = await supabase.from("feats").insert(payload);
+        const { error } = await supabase.from("feats").insert({
+          title: formData.title,
+          content: formData.content || null,
+        });
         if (error) throw error;
       }
     },
