@@ -3,6 +3,7 @@ import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 
 interface EmbeddedFeatMeta {
   description: string | null;
+  prerequisites: string | null;
   specialities: string[] | null;
   subfeats: any[] | null;
   unlocks_categories: string[] | null;
@@ -10,7 +11,7 @@ interface EmbeddedFeatMeta {
 
 function parseEmbeddedFeatMeta(content: string): EmbeddedFeatMeta {
   const result: EmbeddedFeatMeta = {
-    description: null, specialities: null, subfeats: null, unlocks_categories: null,
+    description: null, prerequisites: null, specialities: null, subfeats: null, unlocks_categories: null,
   };
   const tagRegex = /<!--@\s*([\w:]+)\s*:\s*(.*?)\s*@-->/g;
   let match: RegExpExecArray | null;
@@ -19,6 +20,7 @@ function parseEmbeddedFeatMeta(content: string): EmbeddedFeatMeta {
     const key = match[1].trim();
     const value = match[2].trim();
     if (key === "feat_one_liner") result.description = value;
+    else if (key === "feat_prerequisites") result.prerequisites = value;
     else if (key === "feat_specialities") result.specialities = value.split(",").map(s => s.trim()).filter(Boolean);
     else if (key === "feat_unlocks") result.unlocks_categories = value.split(",").map(s => s.trim()).filter(Boolean);
     else if (key.startsWith("feat_subfeat:")) {
