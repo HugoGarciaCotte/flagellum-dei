@@ -30,14 +30,6 @@ export default defineConfig(({ mode }) => ({
             },
           },
           {
-            urlPattern: /^https:\/\/.*\.supabase\.co\/rest\/v1\/scenario_sections.*/i,
-            handler: "StaleWhileRevalidate",
-            options: {
-              cacheName: "sections-api-cache",
-              expiration: { maxEntries: 200, maxAgeSeconds: 60 * 60 * 24 * 7 },
-            },
-          },
-          {
             urlPattern: /^https:\/\/.*\.supabase\.co\/rest\/v1\/.*/i,
             handler: "NetworkFirst",
             options: {

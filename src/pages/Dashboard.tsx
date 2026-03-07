@@ -8,15 +8,17 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/com
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { toast } from "@/hooks/use-toast";
 import { useNavigate } from "react-router-dom";
-import { Crown, LogOut, Plus, DoorOpen, Scroll, Users } from "lucide-react";
+import { Crown, LogOut, Plus, DoorOpen, Scroll, Users, Settings } from "lucide-react";
 import { useOfflineScenarios } from "@/hooks/useOfflineScenarios";
 import { getCachedScenarios, isOffline } from "@/lib/offlineStorage";
+import { useIsOwner } from "@/hooks/useIsOwner";
 
 const Dashboard = () => {
   const { user, signOut } = useAuth();
   const navigate = useNavigate();
   const [joinCode, setJoinCode] = useState("");
   const [joinOpen, setJoinOpen] = useState(false);
+  const { isOwner } = useIsOwner();
 
   // Prefetch all scenario data for offline use
   useOfflineScenarios();
@@ -28,7 +30,7 @@ const Dashboard = () => {
         const cached = getCachedScenarios();
         if (cached) return cached;
       }
-      const { data, error } = await supabase.from("scenarios").select("*, scenario_sections(count)");
+      const { data, error } = await supabase.from("scenarios").select("*");
       if (error) throw error;
       return data;
     },
@@ -93,9 +95,16 @@ const Dashboard = () => {
           <h1 className="font-display text-xl font-bold text-primary flex items-center gap-2">
             <Crown className="h-5 w-5" /> Prima Danse Macabre
           </h1>
-          <Button variant="ghost" size="sm" onClick={signOut} className="gap-2">
-            <LogOut className="h-4 w-4" /> Sign Out
-          </Button>
+          <div className="flex items-center gap-2">
+            {isOwner && (
+              <Button variant="ghost" size="sm" onClick={() => navigate("/admin")} className="gap-2">
+                <Settings className="h-4 w-4" /> Admin
+              </Button>
+            )}
+            <Button variant="ghost" size="sm" onClick={signOut} className="gap-2">
+              <LogOut className="h-4 w-4" /> Sign Out
+            </Button>
+          </div>
         </div>
       </header>
 
