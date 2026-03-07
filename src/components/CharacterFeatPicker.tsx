@@ -32,6 +32,7 @@ type Feat = {
   title: string;
   categories: string[];
   description: string | null;
+  content: string | null;
 };
 
 type CharacterFeat = {
@@ -56,13 +57,14 @@ const CharacterFeatPicker = ({ characterId, mode = "player", scenarioLevel }: Ch
   const [filterMode, setFilterMode] = useState<"archetype" | "feat">("feat");
   const [validatingFeat, setValidatingFeat] = useState<string | null>(null);
   const [expandedFeatId, setExpandedFeatId] = useState<string | null>(null);
+  const [expandedAssignedFeatId, setExpandedAssignedFeatId] = useState<string | null>(null);
 
   const { data: allFeats } = useQuery({
     queryKey: ["all-feats"],
     queryFn: async () => {
       const { data, error } = await supabase
         .from("feats")
-        .select("id, title, categories, description")
+        .select("id, title, categories, description, content")
         .order("title");
       if (error) throw error;
       return data as Feat[];
