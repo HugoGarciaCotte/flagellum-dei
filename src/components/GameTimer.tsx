@@ -51,34 +51,37 @@ const GameTimer = () => {
   }
 
   return (
-    <div className="fixed bottom-6 left-6 z-50">
-      <div className="bg-card border border-border rounded-2xl shadow-xl p-4 flex flex-col items-center gap-3 min-w-[140px]">
-        <button
-          onClick={() => setOpen(false)}
-          className="absolute top-2 right-2 text-muted-foreground hover:text-foreground text-xs"
-          aria-label="Close timer"
-        >
-          ✕
-        </button>
-        <p className="text-3xl font-display font-bold text-foreground tabular-nums">
-          {minutes}:{seconds.toString().padStart(2, "0")} <span className="text-base font-normal text-muted-foreground">min</span>
-        </p>
-        <div className="flex items-center gap-2">
-          {running ? (
-            <Button size="icon" variant="outline" onClick={() => setRunning(false)} className="h-9 w-9">
-              <Pause className="h-4 w-4" />
+    <>
+      <div className="fixed inset-0 z-40" onClick={() => setOpen(false)} />
+      <div className="fixed bottom-6 left-6 z-50">
+        <div className="bg-card border border-border rounded-2xl shadow-xl p-4 flex flex-col items-center gap-3 min-w-[140px] relative">
+          <button
+            onClick={() => setOpen(false)}
+            className="absolute top-2 right-2 text-muted-foreground hover:text-foreground text-xs"
+            aria-label="Close timer"
+          >
+            ✕
+          </button>
+          <p className="text-3xl font-display font-bold text-foreground tabular-nums">
+            {minutes}:{seconds.toString().padStart(2, "0")} <span className="text-base font-normal text-muted-foreground">min</span>
+          </p>
+          <div className="flex items-center gap-2">
+            {running ? (
+              <Button size="icon" variant="outline" onClick={() => setRunning(false)} className="h-9 w-9">
+                <Pause className="h-4 w-4" />
+              </Button>
+            ) : (
+              <Button size="icon" variant="outline" onClick={() => setRunning(true)} className="h-9 w-9">
+                <Play className="h-4 w-4" />
+              </Button>
+            )}
+            <Button size="icon" variant="outline" onClick={reset} className="h-9 w-9">
+              <RotateCcw className="h-4 w-4" />
             </Button>
-          ) : (
-            <Button size="icon" variant="outline" onClick={() => setRunning(true)} className="h-9 w-9">
-              <Play className="h-4 w-4" />
-            </Button>
-          )}
-          <Button size="icon" variant="outline" onClick={reset} className="h-9 w-9">
-            <RotateCcw className="h-4 w-4" />
-          </Button>
+          </div>
         </div>
       </div>
-    </div>
+    </>
   );
 };
 
