@@ -126,7 +126,8 @@ const Dashboard = () => {
   });
 
   const handleCreateGame = async (scenarioId: string) => {
-    const code = Math.random().toString(36).substring(2, 8).toUpperCase();
+    const letters = "ABCDEFGHIJKLMNOPQRSTUVWXYZ";
+    const code = Array.from({ length: 6 }, () => letters[Math.floor(Math.random() * 26)]).join("");
     const { data, error } = await supabase
       .from("games")
       .insert({ host_user_id: user!.id, scenario_id: scenarioId, join_code: code })
