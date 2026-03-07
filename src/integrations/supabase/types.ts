@@ -119,6 +119,24 @@ export type Database = {
         }
         Relationships: []
       }
+      feat_redirects: {
+        Row: {
+          from_title: string
+          id: string
+          to_title: string
+        }
+        Insert: {
+          from_title: string
+          id?: string
+          to_title: string
+        }
+        Update: {
+          from_title?: string
+          id?: string
+          to_title?: string
+        }
+        Relationships: []
+      }
       feats: {
         Row: {
           categories: string[]
