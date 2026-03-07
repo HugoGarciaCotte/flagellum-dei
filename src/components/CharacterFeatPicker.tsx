@@ -1,5 +1,6 @@
 import { useState, useMemo } from "react";
 import { supabase } from "@/integrations/supabase/client";
+import { sortTitlesEmojiLast } from "@/lib/utils";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -189,7 +190,7 @@ const CharacterFeatPicker = ({ characterId, mode = "player" }: CharacterFeatPick
       const lower = searchTerm.toLowerCase();
       filtered = filtered.filter((f) => f.title.toLowerCase().includes(lower));
     }
-    return filtered;
+    return filtered.sort(sortTitlesEmojiLast);
   }, [allFeats, filterMode, searchTerm, mode]);
 
   const filteredFreeFeats = useMemo(() => {
@@ -199,7 +200,7 @@ const CharacterFeatPicker = ({ characterId, mode = "player" }: CharacterFeatPick
       const lower = freeSearch.toLowerCase();
       filtered = filtered.filter((f) => f.title.toLowerCase().includes(lower));
     }
-    return filtered;
+    return filtered.sort(sortTitlesEmojiLast);
   }, [allFeats, freeSearch]);
 
   const canPickArchetype = (level: number) => {
