@@ -313,12 +313,12 @@ const ManageFeats = () => {
                             </div>
                           )}
 
-                          {/* Content preview */}
+                          {/* Full content */}
                           {f.content && (
                             <div>
-                              <p className="text-xs font-medium text-muted-foreground mb-1">Content preview</p>
-                              <pre className="text-xs text-muted-foreground font-mono bg-muted/50 rounded p-2 max-h-32 overflow-y-auto whitespace-pre-wrap">
-                                {f.content.slice(0, 500)}{f.content.length > 500 ? "..." : ""}
+                              <p className="text-xs font-medium text-muted-foreground mb-1">Content</p>
+                              <pre className="text-xs text-muted-foreground font-mono bg-muted/50 rounded p-2 max-h-96 overflow-y-auto whitespace-pre-wrap">
+                                {f.content}
                               </pre>
                             </div>
                           )}
