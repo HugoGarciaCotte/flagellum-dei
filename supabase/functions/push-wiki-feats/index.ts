@@ -78,7 +78,21 @@ function stripParseableBlock(content: string): string {
 }
 
 interface WikiSession {
-  cookies: string[];
+  cookies: Map<string, string>;
+}
+
+function serializeCookies(cookies: Map<string, string>): string {
+  return Array.from(cookies.entries()).map(([k, v]) => `${k}=${v}`).join("; ");
+}
+
+function collectCookies(res: Response, cookies: Map<string, string>) {
+  for (const val of res.headers.getSetCookie?.() || []) {
+    const pair = val.split(";")[0];
+    const eqIdx = pair.indexOf("=");
+    if (eqIdx > 0) {
+      cookies.set(pair.substring(0, eqIdx), pair.substring(eqIdx + 1));
+    }
+  }
 }
 
 async function wikiLogin(): Promise<WikiSession> {
@@ -86,16 +100,11 @@ async function wikiLogin(): Promise<WikiSession> {
   const password = Deno.env.get("WIKI_PASSWORD");
   if (!username || !password) throw new Error("Wiki credentials not configured");
 
-  const cookies: string[] = [];
-  const collectCookies = (res: Response) => {
-    for (const val of res.headers.getSetCookie?.() || []) {
-      cookies.push(val.split(";")[0]);
-    }
-  };
+  const cookies = new Map<string, string>();
 
   const tokenUrl = `${WIKI_API}?action=query&meta=tokens&type=login&format=json`;
   const tokenRes = await fetch(tokenUrl);
-  collectCookies(tokenRes);
+  collectCookies(tokenRes, cookies);
   const tokenData = await tokenRes.json();
   const loginToken = tokenData?.query?.tokens?.logintoken;
   if (!loginToken) throw new Error("Failed to get login token");
@@ -105,10 +114,10 @@ async function wikiLogin(): Promise<WikiSession> {
   });
   const loginRes = await fetch(WIKI_API, {
     method: "POST",
-    headers: { "Content-Type": "application/x-www-form-urlencoded", Cookie: cookies.join("; ") },
+    headers: { "Content-Type": "application/x-www-form-urlencoded", Cookie: serializeCookies(cookies) },
     body: loginBody.toString(),
   });
-  collectCookies(loginRes);
+  collectCookies(loginRes, cookies);
   const loginData = await loginRes.json();
   if (loginData?.login?.result !== "Success") throw new Error(`Wiki login failed: ${JSON.stringify(loginData?.login)}`);
   return { cookies };
@@ -116,8 +125,8 @@ async function wikiLogin(): Promise<WikiSession> {
 
 async function getEditToken(session: WikiSession): Promise<string> {
   const url = `${WIKI_API}?action=query&meta=tokens&type=csrf&format=json`;
-  const res = await fetch(url, { headers: { Cookie: session.cookies.join("; ") } });
-  for (const val of res.headers.getSetCookie?.() || []) { session.cookies.push(val.split(";")[0]); }
+  const res = await fetch(url, { headers: { Cookie: serializeCookies(session.cookies) } });
+  collectCookies(res, session.cookies);
   const data = await res.json();
   const token = data?.query?.tokens?.csrftoken;
   if (!token) throw new Error("Failed to get CSRF token");
@@ -131,7 +140,7 @@ async function getPageContent(title: string, session: WikiSession): Promise<stri
   url.searchParams.set("prop", "revisions");
   url.searchParams.set("rvprop", "content");
   url.searchParams.set("format", "json");
-  const res = await fetch(url.toString(), { headers: { Cookie: session.cookies.join("; ") } });
+  const res = await fetch(url.toString(), { headers: { Cookie: serializeCookies(session.cookies) } });
   const data = await res.json();
   const pages = data?.query?.pages;
   if (!pages) return null;
@@ -146,7 +155,7 @@ async function editPage(title: string, content: string, token: string, session: 
   });
   const res = await fetch(WIKI_API, {
     method: "POST",
-    headers: { "Content-Type": "application/x-www-form-urlencoded", Cookie: session.cookies.join("; ") },
+    headers: { "Content-Type": "application/x-www-form-urlencoded", Cookie: serializeCookies(session.cookies) },
     body: body.toString(),
   });
   const data = await res.json();
