@@ -171,7 +171,7 @@ const ManageFeats = () => {
     setBulkRegenerating(false);
     setBulkProgress(null);
     toast({
-      title: "Bulk regeneration complete",
+      title: "Bulk generation complete",
       description: errors > 0 ? `${errors} feat(s) had errors.` : `All ${feats.length} feats processed.`,
     });
   };
@@ -191,7 +191,7 @@ const ManageFeats = () => {
       setSelectedForRegen(new Set((data?.results || []).map((r: AICheckResult) => r.id)));
       setAiCheckDialogOpen(true);
     } catch (e: any) {
-      toast({ title: "AI check failed", description: e.message, variant: "destructive" });
+      toast({ title: "Parseable fields check failed", description: e.message, variant: "destructive" });
     } finally {
       setAiChecking(false);
       setAiCheckProgress(null);
@@ -368,7 +368,7 @@ const ManageFeats = () => {
                 disabled={aiChecking || bulkRegenerating || !feats?.length}
               >
                 {aiChecking ? <Loader2 className="h-4 w-4 animate-spin" /> : <Eye className="h-4 w-4" />}
-                Check with AI
+                Check Parseable Fields with AI
               </Button>
               <Button
                 onClick={handleBulkRegenerate}
@@ -378,7 +378,7 @@ const ManageFeats = () => {
                 disabled={bulkRegenerating || aiChecking || !feats?.length}
               >
                 {bulkRegenerating ? <Loader2 className="h-4 w-4 animate-spin" /> : <Wand2 className="h-4 w-4" />}
-                Regenerate All AI
+                Generate All Parseable Fields
               </Button>
               <Button onClick={openCreate} size="sm" className="gap-2 font-display">
                 <Plus className="h-4 w-4" /> New
@@ -501,7 +501,7 @@ const ManageFeats = () => {
                               disabled={isRegenerating}
                             >
                               {isRegenerating ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Sparkles className="h-3.5 w-3.5" />}
-                              Regenerate AI
+                              Generate Parseable Fields
                             </Button>
                             <Button
                               size="sm"
@@ -609,7 +609,7 @@ const ManageFeats = () => {
         <DialogContent className="max-w-3xl max-h-[90vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle className="font-display flex items-center gap-2">
-              <Eye className="h-5 w-5 text-primary" /> AI Review Results
+              <Eye className="h-5 w-5 text-primary" /> Parseable Fields Review
             </DialogTitle>
             <DialogDescription>
               {aiCheckResults?.length
@@ -667,7 +667,7 @@ const ManageFeats = () => {
             {aiCheckResults && aiCheckResults.length > 0 && (
               <Button onClick={handleRegenSelected} disabled={regenFromCheck || selectedForRegen.size === 0} className="gap-2 font-display">
                 {regenFromCheck ? <Loader2 className="h-4 w-4 animate-spin" /> : <Wand2 className="h-4 w-4" />}
-                Regenerate Selected ({selectedForRegen.size})
+                Generate Selected ({selectedForRegen.size})
               </Button>
             )}
           </DialogFooter>
