@@ -11,7 +11,7 @@ import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/component
 import { toast } from "@/hooks/use-toast";
 import { useNavigate } from "react-router-dom";
 import { Crown, LogOut, Plus, DoorOpen, Scroll, Users, Settings, ChevronDown, Sword, Trash2, Pencil, ShieldCheck } from "lucide-react";
-import CharacterFeatPicker from "@/components/CharacterFeatPicker";
+import CharacterSheet from "@/components/CharacterSheet";
 import { useOfflineScenarios } from "@/hooks/useOfflineScenarios";
 import { useOfflineFeats } from "@/hooks/useOfflineFeats";
 import { getCachedScenarios, isOffline } from "@/lib/offlineStorage";
@@ -274,41 +274,34 @@ const Dashboard = () => {
                 <DialogHeader>
                   <DialogTitle className="font-display">{editingChar ? "Edit Character" : "Create Character"}</DialogTitle>
                 </DialogHeader>
-                <div className="space-y-4">
-                  <Input
-                    placeholder="Character name"
-                    value={charName}
-                    onChange={(e) => setCharName(e.target.value)}
+                {activeCharId ? (
+                  <CharacterSheet
+                    characterId={activeCharId}
+                    mode="player"
+                    onDone={() => { setCharDialogOpen(false); resetCharForm(); }}
                   />
-                  <Textarea
-                    placeholder="Description (optional)"
-                    value={charDesc}
-                    onChange={(e) => setCharDesc(e.target.value)}
-                    rows={3}
-                  />
-                  <Button
-                    onClick={() => saveCharMutation.mutate()}
-                    disabled={!charName.trim() || saveCharMutation.isPending}
-                    className="w-full font-display"
-                  >
-                    {editingChar ? "Save Changes" : "Create Character"}
-                  </Button>
-
-                  {/* Feat picker — shown after character is saved */}
-                  {activeCharId && (
-                    <CharacterFeatPicker characterId={activeCharId} />
-                  )}
-
-                  {activeCharId && (
+                ) : (
+                  <div className="space-y-4">
+                    <Input
+                      placeholder="Character name"
+                      value={charName}
+                      onChange={(e) => setCharName(e.target.value)}
+                    />
+                    <Textarea
+                      placeholder="Description (optional)"
+                      value={charDesc}
+                      onChange={(e) => setCharDesc(e.target.value)}
+                      rows={3}
+                    />
                     <Button
-                      variant="outline"
+                      onClick={() => saveCharMutation.mutate()}
+                      disabled={!charName.trim() || saveCharMutation.isPending}
                       className="w-full font-display"
-                      onClick={() => { setCharDialogOpen(false); resetCharForm(); }}
                     >
-                      Done
+                      Create Character
                     </Button>
-                  )}
-                </div>
+                  </div>
+                )}
               </DialogContent>
             </Dialog>
           </div>

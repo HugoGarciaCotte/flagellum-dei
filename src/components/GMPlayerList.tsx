@@ -10,7 +10,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/u
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import { toast } from "@/hooks/use-toast";
 import { Users, ChevronDown, Pencil } from "lucide-react";
-import CharacterFeatPicker from "@/components/CharacterFeatPicker";
+import CharacterSheet from "@/components/CharacterSheet";
 
 interface PlayerRow {
   user_id: string;
@@ -141,34 +141,11 @@ const GMPlayerList = () => {
             </DialogTitle>
           </DialogHeader>
           {editPlayer?.character_id && (
-            <div className="space-y-4">
-              <Input
-                placeholder="Character name"
-                value={editName}
-                onChange={(e) => setEditName(e.target.value)}
-              />
-              <Textarea
-                placeholder="Description (optional)"
-                value={editDesc}
-                onChange={(e) => setEditDesc(e.target.value)}
-                rows={3}
-              />
-              <Button
-                onClick={() => updateCharMutation.mutate({ id: editPlayer.character_id!, name: editName, desc: editDesc })}
-                disabled={!editName.trim() || updateCharMutation.isPending}
-                className="w-full font-display"
-              >
-                Save Changes
-              </Button>
-              <CharacterFeatPicker characterId={editPlayer.character_id} mode="gm" />
-              <Button
-                variant="outline"
-                className="w-full font-display"
-                onClick={() => setEditPlayer(null)}
-              >
-                Done
-              </Button>
-            </div>
+            <CharacterSheet
+              characterId={editPlayer.character_id}
+              mode="gm"
+              onDone={() => setEditPlayer(null)}
+            />
           )}
         </DialogContent>
       </Dialog>

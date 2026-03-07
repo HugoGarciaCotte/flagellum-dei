@@ -7,7 +7,7 @@ import { Users, Pencil, Check, X, Sword } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { toast } from "@/hooks/use-toast";
-import CharacterFeatPicker from "@/components/CharacterFeatPicker";
+import CharacterSheet from "@/components/CharacterSheet";
 
 interface Player {
   id: string;
@@ -92,34 +92,8 @@ const PlayerListSheet = ({ players, characters, gameId }: PlayerListSheetProps) 
 
                   {char ? (
                     isEditing ? (
-                      <div className="space-y-2 bg-muted/30 rounded-md p-2">
-                        <Input
-                          value={editName}
-                          onChange={(e) => setEditName(e.target.value)}
-                          placeholder="Character name"
-                          className="text-sm"
-                        />
-                        <Textarea
-                          value={editDesc}
-                          onChange={(e) => setEditDesc(e.target.value)}
-                          placeholder="Description (optional)"
-                          rows={2}
-                          className="text-sm"
-                        />
-                        <div className="flex gap-2">
-                          <Button
-                            size="sm"
-                            className="gap-1"
-                            disabled={!editName.trim() || updateCharMutation.isPending}
-                            onClick={() => updateCharMutation.mutate({ id: char.id, name: editName, description: editDesc || null })}
-                          >
-                            <Check className="h-3 w-3" /> Save
-                          </Button>
-                          <Button size="sm" variant="ghost" onClick={cancelEdit} className="gap-1">
-                            <X className="h-3 w-3" /> Cancel
-                          </Button>
-                        </div>
-                        <CharacterFeatPicker characterId={char.id} mode="gm" />
+                      <div className="bg-muted/30 rounded-md p-2">
+                        <CharacterSheet characterId={char.id} mode="gm" onDone={cancelEdit} />
                       </div>
                     ) : (
                       <div className="flex items-start justify-between bg-muted/30 rounded-md p-2">
