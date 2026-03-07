@@ -5,7 +5,6 @@ import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { ArrowLeft, Scroll } from "lucide-react";
-import { getCachedSectionById, isOffline } from "@/lib/offlineStorage";
 
 const PlayGame = () => {
   const { gameId } = useParams<{ gameId: string }>();
@@ -17,7 +16,7 @@ const PlayGame = () => {
     queryFn: async () => {
       const { data, error } = await supabase
         .from("games")
-        .select("*, scenarios(title)")
+        .select("*, scenarios(title, content)")
         .eq("id", gameId!)
         .single();
       if (error) throw error;
@@ -26,26 +25,7 @@ const PlayGame = () => {
     enabled: !!gameId,
   });
 
-  const { data: section } = useQuery({
-    queryKey: ["current-section", game?.current_section_id],
-    queryFn: async () => {
-      if (!game?.current_section_id) return null;
-      if (isOffline()) {
-        const cached = getCachedSectionById(game.current_section_id);
-        if (cached) return cached;
-      }
-      const { data, error } = await supabase
-        .from("scenario_sections")
-        .select("*")
-        .eq("id", game.current_section_id)
-        .single();
-      if (error) throw error;
-      return data;
-    },
-    enabled: !!game?.current_section_id,
-  });
-
-  // Realtime: listen for game updates (section changes)
+  // Realtime: listen for game updates
   useEffect(() => {
     if (!gameId) return;
     const channel = supabase
@@ -74,6 +54,8 @@ const PlayGame = () => {
     );
   }
 
+  const scenarioContent = (game as any).scenarios?.content;
+
   return (
     <div className="min-h-screen bg-background flex flex-col">
       <header className="border-b border-border/50 bg-card/50 backdrop-blur sticky top-0 z-10">
@@ -89,17 +71,11 @@ const PlayGame = () => {
       </header>
 
       <main className="flex-1 container py-8 flex items-center justify-center max-w-3xl">
-        {section ? (
-          <Card
-            className="w-full border-2 transition-all duration-700"
-            style={{ borderColor: section.background_color }}
-          >
-            <CardContent className="p-8 space-y-4">
-              <h2 className="font-display text-2xl font-bold" style={{ color: section.background_color }}>
-                {section.title}
-              </h2>
+        {scenarioContent ? (
+          <Card className="w-full border-primary/20">
+            <CardContent className="p-8">
               <div className="text-foreground text-lg leading-relaxed whitespace-pre-wrap">
-                {section.content}
+                {scenarioContent}
               </div>
             </CardContent>
           </Card>
