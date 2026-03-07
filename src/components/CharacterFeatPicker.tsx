@@ -706,6 +706,91 @@ const CharacterFeatPicker = ({ characterId, mode = "player", scenarioLevel }: Ch
     );
   };
 
+  if (pickerTarget !== null) {
+    return (
+      <div className="space-y-3">
+        <div className="flex items-center gap-2">
+          <Button
+            variant="ghost"
+            size="sm"
+            className="h-7 w-7 p-0"
+            onClick={() => { setPickerTarget(null); setSearchTerm(""); setExpandedFeatId(null); }}
+          >
+            <ArrowLeft className="h-4 w-4" />
+          </Button>
+          <p className="text-sm font-semibold">{dialogTitle}</p>
+        </div>
+
+        {showArchetypeToggle && (
+          <div className="flex gap-1">
+            <Button
+              size="sm"
+              variant={filterMode === "archetype" ? "default" : "outline"}
+              className="h-7 text-xs"
+              onClick={() => setFilterMode("archetype")}
+            >
+              Archetype
+            </Button>
+            <Button
+              size="sm"
+              variant={filterMode === "feat" ? "default" : "outline"}
+              className="h-7 text-xs"
+              onClick={() => setFilterMode("feat")}
+            >
+              Feat
+            </Button>
+          </div>
+        )}
+
+        <div className="relative">
+          <Search className="absolute left-2 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+          <Input
+            placeholder="Search feats..."
+            value={searchTerm}
+            onChange={(e) => setSearchTerm(e.target.value)}
+            className="pl-8"
+            autoFocus
+          />
+        </div>
+
+        <div className="max-h-[60vh] overflow-y-auto space-y-1">
+          {filteredFeats.length === 0 ? (
+            <p className="text-sm text-muted-foreground text-center py-8">No feats found</p>
+          ) : (
+            filteredFeats.map((feat) => {
+              const isExpanded = expandedFeatId === feat.id;
+              return (
+                <FeatListItem
+                  key={feat.id}
+                  feat={feat}
+                  expanded={isExpanded}
+                  onToggleExpand={() => setExpandedFeatId(isExpanded ? null : feat.id)}
+                  titlePrefix={validatingFeat === feat.id ? (
+                    <Loader2 className="h-3 w-3 animate-spin text-primary shrink-0" />
+                  ) : undefined}
+                  expandedContent={
+                    <>
+                      {validatingFeat === feat.id && (
+                        <p className="text-xs text-primary">Checking prerequisites...</p>
+                      )}
+                      <Button
+                        size="sm"
+                        onClick={() => handleFeatSelect(feat.id)}
+                        disabled={upsertMutation.isPending || addFreeFeatMutation.isPending || setSubfeatMutation.isPending}
+                      >
+                        Pick this feat
+                      </Button>
+                    </>
+                  }
+                />
+              );
+            })
+          )}
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="space-y-2">
       <div className="flex items-center gap-2">
@@ -817,82 +902,6 @@ const CharacterFeatPicker = ({ characterId, mode = "player", scenarioLevel }: Ch
           )}
         </div>
       )}
-
-      {/* Fullscreen Feat Picker Dialog */}
-      <Dialog open={pickerTarget !== null} onOpenChange={(open) => { if (!open) { setPickerTarget(null); setSearchTerm(""); setExpandedFeatId(null); } }}>
-        <DialogContent className="max-w-none w-full h-full m-0 rounded-none flex flex-col">
-          <DialogHeader>
-            <DialogTitle>{dialogTitle}</DialogTitle>
-          </DialogHeader>
-
-          {showArchetypeToggle && (
-            <div className="flex gap-1">
-              <Button
-                size="sm"
-                variant={filterMode === "archetype" ? "default" : "outline"}
-                className="h-7 text-xs"
-                onClick={() => setFilterMode("archetype")}
-              >
-                Archetype
-              </Button>
-              <Button
-                size="sm"
-                variant={filterMode === "feat" ? "default" : "outline"}
-                className="h-7 text-xs"
-                onClick={() => setFilterMode("feat")}
-              >
-                Feat
-              </Button>
-            </div>
-          )}
-
-          <div className="relative">
-            <Search className="absolute left-2 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-            <Input
-              placeholder="Search feats..."
-              value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
-              className="pl-8"
-              autoFocus
-            />
-          </div>
-
-          <div className="flex-1 overflow-y-auto space-y-1">
-            {filteredFeats.length === 0 ? (
-              <p className="text-sm text-muted-foreground text-center py-8">No feats found</p>
-            ) : (
-              filteredFeats.map((feat) => {
-                const isExpanded = expandedFeatId === feat.id;
-                return (
-                  <FeatListItem
-                    key={feat.id}
-                    feat={feat}
-                    expanded={isExpanded}
-                    onToggleExpand={() => setExpandedFeatId(isExpanded ? null : feat.id)}
-                    titlePrefix={validatingFeat === feat.id ? (
-                      <Loader2 className="h-3 w-3 animate-spin text-primary shrink-0" />
-                    ) : undefined}
-                    expandedContent={
-                      <>
-                        {validatingFeat === feat.id && (
-                          <p className="text-xs text-primary">Checking prerequisites...</p>
-                        )}
-                        <Button
-                          size="sm"
-                          onClick={() => handleFeatSelect(feat.id)}
-                          disabled={upsertMutation.isPending || addFreeFeatMutation.isPending || setSubfeatMutation.isPending}
-                        >
-                          Pick this feat
-                        </Button>
-                      </>
-                    }
-                  />
-                );
-              })
-            )}
-          </div>
-        </DialogContent>
-      </Dialog>
     </div>
   );
 };
