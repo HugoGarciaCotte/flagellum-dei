@@ -21,6 +21,7 @@ export type Database = {
           id: string
           is_free: boolean
           level: number
+          note: string | null
         }
         Insert: {
           character_id: string
@@ -28,6 +29,7 @@ export type Database = {
           id?: string
           is_free?: boolean
           level: number
+          note?: string | null
         }
         Update: {
           character_id?: string
@@ -35,6 +37,7 @@ export type Database = {
           id?: string
           is_free?: boolean
           level?: number
+          note?: string | null
         }
         Relationships: [
           {
