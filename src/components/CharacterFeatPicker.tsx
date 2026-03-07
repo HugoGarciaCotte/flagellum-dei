@@ -36,6 +36,7 @@ type Feat = {
   title: string;
   categories: string[];
   content: string | null;
+  raw_content: string | null;
 };
 
 type CharacterFeat = {
@@ -80,7 +81,7 @@ const CharacterFeatPicker = ({ characterId, mode = "player", scenarioLevel }: Ch
     queryFn: async () => {
       const { data, error } = await supabase
         .from("feats")
-        .select("id, title, categories, content")
+        .select("id, title, categories, content, raw_content")
         .order("title");
       if (error) throw error;
       return data as Feat[];
@@ -97,7 +98,7 @@ const CharacterFeatPicker = ({ characterId, mode = "player", scenarioLevel }: Ch
   // Parse metadata from content for all feats
   const metaMap = useMemo(() => {
     const map = new Map<string, ReturnType<typeof parseEmbeddedFeatMeta>>();
-    (allFeats ?? []).forEach((f) => map.set(f.id, parseEmbeddedFeatMeta(f.content)));
+    (allFeats ?? []).forEach((f) => map.set(f.id, parseEmbeddedFeatMeta(f.raw_content || f.content)));
     return map;
   }, [allFeats]);
 
