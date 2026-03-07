@@ -22,9 +22,15 @@ function slugify(text: string): string {
     .replace(/^-|-$/g, "");
 }
 
-function convertInlineMarkup(text: string): string {
+export function convertInlineMarkup(text: string): string {
   // Strip HTML comments
   text = text.replace(/<!--[\s\S]*?-->/g, "");
+  // Strip bare category links: [[Category:X]]
+  text = text.replace(/\[\[Category:[^\]]*\]\]/gi, "");
+  // Category links with label: [[:Category:X|Label]] → plain text Label
+  text = text.replace(/\[\[:Category:[^|\]]+\|([^\]]+)\]\]/gi, "$1");
+  // Strip remaining [[:Category:X]] without label
+  text = text.replace(/\[\[:Category:[^\]]*\]\]/gi, "");
   // Bold+Italic: '''''text'''''
   text = text.replace(/'''''(.+?)'''''/g, "<strong><em>$1</em></strong>");
   // Bold: '''text'''
@@ -41,6 +47,8 @@ function convertInlineMarkup(text: string): string {
   text = text.replace(/^----$/gm, "<hr>");
   return text;
 }
+
+
 
 type ListType = "ul" | "ol" | "dl";
 
