@@ -419,10 +419,10 @@ Deno.serve(async (req) => {
       );
     }
 
-    // Fetch existing feats (include description, subfeats, specialities to check if they need AI generation)
+    // Fetch existing feats
     const { data: existingFeats } = await adminClient
       .from("feats")
-      .select("id, title, content, categories, description, subfeats, unlocks_categories, specialities");
+      .select("id, title, content, categories");
     const existingMap = new Map(
       (existingFeats || []).map((f: any) => [f.title, f])
     );
@@ -445,10 +445,15 @@ Deno.serve(async (req) => {
         const existing = existingMap.get(title);
         if (!existing) {
           items.push({ title, status: "new", categories });
-        } else if (existing.content !== content || JSON.stringify(existing.categories || []) !== JSON.stringify(categories)) {
-          items.push({ title, status: "modified", categories });
         } else {
-          items.push({ title, status: "unchanged", categories });
+          // Compare raw wiki content (strip parseable block from existing for comparison)
+          const existingRaw = (existing.content || "").replace(/<!--@ PARSEABLE FIELDS START @-->[\s\S]*?<!--@ PARSEABLE FIELDS END @-->/g, "").trim();
+          const newRaw = content.replace(/<!--@ PARSEABLE FIELDS START @-->[\s\S]*?<!--@ PARSEABLE FIELDS END @-->/g, "").trim();
+          if (existingRaw !== newRaw || JSON.stringify(existing.categories || []) !== JSON.stringify(categories)) {
+            items.push({ title, status: "modified", categories });
+          } else {
+            items.push({ title, status: "unchanged", categories });
+          }
         }
       } catch {
         items.push({ title, status: "new", categories });
