@@ -36,6 +36,7 @@ const CharacterFeatPicker = ({ characterId, mode = "player" }: CharacterFeatPick
   const [filterMode, setFilterMode] = useState<"archetype" | "feat">("feat");
   const [addingFree, setAddingFree] = useState(false);
   const [freeSearch, setFreeSearch] = useState("");
+  const [validatingFeat, setValidatingFeat] = useState<string | null>(null);
 
   const { data: allFeats } = useQuery({
     queryKey: ["all-feats"],
