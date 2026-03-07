@@ -138,11 +138,12 @@ Deno.serve(async (req) => {
     for (const page of pages) {
       try {
         const title = page.title as string;
-        const pageUrl = `https://prima.wiki/api.php?action=expandtemplates&title=${encodeURIComponent(title)}&text={{:${encodeURIComponent(title)}}}&prop=wikitext&format=json`;
+        const pageUrl = `https://prima.wiki/api.php?action=query&titles=${encodeURIComponent(title)}&prop=revisions&rvprop=content&rvslots=main&format=json&origin=*`;
         const pageRes = await fetch(pageUrl);
         const pageData = await pageRes.json();
-
-        const content = pageData?.expandtemplates?.wikitext || "";
+        const pages = pageData?.query?.pages;
+        const pageId = Object.keys(pages || {})[0];
+        const content = pages?.[pageId]?.revisions?.[0]?.slots?.main?.content || "";
         if (!content) continue;
         // Extract scenario_level from metadata tag
         const levelMatch = content.match(/<!--@\s*scenario_level:\s*(\d+)\s*@-->/);
