@@ -256,10 +256,38 @@ const CharacterFeatPicker = ({ characterId, mode = "player", scenarioLevel }: Ch
         .insert({ character_id: characterId, level: 0, feat_id: featId, is_free: true });
       if (error) throw error;
     },
-    onSuccess: () => {
+    onSuccess: (_data, featId) => {
       queryClient.invalidateQueries({ queryKey: ["character-feats", characterId] });
-      setPickerTarget(null);
-      setSearchTerm("");
+
+      // Check for non-fixed subfeats
+      const feat = featMap.get(featId);
+      const nonFixedSlots = (feat?.subfeats ?? []).filter(s => s.kind !== "fixed");
+      if (nonFixedSlots.length > 0) {
+        supabase
+          .from("character_feats")
+          .select("id")
+          .eq("character_id", characterId)
+          .eq("feat_id", featId)
+          .eq("is_free", true)
+          .order("level", { ascending: false })
+          .limit(1)
+          .single()
+          .then(({ data: cfRow }) => {
+            if (cfRow) {
+              const queue = nonFixedSlots.map(s => ({ characterFeatId: cfRow.id, slot: s }));
+              setPendingSubfeatSlots(queue.slice(1));
+              setSearchTerm("");
+              setExpandedFeatId(null);
+              setPickerTarget({ type: "subfeat", characterFeatId: cfRow.id, slot: queue[0].slot });
+            } else {
+              setPickerTarget(null);
+              setSearchTerm("");
+            }
+          });
+      } else {
+        setPickerTarget(null);
+        setSearchTerm("");
+      }
     },
   });
 
