@@ -7,6 +7,7 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import { Progress } from "@/components/ui/progress";
+import { Checkbox } from "@/components/ui/checkbox";
 import {
   Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter,
 } from "@/components/ui/dialog";
@@ -20,10 +21,11 @@ import {
 import { toast } from "@/hooks/use-toast";
 import {
   Plus, Pencil, Trash2, Sword, Loader2, Sparkles, Layers,
-  ChevronDown, CheckCircle2, AlertCircle, Wand2, Copy, Upload, Unlock,
+  ChevronDown, CheckCircle2, AlertCircle, Wand2, Copy, Unlock, Eye,
 } from "lucide-react";
 import FeatCategoryBadges from "@/components/FeatCategoryBadges";
-import { parseEmbeddedFeatMeta, generateParseableBlock, mergeParseableBlock, type SubfeatSlot } from "@/lib/parseEmbeddedFeatMeta";
+import { parseEmbeddedFeatMeta, generateParseableBlock, type SubfeatSlot } from "@/lib/parseEmbeddedFeatMeta";
+import { Badge } from "@/components/ui/badge";
 
 type Feat = {
   id: string;
@@ -38,6 +40,20 @@ type FormData = {
   content: string;
 };
 
+type AISuggestion = {
+  field: string;
+  current: string | null;
+  suggested: string | null;
+  action: "add" | "modify" | "delete";
+  reason?: string;
+};
+
+type AICheckResult = {
+  title: string;
+  id: string;
+  suggestions: AISuggestion[];
+};
+
 const emptyForm: FormData = { title: "", content: "" };
 
 const ManageFeats = () => {
@@ -50,9 +66,15 @@ const ManageFeats = () => {
   const [expandedId, setExpandedId] = useState<string | null>(null);
   const [bulkRegenerating, setBulkRegenerating] = useState(false);
   const [bulkProgress, setBulkProgress] = useState<{ current: number; total: number } | null>(null);
-  const [pushingId, setPushingId] = useState<string | null>(null);
-  const [bulkPushing, setBulkPushing] = useState(false);
-  const [bulkPushProgress, setBulkPushProgress] = useState<{ current: number; total: number } | null>(null);
+
+  // Check with AI state
+  const [aiChecking, setAiChecking] = useState(false);
+  const [aiCheckProgress, setAiCheckProgress] = useState<{ current: number; total: number } | null>(null);
+  const [aiCheckResults, setAiCheckResults] = useState<AICheckResult[] | null>(null);
+  const [aiCheckDialogOpen, setAiCheckDialogOpen] = useState(false);
+  const [selectedForRegen, setSelectedForRegen] = useState<Set<string>>(new Set());
+  const [regenFromCheck, setRegenFromCheck] = useState(false);
+  const [regenFromCheckProgress, setRegenFromCheckProgress] = useState<{ current: number; total: number } | null>(null);
 
   const { data: feats, isLoading } = useQuery({
     queryKey: ["admin-feats"],
@@ -107,18 +129,14 @@ const ManageFeats = () => {
     },
   });
 
+  // Regenerate AI for a single feat — wipe + regen all fields
   const handleRegenerateAll = async (id: string) => {
     setRegeneratingId(id);
     try {
-      await supabase.functions.invoke("regenerate-description", {
-        body: { type: "feat", id },
+      const { error } = await supabase.functions.invoke("regenerate-description", {
+        body: { action: "regenerate_all", id },
       });
-      await supabase.functions.invoke("regenerate-description", {
-        body: { action: "regenerate_subfeats", id },
-      });
-      await supabase.functions.invoke("regenerate-description", {
-        body: { action: "regenerate_specialities", id },
-      });
+      if (error) throw error;
       queryClient.invalidateQueries({ queryKey: ["admin-feats"] });
       toast({ title: "AI content regenerated" });
     } catch (e: any) {
@@ -128,6 +146,7 @@ const ManageFeats = () => {
     }
   };
 
+  // Bulk regenerate all feats
   const handleBulkRegenerate = async () => {
     if (!feats?.length) return;
     setBulkRegenerating(true);
@@ -136,15 +155,10 @@ const ManageFeats = () => {
     for (let i = 0; i < feats.length; i++) {
       setBulkProgress({ current: i + 1, total: feats.length });
       try {
-        await supabase.functions.invoke("regenerate-description", {
-          body: { type: "feat", id: feats[i].id },
+        const { error } = await supabase.functions.invoke("regenerate-description", {
+          body: { action: "regenerate_all", id: feats[i].id },
         });
-        await supabase.functions.invoke("regenerate-description", {
-          body: { action: "regenerate_subfeats", id: feats[i].id },
-        });
-        await supabase.functions.invoke("regenerate-description", {
-          body: { action: "regenerate_specialities", id: feats[i].id },
-        });
+        if (error) throw error;
       } catch {
         errors++;
       }
@@ -158,46 +172,54 @@ const ManageFeats = () => {
     });
   };
 
-  const handlePushToWiki = async (id: string) => {
-    setPushingId(id);
+  // Check all with AI
+  const handleCheckWithAI = async () => {
+    if (!feats?.length) return;
+    setAiChecking(true);
+    setAiCheckProgress({ current: 0, total: feats.length });
     try {
-      const { data, error } = await supabase.functions.invoke("push-wiki-feats", {
-        body: { id },
+      const { data, error } = await supabase.functions.invoke("check-feats-ai", {
+        body: { all: true },
       });
       if (error) throw error;
-      const result = data?.results?.[0];
-      if (result?.status === "error") throw new Error(result.error);
-      toast({ title: result?.status === "unchanged" ? "Wiki already up to date" : "Pushed to wiki" });
+      setAiCheckResults(data?.results || []);
+      setAiCheckProgress(null);
+      setSelectedForRegen(new Set((data?.results || []).map((r: AICheckResult) => r.id)));
+      setAiCheckDialogOpen(true);
     } catch (e: any) {
-      toast({ title: "Push failed", description: e.message, variant: "destructive" });
+      toast({ title: "AI check failed", description: e.message, variant: "destructive" });
     } finally {
-      setPushingId(null);
+      setAiChecking(false);
+      setAiCheckProgress(null);
     }
   };
 
-  const handleBulkPush = async () => {
-    if (!feats?.length) return;
-    setBulkPushing(true);
-    setBulkPushProgress({ current: 0, total: feats.length });
+  // Regenerate selected feats from AI check results
+  const handleRegenSelected = async () => {
+    if (selectedForRegen.size === 0) return;
+    setRegenFromCheck(true);
+    const ids = Array.from(selectedForRegen);
+    setRegenFromCheckProgress({ current: 0, total: ids.length });
     let errors = 0;
-    for (let i = 0; i < feats.length; i += 5) {
-      const batch = feats.slice(i, i + 5);
-      setBulkPushProgress({ current: Math.min(i + 5, feats.length), total: feats.length });
+    for (let i = 0; i < ids.length; i++) {
+      setRegenFromCheckProgress({ current: i + 1, total: ids.length });
       try {
-        const { data, error } = await supabase.functions.invoke("push-wiki-feats", {
-          body: { ids: batch.map((f) => f.id) },
+        const { error } = await supabase.functions.invoke("regenerate-description", {
+          body: { action: "regenerate_all", id: ids[i] },
         });
         if (error) throw error;
-        errors += (data?.results || []).filter((r: any) => r.status === "error").length;
       } catch {
-        errors += batch.length;
+        errors++;
       }
     }
-    setBulkPushing(false);
-    setBulkPushProgress(null);
+    queryClient.invalidateQueries({ queryKey: ["admin-feats"] });
+    setRegenFromCheck(false);
+    setRegenFromCheckProgress(null);
+    setAiCheckDialogOpen(false);
+    setAiCheckResults(null);
     toast({
-      title: "Bulk push complete",
-      description: errors > 0 ? `${errors} feat(s) had errors.` : `All ${feats.length} feats pushed.`,
+      title: "Regeneration complete",
+      description: errors > 0 ? `${errors} feat(s) had errors.` : `All ${ids.length} feats regenerated.`,
     });
   };
 
@@ -223,7 +245,6 @@ const ManageFeats = () => {
 
   const getMeta = (f: Feat) => parseEmbeddedFeatMeta(f.content);
   const hasDescription = (f: Feat) => !!getMeta(f).description?.trim();
-  const hasContent = (f: Feat) => !!f.content?.trim();
   const hasSubfeats = (f: Feat) => { const m = getMeta(f); return Array.isArray(m.subfeats) && m.subfeats.length > 0; };
   const hasSpecialities = (f: Feat) => { const m = getMeta(f); return Array.isArray(m.specialities) && m.specialities.length > 0; };
   const hasUnlocks = (f: Feat) => { const m = getMeta(f); return Array.isArray(m.unlocks_categories) && m.unlocks_categories.length > 0; };
@@ -270,6 +291,15 @@ const ManageFeats = () => {
     toast({ title: "Wiki tags copied to clipboard" });
   };
 
+  const actionBadge = (action: string) => {
+    switch (action) {
+      case "add": return <Badge className="bg-emerald-500/20 text-emerald-400 border-emerald-500/30">Add</Badge>;
+      case "modify": return <Badge className="bg-amber-500/20 text-amber-400 border-amber-500/30">Modify</Badge>;
+      case "delete": return <Badge className="bg-red-500/20 text-red-400 border-red-500/30">Delete</Badge>;
+      default: return <Badge variant="outline">{action}</Badge>;
+    }
+  };
+
   return (
     <>
       <Card className="border-primary/20">
@@ -285,24 +315,24 @@ const ManageFeats = () => {
             </div>
             <div className="flex items-center gap-2">
               <Button
+                onClick={handleCheckWithAI}
+                size="sm"
+                variant="outline"
+                className="gap-2 font-display"
+                disabled={aiChecking || bulkRegenerating || !feats?.length}
+              >
+                {aiChecking ? <Loader2 className="h-4 w-4 animate-spin" /> : <Eye className="h-4 w-4" />}
+                Check with AI
+              </Button>
+              <Button
                 onClick={handleBulkRegenerate}
                 size="sm"
                 variant="outline"
                 className="gap-2 font-display"
-                disabled={bulkRegenerating || !feats?.length}
+                disabled={bulkRegenerating || aiChecking || !feats?.length}
               >
                 {bulkRegenerating ? <Loader2 className="h-4 w-4 animate-spin" /> : <Wand2 className="h-4 w-4" />}
                 Regenerate All AI
-              </Button>
-              <Button
-                onClick={handleBulkPush}
-                size="sm"
-                variant="outline"
-                className="gap-2 font-display"
-                disabled={bulkPushing || !feats?.length}
-              >
-                {bulkPushing ? <Loader2 className="h-4 w-4 animate-spin" /> : <Upload className="h-4 w-4" />}
-                Push All to Wiki
               </Button>
               <Button onClick={openCreate} size="sm" className="gap-2 font-display">
                 <Plus className="h-4 w-4" /> New
@@ -316,15 +346,6 @@ const ManageFeats = () => {
                 <span>{Math.round((bulkProgress.current / bulkProgress.total) * 100)}%</span>
               </div>
               <Progress value={(bulkProgress.current / bulkProgress.total) * 100} className="h-2" />
-            </div>
-          )}
-          {bulkPushProgress && (
-            <div className="mt-3 space-y-1.5">
-              <div className="flex items-center justify-between text-xs text-muted-foreground">
-                <span>Pushing feat {bulkPushProgress.current} of {bulkPushProgress.total}...</span>
-                <span>{Math.round((bulkPushProgress.current / bulkPushProgress.total) * 100)}%</span>
-              </div>
-              <Progress value={(bulkPushProgress.current / bulkPushProgress.total) * 100} className="h-2" />
             </div>
           )}
         </CardHeader>
@@ -374,7 +395,6 @@ const ManageFeats = () => {
 
                       <CollapsibleContent>
                         <div className="px-3 pb-3 pt-0 border-t border-border space-y-3">
-                          {/* Full description */}
                           <div className="pt-3">
                             <p className="text-xs font-medium text-muted-foreground mb-1">Description</p>
                             <p className="text-sm text-foreground">
@@ -382,7 +402,6 @@ const ManageFeats = () => {
                             </p>
                           </div>
 
-                          {/* Subfeats detail */}
                           {renderSubfeatsDetail(meta.subfeats)}
                           {!hasSubfeats(f) && (
                             <div>
@@ -391,7 +410,6 @@ const ManageFeats = () => {
                             </div>
                           )}
 
-                          {/* Specialities detail */}
                           <div>
                             <p className="text-xs font-medium text-muted-foreground mb-1">Specialities</p>
                             {hasSpecialities(f) ? (
@@ -401,7 +419,6 @@ const ManageFeats = () => {
                             )}
                           </div>
 
-                          {/* Full content */}
                           {f.content && (
                             <div>
                               <p className="text-xs font-medium text-muted-foreground mb-1">Content</p>
@@ -411,7 +428,6 @@ const ManageFeats = () => {
                             </div>
                           )}
 
-                          {/* Actions */}
                           <div className="flex items-center gap-2 pt-1">
                             <Button
                               size="sm"
@@ -422,16 +438,6 @@ const ManageFeats = () => {
                             >
                               {isRegenerating ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Sparkles className="h-3.5 w-3.5" />}
                               Regenerate AI
-                            </Button>
-                            <Button
-                              size="sm"
-                              variant="outline"
-                              className="gap-1.5"
-                              onClick={(e) => { e.stopPropagation(); handlePushToWiki(f.id); }}
-                              disabled={pushingId === f.id}
-                            >
-                              {pushingId === f.id ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Upload className="h-3.5 w-3.5" />}
-                              Push to Wiki
                             </Button>
                             <Button
                               size="sm"
@@ -459,6 +465,7 @@ const ManageFeats = () => {
         </CardContent>
       </Card>
 
+      {/* Edit/Create Dialog */}
       <Dialog open={dialogOpen} onOpenChange={(open) => { if (!open) { setDialogOpen(false); setEditingId(null); } }}>
         <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
           <DialogHeader>
@@ -509,6 +516,7 @@ const ManageFeats = () => {
         </DialogContent>
       </Dialog>
 
+      {/* Delete Dialog */}
       <AlertDialog open={!!deleteTarget} onOpenChange={(open) => { if (!open) setDeleteTarget(null); }}>
         <AlertDialogContent>
           <AlertDialogHeader>
@@ -529,6 +537,76 @@ const ManageFeats = () => {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+
+      {/* AI Check Results Dialog */}
+      <Dialog open={aiCheckDialogOpen} onOpenChange={(open) => { if (!open && !regenFromCheck) { setAiCheckDialogOpen(false); setAiCheckResults(null); } }}>
+        <DialogContent className="max-w-3xl max-h-[90vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle className="font-display flex items-center gap-2">
+              <Eye className="h-5 w-5 text-primary" /> AI Review Results
+            </DialogTitle>
+            <DialogDescription>
+              {aiCheckResults?.length
+                ? `${aiCheckResults.length} feat(s) have suggested changes. Select which to regenerate.`
+                : "All feats look good — no suggestions."}
+            </DialogDescription>
+          </DialogHeader>
+
+          {regenFromCheckProgress && (
+            <div className="space-y-1.5">
+              <div className="flex items-center justify-between text-xs text-muted-foreground">
+                <span>Regenerating {regenFromCheckProgress.current} of {regenFromCheckProgress.total}...</span>
+                <span>{Math.round((regenFromCheckProgress.current / regenFromCheckProgress.total) * 100)}%</span>
+              </div>
+              <Progress value={(regenFromCheckProgress.current / regenFromCheckProgress.total) * 100} className="h-2" />
+            </div>
+          )}
+
+          {aiCheckResults && aiCheckResults.length > 0 && (
+            <div className="space-y-3 max-h-[60vh] overflow-y-auto">
+              {aiCheckResults.map((result) => (
+                <div key={result.id} className="rounded-lg border border-border p-3 space-y-2">
+                  <div className="flex items-center gap-3">
+                    <Checkbox
+                      checked={selectedForRegen.has(result.id)}
+                      onCheckedChange={(checked) => {
+                        setSelectedForRegen(prev => {
+                          const next = new Set(prev);
+                          if (checked) next.add(result.id);
+                          else next.delete(result.id);
+                          return next;
+                        });
+                      }}
+                    />
+                    <span className="font-medium text-sm">{result.title}</span>
+                  </div>
+                  <div className="pl-7 space-y-1.5">
+                    {result.suggestions.map((s, i) => (
+                      <div key={i} className="flex items-start gap-2 text-xs">
+                        {actionBadge(s.action)}
+                        <span className="font-medium text-muted-foreground">{s.field}</span>
+                        {s.reason && <span className="text-muted-foreground">— {s.reason}</span>}
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+
+          <DialogFooter>
+            <Button variant="outline" onClick={() => { setAiCheckDialogOpen(false); setAiCheckResults(null); }} disabled={regenFromCheck}>
+              Close
+            </Button>
+            {aiCheckResults && aiCheckResults.length > 0 && (
+              <Button onClick={handleRegenSelected} disabled={regenFromCheck || selectedForRegen.size === 0} className="gap-2 font-display">
+                {regenFromCheck ? <Loader2 className="h-4 w-4 animate-spin" /> : <Wand2 className="h-4 w-4" />}
+                Regenerate Selected ({selectedForRegen.size})
+              </Button>
+            )}
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </>
   );
 };

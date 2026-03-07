@@ -1,15 +1,17 @@
 import { useState } from "react";
-import { useQueryClient } from "@tanstack/react-query";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Table, TableHeader, TableBody, TableHead, TableRow, TableCell } from "@/components/ui/table";
+import { Progress } from "@/components/ui/progress";
 import { toast } from "@/hooks/use-toast";
-import { Sword, Loader2, Search, X, Check } from "lucide-react";
+import { Sword, Loader2, Search, X, Check, Upload } from "lucide-react";
 import FeatCategoryBadges from "@/components/FeatCategoryBadges";
 
 type PreviewItem = { title: string; status: "new" | "modified" | "unchanged"; categories?: string[] };
+type PushPreviewItem = { title: string; id: string; status: string; error?: string };
 
 const statusBadge = (status: PreviewItem["status"]) => {
   switch (status) {
@@ -22,12 +24,47 @@ const statusBadge = (status: PreviewItem["status"]) => {
   }
 };
 
+const pushStatusBadge = (status: string) => {
+  switch (status) {
+    case "new":
+      return <Badge className="bg-emerald-500/20 text-emerald-400 border-emerald-500/30">New</Badge>;
+    case "modified":
+      return <Badge className="bg-amber-500/20 text-amber-400 border-amber-500/30">Modified</Badge>;
+    case "delete":
+      return <Badge className="bg-red-500/20 text-red-400 border-red-500/30">Delete</Badge>;
+    case "unchanged":
+      return <Badge variant="outline" className="text-muted-foreground">Unchanged</Badge>;
+    case "not_found":
+      return <Badge variant="outline" className="text-muted-foreground">Not on Wiki</Badge>;
+    case "error":
+      return <Badge className="bg-red-500/20 text-red-400 border-red-500/30">Error</Badge>;
+    default:
+      return <Badge variant="outline">{status}</Badge>;
+  }
+};
+
 const ImportFeatsCard = () => {
   const queryClient = useQueryClient();
   const [checking, setChecking] = useState(false);
   const [importing, setImporting] = useState(false);
   const [preview, setPreview] = useState<PreviewItem[] | null>(null);
   const [result, setResult] = useState<{ imported: number; total: number; errors: string[] } | null>(null);
+
+  // Push to Wiki state
+  const [pushChecking, setPushChecking] = useState(false);
+  const [pushPreview, setPushPreview] = useState<PushPreviewItem[] | null>(null);
+  const [pushing, setPushing] = useState(false);
+  const [pushProgress, setPushProgress] = useState<{ current: number; total: number } | null>(null);
+
+  // Fetch all feat IDs for push preview
+  const { data: allFeats } = useQuery({
+    queryKey: ["admin-feats-ids"],
+    queryFn: async () => {
+      const { data, error } = await supabase.from("feats").select("id, title").order("title");
+      if (error) throw error;
+      return data;
+    },
+  });
 
   const handlePreview = async () => {
     setChecking(true);
@@ -50,16 +87,14 @@ const ImportFeatsCard = () => {
     setImporting(true);
     setResult(null);
     try {
-      const controller = new AbortController();
-      const timeout = setTimeout(() => controller.abort(), 5 * 60 * 1000);
       const { data, error } = await supabase.functions.invoke("import-wiki-feats", {
         body: { mode: "execute" },
       });
-      clearTimeout(timeout);
       if (error) throw error;
       setResult(data);
       setPreview(null);
       queryClient.invalidateQueries({ queryKey: ["admin-feats"] });
+      queryClient.invalidateQueries({ queryKey: ["admin-feats-ids"] });
       toast({
         title: "Import complete",
         description: `Imported ${data.imported} of ${data.total} feats.`,
@@ -71,29 +106,96 @@ const ImportFeatsCard = () => {
     }
   };
 
+  const handlePushPreview = async () => {
+    if (!allFeats?.length) return;
+    setPushChecking(true);
+    setPushPreview(null);
+    try {
+      // Send all feat IDs in batches
+      const allResults: PushPreviewItem[] = [];
+      const BATCH = 10;
+      for (let i = 0; i < allFeats.length; i += BATCH) {
+        const batch = allFeats.slice(i, i + BATCH);
+        const { data, error } = await supabase.functions.invoke("push-wiki-feats", {
+          body: { ids: batch.map(f => f.id), mode: "preview" },
+        });
+        if (error) throw error;
+        allResults.push(...(data?.results || []));
+      }
+      setPushPreview(allResults);
+    } catch (e: any) {
+      toast({ title: "Push check failed", description: e.message, variant: "destructive" });
+    } finally {
+      setPushChecking(false);
+    }
+  };
+
+  const handlePushExecute = async () => {
+    if (!pushPreview) return;
+    const toPush = pushPreview.filter(p => p.status !== "unchanged" && p.status !== "not_found" && p.status !== "error");
+    if (toPush.length === 0) return;
+
+    setPushing(true);
+    setPushProgress({ current: 0, total: toPush.length });
+    let errors = 0;
+
+    const BATCH = 5;
+    for (let i = 0; i < toPush.length; i += BATCH) {
+      const batch = toPush.slice(i, i + BATCH);
+      setPushProgress({ current: Math.min(i + BATCH, toPush.length), total: toPush.length });
+      try {
+        const { data, error } = await supabase.functions.invoke("push-wiki-feats", {
+          body: { ids: batch.map(f => f.id) },
+        });
+        if (error) throw error;
+        errors += (data?.results || []).filter((r: any) => r.status === "error").length;
+      } catch {
+        errors += batch.length;
+      }
+    }
+
+    setPushing(false);
+    setPushProgress(null);
+    setPushPreview(null);
+    toast({
+      title: "Push complete",
+      description: errors > 0 ? `${errors} feat(s) had errors.` : `All ${toPush.length} feats pushed.`,
+    });
+  };
+
   const newCount = preview?.filter((i) => i.status === "new").length ?? 0;
   const modifiedCount = preview?.filter((i) => i.status === "modified").length ?? 0;
   const unchangedCount = preview?.filter((i) => i.status === "unchanged").length ?? 0;
   const hasChanges = newCount + modifiedCount > 0;
 
+  const pushChanges = pushPreview?.filter(p => p.status !== "unchanged" && p.status !== "not_found" && p.status !== "error").length ?? 0;
+
   return (
     <Card className="border-primary/20">
       <CardHeader>
         <CardTitle className="font-display flex items-center gap-2">
-          <Sword className="h-5 w-5 text-primary" /> Import Feats from Wiki
+          <Sword className="h-5 w-5 text-primary" /> Import / Push Feats
         </CardTitle>
         <CardDescription>
-          Fetches pages in both Category:Feats and Category:Official from prima.wiki and imports their MediaWiki content.
+          Sync feats between the wiki and the database. Import pulls content from prima.wiki. Push sends parseable fields back to the wiki.
         </CardDescription>
       </CardHeader>
       <CardContent className="space-y-4">
-        {!preview && !result && (
-          <Button onClick={handlePreview} disabled={checking} className="gap-2 font-display">
-            {checking ? <Loader2 className="h-4 w-4 animate-spin" /> : <Search className="h-4 w-4" />}
-            {checking ? "Checking..." : "Check for Updates"}
-          </Button>
+        {/* === IMPORT SECTION === */}
+        {!preview && !result && !pushPreview && (
+          <div className="flex items-center gap-3">
+            <Button onClick={handlePreview} disabled={checking || pushChecking} className="gap-2 font-display">
+              {checking ? <Loader2 className="h-4 w-4 animate-spin" /> : <Search className="h-4 w-4" />}
+              {checking ? "Checking..." : "Check for Updates"}
+            </Button>
+            <Button onClick={handlePushPreview} disabled={pushChecking || checking || !allFeats?.length} variant="outline" className="gap-2 font-display">
+              {pushChecking ? <Loader2 className="h-4 w-4 animate-spin" /> : <Upload className="h-4 w-4" />}
+              {pushChecking ? "Checking..." : "Push to Wiki"}
+            </Button>
+          </div>
         )}
 
+        {/* Import preview */}
         {preview && (
           <div className="space-y-4">
             <div className="flex items-center gap-3 text-sm text-muted-foreground">
@@ -147,6 +249,68 @@ const ImportFeatsCard = () => {
           </div>
         )}
 
+        {/* Push preview */}
+        {pushPreview && (
+          <div className="space-y-4">
+            <div className="flex items-center gap-3 text-sm text-muted-foreground">
+              <span>{pushPreview.length} feats checked</span>
+              <span>·</span>
+              <span className="text-emerald-400">{pushPreview.filter(p => p.status === "new").length} new</span>
+              <span>·</span>
+              <span className="text-amber-400">{pushPreview.filter(p => p.status === "modified").length} modified</span>
+              <span>·</span>
+              <span>{pushPreview.filter(p => p.status === "unchanged").length} unchanged</span>
+            </div>
+
+            {pushProgress && (
+              <div className="space-y-1.5">
+                <div className="flex items-center justify-between text-xs text-muted-foreground">
+                  <span>Pushing {pushProgress.current} of {pushProgress.total}...</span>
+                  <span>{Math.round((pushProgress.current / pushProgress.total) * 100)}%</span>
+                </div>
+                <Progress value={(pushProgress.current / pushProgress.total) * 100} className="h-2" />
+              </div>
+            )}
+
+            <div className="rounded-lg border border-border overflow-hidden max-h-96 overflow-y-auto">
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>Feat</TableHead>
+                    <TableHead className="w-28 text-right">Status</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {pushPreview.filter(p => p.status !== "unchanged").map((item) => (
+                    <TableRow key={item.id}>
+                      <TableCell className="font-medium">{item.title}</TableCell>
+                      <TableCell className="text-right">{pushStatusBadge(item.status)}</TableCell>
+                    </TableRow>
+                  ))}
+                  {pushChanges === 0 && (
+                    <TableRow>
+                      <TableCell colSpan={2} className="text-center text-muted-foreground">All parseable fields are up to date on the wiki.</TableCell>
+                    </TableRow>
+                  )}
+                </TableBody>
+              </Table>
+            </div>
+
+            <div className="flex gap-3">
+              {pushChanges > 0 && (
+                <Button onClick={handlePushExecute} disabled={pushing} className="gap-2 font-display">
+                  {pushing ? <Loader2 className="h-4 w-4 animate-spin" /> : <Upload className="h-4 w-4" />}
+                  {pushing ? "Pushing..." : `Confirm Push (${pushChanges})`}
+                </Button>
+              )}
+              <Button variant="outline" onClick={() => setPushPreview(null)} disabled={pushing} className="gap-2">
+                <X className="h-4 w-4" /> Cancel
+              </Button>
+            </div>
+          </div>
+        )}
+
+        {/* Import result */}
         {result && (
           <div className="rounded-lg border border-border p-4 space-y-2 text-sm">
             <p className="text-foreground">
