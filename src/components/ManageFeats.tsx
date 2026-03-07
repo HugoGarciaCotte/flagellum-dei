@@ -20,7 +20,7 @@ import {
 import { toast } from "@/hooks/use-toast";
 import {
   Plus, Pencil, Trash2, Sword, Loader2, Sparkles, Layers,
-  ChevronDown, CheckCircle2, AlertCircle, Wand2, Copy, Upload,
+  ChevronDown, CheckCircle2, AlertCircle, Wand2, Copy, Upload, Unlock,
 } from "lucide-react";
 import FeatCategoryBadges from "@/components/FeatCategoryBadges";
 
@@ -239,10 +239,13 @@ const ManageFeats = () => {
   const hasContent = (f: Feat) => !!f.content?.trim();
   const hasSubfeats = (f: Feat) => Array.isArray(f.subfeats) && f.subfeats.length > 0;
   const hasSpecialities = (f: Feat) => Array.isArray(f.specialities) && f.specialities.length > 0;
+  const hasUnlocks = (f: Feat) => Array.isArray((f as any).unlocks_categories) && (f as any).unlocks_categories.length > 0;
 
-  const StatusIcon = ({ ok, label }: { ok: boolean; label: string }) => (
+  const StatusIcon = ({ ok, label, icon: Icon }: { ok: boolean; label: string; icon?: React.ComponentType<{ className?: string }> }) => (
     <span className="inline-flex items-center gap-1 text-xs" title={label}>
-      {ok ? (
+      {Icon ? (
+        <Icon className={`h-3.5 w-3.5 ${ok ? "text-emerald-500" : "text-amber-500"}`} />
+      ) : ok ? (
         <CheckCircle2 className="h-3.5 w-3.5 text-emerald-500" />
       ) : (
         <AlertCircle className="h-3.5 w-3.5 text-amber-500" />
@@ -394,10 +397,11 @@ const ManageFeats = () => {
                             <p className="text-xs text-muted-foreground mt-1 line-clamp-1">
                               {f.description || <span className="italic">No description</span>}
                             </p>
-                            {(hasSubfeats(f) || hasSpecialities(f)) && (
+                            {(hasSubfeats(f) || hasSpecialities(f) || hasUnlocks(f)) && (
                               <div className="flex items-center gap-3 mt-1.5">
-                                {hasSubfeats(f) && <StatusIcon ok={true} label="Subfeats" />}
-                                {hasSpecialities(f) && <StatusIcon ok={true} label="Specialities" />}
+                                {hasSubfeats(f) && <StatusIcon ok={true} label="Subfeats" icon={Layers} />}
+                                {hasSpecialities(f) && <StatusIcon ok={true} label="Specialities" icon={Sparkles} />}
+                                {hasUnlocks(f) && <StatusIcon ok={true} label="Unlocks" icon={Unlock} />}
                               </div>
                             )}
                           </div>
