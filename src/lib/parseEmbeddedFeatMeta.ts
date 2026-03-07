@@ -89,6 +89,7 @@ export function parseEmbeddedFeatMeta(content: string | null | undefined): Embed
  */
 export function generateParseableBlock(meta: {
   description?: string | null;
+  prerequisites?: string | null;
   specialities?: string[] | null;
   subfeats?: SubfeatSlot[] | null;
   unlocks_categories?: string[] | null;
