@@ -48,8 +48,6 @@ const Auth = () => {
     });
     if (error) {
       toast({ title: "Signup failed", description: error.message, variant: "destructive" });
-    } else {
-      toast({ title: "Check your email", description: "We sent you a confirmation link." });
     }
     setLoading(false);
   };
