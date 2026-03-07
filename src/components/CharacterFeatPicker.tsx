@@ -1,10 +1,10 @@
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { sortTitlesEmojiLast } from "@/lib/utils";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { X, Search, Gift, Loader2 } from "lucide-react";
+import { X, Search, Gift, Loader2, WifiOff } from "lucide-react";
 import FeatCategoryBadges from "@/components/FeatCategoryBadges";
 import { toast } from "sonner";
 import {
@@ -13,6 +13,13 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
+import { useNetworkStatus } from "@/hooks/useNetworkStatus";
+import {
+  cacheFeats,
+  getCachedFeats,
+  cacheCharacterFeats,
+  getCachedCharacterFeats,
+} from "@/lib/offlineStorage";
 
 interface CharacterFeatPickerProps {
   characterId: string;
@@ -42,6 +49,7 @@ type PickerTarget =
 
 const CharacterFeatPicker = ({ characterId, mode = "player" }: CharacterFeatPickerProps) => {
   const queryClient = useQueryClient();
+  const online = useNetworkStatus();
   const [pickerTarget, setPickerTarget] = useState<PickerTarget | null>(null);
   const [searchTerm, setSearchTerm] = useState("");
   const [filterMode, setFilterMode] = useState<"archetype" | "feat">("feat");
@@ -57,7 +65,15 @@ const CharacterFeatPicker = ({ characterId, mode = "player" }: CharacterFeatPick
       if (error) throw error;
       return data as Feat[];
     },
+    placeholderData: () => getCachedFeats() as Feat[] | undefined ?? undefined,
   });
+
+  // Cache feats on successful fetch
+  useEffect(() => {
+    if (allFeats && allFeats.length > 0 && online) {
+      cacheFeats(allFeats);
+    }
+  }, [allFeats, online]);
 
   const { data: characterFeats } = useQuery({
     queryKey: ["character-feats", characterId],
@@ -71,7 +87,15 @@ const CharacterFeatPicker = ({ characterId, mode = "player" }: CharacterFeatPick
       return data as CharacterFeat[];
     },
     enabled: !!characterId,
+    placeholderData: () => getCachedCharacterFeats(characterId) as CharacterFeat[] | undefined ?? undefined,
   });
+
+  // Cache character feats on successful fetch
+  useEffect(() => {
+    if (characterFeats && online) {
+      cacheCharacterFeats(characterId, characterFeats);
+    }
+  }, [characterFeats, characterId, online]);
 
   const upsertMutation = useMutation({
     mutationFn: async ({ level, featId }: { level: number; featId: string }) => {
@@ -209,6 +233,7 @@ const CharacterFeatPicker = ({ characterId, mode = "player" }: CharacterFeatPick
   }, [allFeats, filterMode, searchTerm, mode, pickerTarget]);
 
   const openPicker = (target: PickerTarget) => {
+    if (!online) return;
     setPickerTarget(target);
     setSearchTerm("");
     if (target.type === "level" && mode !== "gm") {
@@ -233,7 +258,14 @@ const CharacterFeatPicker = ({ characterId, mode = "player" }: CharacterFeatPick
 
   return (
     <div className="space-y-2">
-      <p className="text-sm font-medium text-muted-foreground">Feats per Level</p>
+      <div className="flex items-center gap-2">
+        <p className="text-sm font-medium text-muted-foreground">Feats per Level</p>
+        {!online && (
+          <span className="flex items-center gap-1 text-xs text-muted-foreground">
+            <WifiOff className="h-3 w-3" /> Read-only
+          </span>
+        )}
+      </div>
       {Array.from({ length: levelsToShow }, (_, i) => i + 1).map((level) => {
         const assigned = levelFeats.find((cf) => cf.level === level);
         const assignedFeat = assigned ? featMap.get(assigned.feat_id) : null;
@@ -249,24 +281,30 @@ const CharacterFeatPicker = ({ characterId, mode = "player" }: CharacterFeatPick
                 <div className="flex items-center gap-2 flex-1 min-w-0">
                   <span className="text-sm font-medium text-foreground truncate">{assignedFeat.title}</span>
                   <FeatCategoryBadges categories={assignedFeat.categories} />
-                  <div className="ml-auto flex gap-1 shrink-0">
-                    <Button variant="ghost" size="sm" className="h-6 px-2 text-xs" onClick={() => openPicker({ type: "level", level })}>
-                      Edit
-                    </Button>
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      className="h-6 px-1 text-destructive"
-                      onClick={() => deleteMutation.mutate({ level, isFree: false })}
-                    >
-                      <X className="h-3 w-3" />
-                    </Button>
-                  </div>
+                  {online && (
+                    <div className="ml-auto flex gap-1 shrink-0">
+                      <Button variant="ghost" size="sm" className="h-6 px-2 text-xs" onClick={() => openPicker({ type: "level", level })}>
+                        Edit
+                      </Button>
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        className="h-6 px-1 text-destructive"
+                        onClick={() => deleteMutation.mutate({ level, isFree: false })}
+                      >
+                        <X className="h-3 w-3" />
+                      </Button>
+                    </div>
+                  )}
                 </div>
               ) : (
-                <Button variant="ghost" size="sm" className="text-xs text-muted-foreground" onClick={() => openPicker({ type: "level", level })}>
-                  + Choose feat
-                </Button>
+                online ? (
+                  <Button variant="ghost" size="sm" className="text-xs text-muted-foreground" onClick={() => openPicker({ type: "level", level })}>
+                    + Choose feat
+                  </Button>
+                ) : (
+                  <span className="text-xs text-muted-foreground italic">Empty</span>
+                )
               )}
             </div>
           </div>
@@ -274,7 +312,7 @@ const CharacterFeatPicker = ({ characterId, mode = "player" }: CharacterFeatPick
       })}
 
       {/* Free Feats Section */}
-      {(freeFeats.length > 0 || mode === "gm") && (
+      {(freeFeats.length > 0 || (mode === "gm" && online)) && (
         <div className="mt-4 space-y-2">
           <p className="text-sm font-medium text-muted-foreground flex items-center gap-1.5">
             <Gift className="h-4 w-4" /> Free Feats
@@ -291,7 +329,7 @@ const CharacterFeatPicker = ({ characterId, mode = "player" }: CharacterFeatPick
               <div key={cf.id} className="flex items-center gap-2 border border-border rounded-md p-2">
                 <span className="text-sm font-medium text-foreground truncate">{feat.title}</span>
                 <FeatCategoryBadges categories={feat.categories} />
-                {mode === "gm" && (
+                {mode === "gm" && online && (
                   <Button
                     variant="ghost"
                     size="sm"
@@ -305,7 +343,7 @@ const CharacterFeatPicker = ({ characterId, mode = "player" }: CharacterFeatPick
             );
           })}
 
-          {mode === "gm" && (
+          {mode === "gm" && online && (
             <Button variant="ghost" size="sm" className="text-xs text-muted-foreground" onClick={() => openPicker({ type: "free" })}>
               + Add free feat
             </Button>

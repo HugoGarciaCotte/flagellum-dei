@@ -13,6 +13,7 @@ import { useNavigate } from "react-router-dom";
 import { Crown, LogOut, Plus, DoorOpen, Scroll, Users, Settings, ChevronDown, Sword, Trash2, Pencil, ShieldCheck } from "lucide-react";
 import CharacterFeatPicker from "@/components/CharacterFeatPicker";
 import { useOfflineScenarios } from "@/hooks/useOfflineScenarios";
+import { useOfflineFeats } from "@/hooks/useOfflineFeats";
 import { getCachedScenarios, isOffline } from "@/lib/offlineStorage";
 import { useIsOwner } from "@/hooks/useIsOwner";
 import { useIsGameMaster } from "@/hooks/useIsGameMaster";
