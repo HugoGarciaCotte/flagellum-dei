@@ -18,6 +18,7 @@ import { getCachedScenarios, isOffline } from "@/lib/offlineStorage";
 import { useIsOwner } from "@/hooks/useIsOwner";
 import { useIsGameMaster } from "@/hooks/useIsGameMaster";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
+import GMPlayerList from "@/components/GMPlayerList";
 
 const Dashboard = () => {
   const { user, signOut } = useAuth();
@@ -447,6 +448,9 @@ const Dashboard = () => {
             </AlertDialogContent>
           </AlertDialog>
         )}
+
+        {/* My Players (GM only) */}
+        {isGameMaster && <GMPlayerList />}
 
         {/* Delete Character Confirmation */}
         <AlertDialog open={!!deleteCharTarget} onOpenChange={(open) => { if (!open) setDeleteCharTarget(null); }}>
