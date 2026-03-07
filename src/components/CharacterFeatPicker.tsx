@@ -439,7 +439,7 @@ const CharacterFeatPicker = ({ characterId, mode = "player" }: CharacterFeatPick
                     )}
                   </div>
                 );
-              }))
+              })
             )}
           </div>
         </DialogContent>
