@@ -197,9 +197,14 @@ const CharacterFeatPicker = ({ characterId, mode = "player", scenarioLevel }: Ch
   // };
 
   // AI validation helper
-  const validateWithAI = async (featId: string, action: () => void) => {
+  const validateWithAI = async (
+    featId: string,
+    action: () => void,
+    pickType: "level" | "free" | "subfeat",
+    level?: number | null,
+    parentFeatTitle?: string | null,
+  ) => {
     if (!online) {
-      // Offline: skip validation, just do it
       action();
       return;
     }
@@ -207,7 +212,7 @@ const CharacterFeatPicker = ({ characterId, mode = "player", scenarioLevel }: Ch
     setValidationResult(null);
     try {
       const { data, error } = await supabase.functions.invoke("validate-feat", {
-        body: { characterId, featId },
+        body: { characterId, featId, pickType, level: level ?? null, parentFeatTitle: parentFeatTitle ?? null },
       });
       if (error) {
         console.error("AI validation error:", error);
@@ -548,8 +553,17 @@ const CharacterFeatPicker = ({ characterId, mode = "player", scenarioLevel }: Ch
       }
     };
 
-    // AI validation for all feat picks
-    validateWithAI(featId, doAction);
+    // Build context for AI validation
+    let pickType: "level" | "free" | "subfeat" = pickerTarget.type;
+    let level: number | null = pickerTarget.type === "level" ? pickerTarget.level : null;
+    let parentFeatTitle: string | null = null;
+    if (pickerTarget.type === "subfeat") {
+      const parentCf = (characterFeats ?? []).find(cf => cf.id === pickerTarget.characterFeatId);
+      const parentFeat = parentCf ? featMap.get(parentCf.feat_id) : null;
+      parentFeatTitle = parentFeat?.title ?? null;
+    }
+
+    validateWithAI(featId, doAction, pickType, level, parentFeatTitle);
   };
 
   const dialogTitle = pickerTarget?.type === "level"
