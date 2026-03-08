@@ -44,7 +44,7 @@ serve(async (req) => {
       });
     }
 
-    // Fetch target feat (no more description column — it's in content)
+    // Fetch target feat
     const { data: targetFeat, error: featError } = await supabase
       .from("feats")
       .select("id, title, categories, content")
@@ -75,7 +75,7 @@ serve(async (req) => {
     // Fetch current character feats with full feat details
     const { data: characterFeats } = await supabase
       .from("character_feats")
-      .select("level, is_free, feat_id")
+      .select("id, level, is_free, feat_id")
       .eq("character_id", characterId);
 
     const featIds = (characterFeats ?? []).map((cf: any) => cf.feat_id);
@@ -88,39 +88,52 @@ serve(async (req) => {
       currentFeatsDetails = data ?? [];
     }
 
+    // Fetch subfeats for all character feats
+    const cfIds = (characterFeats ?? []).map((cf: any) => cf.id);
+    let allSubfeats: any[] = [];
+    if (cfIds.length > 0) {
+      const { data } = await supabase
+        .from("character_feat_subfeats")
+        .select("character_feat_id, slot, subfeat_id")
+        .in("character_feat_id", cfIds);
+      allSubfeats = data ?? [];
+    }
+
+    // Fetch subfeat feat details
+    const subfeatFeatIds = allSubfeats.map((s: any) => s.subfeat_id);
+    let subfeatDetails: any[] = [];
+    if (subfeatFeatIds.length > 0) {
+      const { data } = await supabase
+        .from("feats")
+        .select("id, title, categories, content")
+        .in("id", subfeatFeatIds);
+      subfeatDetails = data ?? [];
+    }
+    const subfeatFeatMap = new Map(subfeatDetails.map((f: any) => [f.id, f]));
+
     // Build context for AI
     const featMap = new Map(currentFeatsDetails.map((f: any) => [f.id, f]));
     const currentFeatsFormatted = (characterFeats ?? [])
       .map((cf: any) => {
         const feat = featMap.get(cf.feat_id);
         if (!feat) return null;
-        return `- ${feat.title} (Level ${cf.level}${cf.is_free ? ", Free" : ""}, Categories: ${feat.categories?.join(", ") || "none"})\n  Content: ${feat.content || "N/A"}`;
+        let line = `- ${feat.title} (Level ${cf.level}${cf.is_free ? ", Free" : ""}, Categories: ${feat.categories?.join(", ") || "none"})\n  Content: ${feat.content || "N/A"}`;
+
+        // Append subfeats
+        const cfSubs = allSubfeats.filter((s: any) => s.character_feat_id === cf.id);
+        if (cfSubs.length > 0) {
+          const subLines = cfSubs.map((s: any) => {
+            const sf = subfeatFeatMap.get(s.subfeat_id);
+            return sf ? `    ↳ Subfeat slot ${s.slot}: ${sf.title} (Categories: ${sf.categories?.join(", ") || "none"})` : null;
+          }).filter(Boolean);
+          if (subLines.length > 0) line += "\n" + subLines.join("\n");
+        }
+        return line;
       })
       .filter(Boolean)
       .join("\n");
 
-    // Parse embedded meta for prerequisites and blocking
-    const metaTagRegex = /<!--@\s*([\w:]+)\s*:\s*(.*?)\s*@-->/g;
-    let metaMatch: RegExpExecArray | null;
-    let featPrerequisites: string | null = null;
-    let featBlocking: string[] | null = null;
-    while ((metaMatch = metaTagRegex.exec(targetFeat.content || "")) !== null) {
-      const key = metaMatch[1].trim();
-      if (key === "feat_prerequisites") {
-        featPrerequisites = metaMatch[2].trim();
-      } else if (key === "feat_blocking") {
-        featBlocking = metaMatch[2].trim().split(",").map(s => s.trim()).filter(Boolean);
-      }
-    }
-
-    const prerequisitesLine = featPrerequisites
-      ? `\nParsed Prerequisites: ${featPrerequisites}`
-      : "";
-    const blockingLine = featBlocking?.length
-      ? `\nBlocking (incompatible) Feats: ${featBlocking.join(", ")}`
-      : "";
-
-    const targetFeatFormatted = `Title: ${targetFeat.title}\nCategories: ${targetFeat.categories?.join(", ") || "none"}${prerequisitesLine}${blockingLine}\nFull Content:\n${targetFeat.content || "N/A"}`;
+    const targetFeatFormatted = `Title: ${targetFeat.title}\nCategories: ${targetFeat.categories?.join(", ") || "none"}\nFull Content:\n${targetFeat.content || "N/A"}`;
 
     const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
     if (!LOVABLE_API_KEY) {
@@ -133,15 +146,14 @@ serve(async (req) => {
     const systemPrompt = `You are a TRPG rules validator for the Prima system. Your job is to determine if a character meets all prerequisites to acquire a new feat.
 
 Rules:
-- Check the new feat's content for any prerequisite requirements (e.g. "Prerequisite: ...", "Requires: ...", or similar phrasing).
-- If the feat has a "Parsed Prerequisites" field, use it as the authoritative source for prerequisites.
-- If the feat has a "Blocking (incompatible) Feats" field, check if the character already has any of those feats. If they do, DENY the feat.
+- Read the new feat's content carefully for any prerequisite requirements (e.g. "Prerequisite: ...", "Requires: ...", or similar phrasing).
 - Prerequisites typically reference other feats the character must already have, or conditions they must meet.
+- If the feat content mentions incompatibilities or restrictions with other feats, check if the character has any conflicting feats.
 - Prowess feats often have prerequisites that the character needs to already possess.
 - Some Archetypes may restrict certain feats or require specific conditions.
-- If the feat has NO prerequisites mentioned in its content, it should be allowed (unless blocked).
+- If the feat has NO prerequisites mentioned in its content, it should be allowed.
 - Be strict about prerequisites: if a feat requires another feat and the character doesn't have it, deny it.
-- Be strict about blocking: if the character has an incompatible feat, deny it.
+- Be strict about incompatibilities mentioned in feat content.
 - Be lenient about ambiguous requirements: if you're unsure whether a requirement is met, allow it.
 
 Use the validate_feat tool to return your verdict.`;
@@ -149,7 +161,7 @@ Use the validate_feat tool to return your verdict.`;
     const userPrompt = `Character: ${character.name}
 ${character.description ? `Description: ${character.description}` : ""}
 
-Current feats:
+Current feats (including subfeats):
 ${currentFeatsFormatted || "(none)"}
 
 Wants to acquire:
