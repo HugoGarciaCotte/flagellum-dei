@@ -17,3 +17,6 @@ verify_jwt = false
 
 [functions.check-feats-ai]
 verify_jwt = false
+
+[functions.generate-pwa-icon]
+verify_jwt = false
