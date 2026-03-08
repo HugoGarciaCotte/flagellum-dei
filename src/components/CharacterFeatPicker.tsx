@@ -197,9 +197,14 @@ const CharacterFeatPicker = ({ characterId, mode = "player", scenarioLevel }: Ch
   // };
 
   // AI validation helper
-  const validateWithAI = async (featId: string, action: () => void) => {
+  const validateWithAI = async (
+    featId: string,
+    action: () => void,
+    pickType: "level" | "free" | "subfeat",
+    level?: number | null,
+    parentFeatTitle?: string | null,
+  ) => {
     if (!online) {
-      // Offline: skip validation, just do it
       action();
       return;
     }
@@ -207,7 +212,7 @@ const CharacterFeatPicker = ({ characterId, mode = "player", scenarioLevel }: Ch
     setValidationResult(null);
     try {
       const { data, error } = await supabase.functions.invoke("validate-feat", {
-        body: { characterId, featId },
+        body: { characterId, featId, pickType, level: level ?? null, parentFeatTitle: parentFeatTitle ?? null },
       });
       if (error) {
         console.error("AI validation error:", error);
