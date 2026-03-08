@@ -36,7 +36,7 @@ serve(async (req) => {
       });
     }
 
-    const { characterId, featId } = await req.json();
+    const { characterId, featId, pickType, level, parentFeatTitle } = await req.json();
     if (!characterId || !featId) {
       return new Response(JSON.stringify({ error: "characterId and featId required" }), {
         status: 400,
