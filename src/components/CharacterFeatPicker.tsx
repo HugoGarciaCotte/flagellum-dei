@@ -4,18 +4,23 @@ import { sortTitlesEmojiLast } from "@/lib/utils";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { X, Search, Gift, Loader2, WifiOff, Pencil, ArrowLeft } from "lucide-react";
+import { X, Search, Gift, Loader2, WifiOff, Pencil, ArrowLeft, Plus, ShieldAlert } from "lucide-react";
 import { toast } from "sonner";
 import FeatListItem from "@/components/FeatListItem";
-import { parseEmbeddedFeatMeta, type SubfeatSlot } from "@/lib/parseEmbeddedFeatMeta";
+import { Alert, AlertTitle, AlertDescription } from "@/components/ui/alert";
 
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
+// COMMENTED OUT: preprocessed fields — parseEmbeddedFeatMeta import
+// import { parseEmbeddedFeatMeta, type SubfeatSlot } from "@/lib/parseEmbeddedFeatMeta";
+
+// COMMENTED OUT: preprocessed fields — Select for list-based subfeats
+// import {
+//   Select,
+//   SelectContent,
+//   SelectItem,
+//   SelectTrigger,
+//   SelectValue,
+// } from "@/components/ui/select";
+
 import { useNetworkStatus } from "@/hooks/useNetworkStatus";
 import {
   cacheFeats,
@@ -56,25 +61,42 @@ type CharacterFeatSubfeat = {
 };
 
 const MAX_LEVEL = 10;
+const MAX_SUBFEATS = 4;
+const ARCHETYPE_DEFAULT_SLOTS = 3;
 
 type PickerTarget =
   | { type: "level"; level: number }
   | { type: "free" }
-  | { type: "subfeat"; characterFeatId: string; slot: SubfeatSlot };
+  | { type: "subfeat"; characterFeatId: string; slot: number };
+
+type ValidationResult = {
+  allowed: boolean;
+  reason: string;
+  pendingAction: () => void;
+} | null;
 
 const CharacterFeatPicker = ({ characterId, mode = "player", scenarioLevel }: CharacterFeatPickerProps) => {
   const queryClient = useQueryClient();
   const online = useNetworkStatus();
   const [pickerTarget, setPickerTarget] = useState<PickerTarget | null>(null);
   const [searchTerm, setSearchTerm] = useState("");
-  const [filterMode, setFilterMode] = useState<"archetype" | "feat">("feat");
+  // COMMENTED OUT: preprocessed fields — filterMode for archetype toggle
+  // const [filterMode, setFilterMode] = useState<"archetype" | "feat">("feat");
   
   const [expandedFeatId, setExpandedFeatId] = useState<string | null>(null);
   const [expandedAssignedFeatId, setExpandedAssignedFeatId] = useState<string | null>(null);
   const [expandedSubfeatKey, setExpandedSubfeatKey] = useState<string | null>(null);
-  const [localSpecialities, setLocalSpecialities] = useState<Record<string, string>>({});
-  const [specialitiesInitialized, setSpecialitiesInitialized] = useState(false);
-  const [pendingSubfeatSlots, setPendingSubfeatSlots] = useState<{ characterFeatId: string; slot: SubfeatSlot }[]>([]);
+
+  // COMMENTED OUT: preprocessed fields — speciality state
+  // const [localSpecialities, setLocalSpecialities] = useState<Record<string, string>>({});
+  // const [specialitiesInitialized, setSpecialitiesInitialized] = useState(false);
+
+  // COMMENTED OUT: preprocessed fields — pending subfeat slots queue
+  // const [pendingSubfeatSlots, setPendingSubfeatSlots] = useState<{ characterFeatId: string; slot: SubfeatSlot }[]>([]);
+
+  // AI validation state
+  const [validating, setValidating] = useState(false);
+  const [validationResult, setValidationResult] = useState<ValidationResult>(null);
 
   const { data: allFeats } = useQuery({
     queryKey: ["all-feats"],
@@ -95,12 +117,12 @@ const CharacterFeatPicker = ({ characterId, mode = "player", scenarioLevel }: Ch
     }
   }, [allFeats, online]);
 
-  // Parse metadata from content for all feats
-  const metaMap = useMemo(() => {
-    const map = new Map<string, ReturnType<typeof parseEmbeddedFeatMeta>>();
-    (allFeats ?? []).forEach((f) => map.set(f.id, parseEmbeddedFeatMeta(f.raw_content || f.content)));
-    return map;
-  }, [allFeats]);
+  // COMMENTED OUT: preprocessed fields — metaMap computation
+  // const metaMap = useMemo(() => {
+  //   const map = new Map<string, ReturnType<typeof parseEmbeddedFeatMeta>>();
+  //   (allFeats ?? []).forEach((f) => map.set(f.id, parseEmbeddedFeatMeta(f.raw_content || f.content)));
+  //   return map;
+  // }, [allFeats]);
 
   const { data: characterFeats } = useQuery({
     queryKey: ["character-feats", characterId],
@@ -138,57 +160,84 @@ const CharacterFeatPicker = ({ characterId, mode = "player", scenarioLevel }: Ch
     enabled: !!characterId && (characterFeats ?? []).length > 0,
   });
 
-  // Programmatic prerequisite & blocking validation (no AI)
-  const validateFeatLocally = (featId: string) => {
-    const meta = metaMap.get(featId);
-    if (!meta) return;
+  // COMMENTED OUT: preprocessed fields — validateFeatLocally
+  // const validateFeatLocally = (featId: string) => {
+  //   const meta = metaMap.get(featId);
+  //   if (!meta) return;
+  //   if (meta.blocking && meta.blocking.length > 0) {
+  //     const ownedTitles = new Set(
+  //       (characterFeats ?? []).map(cf => featMap.get(cf.feat_id)?.title).filter(Boolean)
+  //     );
+  //     const conflict = meta.blocking.find(b => ownedTitles.has(b));
+  //     if (conflict) {
+  //       throw new Error(`Blocked: incompatible with "${conflict}" which the character already has`);
+  //     }
+  //   }
+  //   const targetTitle = featMap.get(featId)?.title;
+  //   if (targetTitle) {
+  //     for (const cf of characterFeats ?? []) {
+  //       const cfMeta = metaMap.get(cf.feat_id);
+  //       if (cfMeta?.blocking?.includes(targetTitle)) {
+  //         const blockerTitle = featMap.get(cf.feat_id)?.title ?? "an owned feat";
+  //         throw new Error(`Blocked: "${blockerTitle}" is incompatible with this feat`);
+  //       }
+  //     }
+  //   }
+  //   if (!meta.prerequisites) return;
+  //   const prereqStr = meta.prerequisites;
+  //   const bracketMatches = [...prereqStr.matchAll(/\[([^\]]+)\]/g)].map(m => m[1]);
+  //   if (bracketMatches.length === 0) return;
+  //   const ownedTitles = new Set(
+  //     (characterFeats ?? []).map(cf => featMap.get(cf.feat_id)?.title).filter(Boolean)
+  //   );
+  //   const missing = bracketMatches.filter(title => !ownedTitles.has(title));
+  //   if (missing.length > 0) {
+  //     throw new Error(`Missing prerequisites: ${missing.join(", ")}`);
+  //   }
+  // };
 
-    // Check blocking (safety net — picker already filters these)
-    if (meta.blocking && meta.blocking.length > 0) {
-      const ownedTitles = new Set(
-        (characterFeats ?? []).map(cf => featMap.get(cf.feat_id)?.title).filter(Boolean)
-      );
-      const conflict = meta.blocking.find(b => ownedTitles.has(b));
-      if (conflict) {
-        throw new Error(`Blocked: incompatible with "${conflict}" which the character already has`);
-      }
+  // AI validation helper
+  const validateWithAI = async (featId: string, action: () => void) => {
+    if (!online) {
+      // Offline: skip validation, just do it
+      action();
+      return;
     }
-
-    // Check if any owned feat blocks this one
-    const targetTitle = featMap.get(featId)?.title;
-    if (targetTitle) {
-      for (const cf of characterFeats ?? []) {
-        const cfMeta = metaMap.get(cf.feat_id);
-        if (cfMeta?.blocking?.includes(targetTitle)) {
-          const blockerTitle = featMap.get(cf.feat_id)?.title ?? "an owned feat";
-          throw new Error(`Blocked: "${blockerTitle}" is incompatible with this feat`);
-        }
+    setValidating(true);
+    setValidationResult(null);
+    try {
+      const { data, error } = await supabase.functions.invoke("validate-feat", {
+        body: { characterId, featId },
+      });
+      if (error) {
+        console.error("AI validation error:", error);
+        // On error, allow anyway
+        action();
+        return;
       }
-    }
-
-    // Check prerequisites
-    if (!meta.prerequisites) return;
-
-    const prereqStr = meta.prerequisites;
-    // Extract feat titles in square brackets like [Prowess A]
-    const bracketMatches = [...prereqStr.matchAll(/\[([^\]]+)\]/g)].map(m => m[1]);
-    if (bracketMatches.length === 0) return; // No parseable prerequisites
-
-    const ownedTitles = new Set(
-      (characterFeats ?? []).map(cf => featMap.get(cf.feat_id)?.title).filter(Boolean)
-    );
-
-    const missing = bracketMatches.filter(title => !ownedTitles.has(title));
-    if (missing.length > 0) {
-      throw new Error(`Missing prerequisites: ${missing.join(", ")}`);
+      if (data?.allowed) {
+        action();
+      } else {
+        setValidationResult({
+          allowed: false,
+          reason: data?.reason || "The AI could not determine if this feat is valid.",
+          pendingAction: action,
+        });
+      }
+    } catch (e) {
+      console.error("AI validation exception:", e);
+      action();
+    } finally {
+      setValidating(false);
     }
   };
 
   const upsertMutation = useMutation({
     mutationFn: async ({ level, featId }: { level: number; featId: string }) => {
-      if (mode === "player") {
-        validateFeatLocally(featId);
-      }
+      // COMMENTED OUT: preprocessed fields — validateFeatLocally call
+      // if (mode === "player") {
+      //   validateFeatLocally(featId);
+      // }
 
       await supabase
         .from("character_feats")
@@ -203,56 +252,39 @@ const CharacterFeatPicker = ({ characterId, mode = "player", scenarioLevel }: Ch
         .single();
       if (error) throw error;
 
-      // Auto-insert fixed subfeats
-      const meta = metaMap.get(featId);
-      if (meta?.subfeats && inserted) {
-        const fixedSlots = meta.subfeats.filter(s => s.kind === "fixed" && s.feat_title);
-        for (const slot of fixedSlots) {
-          const subfeat = allFeats?.find(f => f.title === slot.feat_title);
-          if (subfeat) {
-            await supabase.from("character_feat_subfeats").insert({
-              character_feat_id: inserted.id,
-              slot: slot.slot,
-              subfeat_id: subfeat.id,
-            });
-          }
-        }
-      }
+      // COMMENTED OUT: preprocessed fields — auto-insert fixed subfeats from metadata
+      // const meta = metaMap.get(featId);
+      // if (meta?.subfeats && inserted) {
+      //   const fixedSlots = meta.subfeats.filter(s => s.kind === "fixed" && s.feat_title);
+      //   for (const slot of fixedSlots) {
+      //     const subfeat = allFeats?.find(f => f.title === slot.feat_title);
+      //     if (subfeat) {
+      //       await supabase.from("character_feat_subfeats").insert({
+      //         character_feat_id: inserted.id,
+      //         slot: slot.slot,
+      //         subfeat_id: subfeat.id,
+      //       });
+      //     }
+      //   }
+      // }
     },
-    onSuccess: (_data, variables) => {
+    onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["character-feats", characterId] });
       queryClient.invalidateQueries({ queryKey: ["character-feat-subfeats", characterId] });
 
-      const meta = metaMap.get(variables.featId);
-      const nonFixedSlots = (meta?.subfeats ?? []).filter(s => s.kind !== "fixed");
-      if (nonFixedSlots.length > 0) {
-        supabase
-          .from("character_feats")
-          .select("id")
-          .eq("character_id", characterId)
-          .eq("level", variables.level)
-          .eq("is_free", false)
-          .single()
-          .then(({ data: cfRow }) => {
-            if (cfRow) {
-              const queue = nonFixedSlots.map(s => ({ characterFeatId: cfRow.id, slot: s }));
-              setPendingSubfeatSlots(queue.slice(1));
-              setSearchTerm("");
-              setExpandedFeatId(null);
-              setPickerTarget({ type: "subfeat", characterFeatId: cfRow.id, slot: queue[0].slot });
-            } else {
-              setPickerTarget(null);
-              setSearchTerm("");
-            }
-          });
-      } else {
-        setPickerTarget(null);
-        setSearchTerm("");
-      }
+      // COMMENTED OUT: preprocessed fields — auto-prompt for non-fixed subfeat slots
+      // const meta = metaMap.get(variables.featId);
+      // const nonFixedSlots = (meta?.subfeats ?? []).filter(s => s.kind !== "fixed");
+      // if (nonFixedSlots.length > 0) {
+      //   supabase.from("character_feats").select("id")...
+      // }
+
+      setPickerTarget(null);
+      setSearchTerm("");
     },
     onError: (error: any) => {
       toast.error("Cannot pick this feat", {
-        description: error.message || "Prerequisites not met",
+        description: error.message || "An error occurred",
       });
     },
   });
@@ -285,37 +317,16 @@ const CharacterFeatPicker = ({ characterId, mode = "player", scenarioLevel }: Ch
         .insert({ character_id: characterId, level: 0, feat_id: featId, is_free: true });
       if (error) throw error;
     },
-    onSuccess: (_data, featId) => {
+    onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["character-feats", characterId] });
 
-      const meta = metaMap.get(featId);
-      const nonFixedSlots = (meta?.subfeats ?? []).filter(s => s.kind !== "fixed");
-      if (nonFixedSlots.length > 0) {
-        supabase
-          .from("character_feats")
-          .select("id")
-          .eq("character_id", characterId)
-          .eq("feat_id", featId)
-          .eq("is_free", true)
-          .order("level", { ascending: false })
-          .limit(1)
-          .single()
-          .then(({ data: cfRow }) => {
-            if (cfRow) {
-              const queue = nonFixedSlots.map(s => ({ characterFeatId: cfRow.id, slot: s }));
-              setPendingSubfeatSlots(queue.slice(1));
-              setSearchTerm("");
-              setExpandedFeatId(null);
-              setPickerTarget({ type: "subfeat", characterFeatId: cfRow.id, slot: queue[0].slot });
-            } else {
-              setPickerTarget(null);
-              setSearchTerm("");
-            }
-          });
-      } else {
-        setPickerTarget(null);
-        setSearchTerm("");
-      }
+      // COMMENTED OUT: preprocessed fields — auto-prompt for non-fixed subfeat slots on free feats
+      // const meta = metaMap.get(featId);
+      // const nonFixedSlots = (meta?.subfeats ?? []).filter(s => s.kind !== "fixed");
+      // ...
+
+      setPickerTarget(null);
+      setSearchTerm("");
     },
   });
 
@@ -351,45 +362,40 @@ const CharacterFeatPicker = ({ characterId, mode = "player", scenarioLevel }: Ch
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["character-feat-subfeats", characterId] });
 
-      if (pendingSubfeatSlots.length > 0) {
-        const [next, ...rest] = pendingSubfeatSlots;
-        setPendingSubfeatSlots(rest);
-        setSearchTerm("");
-        setExpandedFeatId(null);
-        setPickerTarget({ type: "subfeat", characterFeatId: next.characterFeatId, slot: next.slot });
-      } else {
-        setPickerTarget(null);
-        setSearchTerm("");
-      }
+      // COMMENTED OUT: preprocessed fields — pending subfeat slots queue
+      // if (pendingSubfeatSlots.length > 0) { ... }
+
+      setPickerTarget(null);
+      setSearchTerm("");
     },
   });
 
-  // Initialize local specialities from fetched data
-  useEffect(() => {
-    if (characterFeats && !specialitiesInitialized) {
-      const specs: Record<string, string> = {};
-      characterFeats.forEach(cf => { specs[cf.id] = cf.note ?? ""; });
-      setLocalSpecialities(specs);
-      setSpecialitiesInitialized(true);
-    }
-  }, [characterFeats, specialitiesInitialized]);
+  // COMMENTED OUT: preprocessed fields — speciality initialization
+  // useEffect(() => {
+  //   if (characterFeats && !specialitiesInitialized) {
+  //     const specs: Record<string, string> = {};
+  //     characterFeats.forEach(cf => { specs[cf.id] = cf.note ?? ""; });
+  //     setLocalSpecialities(specs);
+  //     setSpecialitiesInitialized(true);
+  //   }
+  // }, [characterFeats, specialitiesInitialized]);
 
-  useEffect(() => {
-    if (characterFeats) {
-      setLocalSpecialities(prev => {
-        const next = { ...prev };
-        characterFeats.forEach(cf => {
-          if (!(cf.id in next)) next[cf.id] = cf.note ?? "";
-        });
-        return next;
-      });
-    }
-  }, [characterFeats]);
+  // useEffect(() => {
+  //   if (characterFeats) {
+  //     setLocalSpecialities(prev => {
+  //       const next = { ...prev };
+  //       characterFeats.forEach(cf => {
+  //         if (!(cf.id in next)) next[cf.id] = cf.note ?? "";
+  //       });
+  //       return next;
+  //     });
+  //   }
+  // }, [characterFeats]);
 
-  const handleSpecialityChange = (cfId: string, value: string) => {
-    setLocalSpecialities(prev => ({ ...prev, [cfId]: value }));
-    updateNoteMutation.mutate({ id: cfId, note: value });
-  };
+  // const handleSpecialityChange = (cfId: string, value: string) => {
+  //   setLocalSpecialities(prev => ({ ...prev, [cfId]: value }));
+  //   updateNoteMutation.mutate({ id: cfId, note: value });
+  // };
 
   const featMap = useMemo(() => {
     const map = new Map<string, Feat>();
@@ -397,11 +403,12 @@ const CharacterFeatPicker = ({ characterId, mode = "player", scenarioLevel }: Ch
     return map;
   }, [allFeats]);
 
-  const featByTitle = useMemo(() => {
-    const map = new Map<string, Feat>();
-    (allFeats ?? []).forEach((f) => map.set(f.title, f));
-    return map;
-  }, [allFeats]);
+  // COMMENTED OUT: preprocessed fields — featByTitle (used for metadata-driven subfeats)
+  // const featByTitle = useMemo(() => {
+  //   const map = new Map<string, Feat>();
+  //   (allFeats ?? []).forEach((f) => map.set(f.title, f));
+  //   return map;
+  // }, [allFeats]);
 
   const subfeatMap = useMemo(() => {
     const map = new Map<string, CharacterFeatSubfeat[]>();
@@ -423,14 +430,6 @@ const CharacterFeatPicker = ({ characterId, mode = "player", scenarioLevel }: Ch
     });
   }, [levelFeats, featMap]);
 
-  const archetypeLevel = useMemo(() => {
-    const cf = levelFeats.find((cf) => {
-      const feat = featMap.get(cf.feat_id);
-      return feat?.categories?.includes("Archetype");
-    });
-    return cf?.level ?? null;
-  }, [levelFeats, featMap]);
-
   const maxFilledLevel = useMemo(() => {
     if (levelFeats.length === 0) return 0;
     return Math.max(...levelFeats.map((cf) => cf.level));
@@ -438,53 +437,57 @@ const CharacterFeatPicker = ({ characterId, mode = "player", scenarioLevel }: Ch
 
   const levelsToShow = Math.min(Math.max(maxFilledLevel + 1, 1), MAX_LEVEL);
 
-  const canPickArchetype = (level: number) => {
-    if (mode === "gm") return false;
-    if (!hasArchetype) return true;
-    return archetypeLevel === level;
-  };
+  // Helper: is this feat an archetype?
+  const isArchetype = (feat: Feat) => feat.categories?.includes("Archetype");
 
-  const showArchetypeToggle = pickerTarget?.type === "level" && mode === "player" && canPickArchetype(pickerTarget.level);
+  // Helper: get subfeat count for a character feat
+  const getSubfeatCount = (cfId: string) => (subfeatMap.get(cfId) || []).length;
+
+  // Helper: get default subfeat slots to show (archetype = 3, others = 0)
+  const getDefaultSlots = (feat: Feat, cfId: string) => {
+    const existing = subfeatMap.get(cfId) || [];
+    const existingCount = existing.length;
+    if (isArchetype(feat)) {
+      return Math.max(ARCHETYPE_DEFAULT_SLOTS, existingCount);
+    }
+    return existingCount;
+  };
 
   const filteredFeats = useMemo(() => {
     if (!allFeats) return [];
     let filtered: Feat[];
 
+    // COMMENTED OUT: preprocessed fields — metadata-driven subfeat filtering
+    // if (pickerTarget?.type === "subfeat") {
+    //   const slot = pickerTarget.slot;
+    //   if (slot.kind === "list" && slot.options) { ... }
+    //   else if (slot.kind === "type" && slot.filter) { ... }
+    //   else { filtered = []; }
+    // }
+
+    // New: subfeat picker shows all feats
     if (pickerTarget?.type === "subfeat") {
-      const slot = pickerTarget.slot;
-      if (slot.kind === "list" && slot.options) {
-        filtered = allFeats.filter(f => slot.options!.includes(f.title));
-      } else if (slot.kind === "type" && slot.filter) {
-        const parts = slot.filter.split(",").map(f => f.trim());
-        const excludeCategories = parts.filter(p => p.startsWith("not:")).map(p => p.replace("not:", ""));
-        const includeCategories = parts.filter(p => !p.startsWith("not:"));
-        filtered = allFeats.filter(f => {
-          if (excludeCategories.length > 0 && f.categories?.some(c => excludeCategories.includes(c))) return false;
-          if (includeCategories.length > 0 && !f.categories?.some(c => includeCategories.includes(c))) return false;
-          return true;
-        });
-      } else {
-        filtered = [];
-      }
+      filtered = [...allFeats];
     } else if (pickerTarget?.type === "free" || mode === "gm") {
       filtered = [...allFeats];
-    } else if (filterMode === "archetype") {
-      filtered = allFeats.filter((f) => f.categories?.includes("Archetype"));
     } else {
-      // Gather unlocked categories from owned feats
-      const unlockedCategories = new Set<string>();
-      for (const cf of characterFeats ?? []) {
-        const meta = metaMap.get(cf.feat_id);
-        if (meta?.unlocks_categories) {
-          meta.unlocks_categories.forEach((c: string) => unlockedCategories.add(c));
-        }
-      }
+      // COMMENTED OUT: preprocessed fields — archetype toggle and unlocked categories
+      // if (filterMode === "archetype") {
+      //   filtered = allFeats.filter((f) => f.categories?.includes("Archetype"));
+      // } else {
+      //   const unlockedCategories = new Set<string>();
+      //   for (const cf of characterFeats ?? []) {
+      //     const meta = metaMap.get(cf.feat_id);
+      //     if (meta?.unlocks_categories) {
+      //       meta.unlocks_categories.forEach((c: string) => unlockedCategories.add(c));
+      //     }
+      //   }
+      //   filtered = allFeats.filter(...);
+      // }
+
+      // Simplified: show all feats except hidden ones
       filtered = allFeats.filter(
-        (f) =>
-          (f.categories?.includes("General Feat") ||
-            f.categories?.includes("Prowess") ||
-            f.categories?.some((c) => unlockedCategories.has(c))) &&
-          !f.categories?.includes("Hidden Feat")
+        (f) => !f.categories?.includes("Hidden Feat")
       );
     }
 
@@ -495,246 +498,173 @@ const CharacterFeatPicker = ({ characterId, mode = "player", scenarioLevel }: Ch
       return true;
     });
 
-    // Filter out feats blocked by currently owned feats (and vice versa)
-    const ownedFeatTitles = new Set(
-      (characterFeats ?? []).map(cf => featMap.get(cf.feat_id)?.title).filter(Boolean) as string[]
-    );
-    filtered = filtered.filter(f => {
-      // Check if any owned feat blocks this feat
-      for (const cf of characterFeats ?? []) {
-        const ownedMeta = metaMap.get(cf.feat_id);
-        if (ownedMeta?.blocking?.includes(f.title)) return false;
-      }
-      // Check if this feat blocks any owned feat
-      const thisMeta = metaMap.get(f.id);
-      if (thisMeta?.blocking?.some(b => ownedFeatTitles.has(b))) return false;
-      return true;
-    });
+    // COMMENTED OUT: preprocessed fields — blocking filter
+    // const ownedFeatTitles = new Set(...);
+    // filtered = filtered.filter(f => {
+    //   for (const cf of characterFeats ?? []) {
+    //     const ownedMeta = metaMap.get(cf.feat_id);
+    //     if (ownedMeta?.blocking?.includes(f.title)) return false;
+    //   }
+    //   const thisMeta = metaMap.get(f.id);
+    //   if (thisMeta?.blocking?.some(b => ownedFeatTitles.has(b))) return false;
+    //   return true;
+    // });
 
     if (searchTerm.trim()) {
       const lower = searchTerm.toLowerCase();
       filtered = filtered.filter((f) => f.title.toLowerCase().includes(lower));
     }
     return filtered.sort(sortTitlesEmojiLast);
-  }, [allFeats, filterMode, searchTerm, mode, pickerTarget, characterFeats, metaMap]);
+  }, [allFeats, searchTerm, mode, pickerTarget, characterFeats]);
 
   const openPicker = (target: PickerTarget) => {
     if (!online) return;
     setPickerTarget(target);
     setSearchTerm("");
     setExpandedFeatId(null);
-    if (target.type === "level" && mode !== "gm") {
-      setFilterMode(canPickArchetype(target.level) ? "archetype" : "feat");
-    } else {
-      setFilterMode("feat");
-    }
+    setValidationResult(null);
+    // COMMENTED OUT: preprocessed fields — filterMode toggle
+    // if (target.type === "level" && mode !== "gm") {
+    //   setFilterMode(canPickArchetype(target.level) ? "archetype" : "feat");
+    // } else {
+    //   setFilterMode("feat");
+    // }
   };
 
   const handleFeatSelect = (featId: string) => {
     if (!pickerTarget) return;
-    if (pickerTarget.type === "level") {
-      upsertMutation.mutate({ level: pickerTarget.level, featId });
-    } else if (pickerTarget.type === "free") {
-      addFreeFeatMutation.mutate(featId);
-    } else if (pickerTarget.type === "subfeat") {
-      setSubfeatMutation.mutate({
-        characterFeatId: pickerTarget.characterFeatId,
-        slot: pickerTarget.slot.slot,
-        subfeatId: featId,
-      });
-    }
+
+    const doAction = () => {
+      if (pickerTarget.type === "level") {
+        upsertMutation.mutate({ level: pickerTarget.level, featId });
+      } else if (pickerTarget.type === "free") {
+        addFreeFeatMutation.mutate(featId);
+      } else if (pickerTarget.type === "subfeat") {
+        setSubfeatMutation.mutate({
+          characterFeatId: pickerTarget.characterFeatId,
+          slot: pickerTarget.slot,
+          subfeatId: featId,
+        });
+      }
+    };
+
+    // AI validation for all feat picks
+    validateWithAI(featId, doAction);
   };
 
   const dialogTitle = pickerTarget?.type === "level"
     ? `Choose Feat — Level ${pickerTarget.level}`
     : pickerTarget?.type === "subfeat"
-    ? `Choose Subfeat — Slot ${pickerTarget.slot.slot}`
+    ? `Choose Subfeat`
     : "Add Free Feat";
 
+  // New subfeat rendering: simple slots with + button
   const renderSubfeats = (cf: CharacterFeat, feat: Feat) => {
-    const meta = metaMap.get(feat.id);
-    if (!meta?.subfeats || meta.subfeats.length === 0) return null;
     const subs = subfeatMap.get(cf.id) || [];
+    const slotsToShow = getDefaultSlots(feat, cf.id);
+    const currentCount = subs.length;
+    const canAddMore = currentCount < MAX_SUBFEATS;
+
+    // Build slot list: existing subs + empty slots up to slotsToShow
+    const slotNumbers: number[] = [];
+    const subsBySlot = new Map<number, CharacterFeatSubfeat>();
+    subs.forEach(s => {
+      subsBySlot.set(s.slot, s);
+      slotNumbers.push(s.slot);
+    });
+    // Add empty slots for archetypes
+    for (let i = 1; i <= slotsToShow; i++) {
+      if (!slotNumbers.includes(i)) slotNumbers.push(i);
+    }
+    slotNumbers.sort((a, b) => a - b);
+
+    if (slotNumbers.length === 0 && !canAddMore) return null;
 
     return (
       <div className="ml-4 mt-1 space-y-1">
-        {meta.subfeats.map((slot) => {
-          const assigned = subs.find(s => s.slot === slot.slot);
+        {slotNumbers.map((slotNum) => {
+          const assigned = subsBySlot.get(slotNum);
           const assignedFeat = assigned ? featMap.get(assigned.subfeat_id) : null;
-          const subfeatKey = `${cf.id}-${slot.slot}`;
+          const subfeatKey = `${cf.id}-${slotNum}`;
 
-          if (slot.kind === "fixed") {
-            const fixedFeat = assignedFeat || (slot.feat_title ? featByTitle.get(slot.feat_title) : null);
-            if (!fixedFeat) {
-              return (
-                <div key={slot.slot} className="flex items-center gap-2 text-xs border-l-2 border-primary/30 pl-2">
-                  <span className="text-muted-foreground">↳</span>
-                  <span className="font-medium text-foreground">{slot.feat_title || "—"}</span>
-                  <span className="text-muted-foreground italic">(granted)</span>
-                </div>
-              );
-            }
+          if (assignedFeat) {
             return (
-              <div key={slot.slot} className="flex items-center gap-1">
+              <div key={slotNum} className="flex items-center gap-1">
                 <span className="text-muted-foreground text-xs">↳</span>
                 <div className="flex-1 min-w-0">
                   <FeatListItem
-                    feat={{ ...fixedFeat, description: metaMap.get(fixedFeat.id)?.description ?? null }}
+                    feat={{ ...assignedFeat, description: null }}
                     expanded={expandedSubfeatKey === subfeatKey}
                     onToggleExpand={() => setExpandedSubfeatKey(expandedSubfeatKey === subfeatKey ? null : subfeatKey)}
                     compact
-                    actions={<span className="text-xs text-muted-foreground italic">(granted)</span>}
+                    actions={online ? (
+                      <>
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          className="h-5 w-5 p-0"
+                          onClick={() => openPicker({ type: "subfeat", characterFeatId: cf.id, slot: slotNum })}
+                        >
+                          <Pencil className="h-3 w-3" />
+                        </Button>
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          className="h-5 w-5 p-0 text-destructive"
+                          onClick={() => setSubfeatMutation.mutate({ characterFeatId: cf.id, slot: slotNum, subfeatId: null })}
+                        >
+                          <X className="h-3 w-3" />
+                        </Button>
+                      </>
+                    ) : undefined}
                   />
                 </div>
               </div>
             );
           }
 
-          if (slot.kind === "list") {
-            const options = slot.options || [];
-            const featOptions = options.map(t => featByTitle.get(t)).filter(Boolean) as Feat[];
-
-            if (assignedFeat) {
-              return (
-                <div key={slot.slot} className="flex items-center gap-1">
-                  <span className="text-muted-foreground text-xs">↳</span>
-                  <div className="flex-1 min-w-0">
-                    <FeatListItem
-                      feat={{ ...assignedFeat, description: metaMap.get(assignedFeat.id)?.description ?? null }}
-                      expanded={expandedSubfeatKey === subfeatKey}
-                      onToggleExpand={() => setExpandedSubfeatKey(expandedSubfeatKey === subfeatKey ? null : subfeatKey)}
-                      compact
-                      actions={online ? (
-                        <>
-                          <Select
-                            value={assigned?.subfeat_id || "__none__"}
-                            onValueChange={(val) => {
-                              setSubfeatMutation.mutate({
-                                characterFeatId: cf.id,
-                                slot: slot.slot,
-                                subfeatId: val === "__none__" ? null : val,
-                              });
-                            }}
-                          >
-                            <SelectTrigger className="h-5 w-5 border-0 p-0 [&>svg]:hidden" asChild>
-                              <Button variant="ghost" size="sm" className="h-5 w-5 p-0">
-                                <Pencil className="h-3 w-3" />
-                              </Button>
-                            </SelectTrigger>
-                            <SelectContent>
-                              <SelectItem value="__none__">None</SelectItem>
-                              {featOptions.map(f => (
-                                <SelectItem key={f.id} value={f.id}>{f.title}</SelectItem>
-                              ))}
-                            </SelectContent>
-                          </Select>
-                          <Button
-                            variant="ghost"
-                            size="sm"
-                            className="h-5 w-5 p-0 text-destructive"
-                            onClick={() => setSubfeatMutation.mutate({ characterFeatId: cf.id, slot: slot.slot, subfeatId: null })}
-                          >
-                            <X className="h-3 w-3" />
-                          </Button>
-                        </>
-                      ) : undefined}
-                    />
-                  </div>
-                </div>
-              );
-            }
-            return (
-              <div key={slot.slot} className="flex items-center gap-2 text-xs ml-1">
-                <span className="text-muted-foreground">↳</span>
-                {online ? (
-                  <Select
-                    value="__none__"
-                    onValueChange={(val) => {
-                      setSubfeatMutation.mutate({
-                        characterFeatId: cf.id,
-                        slot: slot.slot,
-                        subfeatId: val === "__none__" ? null : val,
-                      });
-                    }}
-                  >
-                    <SelectTrigger className="h-6 text-xs w-auto min-w-[120px]">
-                      <SelectValue placeholder="+ Choose subfeat" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="__none__">None</SelectItem>
-                      {featOptions.map(f => (
-                        <SelectItem key={f.id} value={f.id}>{f.title}</SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                ) : (
-                  <span className="text-muted-foreground italic">—</span>
-                )}
-              </div>
-            );
-          }
-
-          if (slot.kind === "type") {
-            if (assignedFeat) {
-              return (
-                <div key={slot.slot} className="flex items-center gap-1">
-                  <span className="text-muted-foreground text-xs">↳</span>
-                  <div className="flex-1 min-w-0">
-                    <FeatListItem
-                      feat={{ ...assignedFeat, description: metaMap.get(assignedFeat.id)?.description ?? null }}
-                      expanded={expandedSubfeatKey === subfeatKey}
-                      onToggleExpand={() => setExpandedSubfeatKey(expandedSubfeatKey === subfeatKey ? null : subfeatKey)}
-                      compact
-                      actions={online ? (
-                        <>
-                          <Button
-                            variant="ghost"
-                            size="sm"
-                            className="h-5 w-5 p-0"
-                            onClick={() => openPicker({ type: "subfeat", characterFeatId: cf.id, slot })}
-                          >
-                            <Pencil className="h-3 w-3" />
-                          </Button>
-                          <Button
-                            variant="ghost"
-                            size="sm"
-                            className="h-5 w-5 p-0 text-destructive"
-                            onClick={() => setSubfeatMutation.mutate({ characterFeatId: cf.id, slot: slot.slot, subfeatId: null })}
-                          >
-                            <X className="h-3 w-3" />
-                          </Button>
-                        </>
-                      ) : undefined}
-                    />
-                  </div>
-                </div>
-              );
-            }
-            return (
-              <div key={slot.slot} className="flex items-center gap-2 text-xs ml-1">
-                <span className="text-muted-foreground">↳</span>
-                {online ? (
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    className="h-5 px-1 text-xs text-muted-foreground"
-                    onClick={() => openPicker({ type: "subfeat", characterFeatId: cf.id, slot })}
-                  >
-                    + Choose subfeat
-                  </Button>
-                ) : (
-                  <span className="text-muted-foreground italic">—</span>
-                )}
-              </div>
-            );
-          }
-
-          return null;
+          // Empty slot
+          return (
+            <div key={slotNum} className="flex items-center gap-2 text-xs ml-1">
+              <span className="text-muted-foreground">↳</span>
+              {online ? (
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  className="h-5 px-1 text-xs text-muted-foreground"
+                  onClick={() => openPicker({ type: "subfeat", characterFeatId: cf.id, slot: slotNum })}
+                >
+                  + Choose subfeat
+                </Button>
+              ) : (
+                <span className="text-muted-foreground italic">—</span>
+              )}
+            </div>
+          );
         })}
+
+        {/* + button to add more subfeat slots */}
+        {canAddMore && online && (
+          <div className="flex items-center gap-2 text-xs ml-1">
+            <span className="text-muted-foreground">↳</span>
+            <Button
+              variant="ghost"
+              size="sm"
+              className="h-5 w-5 p-0 text-muted-foreground"
+              onClick={() => {
+                const nextSlot = slotNumbers.length > 0 ? Math.max(...slotNumbers) + 1 : 1;
+                openPicker({ type: "subfeat", characterFeatId: cf.id, slot: nextSlot });
+              }}
+            >
+              <Plus className="h-3 w-3" />
+            </Button>
+          </div>
+        )}
       </div>
     );
   };
 
+  // Picker view
   if (pickerTarget !== null) {
     return (
       <div className="space-y-3">
@@ -743,32 +673,41 @@ const CharacterFeatPicker = ({ characterId, mode = "player", scenarioLevel }: Ch
             variant="ghost"
             size="sm"
             className="h-7 w-7 p-0"
-            onClick={() => { setPickerTarget(null); setSearchTerm(""); setExpandedFeatId(null); }}
+            onClick={() => { setPickerTarget(null); setSearchTerm(""); setExpandedFeatId(null); setValidationResult(null); }}
           >
             <ArrowLeft className="h-4 w-4" />
           </Button>
           <p className="text-sm font-semibold">{dialogTitle}</p>
         </div>
 
-        {showArchetypeToggle && (
+        {/* COMMENTED OUT: preprocessed fields — archetype toggle */}
+        {/* {showArchetypeToggle && (
           <div className="flex gap-1">
-            <Button
-              size="sm"
-              variant={filterMode === "archetype" ? "default" : "outline"}
-              className="h-7 text-xs"
-              onClick={() => setFilterMode("archetype")}
-            >
-              Archetype
-            </Button>
-            <Button
-              size="sm"
-              variant={filterMode === "feat" ? "default" : "outline"}
-              className="h-7 text-xs"
-              onClick={() => setFilterMode("feat")}
-            >
-              Feat
-            </Button>
+            <Button size="sm" variant={filterMode === "archetype" ? "default" : "outline"} ...>Archetype</Button>
+            <Button size="sm" variant={filterMode === "feat" ? "default" : "outline"} ...>Feat</Button>
           </div>
+        )} */}
+
+        {/* AI validation denied alert */}
+        {validationResult && !validationResult.allowed && (
+          <Alert variant="destructive">
+            <ShieldAlert className="h-4 w-4" />
+            <AlertTitle>AI says this feat may not be valid</AlertTitle>
+            <AlertDescription className="space-y-2">
+              <p className="text-sm">{validationResult.reason}</p>
+              <Button
+                size="sm"
+                variant="outline"
+                onClick={() => {
+                  const action = validationResult.pendingAction;
+                  setValidationResult(null);
+                  action();
+                }}
+              >
+                Do it anyway
+              </Button>
+            </AlertDescription>
+          </Alert>
         )}
 
         <div className="relative">
@@ -783,28 +722,31 @@ const CharacterFeatPicker = ({ characterId, mode = "player", scenarioLevel }: Ch
         </div>
 
         <div className="max-h-[60vh] overflow-y-auto space-y-1">
-          {filteredFeats.length === 0 ? (
+          {validating && (
+            <div className="flex items-center justify-center gap-2 py-8">
+              <Loader2 className="h-5 w-5 animate-spin text-primary" />
+              <span className="text-sm text-muted-foreground">Validating with AI...</span>
+            </div>
+          )}
+          {!validating && filteredFeats.length === 0 ? (
             <p className="text-sm text-muted-foreground text-center py-8">No feats found</p>
-          ) : (
+          ) : !validating && (
             filteredFeats.map((feat) => {
               const isExpanded = expandedFeatId === feat.id;
-              const meta = metaMap.get(feat.id);
               return (
                 <FeatListItem
                   key={feat.id}
-                  feat={{ ...feat, description: meta?.description ?? null }}
+                  feat={{ ...feat, description: null }}
                   expanded={isExpanded}
                   onToggleExpand={() => setExpandedFeatId(isExpanded ? null : feat.id)}
                   expandedContent={
-                    <>
-                      <Button
-                        size="sm"
-                        onClick={() => handleFeatSelect(feat.id)}
-                        disabled={upsertMutation.isPending || addFreeFeatMutation.isPending || setSubfeatMutation.isPending}
-                      >
-                        Pick this feat
-                      </Button>
-                    </>
+                    <Button
+                      size="sm"
+                      onClick={() => handleFeatSelect(feat.id)}
+                      disabled={upsertMutation.isPending || addFreeFeatMutation.isPending || setSubfeatMutation.isPending || validating}
+                    >
+                      Pick this feat
+                    </Button>
                   }
                 />
               );
@@ -815,6 +757,7 @@ const CharacterFeatPicker = ({ characterId, mode = "player", scenarioLevel }: Ch
     );
   }
 
+  // Main view: assigned feats by level
   return (
     <div className="space-y-2">
       <div className="flex items-center gap-2">
@@ -828,7 +771,6 @@ const CharacterFeatPicker = ({ characterId, mode = "player", scenarioLevel }: Ch
       {Array.from({ length: levelsToShow }, (_, i) => i + 1).map((level) => {
         const assigned = levelFeats.find((cf) => cf.level === level);
         const assignedFeat = assigned ? featMap.get(assigned.feat_id) : null;
-        const assignedMeta = assignedFeat ? metaMap.get(assignedFeat.id) : null;
 
         const isInactive = scenarioLevel != null && level > scenarioLevel;
 
@@ -842,12 +784,13 @@ const CharacterFeatPicker = ({ characterId, mode = "player", scenarioLevel }: Ch
               {assignedFeat ? (
                 <div className="flex-1 min-w-0">
                    <FeatListItem
-                    feat={{ ...assignedFeat, description: assignedMeta?.description ?? null }}
+                    feat={{ ...assignedFeat, description: null }}
                     expanded={expandedAssignedFeatId === assigned!.id}
                     onToggleExpand={() => setExpandedAssignedFeatId(expandedAssignedFeatId === assigned!.id ? null : assigned!.id)}
-                    specialities={assignedMeta?.specialities}
-                    specialityValue={localSpecialities[assigned!.id] ?? assigned!.note ?? ""}
-                    onSpecialityChange={online ? (v) => handleSpecialityChange(assigned!.id, v) : undefined}
+                    // COMMENTED OUT: preprocessed fields — specialities
+                    // specialities={assignedMeta?.specialities}
+                    // specialityValue={localSpecialities[assigned!.id] ?? assigned!.note ?? ""}
+                    // onSpecialityChange={online ? (v) => handleSpecialityChange(assigned!.id, v) : undefined}
                     actions={online ? (
                       <>
                         <Button variant="ghost" size="sm" className="h-6 px-2 text-xs" onClick={() => openPicker({ type: "level", level })}>
@@ -895,16 +838,16 @@ const CharacterFeatPicker = ({ characterId, mode = "player", scenarioLevel }: Ch
           {freeFeats.map((cf) => {
             const feat = featMap.get(cf.feat_id);
             if (!feat) return null;
-            const meta = metaMap.get(feat.id);
             return (
               <FeatListItem
                 key={cf.id}
-                feat={{ ...feat, description: meta?.description ?? null }}
+                feat={{ ...feat, description: null }}
                 expanded={expandedAssignedFeatId === cf.id}
                 onToggleExpand={() => setExpandedAssignedFeatId(expandedAssignedFeatId === cf.id ? null : cf.id)}
-                specialities={meta?.specialities}
-                specialityValue={localSpecialities[cf.id] ?? cf.note ?? ""}
-                onSpecialityChange={online ? (v) => handleSpecialityChange(cf.id, v) : undefined}
+                // COMMENTED OUT: preprocessed fields — specialities
+                // specialities={meta?.specialities}
+                // specialityValue={localSpecialities[cf.id] ?? cf.note ?? ""}
+                // onSpecialityChange={online ? (v) => handleSpecialityChange(cf.id, v) : undefined}
                 actions={mode === "gm" && online ? (
                   <Button
                     variant="ghost"
