@@ -161,11 +161,25 @@ Key rules:
 
 Use the validate_feat tool to return your verdict.`;
 
+    // Build pick context string
+    let pickContext = "";
+    if (pickType === "level" && level != null) {
+      pickContext = `The player is picking this as their LEVEL ${level} feat.`;
+    } else if (pickType === "free") {
+      pickContext = `The player is adding this as a FREE feat (bonus feat outside level progression).`;
+    } else if (pickType === "subfeat" && parentFeatTitle) {
+      pickContext = `The player is picking this as a SUBFEAT of "${parentFeatTitle}". Check whether "${parentFeatTitle}" allows subfeats.`;
+    } else if (pickType === "subfeat") {
+      pickContext = `The player is picking this as a SUBFEAT of another feat. Check whether the parent feat allows subfeats.`;
+    }
+
     const userPrompt = `Character: ${character.name}
 ${character.description ? `Description: ${character.description}` : ""}
 
 Current feats (including subfeats):
 ${currentFeatsFormatted || "(none)"}
+
+${pickContext}
 
 Wants to acquire:
 ${targetFeatFormatted}
