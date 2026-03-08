@@ -88,15 +88,10 @@ const FeatDetailsDisplay = ({ content, rawContent, className = "" }: FeatDetails
         <div className="text-xs text-muted-foreground/60 italic">Synonyms: {fields.synonyms}</div>
       )}
       {fullHtml && (
-        <details className="mt-2">
-          <summary className="text-xs font-medium text-muted-foreground cursor-pointer hover:text-foreground transition-colors">
-            Full content
-          </summary>
-          <div
-            className="mt-1 text-xs text-muted-foreground/80 prose prose-xs prose-invert max-w-none [&_dt]:font-semibold [&_dt]:text-muted-foreground [&_dd]:ml-3 [&_dd]:text-muted-foreground/80"
-            dangerouslySetInnerHTML={{ __html: fullHtml }}
-          />
-        </details>
+        <div
+          className="mt-2 text-xs text-muted-foreground/80 prose prose-xs prose-invert max-w-none [&_dt]:font-semibold [&_dt]:text-muted-foreground [&_dd]:ml-3 [&_dd]:text-muted-foreground/80"
+          dangerouslySetInnerHTML={{ __html: fullHtml }}
+        />
       )}
     </div>
   );

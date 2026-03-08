@@ -855,7 +855,7 @@ const CharacterFeatPicker = ({ characterId, mode = "player", scenarioLevel }: Ch
             return (
               <FeatListItem
                 key={cf.id}
-                feat={{ ...feat, description: null }}
+                feat={feat}
                 expanded={expandedAssignedFeatId === cf.id}
                 onToggleExpand={() => setExpandedAssignedFeatId(expandedAssignedFeatId === cf.id ? null : cf.id)}
                 // COMMENTED OUT: preprocessed fields — specialities
