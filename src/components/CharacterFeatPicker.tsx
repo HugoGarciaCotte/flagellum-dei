@@ -607,7 +607,7 @@ const CharacterFeatPicker = ({ characterId, mode = "player", scenarioLevel }: Ch
                 <span className="text-muted-foreground text-xs">↳</span>
                 <div className="flex-1 min-w-0">
                   <FeatListItem
-                    feat={{ ...assignedFeat, description: null }}
+                    feat={assignedFeat}
                     expanded={expandedSubfeatKey === subfeatKey}
                     onToggleExpand={() => setExpandedSubfeatKey(expandedSubfeatKey === subfeatKey ? null : subfeatKey)}
                     compact
