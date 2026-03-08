@@ -14,7 +14,7 @@ interface FeatListItemFeat {
   id: string;
   title: string;
   categories: string[];
-  description: string | null;
+  description?: string | null;
   content: string | null;
   raw_content?: string | null;
 }

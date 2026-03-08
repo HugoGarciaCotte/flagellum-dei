@@ -607,7 +607,7 @@ const CharacterFeatPicker = ({ characterId, mode = "player", scenarioLevel }: Ch
                 <span className="text-muted-foreground text-xs">↳</span>
                 <div className="flex-1 min-w-0">
                   <FeatListItem
-                    feat={{ ...assignedFeat, description: null }}
+                    feat={assignedFeat}
                     expanded={expandedSubfeatKey === subfeatKey}
                     onToggleExpand={() => setExpandedSubfeatKey(expandedSubfeatKey === subfeatKey ? null : subfeatKey)}
                     compact
@@ -750,7 +750,7 @@ const CharacterFeatPicker = ({ characterId, mode = "player", scenarioLevel }: Ch
               return (
                 <FeatListItem
                   key={feat.id}
-                  feat={{ ...feat, description: null }}
+                  feat={feat}
                   expanded={isExpanded}
                   onToggleExpand={() => setExpandedFeatId(isExpanded ? null : feat.id)}
                   expandedContent={
@@ -798,7 +798,7 @@ const CharacterFeatPicker = ({ characterId, mode = "player", scenarioLevel }: Ch
               {assignedFeat ? (
                 <div className="flex-1 min-w-0">
                    <FeatListItem
-                    feat={{ ...assignedFeat, description: null }}
+                    feat={assignedFeat}
                     expanded={expandedAssignedFeatId === assigned!.id}
                     onToggleExpand={() => setExpandedAssignedFeatId(expandedAssignedFeatId === assigned!.id ? null : assigned!.id)}
                     // COMMENTED OUT: preprocessed fields — specialities
@@ -855,7 +855,7 @@ const CharacterFeatPicker = ({ characterId, mode = "player", scenarioLevel }: Ch
             return (
               <FeatListItem
                 key={cf.id}
-                feat={{ ...feat, description: null }}
+                feat={feat}
                 expanded={expandedAssignedFeatId === cf.id}
                 onToggleExpand={() => setExpandedAssignedFeatId(expandedAssignedFeatId === cf.id ? null : cf.id)}
                 // COMMENTED OUT: preprocessed fields — specialities
