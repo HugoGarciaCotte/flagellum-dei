@@ -83,9 +83,9 @@ export default defineConfig(({ mode }) => ({
         scope: "/",
         start_url: "/",
         icons: [
-          { src: "/pwa-192x192.png", sizes: "192x192", type: "image/png" },
-          { src: "/pwa-512x512.png", sizes: "512x512", type: "image/png" },
-          { src: "/pwa-512x512.png", sizes: "512x512", type: "image/png", purpose: "maskable" },
+          { src: "https://bcisbkompyqtfrtzccit.supabase.co/storage/v1/object/public/app-assets/pwa-icon-192.png", sizes: "192x192", type: "image/png" },
+          { src: "https://bcisbkompyqtfrtzccit.supabase.co/storage/v1/object/public/app-assets/pwa-icon-512.png", sizes: "512x512", type: "image/png" },
+          { src: "https://bcisbkompyqtfrtzccit.supabase.co/storage/v1/object/public/app-assets/pwa-icon-512.png", sizes: "512x512", type: "image/png", purpose: "maskable" },
         ],
       },
     }),
