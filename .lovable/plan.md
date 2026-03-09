@@ -1,29 +1,49 @@
 
 
-## Fix: Cannot scroll in Character Edit screen
+## Convert Logo from Unicode character to SVG icon
 
-### Root Cause
+The 🜹 Unicode alchemical symbol renders inconsistently across browsers/platforms and is hard to center because font metrics vary. The solution is to convert it into an inline SVG component with precise control over sizing and alignment.
 
-The Edit Character dialog (Dashboard.tsx line 272-294) uses a full-screen `DialogContent` with `fixed inset-0 h-full`. However, the base `DialogContent` component applies `left-[50%] top-[50%] translate-x-[-50%] translate-y-[-50%]` positioning and `grid` layout by default. These default styles conflict with the `inset-0` override, and the `ScrollArea` with `flex-1` inside a `flex flex-col h-full` container doesn't get a proper height constraint because the parent grid layout doesn't constrain it correctly.
+### Approach
 
-The same pattern is used for the "Create Character" dialog (line 220-238) — if that one scrolls fine, it's likely because the wizard content is shorter. But the edit screen with CharacterFeatPicker can grow taller than the viewport.
+Create the Logo as an SVG element instead of a text `<span>`. The SVG already exists in `public/favicon.svg` — extract the symbol path and render it inline. This gives pixel-perfect centering at any size.
 
-### Fix
+### Changes
 
-**File: `src/pages/Dashboard.tsx`** — Add `overflow-hidden` to the edit character `DialogContent` (line 273) so the flex/scroll layout works correctly within the fixed container:
-
-```
-className="fixed inset-0 max-w-none w-full h-full rounded-none p-0 translate-x-0 translate-y-0 left-0 top-0 border-none overflow-hidden"
-```
-
-Also ensure the `ScrollArea` viewport properly constrains. The `flex-1` on ScrollArea needs `min-h-0` on its flex parent to allow flex children to shrink below their content size:
+**`src/components/Logo.tsx`** — Replace the Unicode span with an inline SVG that renders the 🜹 symbol as an SVG `<text>` element (matching the favicon approach), sized via `width`/`height` props or className. The SVG viewBox ensures perfect centering regardless of font rendering.
 
 ```tsx
-<div className="flex flex-col h-full min-h-0">
+import { cn } from "@/lib/utils";
+
+const Logo = ({ className }: { className?: string }) => (
+  <svg
+    viewBox="0 0 512 512"
+    xmlns="http://www.w3.org/2000/svg"
+    className={cn("inline-block", className)}
+    style={{ width: "1em", height: "1em" }}
+  >
+    <text
+      x="256" y="280"
+      fontSize="420"
+      fill="currentColor"
+      textAnchor="middle"
+      dominantBaseline="central"
+      fontFamily="serif"
+    >
+      🜹
+    </text>
+  </svg>
+);
+
+export default Logo;
 ```
 
-This same fix should be applied to both the edit dialog (line 274) and the create dialog (line 221) for consistency.
+Key benefits:
+- `currentColor` inherits the parent text color (gold/primary) automatically
+- `1em` sizing makes it scale with the font-size context (controlled via className like `text-xl`, `text-5xl`)
+- The SVG viewBox with fixed coordinates ensures the symbol is always perfectly centered
+- No more font-metric alignment hacks (`translate-y`, `leading-none`)
 
 ### Files to edit
-- `src/pages/Dashboard.tsx` (lines 273-274 and 220-221)
+- `src/components/Logo.tsx`
 
