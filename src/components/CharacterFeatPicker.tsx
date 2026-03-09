@@ -464,17 +464,30 @@ const CharacterFeatPicker = ({ characterId, mode = "player", scenarioLevel }: Ch
     if (!allFeats) return [];
     let filtered: Feat[];
 
-    // COMMENTED OUT: preprocessed fields — metadata-driven subfeat filtering
-    // if (pickerTarget?.type === "subfeat") {
-    //   const slot = pickerTarget.slot;
-    //   if (slot.kind === "list" && slot.options) { ... }
-    //   else if (slot.kind === "type" && slot.filter) { ... }
-    //   else { filtered = []; }
-    // }
-
-    // New: subfeat picker shows all feats
     if (pickerTarget?.type === "subfeat") {
-      filtered = [...allFeats];
+      const slotMeta = pickerTarget.slotMeta;
+      if (slotMeta) {
+        if (slotMeta.kind === "fixed" && slotMeta.feat_title) {
+          filtered = allFeats.filter(f => f.title === slotMeta.feat_title);
+        } else if (slotMeta.kind === "list" && slotMeta.options) {
+          const optionSet = new Set(slotMeta.options);
+          filtered = allFeats.filter(f => optionSet.has(f.title));
+        } else if (slotMeta.kind === "type" && slotMeta.filter) {
+          const filters = slotMeta.filter.split(",").map(s => s.trim()).filter(Boolean);
+          const include = filters.filter(f => !f.startsWith("!"));
+          const exclude = filters.filter(f => f.startsWith("!")).map(f => f.slice(1));
+          filtered = allFeats.filter(f => {
+            const cats = f.categories ?? [];
+            if (include.length > 0 && !include.some(c => cats.includes(c))) return false;
+            if (exclude.some(c => cats.includes(c))) return false;
+            return true;
+          });
+        } else {
+          filtered = [...allFeats];
+        }
+      } else {
+        filtered = [...allFeats];
+      }
     } else if (pickerTarget?.type === "free" || mode === "gm") {
       filtered = [...allFeats];
     } else {
