@@ -116,16 +116,23 @@ const CharacterFeatPicker = ({ characterId, mode = "player", scenarioLevel }: Ch
     }
   }, [allFeats, online]);
 
-  // Metadata map: only parse archetype feats for subfeat slot definitions
+  // Metadata map: parse all feats for embedded metadata (one-liners, subfeat slots, etc.)
   const metaMap = useMemo(() => {
     const map = new Map<string, ReturnType<typeof parseEmbeddedFeatMeta>>();
     (allFeats ?? []).forEach((f) => {
-      if (f.categories?.includes("Archetype")) {
-        map.set(f.id, parseEmbeddedFeatMeta(f.raw_content || f.content));
-      }
+      map.set(f.id, parseEmbeddedFeatMeta(f.raw_content || f.content));
     });
     return map;
   }, [allFeats]);
+
+  // Description map: feat ID → one-liner description from parseable fields
+  const descriptionMap = useMemo(() => {
+    const map = new Map<string, string>();
+    metaMap.forEach((meta, id) => {
+      if (meta.description) map.set(id, meta.description);
+    });
+    return map;
+  }, [metaMap]);
 
   const { data: characterFeats } = useQuery({
     queryKey: ["character-feats", characterId],
