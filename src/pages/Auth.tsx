@@ -66,7 +66,7 @@ const Auth = () => {
       <div className="w-full max-w-md space-y-8">
         <div className="text-center space-y-2">
           <div className="flex justify-center">
-            <Shield className="h-12 w-12 text-primary" />
+            <Logo className="text-5xl" />
           </div>
           <h1 className="font-display text-3xl font-bold text-foreground tracking-wide">
             Flagellum Dei TTRPG
