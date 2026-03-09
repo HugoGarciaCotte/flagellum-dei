@@ -130,14 +130,14 @@ const DiceRoller = () => {
   return (
     <>
       {/* FAB Button */}
-      <div className="fixed bottom-6 right-6 z-50">
+      <div className="fixed bottom-20 right-6 z-50">
         <Button
           onClick={roll}
           disabled={rolling}
-          className="h-14 rounded-full shadow-lg bg-primary text-primary-foreground hover:bg-primary/90 px-5 gap-2"
+          size="icon"
+          className="h-14 w-14 rounded-full shadow-lg bg-primary text-primary-foreground hover:bg-primary/90"
         >
           <Dices className="h-6 w-6" />
-          <span className="font-display text-sm">Click to roll a die</span>
         </Button>
       </div>
 
