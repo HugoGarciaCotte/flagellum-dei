@@ -226,25 +226,12 @@ const PlayGame = () => {
           <ScrollArea className="flex-1">
             <div className="container max-w-2xl py-6 px-4 space-y-3">
               {(myCharacters ?? []).length === 0 ? (
-                creatingChar ? (
-                  <div className="border border-border rounded-md p-3">
-                    <CharacterCreationWizard
-                      gameId={gameId}
-                      onCreated={(id) => {
-                        selectCharMutation.mutate(id);
-                        setCreatingChar(false);
-                      }}
-                      onCancel={() => setCreatingChar(false)}
-                    />
-                  </div>
-                ) : (
-                  <div className="space-y-2">
-                    <p className="text-sm text-muted-foreground">No characters yet.</p>
-                    <Button variant="outline" size="sm" className="gap-2 w-full" onClick={() => setCreatingChar(true)}>
-                      <Plus className="h-3 w-3" /> New Character
-                    </Button>
-                  </div>
-                )
+                <div className="space-y-2">
+                  <p className="text-sm text-muted-foreground">No characters yet.</p>
+                  <Button variant="outline" size="sm" className="gap-2 w-full" onClick={() => setCreatingChar(true)}>
+                    <Plus className="h-3 w-3" /> New Character
+                  </Button>
+                </div>
               ) : (
                 <>
                   {(myCharacters ?? []).map((char) => (
