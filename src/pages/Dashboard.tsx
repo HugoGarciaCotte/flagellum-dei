@@ -9,7 +9,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from 
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import { toast } from "@/hooks/use-toast";
 import { useNavigate } from "react-router-dom";
-import { Skull, LogOut, Plus, DoorOpen, Scroll, Users, Settings, ChevronDown, Sword, Trash2, Pencil, ShieldCheck, ArrowLeft } from "lucide-react";
+import { Skull, LogOut, Plus, DoorOpen, Scroll, Users, Settings, ChevronDown, Sword, Trash2, Pencil, ShieldCheck } from "lucide-react";
 import CharacterSheet from "@/components/CharacterSheet";
 import { useOfflineScenarios } from "@/hooks/useOfflineScenarios";
 import { useOfflineFeats } from "@/hooks/useOfflineFeats";
