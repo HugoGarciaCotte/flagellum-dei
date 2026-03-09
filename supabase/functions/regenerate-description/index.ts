@@ -433,7 +433,7 @@ serve(async (req) => {
       const [description, subfeatResult, specialities, prerequisites, blocking] = await Promise.all([
         generateDescription(feat.title, cleanContent, feat.categories || []),
         generateSubfeats(feat.title, cleanContent, feat.categories || [], allFeatTitles),
-        generateSpecialities(feat.title, cleanContent, feat.categories || []),
+        generateSpecialities(feat.title, cleanContent, feat.categories || [], allFeatTitles),
         generatePrerequisites(feat.title, cleanContent, feat.categories || []),
         generateBlocking(feat.title, cleanContent, feat.categories || [], allFeatTitles),
       ]);
