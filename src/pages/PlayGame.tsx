@@ -277,25 +277,54 @@ const PlayGame = () => {
         </div>
       )}
 
-      {/* Edit Character Dialog */}
-      <Dialog open={!!editingCharId} onOpenChange={(open) => { if (!open) setEditingCharId(null); }}>
-        <DialogContent className="max-h-[85vh] overflow-y-auto sm:max-w-lg">
-          <DialogHeader>
-            <DialogTitle className="font-display">Edit Character</DialogTitle>
-          </DialogHeader>
-          {editingCharId && (
-            <CharacterSheet
-              characterId={editingCharId}
-              mode="player"
-              scenarioLevel={effectiveScenario?.level ?? undefined}
-              onDone={() => {
-                setEditingCharId(null);
-                queryClient.invalidateQueries({ queryKey: ["my-characters"] });
-              }}
-            />
-          )}
-        </DialogContent>
-      </Dialog>
+      {/* Fullscreen Create Character */}
+      {creatingChar && (
+        <div className="fixed inset-0 z-50 bg-background flex flex-col animate-in fade-in duration-200">
+          <div className="border-b border-border/50 bg-card/80 backdrop-blur px-4 py-3 flex items-center justify-between shrink-0">
+            <span className="font-display text-sm font-medium text-foreground">Create Character</span>
+            <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => setCreatingChar(false)}>
+              <X className="h-4 w-4" />
+            </Button>
+          </div>
+          <ScrollArea className="flex-1">
+            <div className="container max-w-2xl py-6 px-4">
+              <CharacterCreationWizard
+                gameId={gameId}
+                onCreated={(id) => {
+                  selectCharMutation.mutate(id);
+                  setCreatingChar(false);
+                }}
+                onCancel={() => setCreatingChar(false)}
+              />
+            </div>
+          </ScrollArea>
+        </div>
+      )}
+
+      {/* Fullscreen Edit Character */}
+      {editingCharId && (
+        <div className="fixed inset-0 z-50 bg-background flex flex-col animate-in fade-in duration-200">
+          <div className="border-b border-border/50 bg-card/80 backdrop-blur px-4 py-3 flex items-center justify-between shrink-0">
+            <span className="font-display text-sm font-medium text-foreground">Edit Character</span>
+            <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => setEditingCharId(null)}>
+              <X className="h-4 w-4" />
+            </Button>
+          </div>
+          <ScrollArea className="flex-1">
+            <div className="container max-w-2xl py-6 px-4">
+              <CharacterSheet
+                characterId={editingCharId}
+                mode="player"
+                scenarioLevel={effectiveScenario?.level ?? undefined}
+                onDone={() => {
+                  setEditingCharId(null);
+                  queryClient.invalidateQueries({ queryKey: ["my-characters"] });
+                }}
+              />
+            </div>
+          </ScrollArea>
+        </div>
+      )}
     </div>
   );
 };
