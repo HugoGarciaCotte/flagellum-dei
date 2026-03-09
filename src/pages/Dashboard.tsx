@@ -5,7 +5,8 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogTrigger } from "@/components/ui/dialog";
+import { ScrollArea } from "@/components/ui/scroll-area";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import { toast } from "@/hooks/use-toast";
 import { useNavigate } from "react-router-dom";
@@ -216,18 +217,24 @@ const Dashboard = () => {
                   <Plus className="h-4 w-4" /> New Character
                 </Button>
               </DialogTrigger>
-              <DialogContent className="max-h-[85vh] overflow-y-auto sm:max-w-lg">
-                <DialogHeader>
-                  <DialogTitle className="font-display">Create Character</DialogTitle>
-                </DialogHeader>
-                <CharacterCreationWizard
-                  onCreated={(charId) => {
-                    setNewCharDialogOpen(false);
-                    setEditingCharId(charId);
-                    toast({ title: "Character created!" });
-                  }}
-                  onCancel={() => setNewCharDialogOpen(false)}
-                />
+              <DialogContent className="fixed inset-0 max-w-none w-full h-full rounded-none p-0 translate-x-0 translate-y-0 left-0 top-0 border-none">
+                <div className="flex flex-col h-full">
+                  <div className="border-b border-border/50 bg-card/80 backdrop-blur px-4 py-3 flex items-center justify-between shrink-0">
+                    <span className="font-display text-sm font-medium text-foreground">Create Character</span>
+                  </div>
+                  <ScrollArea className="flex-1">
+                    <div className="container max-w-2xl py-6 px-4">
+                      <CharacterCreationWizard
+                        onCreated={(charId) => {
+                          setNewCharDialogOpen(false);
+                          setEditingCharId(charId);
+                          toast({ title: "Character created!" });
+                        }}
+                        onCancel={() => setNewCharDialogOpen(false)}
+                      />
+                    </div>
+                  </ScrollArea>
+                </div>
               </DialogContent>
             </Dialog>
           </div>
@@ -263,20 +270,26 @@ const Dashboard = () => {
 
           {/* Edit Character Dialog */}
           <Dialog open={!!editingCharId} onOpenChange={(open) => { if (!open) setEditingCharId(null); }}>
-            <DialogContent className="max-h-[85vh] overflow-y-auto sm:max-w-lg">
-              <DialogHeader>
-                <DialogTitle className="font-display">Edit Character</DialogTitle>
-              </DialogHeader>
-              {editingCharId && (
-                <CharacterSheet
-                  characterId={editingCharId}
-                  mode="player"
-                  onDone={() => {
-                    setEditingCharId(null);
-                    queryClient.invalidateQueries({ queryKey: ["my-characters"] });
-                  }}
-                />
-              )}
+            <DialogContent className="fixed inset-0 max-w-none w-full h-full rounded-none p-0 translate-x-0 translate-y-0 left-0 top-0 border-none">
+              <div className="flex flex-col h-full">
+                <div className="border-b border-border/50 bg-card/80 backdrop-blur px-4 py-3 flex items-center justify-between shrink-0">
+                  <span className="font-display text-sm font-medium text-foreground">Edit Character</span>
+                </div>
+                <ScrollArea className="flex-1">
+                  <div className="container max-w-2xl py-6 px-4">
+                    {editingCharId && (
+                      <CharacterSheet
+                        characterId={editingCharId}
+                        mode="player"
+                        onDone={() => {
+                          setEditingCharId(null);
+                          queryClient.invalidateQueries({ queryKey: ["my-characters"] });
+                        }}
+                      />
+                    )}
+                  </div>
+                </ScrollArea>
+              </div>
             </DialogContent>
           </Dialog>
         </section>

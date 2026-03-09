@@ -40,7 +40,9 @@ const CharacterListItem = ({ character, actions }: CharacterListItemProps) => {
           </div>
           {actions && <div className="flex gap-1 shrink-0">{actions}</div>}
         </div>
-        {character.description && <CardDescription>{character.description}</CardDescription>}
+        {character.description && (
+          <p className="text-sm text-muted-foreground mt-1.5 leading-relaxed">{character.description}</p>
+        )}
       </CardHeader>
       {feats && feats.length > 0 && (
         <CardContent className="pt-0 pb-3">
