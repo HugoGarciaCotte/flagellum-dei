@@ -221,11 +221,7 @@ const CharacterCreationWizard = ({ onCreated, onCancel, gameId }: CharacterCreat
 
   // Navigate to next meaningful step
   const goToNextStep = (fromStep: number) => {
-    let next = fromStep + 1;
-    if (next === 2 && shouldSkipFaith) next = 3;
-    if (next === 3 && shouldSkipSubfeat2) next = 4;
-    if (next === 4 && shouldSkipSubfeat3) next = 5;
-    setStep(next);
+    setStep(fromStep + 1);
     setSearchTerm("");
     setExpandedFeatId(null);
   };
@@ -239,6 +235,13 @@ const CharacterCreationWizard = ({ onCreated, onCancel, gameId }: CharacterCreat
     setSearchTerm("");
     setExpandedFeatId(null);
   };
+
+  // Reactive step skipping — runs after derived state updates
+  useEffect(() => {
+    if (step === 2 && shouldSkipFaith) setStep(3);
+    else if (step === 3 && shouldSkipSubfeat2) setStep(4);
+    else if (step === 4 && shouldSkipSubfeat3) setStep(5);
+  }, [step, shouldSkipFaith, shouldSkipSubfeat2, shouldSkipSubfeat3]);
 
   // Auto-set fixed subfeat2
   useEffect(() => {
