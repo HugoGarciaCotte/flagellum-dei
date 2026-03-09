@@ -15,6 +15,7 @@ import {
   Search, ArrowLeft,
 } from "lucide-react";
 import { getCachedFeats } from "@/lib/offlineStorage";
+import Logo from "@/components/Logo";
 
 interface CharacterCreationWizardProps {
   onCreated: (characterId: string) => void;
