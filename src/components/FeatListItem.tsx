@@ -1,7 +1,7 @@
 import { ReactNode } from "react";
-import { ChevronDown } from "lucide-react";
 import FeatCategoryBadges from "@/components/FeatCategoryBadges";
 import FeatDetailsDisplay from "@/components/FeatDetailsDisplay";
+import { Button } from "@/components/ui/button";
 import {
   Select,
   SelectContent,
@@ -36,6 +36,10 @@ interface FeatListItemProps {
   compact?: boolean;
   /** Extra inline content after title (e.g. validation spinner) */
   titlePrefix?: ReactNode;
+  /** Quick action callback (e.g. "Take" in picker) */
+  onQuickAction?: () => void;
+  /** Label for the quick action button */
+  quickActionLabel?: string;
 }
 
 const FeatListItem = ({
@@ -50,24 +54,34 @@ const FeatListItem = ({
   collapsedContent,
   compact,
   titlePrefix,
+  onQuickAction,
+  quickActionLabel = "Take",
 }: FeatListItemProps) => {
   const hasSpecialities = specialities && specialities.length > 0;
+  const hasPicker = !!onQuickAction;
 
   return (
     <div
-      className={`rounded border border-border hover:border-primary/50 transition-colors cursor-pointer ${compact ? "p-2" : ""}`}
-      onClick={onToggleExpand}
+      className={`rounded border border-border hover:border-primary/50 transition-colors ${!hasPicker ? "cursor-pointer" : ""} ${compact ? "p-2" : ""}`}
+      onClick={!hasPicker ? onToggleExpand : undefined}
     >
       <div>
         <div className={`w-full text-left ${compact ? "" : "p-3"}`}>
           <div className="flex items-center gap-2">
             {titlePrefix}
             <span className="text-sm font-medium text-foreground truncate">{feat.title}</span>
-            <ChevronDown
-              className={`h-3 w-3 shrink-0 text-muted-foreground transition-transform ${expanded ? "rotate-180" : ""}`}
-            />
             <FeatCategoryBadges categories={feat.categories} />
-            {actions && <div className="ml-auto flex gap-1 shrink-0" onClick={(e) => e.stopPropagation()}>{actions}</div>}
+            {hasPicker && (
+              <div className="ml-auto flex gap-1 shrink-0" onClick={(e) => e.stopPropagation()}>
+                <Button size="sm" variant="default" className="h-6 text-xs px-2" onClick={onQuickAction}>
+                  {quickActionLabel}
+                </Button>
+                <Button size="sm" variant="outline" className="h-6 text-xs px-2" onClick={onToggleExpand}>
+                  Details
+                </Button>
+              </div>
+            )}
+            {!hasPicker && actions && <div className="ml-auto flex gap-1 shrink-0" onClick={(e) => e.stopPropagation()}>{actions}</div>}
           </div>
         </div>
         {/* Speciality dropdown (editable) */}

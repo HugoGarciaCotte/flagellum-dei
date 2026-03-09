@@ -787,15 +787,8 @@ const CharacterFeatPicker = ({ characterId, mode = "player", scenarioLevel }: Ch
                   feat={{ ...feat, description: descriptionMap.get(feat.id) ?? undefined }}
                   expanded={isExpanded}
                   onToggleExpand={() => setExpandedFeatId(isExpanded ? null : feat.id)}
-                  expandedContent={
-                    <Button
-                      size="sm"
-                      onClick={() => handleFeatSelect(feat.id)}
-                      disabled={upsertMutation.isPending || addFreeFeatMutation.isPending || setSubfeatMutation.isPending || validating}
-                    >
-                      Pick this feat
-                    </Button>
-                  }
+                  onQuickAction={() => handleFeatSelect(feat.id)}
+                  quickActionLabel="Take"
                 />
               );
             })
