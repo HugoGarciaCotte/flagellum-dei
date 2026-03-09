@@ -118,7 +118,9 @@ const CharacterCreationWizard = ({ onCreated, onCancel, gameId }: CharacterCreat
       if (slot.kind === "list" && slot.options) {
         const hasFaith = slot.options.some(o => {
           const f = featByTitle.get(o);
-          return f?.categories?.includes("Faith") || f?.categories?.includes("Faith Feat");
+          const catMatch = f?.categories?.includes("Faith") || f?.categories?.includes("Faith Feat");
+          const titleMatch = o.toLowerCase().includes("faith");
+          return catMatch || titleMatch;
         });
         if (hasFaith) {
           return { slot: slot.slot, allowsFaith: true, allowsDarkFaith: false };
