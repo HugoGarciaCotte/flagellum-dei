@@ -87,7 +87,7 @@ async function checkFeatWithAI(
 Fields to review:
 - description: A short (under 15 words) sentence. For Archetypes (check categories): character personality/flavor (who they are). For other feats: practical effect (what they can do). Never use mechanical jargon.
 - prerequisites: Free-form text listing what is required to take this feat (e.g. "Level 3, [[Prowess]]"). Most feats have none.
-- specialities: List of speciality options the player must choose from (most feats have none)
+- specialities: Options where the feat is used as "{Title} ({option})". ONLY valid if parenthesized variants exist in the wiki content AND "{Title} ({option})" is NOT a standalone feat in the database. Most feats have none.
 - subfeats: Subfeat slot definitions (fixed/list/type) — most feats have none
 - unlocks_categories: Categories this feat unlocks for the character (most feats unlock nothing)
 - blocking: List of feat titles that are incompatible with this feat (most feats block nothing)
