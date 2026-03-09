@@ -72,7 +72,7 @@ const Install = () => {
         </Card>
 
         <Button variant="ghost" onClick={() => navigate("/")} className="w-full font-display">
-          Back to Flagellum Dei TTRPG Helper
+          Back to Flagellum Dei TTRPG
         </Button>
       </div>
     </div>

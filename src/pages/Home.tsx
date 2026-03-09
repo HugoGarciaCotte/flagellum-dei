@@ -232,7 +232,7 @@ const Home = () => {
       <footer className="border-t border-primary/10 py-10 text-center">
         <div className="flex items-center justify-center gap-2 text-muted-foreground">
           <Skull className="h-4 w-4 text-primary/40" />
-          <span className="font-display text-sm">Flagellum Dei TTRPG Helper</span>
+          <span className="font-display text-sm">Flagellum Dei TTRPG</span>
         </div>
       </footer>
     </div>
