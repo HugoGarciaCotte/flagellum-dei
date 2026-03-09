@@ -66,7 +66,7 @@ const ARCHETYPE_DEFAULT_SLOTS = 3;
 type PickerTarget =
   | { type: "level"; level: number }
   | { type: "free" }
-  | { type: "subfeat"; characterFeatId: string; slot: number };
+  | { type: "subfeat"; characterFeatId: string; slot: number; slotMeta?: SubfeatSlot };
 
 type ValidationResult = {
   allowed: boolean;
