@@ -12,7 +12,7 @@ import FeatListItem from "@/components/FeatListItem";
 import { sortTitlesEmojiLast } from "@/lib/utils";
 import {
   Loader2, Sparkles, Upload, Dices, ChevronRight, SkipForward,
-  Shield, Search, ArrowLeft,
+  Search, ArrowLeft,
 } from "lucide-react";
 import { getCachedFeats } from "@/lib/offlineStorage";
 
