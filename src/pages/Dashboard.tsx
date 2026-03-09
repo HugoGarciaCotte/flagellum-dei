@@ -222,16 +222,17 @@ const Dashboard = () => {
                     <Plus className="h-4 w-4" /> New Character
                   </Button>
                 </DialogTrigger>
-                <DialogContent className="max-h-[85vh] overflow-y-auto">
+                <DialogContent className="max-h-[85vh] overflow-y-auto sm:max-w-lg">
                   <DialogHeader>
                     <DialogTitle className="font-display">Create Character</DialogTitle>
                   </DialogHeader>
-                  <CreateCharacterForm
+                  <CharacterCreationWizard
                     onCreated={(charId) => {
                       setNewCharDialogOpen(false);
                       setEditingCharId(charId);
-                      toast({ title: "Character created — now pick feats!" });
+                      toast({ title: "Character created!" });
                     }}
+                    onCancel={() => setNewCharDialogOpen(false)}
                   />
                 </DialogContent>
               </Dialog>
