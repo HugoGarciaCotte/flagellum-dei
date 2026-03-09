@@ -278,16 +278,19 @@ const CharacterCreationWizard = ({ onCreated, onCancel, gameId }: CharacterCreat
 
   // --- End progressive save helpers ---
 
-  const getSelectedFeatNames = () => {
-    const featNames: string[] = [];
-    if (archetypeFeat) featNames.push(archetypeFeat.title);
+  const getSelectedFeatSummaries = () => {
+    const summaries: string[] = [];
+    const addFeat = (f: { title: string; description?: string | null }) => {
+      summaries.push(f.description ? `${f.title} (${f.description})` : f.title);
+    };
+    if (archetypeFeat) addFeat(archetypeFeat);
     subfeatSelections.forEach((id) => {
       if (id) {
         const f = featMap.get(id);
-        if (f) featNames.push(f.title);
+        if (f) addFeat(f);
       }
     });
-    return featNames;
+    return summaries;
   };
 
   const generateDescription = async () => {
