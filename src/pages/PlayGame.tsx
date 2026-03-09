@@ -189,7 +189,14 @@ const PlayGame = () => {
             <div className="flex items-center gap-3">
               <GripHorizontal className="h-4 w-4 text-muted-foreground" />
               <div className="flex items-center gap-2">
-                <User className="h-4 w-4 text-primary" />
+                <Avatar className="h-7 w-7 border border-primary/20">
+                  {(selectedCharacter as any)?.portrait_url ? (
+                    <AvatarImage src={(selectedCharacter as any).portrait_url} alt={selectedCharacter?.name} />
+                  ) : null}
+                  <AvatarFallback className="text-[10px] font-display bg-muted">
+                    {selectedCharacter ? selectedCharacter.name.slice(0, 2).toUpperCase() : "?"}
+                  </AvatarFallback>
+                </Avatar>
                 <span className="font-display text-sm font-medium text-foreground">
                   {selectedCharacter ? selectedCharacter.name : "Select a character"}
                 </span>
