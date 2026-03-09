@@ -1,7 +1,8 @@
 import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Download, Shield, Smartphone } from "lucide-react";
+import { Download, Smartphone } from "lucide-react";
+import Logo from "@/components/Logo";
 import { useNavigate } from "react-router-dom";
 
 interface BeforeInstallPromptEvent extends Event {
@@ -40,7 +41,7 @@ const Install = () => {
     <div className="flex min-h-screen items-center justify-center bg-background p-4">
       <div className="w-full max-w-md space-y-6">
         <div className="text-center space-y-2">
-          <Shield className="h-12 w-12 text-primary mx-auto" />
+          <Logo className="text-5xl mx-auto" />
           <h1 className="font-display text-3xl font-bold text-foreground">Install Flagellum Dei TTRPG</h1>
           <p className="text-muted-foreground">Play offline, anytime.</p>
         </div>

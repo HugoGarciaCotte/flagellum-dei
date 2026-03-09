@@ -7,7 +7,8 @@ import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { toast } from "@/hooks/use-toast";
-import { Shield, Sword } from "lucide-react";
+import { Sword } from "lucide-react";
+import Logo from "@/components/Logo";
 
 const Auth = () => {
   const { user } = useAuth();
@@ -65,7 +66,7 @@ const Auth = () => {
       <div className="w-full max-w-md space-y-8">
         <div className="text-center space-y-2">
           <div className="flex justify-center">
-            <Shield className="h-12 w-12 text-primary" />
+            <Logo className="text-5xl" />
           </div>
           <h1 className="font-display text-3xl font-bold text-foreground tracking-wide">
             Flagellum Dei TTRPG
@@ -81,7 +82,7 @@ const Auth = () => {
                   <Sword className="h-4 w-4" /> Login
                 </TabsTrigger>
                 <TabsTrigger value="signup" className="flex-1 gap-2">
-                  <Shield className="h-4 w-4" /> Sign Up
+                  <Logo className="text-sm" /> Sign Up
                 </TabsTrigger>
               </TabsList>
             </CardHeader>
