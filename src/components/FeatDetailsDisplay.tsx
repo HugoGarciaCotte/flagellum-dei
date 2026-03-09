@@ -1,11 +1,63 @@
-import { parseFeatFields } from "@/lib/parseFeatContent";
+import { useState, useRef, useEffect, useCallback, useMemo } from "react";
+import { createPortal } from "react-dom";
+import { useQuery } from "@tanstack/react-query";
+import { supabase } from "@/integrations/supabase/client";
 import { convertBodyToHtml } from "@/lib/parseWikitext";
 import { parseEmbeddedFeatMeta } from "@/lib/parseEmbeddedFeatMeta";
+import { parseFeatFields } from "@/lib/parseFeatContent";
 import WikiLinkedText from "@/components/WikiLinkedText";
-import { useMemo } from "react";
 
-function fieldToHtml(text: string): string {
-  return convertBodyToHtml(text.split("\n"));
+function stripLinks(text: string): string {
+  return text
+    .replace(/\[\[Category:[^\]]*\]\]/gi, "")
+    .replace(/\[\[:Category:[^|\]]+\|([^\]]+)\]\]/gi, "$1")
+    .replace(/\[\[:Category:[^\]]*\]\]/gi, "")
+    .replace(/\[\[([^|\]]+)\|([^\]]+)\]\]/g, "$2")
+    .replace(/\[\[([^\]]+)\]\]/g, "$1");
+}
+
+function FeatLinkTooltip({ featName, rect, featsMap }: { featName: string; rect: DOMRect; featsMap: Map<string, any> }) {
+  const feat = featsMap.get(featName.toLowerCase());
+  if (!feat) return null;
+  const fields = parseFeatFields(feat.content);
+  const meta = parseEmbeddedFeatMeta(feat.raw_content || feat.content);
+  const prerequisites = meta.prerequisites || fields.prerequisites;
+
+  return createPortal(
+    <div
+      className="fixed z-[100] w-72 rounded-md border bg-popover p-3 text-popover-foreground shadow-md animate-in fade-in-0 zoom-in-95"
+      style={{ top: rect.top - 8, left: rect.left + rect.width / 2, transform: "translate(-50%, -100%)" }}
+    >
+      <div className="space-y-1.5">
+        <p className="text-sm font-semibold">{feat.title}</p>
+        {fields.description && (
+          <div>
+            <p className="text-xs font-medium text-muted-foreground">Description</p>
+            <p className="text-xs text-muted-foreground/80 whitespace-pre-line">{stripLinks(fields.description)}</p>
+          </div>
+        )}
+        {prerequisites && (
+          <div>
+            <p className="text-xs font-medium text-muted-foreground">Prerequisites</p>
+            <p className="text-xs text-muted-foreground/80">{stripLinks(prerequisites)}</p>
+          </div>
+        )}
+        {meta.blocking && meta.blocking.length > 0 && (
+          <div>
+            <p className="text-xs font-medium text-destructive">Incompatible with</p>
+            <p className="text-xs text-destructive/80">{meta.blocking.join(", ")}</p>
+          </div>
+        )}
+        {fields.special && (
+          <div>
+            <p className="text-xs font-medium text-muted-foreground">Special</p>
+            <p className="text-xs text-muted-foreground/80 whitespace-pre-line">{stripLinks(fields.special)}</p>
+          </div>
+        )}
+      </div>
+    </div>,
+    document.body
+  );
 }
 
 interface FeatDetailsDisplayProps {
@@ -15,11 +67,13 @@ interface FeatDetailsDisplayProps {
 }
 
 const FeatDetailsDisplay = ({ content, rawContent, className = "" }: FeatDetailsDisplayProps) => {
-  const fields = parseFeatFields(rawContent || content);
   const meta = parseEmbeddedFeatMeta(rawContent || content);
-  const prerequisites = meta.prerequisites || fields.prerequisites;
+  const contentFields = parseFeatFields(rawContent || content);
+  const prerequisites = meta.prerequisites || contentFields.prerequisites;
   const blocking = meta.blocking;
-  const hasFields = fields.description || fields.special || prerequisites || fields.synonyms || (blocking && blocking.length > 0);
+
+  const contentRef = useRef<HTMLDivElement>(null);
+  const [hoveredFeat, setHoveredFeat] = useState<{ name: string; rect: DOMRect } | null>(null);
 
   const fullHtml = useMemo(() => {
     if (!content) return null;
@@ -28,34 +82,64 @@ const FeatDetailsDisplay = ({ content, rawContent, className = "" }: FeatDetails
     return convertBodyToHtml(cleaned.split("\n"));
   }, [content]);
 
-  if (!hasFields && !fullHtml) return null;
+  // Fetch feats map for hover tooltips
+  const { data: featsMap } = useQuery({
+    queryKey: ["feats-map-for-links"],
+    queryFn: async () => {
+      const [featsRes, redirectsRes] = await Promise.all([
+        supabase.from("feats").select("title, content, raw_content"),
+        supabase.from("feat_redirects").select("from_title, to_title"),
+      ]);
+      const map = new Map<string, any>();
+      featsRes.data?.forEach((f) => map.set(f.title.toLowerCase(), f));
+      redirectsRes.data?.forEach((r) => {
+        const target = map.get(r.to_title.toLowerCase());
+        if (target) map.set(r.from_title.toLowerCase(), target);
+      });
+      return map;
+    },
+    staleTime: 5 * 60 * 1000,
+    gcTime: 10 * 60 * 1000,
+  });
+
+  // Style wiki-feat-link spans
+  useEffect(() => {
+    const el = contentRef.current;
+    if (!el || !featsMap) return;
+    const links = el.querySelectorAll<HTMLSpanElement>(".wiki-feat-link");
+    links.forEach((link) => {
+      link.style.color = "hsl(var(--primary))";
+      link.style.textDecoration = "underline";
+      link.style.textDecorationStyle = "dotted";
+      link.style.textUnderlineOffset = "2px";
+      link.style.cursor = "help";
+    });
+  }, [fullHtml, featsMap]);
+
+  const handleMouseOver = useCallback((e: React.MouseEvent) => {
+    const target = (e.target as HTMLElement).closest(".wiki-feat-link") as HTMLElement | null;
+    if (target) {
+      const feat = target.getAttribute("data-feat");
+      if (feat) setHoveredFeat({ name: feat, rect: target.getBoundingClientRect() });
+    }
+  }, []);
+
+  const handleMouseOut = useCallback((e: React.MouseEvent) => {
+    const target = (e.target as HTMLElement).closest(".wiki-feat-link");
+    if (target) setHoveredFeat(null);
+  }, []);
+
+  const hasContent = fullHtml || prerequisites || (blocking && blocking.length > 0);
+  if (!hasContent) return null;
 
   return (
     <div className={`space-y-1.5 border-t border-border pt-1.5 mt-2 ${className}`}>
-      {fields.description && (
-        <div>
-          <div className="text-xs font-medium text-muted-foreground">Description</div>
-          <div
-            className="text-xs text-muted-foreground/80 prose prose-xs prose-invert max-w-none [&_ul]:list-disc [&_ul]:pl-4 [&_li]:my-0"
-            dangerouslySetInnerHTML={{ __html: fieldToHtml(fields.description) }}
-          />
-        </div>
-      )}
       {prerequisites && (
         <div>
           <div className="text-xs font-medium text-muted-foreground">Prerequisites</div>
           <div className="text-xs text-muted-foreground/80">
             <WikiLinkedText text={prerequisites} />
           </div>
-        </div>
-      )}
-      {fields.special && (
-        <div>
-          <div className="text-xs font-medium text-muted-foreground">Special</div>
-          <div
-            className="text-xs text-muted-foreground/80 prose prose-xs prose-invert max-w-none [&_ul]:list-disc [&_ul]:pl-4 [&_li]:my-0"
-            dangerouslySetInnerHTML={{ __html: fieldToHtml(fields.special) }}
-          />
         </div>
       )}
       {blocking && blocking.length > 0 && (
@@ -71,14 +155,17 @@ const FeatDetailsDisplay = ({ content, rawContent, className = "" }: FeatDetails
           </div>
         </div>
       )}
-      {fields.synonyms && (
-        <div className="text-xs text-muted-foreground/60 italic">Synonyms: {fields.synonyms}</div>
-      )}
       {fullHtml && (
         <div
-          className="mt-2 text-xs text-muted-foreground/80 prose prose-xs prose-invert max-w-none [&_dt]:font-semibold [&_dt]:text-muted-foreground [&_dd]:ml-3 [&_dd]:text-muted-foreground/80"
+          ref={contentRef}
+          onMouseOver={handleMouseOver}
+          onMouseOut={handleMouseOut}
+          className="text-xs text-muted-foreground/80 prose prose-xs prose-invert max-w-none [&_ul]:list-disc [&_ul]:pl-4 [&_li]:my-0 [&_dt]:font-semibold [&_dt]:text-muted-foreground [&_dd]:ml-3 [&_dd]:text-muted-foreground/80"
           dangerouslySetInnerHTML={{ __html: fullHtml }}
         />
+      )}
+      {hoveredFeat && featsMap && (
+        <FeatLinkTooltip featName={hoveredFeat.name} rect={hoveredFeat.rect} featsMap={featsMap} />
       )}
     </div>
   );

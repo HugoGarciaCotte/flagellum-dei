@@ -93,11 +93,6 @@ const FeatListItem = ({
         {hasSpecialities && !onSpecialityChange && specialityValue && (
           <p className={`text-xs text-muted-foreground italic ${compact ? "mt-1" : "px-3 pb-1"}`}>({specialityValue})</p>
         )}
-        {feat.description && (
-          <p className={`text-xs text-muted-foreground ${compact ? "mt-1" : "px-3 pb-2 mt-0.5"}`}>
-            {feat.description}
-          </p>
-        )}
       </div>
       {collapsedContent}
       {expanded && (
