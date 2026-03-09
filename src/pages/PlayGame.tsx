@@ -27,6 +27,7 @@ const PlayGame = () => {
 
   const [sheetExpanded, setSheetExpanded] = useState(false);
   const [creatingChar, setCreatingChar] = useState(false);
+  const [editingCharId, setEditingCharId] = useState<string | null>(null);
 
   // Fetch game WITHOUT scenario content — only title
   const { data: game, error: gameError } = useQuery({
