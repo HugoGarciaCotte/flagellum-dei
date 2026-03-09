@@ -204,7 +204,7 @@ const Home = () => {
       {/* Final CTA */}
       <section className="border-t border-primary/10 py-24 px-6 text-center">
         <div className="mx-auto max-w-xl space-y-6">
-          <Skull className="mx-auto h-12 w-12 text-primary/40" />
+          <Logo className="mx-auto text-5xl text-primary/40" />
           <h2 className="font-display text-3xl font-bold text-foreground md:text-4xl">
             The plague waits for no one.
           </h2>
