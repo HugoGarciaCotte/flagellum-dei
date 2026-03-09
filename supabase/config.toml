@@ -23,3 +23,6 @@ verify_jwt = false
 
 [functions.generate-portrait-preview]
 verify_jwt = false
+
+[functions.generate-character-portrait]
+verify_jwt = false
