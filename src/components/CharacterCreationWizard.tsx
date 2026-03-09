@@ -528,7 +528,7 @@ const CharacterCreationWizard = ({ onCreated, onCancel, gameId }: CharacterCreat
     const stepConfig = [
       {
         title: "Choose Your Faith",
-        subtitleChoice: "Faith is a major roleplay choice — but it can save your life once. Choose wisely:",
+        subtitleChoice: "Having faith is a major decision. It constrains your roleplay — your character must act according to their beliefs. Playing without faith is easier and more flexible. But faith has a powerful advantage: it can save your character's life once. Choose wisely.",
         subtitleFixed: "Your archetype grants you this faith by default:",
       },
       {
@@ -582,9 +582,13 @@ const CharacterCreationWizard = ({ onCreated, onCancel, gameId }: CharacterCreat
               onClick={() => handleSubfeatSelect(null)}
               className="w-full text-left p-3 rounded border border-border hover:border-primary/50 transition-colors"
             >
-              <div className="flex items-center gap-2">
-                <span className="text-sm font-medium text-foreground">None</span>
-                <span className="text-xs text-muted-foreground">— Skip this slot</span>
+              <div className="flex flex-col gap-0.5">
+                <span className="text-sm font-medium text-foreground">{slotIndex === 0 ? "No Faith" : "None"}</span>
+                <span className="text-xs text-muted-foreground">
+                  {slotIndex === 0
+                    ? "Your character has no religious devotion — easier to roleplay, but no divine protection."
+                    : "Skip this slot"}
+                </span>
               </div>
             </button>
             {renderSearchBar()}
