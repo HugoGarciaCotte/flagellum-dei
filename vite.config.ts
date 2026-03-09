@@ -73,9 +73,9 @@ export default defineConfig(({ mode }) => ({
         ],
       },
       manifest: {
-        name: "Prima TRPG Helper",
-        short_name: "PrimaTRPG",
-        description: "Interactive tabletop RPG scenario runner",
+        name: "Flagellum Dei TTRPG Helper",
+        short_name: "FlagellumDei",
+        description: "Interactive tabletop TTRPG scenario runner",
         theme_color: "#141318",
         background_color: "#141318",
         display: "standalone",
