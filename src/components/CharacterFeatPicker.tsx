@@ -9,8 +9,7 @@ import { toast } from "sonner";
 import FeatListItem from "@/components/FeatListItem";
 import { Alert, AlertTitle, AlertDescription } from "@/components/ui/alert";
 
-// COMMENTED OUT: preprocessed fields — parseEmbeddedFeatMeta import
-// import { parseEmbeddedFeatMeta, type SubfeatSlot } from "@/lib/parseEmbeddedFeatMeta";
+import { parseEmbeddedFeatMeta, type SubfeatSlot } from "@/lib/parseEmbeddedFeatMeta";
 
 // COMMENTED OUT: preprocessed fields — Select for list-based subfeats
 // import {
