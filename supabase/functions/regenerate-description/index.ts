@@ -220,7 +220,7 @@ ${allFeatTitles.join(", ")}`;
   return { subfeats: null, unlocks_categories: null };
 }
 
-async function generateSpecialities(title: string, content: string, categories: string[]): Promise<string[] | null> {
+async function generateSpecialities(title: string, content: string, categories: string[], allFeatTitles: string[]): Promise<string[] | null> {
   const apiKey = Deno.env.get("LOVABLE_API_KEY");
   if (!apiKey) throw new Error("LOVABLE_API_KEY is not configured");
 
@@ -230,7 +230,16 @@ async function generateSpecialities(title: string, content: string, categories: 
     body: JSON.stringify({
       model: "google/gemini-2.5-flash",
       messages: [
-        { role: "system", content: `You are a TRPG feat analyzer. Some feats require the player to choose a speciality when they pick the feat. Analyze the feat's wiki content and determine if this feat requires the player to choose a speciality and if yes, what are all the valid speciality options. Most feats do NOT have specialities. Only return specialities if the wiki content clearly lists specific options. Return an empty array if no specialities exist.` },
+        { role: "system", content: `You are a TRPG feat analyzer. Some feats require the player to choose a speciality when they pick the feat.
+
+CRITICAL RULES:
+1. Specialities ONLY exist when the feat is used with parenthesized variants like "${title} (option)". Look for this exact pattern in the wiki content. If the content does NOT contain "${title} (...)" patterns, return an empty array.
+2. If "${title} (option)" exists as a standalone feat in the database, then "option" is NOT a speciality — it is a separate feat. Exclude it.
+
+Available feat titles for reference:
+${allFeatTitles.join(", ")}
+
+Return an empty array if no valid specialities exist.` },
         { role: "user", content: `Title: ${title}\nCategories: ${categories.join(", ")}\n\nWiki Content:\n${content}` },
       ],
       tools: [{
@@ -255,7 +264,13 @@ async function generateSpecialities(title: string, content: string, categories: 
   const toolCall = data.choices?.[0]?.message?.tool_calls?.[0];
   if (toolCall?.function?.arguments) {
     const args = JSON.parse(toolCall.function.arguments);
-    if (Array.isArray(args.specialities) && args.specialities.length > 0) return args.specialities;
+    if (Array.isArray(args.specialities) && args.specialities.length > 0) {
+      // Post-process: filter out any speciality where "{title} ({s})" is a real feat
+      const filtered = args.specialities.filter((s: string) =>
+        !allFeatTitles.some(ft => ft.toLowerCase() === `${title} (${s})`.toLowerCase())
+      );
+      return filtered.length > 0 ? filtered : null;
+    }
   }
   return null;
 }
