@@ -602,7 +602,9 @@ const CharacterCreationWizard = ({ onCreated, onCancel, gameId }: CharacterCreat
         {renderSearchBar()}
         {renderFeatList(filterBySearch(archetypes), (id) => {
           setArchetypeFeatId(id);
-          goToNextStep(1);
+          setStep(2);
+          setSearchTerm("");
+          setExpandedFeatId(null);
         })}
       </div>
     );
