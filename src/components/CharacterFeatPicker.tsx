@@ -260,21 +260,21 @@ const CharacterFeatPicker = ({ characterId, mode = "player", scenarioLevel }: Ch
         .single();
       if (error) throw error;
 
-      // COMMENTED OUT: preprocessed fields — auto-insert fixed subfeats from metadata
-      // const meta = metaMap.get(featId);
-      // if (meta?.subfeats && inserted) {
-      //   const fixedSlots = meta.subfeats.filter(s => s.kind === "fixed" && s.feat_title);
-      //   for (const slot of fixedSlots) {
-      //     const subfeat = allFeats?.find(f => f.title === slot.feat_title);
-      //     if (subfeat) {
-      //       await supabase.from("character_feat_subfeats").insert({
-      //         character_feat_id: inserted.id,
-      //         slot: slot.slot,
-      //         subfeat_id: subfeat.id,
-      //       });
-      //     }
-      //   }
-      // }
+      // Auto-insert fixed subfeats from metadata for archetypes
+      const meta = metaMap.get(featId);
+      if (meta?.subfeats && inserted) {
+        const fixedSlots = meta.subfeats.filter(s => s.kind === "fixed" && s.feat_title);
+        for (const slot of fixedSlots) {
+          const subfeat = featByTitle.get(slot.feat_title!);
+          if (subfeat) {
+            await supabase.from("character_feat_subfeats").insert({
+              character_feat_id: inserted.id,
+              slot: slot.slot,
+              subfeat_id: subfeat.id,
+            });
+          }
+        }
+      }
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["character-feats", characterId] });
