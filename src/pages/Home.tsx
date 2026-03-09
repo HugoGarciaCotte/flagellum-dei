@@ -37,7 +37,7 @@ const Home = () => {
           <div className="flex items-center gap-3">
             <Skull className="h-6 w-6 text-primary" />
             <span className="font-display text-lg font-bold text-primary">
-              Prima TRPG
+              Flagellum Dei TTRPG
             </span>
           </div>
           <Link to="/auth">
