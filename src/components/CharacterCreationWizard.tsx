@@ -416,6 +416,32 @@ const CharacterCreationWizard = ({ onCreated, onCancel, gameId }: CharacterCreat
     toast({ title: "Portrait uploaded!" });
   };
 
+  const handleGeneratePortrait = async () => {
+    setGeneratingPortrait(true);
+    try {
+      const featNames: string[] = [];
+      if (archetypeFeatId) featNames.push(featMap.get(archetypeFeatId)?.title ?? "");
+      if (faithFeatId) featNames.push(featMap.get(faithFeatId)?.title ?? "");
+      if (subfeat2Id) featNames.push(featMap.get(subfeat2Id)?.title ?? "");
+      if (subfeat3Id) featNames.push(featMap.get(subfeat3Id)?.title ?? "");
+
+      const { data, error } = await supabase.functions.invoke("generate-portrait-preview", {
+        body: { description: description || "A medieval fantasy character", featNames: featNames.filter(Boolean) },
+      });
+
+      if (error) throw error;
+      if (data?.error) throw new Error(data.error);
+      if (!data?.image_data_url) throw new Error("No image returned");
+
+      setPortraitUrl(data.image_data_url);
+      toast({ title: "Portrait generated!" });
+    } catch (e: any) {
+      toast({ title: "Portrait generation failed", description: e.message, variant: "destructive" });
+    } finally {
+      setGeneratingPortrait(false);
+    }
+  };
+
   // Filter feats by search
   const filterBySearch = (feats: Feat[]) => {
     if (!searchTerm.trim()) return feats;
@@ -713,14 +739,29 @@ const CharacterCreationWizard = ({ onCreated, onCancel, gameId }: CharacterCreat
         <div className="flex flex-col items-center gap-3">
           <Avatar className="h-24 w-24 border-2 border-primary/30">
             {portraitUrl ? <AvatarImage src={portraitUrl} /> : null}
-            <AvatarFallback className="text-xl font-display bg-muted">{initials}</AvatarFallback>
+            <AvatarFallback className="text-xl font-display bg-muted">
+              {generatingPortrait ? <Loader2 className="h-6 w-6 animate-spin" /> : initials}
+            </AvatarFallback>
           </Avatar>
           <div className="flex gap-2">
             <input ref={fileInputRef} type="file" accept="image/*" className="hidden" onChange={handleUpload} />
-            <Button variant="outline" size="sm" className="gap-1.5" onClick={() => fileInputRef.current?.click()}>
+            <Button variant="outline" size="sm" className="gap-1.5" onClick={() => fileInputRef.current?.click()} disabled={generatingPortrait}>
               <Upload className="h-3.5 w-3.5" /> Upload
             </Button>
+            <Button
+              variant="outline"
+              size="sm"
+              className="gap-1.5"
+              onClick={handleGeneratePortrait}
+              disabled={generatingPortrait || (!description && !archetypeFeatId)}
+            >
+              {generatingPortrait ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Sparkles className="h-3.5 w-3.5" />}
+              Generate
+            </Button>
           </div>
+          <p className="text-xs text-muted-foreground/70 italic text-center max-w-xs">
+            Portrait is generated from your description — include details like gender, age, appearance…
+          </p>
         </div>
 
         {/* Description */}
@@ -751,9 +792,6 @@ const CharacterCreationWizard = ({ onCreated, onCancel, gameId }: CharacterCreat
               rows={2}
             />
           )}
-          <p className="text-xs text-muted-foreground/70 italic">
-            The portrait is generated based on your description — feel free to include details like gender, age, nationality, appearance…
-          </p>
         </div>
 
         {/* Name */}
