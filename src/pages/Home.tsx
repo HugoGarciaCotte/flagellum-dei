@@ -5,7 +5,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { supabase } from "@/integrations/supabase/client";
 import {
-  Crown,
+  
   Scroll,
   Users,
   WifiOff,
@@ -36,7 +36,7 @@ const Home = () => {
       <header className="fixed top-0 left-0 right-0 z-50 border-b border-primary/20 bg-foreground/90 backdrop-blur-md">
         <div className="container mx-auto flex items-center justify-between px-6 py-4">
           <div className="flex items-center gap-3">
-            <Crown className="h-6 w-6 text-primary" />
+            <Skull className="h-6 w-6 text-primary" />
             <span className="font-display text-lg font-bold text-primary">
               Prima TRPG
             </span>
@@ -203,7 +203,7 @@ const Home = () => {
       {/* Final CTA */}
       <section className="border-t border-primary/10 py-24 px-6 text-center">
         <div className="mx-auto max-w-xl space-y-6">
-          <Crown className="mx-auto h-12 w-12 text-primary/40" />
+          <Skull className="mx-auto h-12 w-12 text-primary/40" />
           <h2 className="font-display text-3xl font-bold text-primary-foreground md:text-4xl">
             The plague waits for no one.
           </h2>
@@ -235,7 +235,7 @@ const Home = () => {
       {/* Footer */}
       <footer className="border-t border-primary/10 py-10 text-center">
         <div className="flex items-center justify-center gap-2 text-primary-foreground/30">
-          <Crown className="h-4 w-4 text-primary/40" />
+          <Skull className="h-4 w-4 text-primary/40" />
           <span className="font-display text-sm">Prima TRPG Helper</span>
         </div>
       </footer>
