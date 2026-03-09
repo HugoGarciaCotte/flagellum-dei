@@ -587,25 +587,37 @@ const CharacterFeatPicker = ({ characterId, mode = "player", scenarioLevel }: Ch
     ? `Choose Subfeat`
     : "Add Free Feat";
 
-  // New subfeat rendering: simple slots with + button
+  // Subfeat rendering: uses metadata slots for archetypes when available
   const renderSubfeats = (cf: CharacterFeat, feat: Feat) => {
     const subs = subfeatMap.get(cf.id) || [];
-    const slotsToShow = getDefaultSlots(feat, cf.id);
+    const meta = isArchetype(feat) ? metaMap.get(cf.feat_id) : null;
+    const metaSlots = meta?.subfeats ?? null;
     const currentCount = subs.length;
-    const canAddMore = currentCount < MAX_SUBFEATS;
 
-    // Build slot list: existing subs + empty slots up to slotsToShow
+    // Build slot list from metadata if available, otherwise fall back to defaults
     const slotNumbers: number[] = [];
     const subsBySlot = new Map<number, CharacterFeatSubfeat>();
+    const slotMetaByNum = new Map<number, SubfeatSlot>();
     subs.forEach(s => {
       subsBySlot.set(s.slot, s);
       slotNumbers.push(s.slot);
     });
-    // Add empty slots for archetypes
-    for (let i = 1; i <= slotsToShow; i++) {
-      if (!slotNumbers.includes(i)) slotNumbers.push(i);
+
+    if (metaSlots) {
+      // Use metadata-defined slots
+      metaSlots.forEach(s => {
+        slotMetaByNum.set(s.slot, s);
+        if (!slotNumbers.includes(s.slot)) slotNumbers.push(s.slot);
+      });
+    } else {
+      // Fallback: default empty slots for archetypes
+      const slotsToShow = getDefaultSlots(feat, cf.id);
+      for (let i = 1; i <= slotsToShow; i++) {
+        if (!slotNumbers.includes(i)) slotNumbers.push(i);
+      }
     }
     slotNumbers.sort((a, b) => a - b);
+    const canAddMore = !metaSlots && currentCount < MAX_SUBFEATS;
 
     if (slotNumbers.length === 0 && !canAddMore) return null;
 
