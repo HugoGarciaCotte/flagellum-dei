@@ -5,7 +5,8 @@ import { supabase } from "@/integrations/supabase/client";
 import { useQuery, useQueryClient, useMutation } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
-import { ArrowLeft, Scroll, User, Plus, Check, X, GripHorizontal } from "lucide-react";
+import { ArrowLeft, Scroll, Plus, Check, X, GripHorizontal } from "lucide-react";
+import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
 import CharacterSheet from "@/components/CharacterSheet";
 import { useNetworkStatus } from "@/hooks/useNetworkStatus";
 import { getCachedGameSession } from "@/lib/offlineStorage";
@@ -188,7 +189,14 @@ const PlayGame = () => {
             <div className="flex items-center gap-3">
               <GripHorizontal className="h-4 w-4 text-muted-foreground" />
               <div className="flex items-center gap-2">
-                <User className="h-4 w-4 text-primary" />
+                <Avatar className="h-7 w-7 border border-primary/20">
+                  {(selectedCharacter as any)?.portrait_url ? (
+                    <AvatarImage src={(selectedCharacter as any).portrait_url} alt={selectedCharacter?.name} />
+                  ) : null}
+                  <AvatarFallback className="text-[10px] font-display bg-muted">
+                    {selectedCharacter ? selectedCharacter.name.slice(0, 2).toUpperCase() : "?"}
+                  </AvatarFallback>
+                </Avatar>
                 <span className="font-display text-sm font-medium text-foreground">
                   {selectedCharacter ? selectedCharacter.name : "Select a character"}
                 </span>
@@ -205,9 +213,16 @@ const PlayGame = () => {
           <div className="border-b border-border/50 bg-card/80 backdrop-blur">
             <div className="container max-w-2xl flex items-center justify-between py-3 px-4">
               <div className="flex items-center gap-3">
-                <GripHorizontal className="h-4 w-4 text-muted-foreground" />
+              <GripHorizontal className="h-4 w-4 text-muted-foreground" />
                 <div className="flex items-center gap-2">
-                  <User className="h-4 w-4 text-primary" />
+                  <Avatar className="h-7 w-7 border border-primary/20">
+                    {(selectedCharacter as any)?.portrait_url ? (
+                      <AvatarImage src={(selectedCharacter as any).portrait_url} alt={selectedCharacter?.name} />
+                    ) : null}
+                    <AvatarFallback className="text-[10px] font-display bg-muted">
+                      {selectedCharacter ? selectedCharacter.name.slice(0, 2).toUpperCase() : "?"}
+                    </AvatarFallback>
+                  </Avatar>
                   <span className="font-display text-sm font-medium text-foreground">
                     {selectedCharacter ? selectedCharacter.name : "Character"}
                   </span>

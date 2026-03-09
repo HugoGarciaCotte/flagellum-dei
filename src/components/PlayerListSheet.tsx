@@ -87,8 +87,8 @@ const PlayerListSheet = ({ players, characters, gameId }: PlayerListSheetProps) 
                               <Check className="h-3.5 w-3.5 text-primary" />
                             </div>
                           )}
-                          <CharacterListItem
-                            character={{ id: char.id, name: char.name, description: char.description }}
+                        <CharacterListItem
+                            character={{ id: char.id, name: char.name, description: char.description, portrait_url: (char as any).portrait_url }}
                             actions={
                               <Button variant="ghost" size="icon" className="h-7 w-7 shrink-0" onClick={() => setEditingId(char.id)}>
                                 <Pencil className="h-3.5 w-3.5" />
