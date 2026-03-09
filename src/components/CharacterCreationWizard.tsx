@@ -38,11 +38,12 @@ const CharacterCreationWizard = ({ onCreated, onCancel, gameId }: CharacterCreat
   // Wizard state
   const [step, setStep] = useState(0);
   const [archetypeFeatId, setArchetypeFeatId] = useState<string | null>(null);
-  const [faithFeatId, setFaithFeatId] = useState<string | null>(null); // null = None
+  const [faithFeatId, setFaithFeatId] = useState<string | null>(null);
   const [faithSlot, setFaithSlot] = useState<number | null>(null);
   const [subfeat2Id, setSubfeat2Id] = useState<string | null>(null);
   const [subfeat2Slot, setSubfeat2Slot] = useState<number | null>(null);
-  const [freeFeatId, setFreeFeatId] = useState<string | null>(null);
+  const [subfeat3Id, setSubfeat3Id] = useState<string | null>(null);
+  const [subfeat3Slot, setSubfeat3Slot] = useState<number | null>(null);
   const [name, setName] = useState("");
   const [description, setDescription] = useState("");
   const [portraitUrl, setPortraitUrl] = useState<string | null>(null);
@@ -114,7 +115,6 @@ const CharacterCreationWizard = ({ onCreated, onCancel, gameId }: CharacterCreat
           return { slot: slot.slot, allowsFaith: true, allowsDarkFaith: allowsDark };
         }
       }
-      // Also check list-based slots for Faith
       if (slot.kind === "list" && slot.options) {
         const hasFaith = slot.options.some(o => {
           const f = featByTitle.get(o);
@@ -128,18 +128,29 @@ const CharacterCreationWizard = ({ onCreated, onCancel, gameId }: CharacterCreat
     return null;
   }, [archetypeMeta, featByTitle]);
 
-  // Subfeat slot 2 detection
+  // Subfeat slot 2 detection: first non-faith slot
   const subfeat2Info = useMemo(() => {
     if (!archetypeMeta?.subfeats) return null;
-    // Find slot 2 (or the first non-faith slot)
     const faithSlotNum = faithInfo?.slot ?? -1;
     for (const slot of archetypeMeta.subfeats) {
       if (slot.slot === faithSlotNum) continue;
-      // This is the "other" subfeat slot
       return slot;
     }
     return null;
   }, [archetypeMeta, faithInfo]);
+
+  // Subfeat slot 3 detection: remaining slot after faith and subfeat2
+  const subfeat3Info = useMemo(() => {
+    if (!archetypeMeta?.subfeats) return null;
+    const faithSlotNum = faithInfo?.slot ?? -1;
+    const subfeat2SlotNum = subfeat2Info?.slot ?? -1;
+    for (const slot of archetypeMeta.subfeats) {
+      if (slot.slot === faithSlotNum) continue;
+      if (slot.slot === subfeat2SlotNum) continue;
+      return slot;
+    }
+    return null;
+  }, [archetypeMeta, faithInfo, subfeat2Info]);
 
   // Step 2: faith feats list
   const faithFeats = useMemo(() => {
@@ -158,20 +169,20 @@ const CharacterCreationWizard = ({ onCreated, onCancel, gameId }: CharacterCreat
     }).sort(sortTitlesEmojiLast);
   }, [allFeats, faithInfo]);
 
-  // Step 3: subfeat 2 options
-  const subfeat2Options = useMemo(() => {
-    if (!subfeat2Info || !allFeats) return null;
-    if (subfeat2Info.kind === "fixed" && subfeat2Info.feat_title) {
-      const f = featByTitle.get(subfeat2Info.feat_title);
+  // Helper to resolve subfeat options from a slot definition
+  const resolveSubfeatOptions = (slotInfo: NonNullable<typeof subfeat2Info>) => {
+    if (!allFeats) return null;
+    if (slotInfo.kind === "fixed" && slotInfo.feat_title) {
+      const f = featByTitle.get(slotInfo.feat_title);
       return f ? { type: "fixed" as const, feat: f } : null;
     }
-    if (subfeat2Info.kind === "list" && subfeat2Info.options) {
-      const optSet = new Set(subfeat2Info.options);
+    if (slotInfo.kind === "list" && slotInfo.options) {
+      const optSet = new Set(slotInfo.options);
       const feats = allFeats.filter(f => optSet.has(f.title)).sort(sortTitlesEmojiLast);
       return { type: "list" as const, feats };
     }
-    if (subfeat2Info.kind === "type" && subfeat2Info.filter) {
-      const filters = subfeat2Info.filter.split(",").map(s => s.trim()).filter(Boolean);
+    if (slotInfo.kind === "type" && slotInfo.filter) {
+      const filters = slotInfo.filter.split(",").map(s => s.trim()).filter(Boolean);
       const include = filters.filter(f => !f.startsWith("!"));
       const exclude = filters.filter(f => f.startsWith("!")).map(f => f.slice(1));
       const feats = allFeats.filter(f => {
@@ -183,18 +194,19 @@ const CharacterCreationWizard = ({ onCreated, onCancel, gameId }: CharacterCreat
       return { type: "list" as const, feats };
     }
     return null;
+  };
+
+  // Step 3: subfeat 2 options
+  const subfeat2Options = useMemo(() => {
+    if (!subfeat2Info) return null;
+    return resolveSubfeatOptions(subfeat2Info);
   }, [subfeat2Info, allFeats, featByTitle]);
 
-  // Step 4: free feats (exclude archetypes, hidden)
-  const freeFeatsOptions = useMemo(() => {
-    if (!allFeats) return [];
-    return allFeats.filter(f => {
-      const cats = f.categories ?? [];
-      if (cats.includes("Archetype")) return false;
-      if (cats.includes("Hidden Feat")) return false;
-      return true;
-    }).sort(sortTitlesEmojiLast);
-  }, [allFeats]);
+  // Step 4: subfeat 3 options
+  const subfeat3Options = useMemo(() => {
+    if (!subfeat3Info) return null;
+    return resolveSubfeatOptions(subfeat3Info);
+  }, [subfeat3Info, allFeats, featByTitle]);
 
   // Archetypes for step 1
   const archetypes = useMemo(() => {
@@ -202,16 +214,17 @@ const CharacterCreationWizard = ({ onCreated, onCancel, gameId }: CharacterCreat
     return allFeats.filter(f => f.categories?.includes("Archetype")).sort(sortTitlesEmojiLast);
   }, [allFeats]);
 
-  // Should skip faith step?
+  // Should skip steps?
   const shouldSkipFaith = !faithInfo;
-  // Should skip subfeat2 step?
   const shouldSkipSubfeat2 = !subfeat2Info;
+  const shouldSkipSubfeat3 = !subfeat3Info;
 
   // Navigate to next meaningful step
   const goToNextStep = (fromStep: number) => {
     let next = fromStep + 1;
     if (next === 2 && shouldSkipFaith) next = 3;
     if (next === 3 && shouldSkipSubfeat2) next = 4;
+    if (next === 4 && shouldSkipSubfeat3) next = 5;
     setStep(next);
     setSearchTerm("");
     setExpandedFeatId(null);
@@ -219,6 +232,7 @@ const CharacterCreationWizard = ({ onCreated, onCancel, gameId }: CharacterCreat
 
   const goToPrevStep = (fromStep: number) => {
     let prev = fromStep - 1;
+    if (prev === 4 && shouldSkipSubfeat3) prev = 3;
     if (prev === 3 && shouldSkipSubfeat2) prev = 2;
     if (prev === 2 && shouldSkipFaith) prev = 1;
     setStep(prev);
@@ -234,6 +248,14 @@ const CharacterCreationWizard = ({ onCreated, onCancel, gameId }: CharacterCreat
     }
   }, [subfeat2Options, subfeat2Info]);
 
+  // Auto-set fixed subfeat3
+  useEffect(() => {
+    if (subfeat3Options?.type === "fixed") {
+      setSubfeat3Id(subfeat3Options.feat.id);
+      setSubfeat3Slot(subfeat3Info!.slot);
+    }
+  }, [subfeat3Options, subfeat3Info]);
+
   // Generate description when reaching step 5
   useEffect(() => {
     if (step === 5 && !description && !generatingDesc) {
@@ -248,7 +270,7 @@ const CharacterCreationWizard = ({ onCreated, onCancel, gameId }: CharacterCreat
       if (archetypeFeat) featNames.push(archetypeFeat.title);
       if (faithFeatId) { const f = featMap.get(faithFeatId); if (f) featNames.push(f.title); }
       if (subfeat2Id) { const f = featMap.get(subfeat2Id); if (f) featNames.push(f.title); }
-      if (freeFeatId) { const f = featMap.get(freeFeatId); if (f) featNames.push(f.title); }
+      if (subfeat3Id) { const f = featMap.get(subfeat3Id); if (f) featNames.push(f.title); }
 
       const { data, error } = await supabase.functions.invoke("generate-character-details", {
         body: {
@@ -334,6 +356,9 @@ const CharacterCreationWizard = ({ onCreated, onCancel, gameId }: CharacterCreat
         if (subfeat2Id && subfeat2Slot !== null) {
           subfeatsToInsert.push({ character_feat_id: cfData.id, slot: subfeat2Slot, subfeat_id: subfeat2Id });
         }
+        if (subfeat3Id && subfeat3Slot !== null) {
+          subfeatsToInsert.push({ character_feat_id: cfData.id, slot: subfeat3Slot, subfeat_id: subfeat3Id });
+        }
 
         if (subfeatsToInsert.length > 0) {
           const { error: sfError } = await supabase
@@ -343,15 +368,7 @@ const CharacterCreationWizard = ({ onCreated, onCancel, gameId }: CharacterCreat
         }
       }
 
-      // 4. Insert free feat as level 2
-      if (freeFeatId) {
-        const { error: ffError } = await supabase
-          .from("character_feats")
-          .insert({ character_id: characterId, feat_id: freeFeatId, level: 2 });
-        if (ffError) throw ffError;
-      }
-
-      // 5. If in a game, set character_id on game_players
+      // 4. If in a game, set character_id on game_players
       if (gameId) {
         await supabase
           .from("game_players")
@@ -373,12 +390,11 @@ const CharacterCreationWizard = ({ onCreated, onCancel, gameId }: CharacterCreat
     createCharacter(name || "Blank", description || null, portraitUrl);
   };
 
-  // Portrait handlers (same as CharacterSheet but pre-creation, stores temp URL)
+  // Portrait handlers
   const handleUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file || !user) return;
 
-    // Upload to a temp path; will be moved after character creation
     const tempId = crypto.randomUUID();
     const filePath = `${user.id}/${tempId}.png`;
     const { error: uploadError } = await supabase.storage
@@ -439,7 +455,10 @@ const CharacterCreationWizard = ({ onCreated, onCancel, gameId }: CharacterCreat
   const renderStepIndicator = () => (
     <div className="flex items-center justify-center gap-1.5 mb-4">
       {[1, 2, 3, 4, 5].map(s => {
-        const isSkipped = (s === 2 && shouldSkipFaith) || (s === 3 && shouldSkipSubfeat2);
+        const isSkipped =
+          (s === 2 && shouldSkipFaith) ||
+          (s === 3 && shouldSkipSubfeat2) ||
+          (s === 4 && shouldSkipSubfeat3);
         if (isSkipped) return null;
         return (
           <div
@@ -464,6 +483,85 @@ const CharacterCreationWizard = ({ onCreated, onCancel, gameId }: CharacterCreat
       <SkipForward className="h-3.5 w-3.5" /> Skip
     </Button>
   );
+
+  // Reusable renderer for subfeat steps (step 3 and step 4)
+  const renderSubfeatStep = (
+    stepNum: number,
+    slotInfo: NonNullable<typeof subfeat2Info>,
+    options: ReturnType<typeof resolveSubfeatOptions>,
+    setId: (id: string | null) => void,
+    setSlot: (slot: number | null) => void,
+  ) => {
+    const isFixed = options?.type === "fixed";
+    return (
+      <div className="space-y-4">
+        {renderStepIndicator()}
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-2">
+            <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => goToPrevStep(stepNum)}>
+              <ArrowLeft className="h-4 w-4" />
+            </Button>
+            <h3 className="font-display text-lg text-foreground">
+              {isFixed ? "Granted Ability" : "Choose Your Specialty"}
+            </h3>
+          </div>
+          {skipButton}
+        </div>
+
+        {isFixed && options.type === "fixed" ? (
+          <div className="space-y-3">
+            <p className="text-sm text-muted-foreground">
+              Your archetype grants you this ability by default:
+            </p>
+            <div className="ring-2 ring-primary rounded">
+              <FeatListItem
+                feat={{ ...options.feat, description: descriptionMap.get(options.feat.id) ?? null }}
+                expanded={expandedFeatId === options.feat.id}
+                onToggleExpand={() => setExpandedFeatId(expandedFeatId === options.feat.id ? null : options.feat.id)}
+              />
+            </div>
+            <Button onClick={() => goToNextStep(stepNum)} className="w-full font-display gap-2">
+              <ChevronRight className="h-4 w-4" /> Continue
+            </Button>
+          </div>
+        ) : options?.type === "list" ? (
+          <div className="space-y-3">
+            <p className="text-sm text-muted-foreground">
+              Your archetype lets you choose one of these abilities:
+            </p>
+            {slotInfo.optional && (
+              <button
+                onClick={() => {
+                  setId(null);
+                  setSlot(null);
+                  goToNextStep(stepNum);
+                }}
+                className="w-full text-left p-3 rounded border border-border hover:border-primary/50 transition-colors"
+              >
+                <div className="flex items-center gap-2">
+                  <span className="text-sm font-medium text-foreground">Skip this</span>
+                  <span className="text-xs text-muted-foreground">— I'll choose later</span>
+                </div>
+              </button>
+            )}
+            {renderSearchBar()}
+            {renderFeatList(filterBySearch(options.feats), (id) => {
+              setId(id);
+              setSlot(slotInfo.slot);
+              goToNextStep(stepNum);
+            })}
+          </div>
+        ) : (
+          <div className="space-y-3">
+            <p className="text-sm text-muted-foreground">No special choices for your archetype.</p>
+            <Button onClick={() => goToNextStep(stepNum)} className="w-full font-display gap-2">
+              <ChevronRight className="h-4 w-4" /> Continue
+            </Button>
+          </div>
+        )}
+      </div>
+    );
+  };
 
   // Step 0: Welcome
   if (step === 0) {
@@ -557,101 +655,13 @@ const CharacterCreationWizard = ({ onCreated, onCancel, gameId }: CharacterCreat
   }
 
   // Step 3: Subfeat 2
-  if (step === 3) {
-    const isFixed = subfeat2Options?.type === "fixed";
-    return (
-      <div className="space-y-4">
-        {renderStepIndicator()}
-        <div className="flex items-center justify-between">
-          <div className="flex items-center gap-2">
-            <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => goToPrevStep(3)}>
-              <ArrowLeft className="h-4 w-4" />
-            </Button>
-            <h3 className="font-display text-lg text-foreground">
-              {isFixed ? "Granted Ability" : "Choose Your Specialty"}
-            </h3>
-          </div>
-          {skipButton}
-        </div>
-
-        {isFixed && subfeat2Options.type === "fixed" ? (
-          <div className="space-y-3">
-            <p className="text-sm text-muted-foreground">
-              Your archetype grants you this ability by default:
-            </p>
-            <div className="ring-2 ring-primary rounded">
-              <FeatListItem
-                feat={{ ...subfeat2Options.feat, description: descriptionMap.get(subfeat2Options.feat.id) ?? null }}
-                expanded={expandedFeatId === subfeat2Options.feat.id}
-                onToggleExpand={() => setExpandedFeatId(expandedFeatId === subfeat2Options.feat.id ? null : subfeat2Options.feat.id)}
-              />
-            </div>
-            <Button onClick={() => goToNextStep(3)} className="w-full font-display gap-2">
-              <ChevronRight className="h-4 w-4" /> Continue
-            </Button>
-          </div>
-        ) : subfeat2Options?.type === "list" ? (
-          <div className="space-y-3">
-            <p className="text-sm text-muted-foreground">
-              Your archetype lets you choose one of these abilities:
-            </p>
-            {renderSearchBar()}
-            {renderFeatList(filterBySearch(subfeat2Options.feats), (id) => {
-              setSubfeat2Id(id);
-              setSubfeat2Slot(subfeat2Info!.slot);
-              goToNextStep(3);
-            })}
-          </div>
-        ) : (
-          <div className="space-y-3">
-            <p className="text-sm text-muted-foreground">No special choices for your archetype.</p>
-            <Button onClick={() => goToNextStep(3)} className="w-full font-display gap-2">
-              <ChevronRight className="h-4 w-4" /> Continue
-            </Button>
-          </div>
-        )}
-      </div>
-    );
+  if (step === 3 && subfeat2Info) {
+    return renderSubfeatStep(3, subfeat2Info, subfeat2Options, setSubfeat2Id, setSubfeat2Slot);
   }
 
-  // Step 4: Free feat
-  if (step === 4) {
-    return (
-      <div className="space-y-4">
-        {renderStepIndicator()}
-        <div className="flex items-center justify-between">
-          <div className="flex items-center gap-2">
-            <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => goToPrevStep(4)}>
-              <ArrowLeft className="h-4 w-4" />
-            </Button>
-            <h3 className="font-display text-lg text-foreground">Extra Feat</h3>
-          </div>
-          {skipButton}
-        </div>
-        <p className="text-sm text-muted-foreground">
-          For extra customisation, choose one more feat to round out your character.
-        </p>
-
-        <button
-          onClick={() => {
-            setFreeFeatId(null);
-            goToNextStep(4);
-          }}
-          className="w-full text-left p-3 rounded border border-border hover:border-primary/50 transition-colors"
-        >
-          <div className="flex items-center gap-2">
-            <span className="text-sm font-medium text-foreground">Skip this</span>
-            <span className="text-xs text-muted-foreground">— I'll choose later</span>
-          </div>
-        </button>
-
-        {renderSearchBar()}
-        {renderFeatList(filterBySearch(freeFeatsOptions), (id) => {
-          setFreeFeatId(id);
-          goToNextStep(4);
-        })}
-      </div>
-    );
+  // Step 4: Subfeat 3
+  if (step === 4 && subfeat3Info) {
+    return renderSubfeatStep(4, subfeat3Info, subfeat3Options, setSubfeat3Id, setSubfeat3Slot);
   }
 
   // Step 5: Summary, Name, Portrait
@@ -687,9 +697,9 @@ const CharacterCreationWizard = ({ onCreated, onCancel, gameId }: CharacterCreat
               <span className="text-foreground font-medium">Specialty:</span> {featMap.get(subfeat2Id)?.title}
             </p>
           )}
-          {freeFeatId && (
+          {subfeat3Id && (
             <p className="text-muted-foreground">
-              <span className="text-foreground font-medium">Extra Feat:</span> {featMap.get(freeFeatId)?.title}
+              <span className="text-foreground font-medium">Extra Feat:</span> {featMap.get(subfeat3Id)?.title}
             </p>
           )}
         </div>
@@ -736,6 +746,9 @@ const CharacterCreationWizard = ({ onCreated, onCancel, gameId }: CharacterCreat
               rows={2}
             />
           )}
+          <p className="text-xs text-muted-foreground/70 italic">
+            The portrait is generated based on your description — feel free to include details like gender, age, nationality, appearance…
+          </p>
         </div>
 
         {/* Name */}
