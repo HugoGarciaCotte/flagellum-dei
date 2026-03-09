@@ -524,6 +524,15 @@ const CharacterFeatPicker = ({ characterId, mode = "player", scenarioLevel }: Ch
       return true;
     });
 
+    // Hide other Archetypes if character already has one
+    const hasArchetype = (characterFeats ?? []).some(cf => {
+      const feat = featMap.get(cf.feat_id);
+      return feat && isArchetype(feat);
+    });
+    if (hasArchetype) {
+      filtered = filtered.filter(f => !isArchetype(f) || ownedFeatIds.has(f.id));
+    }
+
     // COMMENTED OUT: preprocessed fields — blocking filter
     // const ownedFeatTitles = new Set(...);
     // filtered = filtered.filter(f => {
