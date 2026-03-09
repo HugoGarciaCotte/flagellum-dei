@@ -80,11 +80,11 @@ const FeatListItem = ({
               <Button size="sm" variant="outline" className="h-6 text-xs px-2" onClick={onToggleExpand}>
                 {expanded ? "Hide" : "Info"}
               </Button>
+            </div>
           </div>
           {feat.description && (
-            <p className="text-xs text-muted-foreground/70 truncate mt-0.5">{feat.description}</p>
+            <p className="text-xs text-muted-foreground/70 mt-0.5">{feat.description}</p>
           )}
-          </div>
         </div>
         {/* Speciality dropdown (editable) */}
         {hasSpecialities && onSpecialityChange && (
