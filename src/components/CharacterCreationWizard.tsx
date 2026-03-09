@@ -427,11 +427,8 @@ const CharacterCreationWizard = ({ onCreated, onCancel, gameId }: CharacterCreat
           feat={{ ...f, description: descriptionMap.get(f.id) ?? null }}
           expanded={expandedFeatId === f.id}
           onToggleExpand={() => setExpandedFeatId(expandedFeatId === f.id ? null : f.id)}
-          expandedContent={
-            <Button size="sm" className="mt-2 w-full" onClick={() => onSelect(f.id)}>
-              Pick this feat
-            </Button>
-          }
+          onQuickAction={() => onSelect(f.id)}
+          quickActionLabel="Select"
         />
       ))}
     </div>
