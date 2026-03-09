@@ -4,6 +4,10 @@ import { parseEmbeddedFeatMeta } from "@/lib/parseEmbeddedFeatMeta";
 import WikiLinkedText from "@/components/WikiLinkedText";
 import { useMemo } from "react";
 
+function fieldToHtml(text: string): string {
+  return convertBodyToHtml(text.split("\n"));
+}
+
 interface FeatDetailsDisplayProps {
   content: string | null | undefined;
   rawContent?: string | null | undefined;
@@ -31,9 +35,10 @@ const FeatDetailsDisplay = ({ content, rawContent, className = "" }: FeatDetails
       {fields.description && (
         <div>
           <div className="text-xs font-medium text-muted-foreground">Description</div>
-          <div className="text-xs text-muted-foreground/80 whitespace-pre-line">
-            <WikiLinkedText text={fields.description} />
-          </div>
+          <div
+            className="text-xs text-muted-foreground/80 prose prose-xs prose-invert max-w-none [&_ul]:list-disc [&_ul]:pl-4 [&_li]:my-0"
+            dangerouslySetInnerHTML={{ __html: fieldToHtml(fields.description) }}
+          />
         </div>
       )}
       {prerequisites && (
@@ -47,9 +52,10 @@ const FeatDetailsDisplay = ({ content, rawContent, className = "" }: FeatDetails
       {fields.special && (
         <div>
           <div className="text-xs font-medium text-muted-foreground">Special</div>
-          <div className="text-xs text-muted-foreground/80 whitespace-pre-line">
-            <WikiLinkedText text={fields.special} />
-          </div>
+          <div
+            className="text-xs text-muted-foreground/80 prose prose-xs prose-invert max-w-none [&_ul]:list-disc [&_ul]:pl-4 [&_li]:my-0"
+            dangerouslySetInnerHTML={{ __html: fieldToHtml(fields.special) }}
+          />
         </div>
       )}
       {blocking && blocking.length > 0 && (
