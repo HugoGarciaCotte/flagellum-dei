@@ -122,8 +122,12 @@ export function convertBodyToHtml(lines: string[]): string {
 
     closeListsTo(0);
 
-    if (trimmed === "----") {
+    if (trimmed.startsWith("----")) {
       result.push("<hr>");
+      const rest = trimmed.slice(4).trim();
+      if (rest) {
+        result.push(`<p>${convertInlineMarkup(rest)}</p>`);
+      }
       continue;
     }
 
