@@ -680,14 +680,13 @@ const CharacterCreationWizard = ({ onCreated, onCancel, gameId }: CharacterCreat
         if (!id) return null;
         const feat = featMap.get(id);
         if (!feat) return null;
-        // Derive label from slot filter
-        let label = "Specialty";
-        if (slot.kind === "type" && slot.filter) {
-          const filters = slot.filter.split(",").map(s => s.trim()).filter(s => !s.startsWith("!"));
-          if (filters.length > 0) label = filters[0];
-        } else if (slot.kind === "fixed") {
-          label = "Granted";
-        }
+        // Use the same labels as the wizard step titles
+        const slotIndex = subfeatSlots.indexOf(slot);
+        const label = [
+          "Faith",
+          "Main Feat",
+          "Sub-Specialty",
+        ][slotIndex] ?? "Feat";
         return { label, title: feat.title };
       })
       .filter(Boolean) as { label: string; title: string }[];
