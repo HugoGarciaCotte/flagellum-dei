@@ -105,7 +105,7 @@ const Admin = () => {
     <div className="min-h-screen bg-background">
       <PageHeader
         title="Admin Panel"
-        icon={<Skull className="h-5 w-5 text-primary" />}
+        icon={<Logo className="text-xl" />}
         leftAction={
           <Button variant="ghost" size="icon" onClick={() => navigate("/")}>
             <ArrowLeft className="h-4 w-4" />

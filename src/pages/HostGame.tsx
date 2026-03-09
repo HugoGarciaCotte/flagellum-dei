@@ -174,7 +174,7 @@ const HostGame = () => {
     <div className="min-h-screen bg-background flex flex-col">
       <PageHeader
         title={effectiveScenario?.title ?? ""}
-        icon={<Skull className="h-4 w-4 text-primary" />}
+        icon={<Logo className="text-lg" />}
         leftAction={
           <Button variant="ghost" size="icon" onClick={() => navigate("/")}>
             <ArrowLeft className="h-4 w-4" />

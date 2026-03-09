@@ -171,7 +171,7 @@ const Dashboard = () => {
       {/* Header */}
       <PageHeader
         title="Flagellum Dei TTRPG"
-        icon={<Skull className="h-5 w-5 text-primary" />}
+        icon={<Logo className="text-xl" />}
         rightActions={
           <>
             {isOwner && (
