@@ -256,8 +256,8 @@ const PlayGame = () => {
                 {(myCharacters ?? []).length === 0 ? (
                   creatingChar ? (
                     <div className="border border-border rounded-md p-3">
-                      <CreateCharacterForm
-                        submitLabel="Create & Select"
+                      <CharacterCreationWizard
+                        gameId={gameId}
                         onCreated={(id) => {
                           selectCharMutation.mutate(id);
                           setCreatingChar(false);
