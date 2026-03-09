@@ -216,18 +216,24 @@ const Dashboard = () => {
                   <Plus className="h-4 w-4" /> New Character
                 </Button>
               </DialogTrigger>
-              <DialogContent className="max-h-[85vh] overflow-y-auto sm:max-w-lg">
-                <DialogHeader>
-                  <DialogTitle className="font-display">Create Character</DialogTitle>
-                </DialogHeader>
-                <CharacterCreationWizard
-                  onCreated={(charId) => {
-                    setNewCharDialogOpen(false);
-                    setEditingCharId(charId);
-                    toast({ title: "Character created!" });
-                  }}
-                  onCancel={() => setNewCharDialogOpen(false)}
-                />
+              <DialogContent className="fixed inset-0 max-w-none w-full h-full rounded-none p-0 translate-x-0 translate-y-0 left-0 top-0 border-none">
+                <div className="flex flex-col h-full">
+                  <div className="border-b border-border/50 bg-card/80 backdrop-blur px-4 py-3 flex items-center justify-between shrink-0">
+                    <span className="font-display text-sm font-medium text-foreground">Create Character</span>
+                  </div>
+                  <ScrollArea className="flex-1">
+                    <div className="container max-w-2xl py-6 px-4">
+                      <CharacterCreationWizard
+                        onCreated={(charId) => {
+                          setNewCharDialogOpen(false);
+                          setEditingCharId(charId);
+                          toast({ title: "Character created!" });
+                        }}
+                        onCancel={() => setNewCharDialogOpen(false)}
+                      />
+                    </div>
+                  </ScrollArea>
+                </div>
               </DialogContent>
             </Dialog>
           </div>
