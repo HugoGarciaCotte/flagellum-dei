@@ -14,7 +14,7 @@ import { toast } from "@/hooks/use-toast";
 import DiceRoller from "@/components/DiceRoller";
 import FullPageLoader from "@/components/FullPageLoader";
 import PageHeader from "@/components/PageHeader";
-import CreateCharacterForm from "@/components/CreateCharacterForm";
+import CharacterCreationWizard from "@/components/CharacterCreationWizard";
 import { ScrollArea } from "@/components/ui/scroll-area";
 
 const PlayGame = () => {
