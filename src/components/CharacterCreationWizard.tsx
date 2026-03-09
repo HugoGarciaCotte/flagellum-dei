@@ -528,7 +528,7 @@ const CharacterCreationWizard = ({ onCreated, onCancel, gameId }: CharacterCreat
     const stepConfig = [
       {
         title: "Choose Your Faith",
-        subtitleChoice: "Faith is a major roleplay choice — but it can save your life once. Choose wisely:",
+        subtitleChoice: "Having faith is a major decision. It constrains your roleplay — your character must act according to their beliefs. Playing without faith is easier and more flexible. But faith has a powerful advantage: it can save your character's life once. Choose wisely.",
         subtitleFixed: "Your archetype grants you this faith by default:",
       },
       {
