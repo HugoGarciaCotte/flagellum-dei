@@ -53,7 +53,7 @@ const Home = () => {
         <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_center,hsl(43_74%_49%/0.08)_0%,transparent_70%)]" />
         <div className="relative mx-auto max-w-3xl space-y-6">
           <p className="font-display text-sm tracking-[0.3em] uppercase text-primary/70">
-            A Tabletop RPG of Medieval Horror
+            A Tabletop RPG for 3–9 Players · Best Played In Person
           </p>
           <h1 className="font-display text-5xl font-black leading-[1.1] tracking-tight text-foreground md:text-7xl lg:text-8xl">
             Europe, 1340.
@@ -64,6 +64,11 @@ const Home = () => {
             The Black Death sweeps the continent. The Inquisition tightens its
             grip. In the shadows, ancient cults perform unspeakable rites. Will
             you uncover the truth — or become its next victim?
+          </p>
+          <p className="mx-auto max-w-xl text-sm leading-relaxed text-muted-foreground/70 italic">
+            Flagellum Dei is a pen-and-paper tabletop RPG — gather around the
+            table with 3 to 9 players, or connect via video call. This app is
+            your digital companion for characters, scenarios, and game sessions.
           </p>
           <Link to="/auth">
             <Button
@@ -177,12 +182,12 @@ const Home = () => {
           </h2>
           <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-4 text-center">
             <MiniFeature
-              icon={<Scroll className="h-6 w-6" />}
-              label="GM hosts the scenario and reveals the story section by section"
+              icon={<Users className="h-6 w-6" />}
+              label="Gather 3–9 players around a table — or via video call"
             />
             <MiniFeature
-              icon={<Users className="h-6 w-6" />}
-              label="Players join with a code — everything syncs in real time"
+              icon={<Scroll className="h-6 w-6" />}
+              label="The GM hosts the scenario and reveals the story section by section"
             />
             <MiniFeature
               icon={<WifiOff className="h-6 w-6" />}
