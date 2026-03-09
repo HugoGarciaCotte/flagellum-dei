@@ -15,7 +15,7 @@ const CharacterListItem = ({ character, actions }: CharacterListItemProps) => {
     queryFn: async () => {
       const { data, error } = await supabase
         .from("character_feats")
-        .select("id, feat_id, feats(title), character_feat_subfeats(subfeat_id, feats(title))")
+        .select("id, feat_id, feats!character_feats_feat_id_fkey(title), character_feat_subfeats!character_feat_subfeats_character_feat_id_fkey(subfeat_id, feats!character_feat_subfeats_subfeat_id_fkey(title))")
         .eq("character_id", character.id)
         .order("level");
       if (error) throw error;
