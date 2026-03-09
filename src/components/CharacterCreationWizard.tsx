@@ -556,7 +556,7 @@ const CharacterCreationWizard = ({ onCreated, onCancel, gameId }: CharacterCreat
         {isFixed && options.type === "fixed" ? (
           <div className="space-y-3">
             <p className="text-sm text-muted-foreground">
-              Your archetype grants you this ability by default:
+              {stepConfig.subtitleFixed}
             </p>
             <div className="ring-2 ring-primary rounded">
               <FeatListItem
