@@ -50,6 +50,7 @@
     --parchment: 0 0% 95%;
     --blood: 0 70% 40%;
     --mystic: 280 30% 55%;
+    --crimson: 0 70% 18%;
   }
 }
 
@@ -69,5 +70,33 @@
 
   h1, h2, h3, h4, h5, h6 {
     font-family: 'Cinzel', serif;
+  }
+}
+
+@layer utilities {
+  .gold-glow {
+    transition: text-shadow 0.3s ease, box-shadow 0.3s ease;
+  }
+  .gold-glow:hover {
+    text-shadow: 0 0 20px hsl(43 74% 49% / 0.35);
+  }
+  .gold-glow-box:hover {
+    box-shadow: 0 0 25px -5px hsl(43 74% 49% / 0.25);
+  }
+  .ornamental-divider {
+    position: relative;
+    height: 1px;
+    background: linear-gradient(90deg, transparent, hsl(43 74% 49% / 0.4), transparent);
+  }
+  .ornamental-divider::after {
+    content: '✦';
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    color: hsl(43 74% 49% / 0.5);
+    font-size: 0.75rem;
+    background: hsl(0 0% 7%);
+    padding: 0 0.75rem;
   }
 }
