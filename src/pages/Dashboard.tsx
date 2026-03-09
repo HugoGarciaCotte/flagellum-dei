@@ -14,7 +14,7 @@ import CharacterSheet from "@/components/CharacterSheet";
 import { useOfflineScenarios } from "@/hooks/useOfflineScenarios";
 import { useOfflineFeats } from "@/hooks/useOfflineFeats";
 import PageHeader from "@/components/PageHeader";
-import CreateCharacterForm from "@/components/CreateCharacterForm";
+import CharacterCreationWizard from "@/components/CharacterCreationWizard";
 import CharacterListItem from "@/components/CharacterListItem";
 import { getCachedScenarios, isOffline } from "@/lib/offlineStorage";
 import { useIsOwner } from "@/hooks/useIsOwner";
