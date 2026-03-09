@@ -53,7 +53,7 @@ const Home = () => {
         <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_center,hsl(43_74%_49%/0.08)_0%,transparent_70%)]" />
         <div className="relative mx-auto max-w-3xl space-y-6">
           <p className="font-display text-sm tracking-[0.3em] uppercase text-primary/70">
-            A Tabletop RPG of Medieval Horror
+            A Tabletop RPG for 3–9 Players · Best Played In Person
           </p>
           <h1 className="font-display text-5xl font-black leading-[1.1] tracking-tight text-foreground md:text-7xl lg:text-8xl">
             Europe, 1340.
