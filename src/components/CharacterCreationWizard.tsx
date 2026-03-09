@@ -416,6 +416,32 @@ const CharacterCreationWizard = ({ onCreated, onCancel, gameId }: CharacterCreat
     toast({ title: "Portrait uploaded!" });
   };
 
+  const handleGeneratePortrait = async () => {
+    setGeneratingPortrait(true);
+    try {
+      const featNames: string[] = [];
+      if (archetypeFeatId) featNames.push(featMap.get(archetypeFeatId)?.title ?? "");
+      if (faithFeatId) featNames.push(featMap.get(faithFeatId)?.title ?? "");
+      if (subfeat2Id) featNames.push(featMap.get(subfeat2Id)?.title ?? "");
+      if (subfeat3Id) featNames.push(featMap.get(subfeat3Id)?.title ?? "");
+
+      const { data, error } = await supabase.functions.invoke("generate-portrait-preview", {
+        body: { description: description || "A medieval fantasy character", featNames: featNames.filter(Boolean) },
+      });
+
+      if (error) throw error;
+      if (data?.error) throw new Error(data.error);
+      if (!data?.image_data_url) throw new Error("No image returned");
+
+      setPortraitUrl(data.image_data_url);
+      toast({ title: "Portrait generated!" });
+    } catch (e: any) {
+      toast({ title: "Portrait generation failed", description: e.message, variant: "destructive" });
+    } finally {
+      setGeneratingPortrait(false);
+    }
+  };
+
   // Filter feats by search
   const filterBySearch = (feats: Feat[]) => {
     if (!searchTerm.trim()) return feats;
