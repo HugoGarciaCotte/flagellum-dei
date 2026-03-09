@@ -50,6 +50,11 @@ const CharacterCreationWizard = ({ onCreated, onCancel, gameId }: CharacterCreat
   const [searchTerm, setSearchTerm] = useState("");
   const [expandedFeatId, setExpandedFeatId] = useState<string | null>(null);
 
+  // Progressive save state
+  const [characterId, setCharacterId] = useState<string | null>(null);
+  const [characterFeatId, setCharacterFeatId] = useState<string | null>(null);
+  const [saving, setSaving] = useState(false);
+
   // Loading states
   const [generatingDesc, setGeneratingDesc] = useState(false);
   const [generatingName, setGeneratingName] = useState(false);
@@ -268,6 +273,129 @@ const CharacterCreationWizard = ({ onCreated, onCancel, gameId }: CharacterCreat
     }
   }, [step]);
 
+  // --- Progressive save helpers ---
+
+  /** Step 1: Create character + archetype feat in DB */
+  const saveArchetype = async (featId: string) => {
+    if (!user) return;
+    setSaving(true);
+    try {
+      // If character already exists (user went back), update archetype
+      if (characterId && characterFeatId) {
+        // Update the feat on existing character_feat row
+        const { error: cfErr } = await supabase
+          .from("character_feats")
+          .update({ feat_id: featId })
+          .eq("id", characterFeatId);
+        if (cfErr) throw cfErr;
+
+        // Delete all existing subfeats since archetype changed
+        await supabase
+          .from("character_feat_subfeats")
+          .delete()
+          .eq("character_feat_id", characterFeatId);
+
+        // Reset subfeat local state
+        setFaithFeatId(null);
+        setFaithSlot(null);
+        setSubfeat2Id(null);
+        setSubfeat2Slot(null);
+        setSubfeat3Id(null);
+        setSubfeat3Slot(null);
+      } else {
+        // Create new character
+        const { data: charData, error: charError } = await supabase
+          .from("characters")
+          .insert({
+            user_id: user.id,
+            name: "New Character",
+          } as any)
+          .select()
+          .single();
+        if (charError) throw charError;
+
+        const newCharId = charData.id;
+        setCharacterId(newCharId);
+
+        // Insert archetype as level 1 feat
+        const { data: cfData, error: cfError } = await supabase
+          .from("character_feats")
+          .insert({ character_id: newCharId, feat_id: featId, level: 1 })
+          .select()
+          .single();
+        if (cfError) throw cfError;
+        setCharacterFeatId(cfData.id);
+
+        // Link to game if needed
+        if (gameId) {
+          await supabase
+            .from("game_players")
+            .update({ character_id: newCharId })
+            .eq("game_id", gameId)
+            .eq("user_id", user.id);
+        }
+
+        queryClient.invalidateQueries({ queryKey: ["my-characters"] });
+      }
+    } catch (e: any) {
+      toast({ title: "Error saving archetype", description: e.message, variant: "destructive" });
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  /** Save a subfeat selection for a given slot */
+  const saveSubfeat = async (slotNum: number, subfeatId: string | null) => {
+    if (!characterFeatId) return;
+    setSaving(true);
+    try {
+      // Delete existing subfeat for this slot
+      await supabase
+        .from("character_feat_subfeats")
+        .delete()
+        .eq("character_feat_id", characterFeatId)
+        .eq("slot", slotNum);
+
+      // Insert new one if selected
+      if (subfeatId) {
+        const { error } = await supabase
+          .from("character_feat_subfeats")
+          .insert({ character_feat_id: characterFeatId, slot: slotNum, subfeat_id: subfeatId });
+        if (error) throw error;
+      }
+    } catch (e: any) {
+      toast({ title: "Error saving selection", description: e.message, variant: "destructive" });
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  /** Step 5 final: update character name/description/portrait */
+  const saveFinalDetails = async () => {
+    if (!characterId || !user) return;
+    setCreating(true);
+    try {
+      const { error } = await supabase
+        .from("characters")
+        .update({
+          name: name || "Blank",
+          description: description || null,
+          portrait_url: portraitUrl,
+        })
+        .eq("id", characterId);
+      if (error) throw error;
+
+      queryClient.invalidateQueries({ queryKey: ["my-characters"] });
+      onCreated(characterId);
+    } catch (e: any) {
+      toast({ title: "Error saving character", description: e.message, variant: "destructive" });
+    } finally {
+      setCreating(false);
+    }
+  };
+
+  // --- End progressive save helpers ---
+
   const generateDescription = async () => {
     setGeneratingDesc(true);
     try {
@@ -315,75 +443,31 @@ const CharacterCreationWizard = ({ onCreated, onCancel, gameId }: CharacterCreat
     }
   };
 
-  // Skip: create blank character
-  const handleSkip = async () => {
-    await createCharacter("Blank", null, null);
-  };
-
-  // Final creation
-  const createCharacter = async (
-    charName: string,
-    charDesc: string | null,
-    charPortrait: string | null,
-  ) => {
+  // Skip: create blank character (before archetype is chosen)
+  const handleSkipBeforeArchetype = async () => {
     if (!user) return;
     setCreating(true);
     try {
-      // 1. Insert character
       const { data: charData, error: charError } = await supabase
         .from("characters")
         .insert({
           user_id: user.id,
-          name: charName,
-          description: charDesc,
-          portrait_url: charPortrait,
+          name: "Blank",
         } as any)
         .select()
         .single();
       if (charError) throw charError;
-      const characterId = charData.id;
 
-      // 2. Insert archetype as level 1 feat
-      if (archetypeFeatId) {
-        const { data: cfData, error: cfError } = await supabase
-          .from("character_feats")
-          .insert({ character_id: characterId, feat_id: archetypeFeatId, level: 1 })
-          .select()
-          .single();
-        if (cfError) throw cfError;
-
-        // 3. Insert subfeats
-        const subfeatsToInsert: { character_feat_id: string; slot: number; subfeat_id: string }[] = [];
-
-        if (faithFeatId && faithSlot !== null) {
-          subfeatsToInsert.push({ character_feat_id: cfData.id, slot: faithSlot, subfeat_id: faithFeatId });
-        }
-        if (subfeat2Id && subfeat2Slot !== null) {
-          subfeatsToInsert.push({ character_feat_id: cfData.id, slot: subfeat2Slot, subfeat_id: subfeat2Id });
-        }
-        if (subfeat3Id && subfeat3Slot !== null) {
-          subfeatsToInsert.push({ character_feat_id: cfData.id, slot: subfeat3Slot, subfeat_id: subfeat3Id });
-        }
-
-        if (subfeatsToInsert.length > 0) {
-          const { error: sfError } = await supabase
-            .from("character_feat_subfeats")
-            .insert(subfeatsToInsert);
-          if (sfError) throw sfError;
-        }
-      }
-
-      // 4. If in a game, set character_id on game_players
       if (gameId) {
         await supabase
           .from("game_players")
-          .update({ character_id: characterId })
+          .update({ character_id: charData.id })
           .eq("game_id", gameId)
           .eq("user_id", user.id);
       }
 
       queryClient.invalidateQueries({ queryKey: ["my-characters"] });
-      onCreated(characterId);
+      onCreated(charData.id);
     } catch (e: any) {
       toast({ title: "Error creating character", description: e.message, variant: "destructive" });
     } finally {
@@ -391,8 +475,11 @@ const CharacterCreationWizard = ({ onCreated, onCancel, gameId }: CharacterCreat
     }
   };
 
-  const handleFinalCreate = () => {
-    createCharacter(name || "Blank", description || null, portraitUrl);
+  // Skip after archetype: character already saved, just finish
+  const handleSkipAfterArchetype = () => {
+    if (characterId) {
+      onCreated(characterId);
+    }
   };
 
   // Portrait handlers
@@ -400,8 +487,8 @@ const CharacterCreationWizard = ({ onCreated, onCancel, gameId }: CharacterCreat
     const file = e.target.files?.[0];
     if (!file || !user) return;
 
-    const tempId = crypto.randomUUID();
-    const filePath = `${user.id}/${tempId}.png`;
+    const targetId = characterId || crypto.randomUUID();
+    const filePath = `${user.id}/${targetId}.png`;
     const { error: uploadError } = await supabase.storage
       .from("character-portraits")
       .upload(filePath, file, { contentType: file.type, upsert: true });
@@ -503,12 +590,23 @@ const CharacterCreationWizard = ({ onCreated, onCancel, gameId }: CharacterCreat
     </div>
   );
 
-  const skipButton = (
+  // Skip button changes depending on whether character already exists
+  const skipButton = characterId ? (
     <Button
       variant="ghost"
       size="sm"
       className="text-muted-foreground gap-1"
-      onClick={handleSkip}
+      onClick={handleSkipAfterArchetype}
+      disabled={saving}
+    >
+      <SkipForward className="h-3.5 w-3.5" /> Skip
+    </Button>
+  ) : (
+    <Button
+      variant="ghost"
+      size="sm"
+      className="text-muted-foreground gap-1"
+      onClick={handleSkipBeforeArchetype}
       disabled={creating}
     >
       <SkipForward className="h-3.5 w-3.5" /> Skip
@@ -524,6 +622,14 @@ const CharacterCreationWizard = ({ onCreated, onCancel, gameId }: CharacterCreat
     setSlot: (slot: number | null) => void,
   ) => {
     const isFixed = options?.type === "fixed";
+
+    const handleSubfeatSelect = async (id: string | null) => {
+      setId(id);
+      setSlot(id ? slotInfo.slot : null);
+      await saveSubfeat(slotInfo.slot, id);
+      goToNextStep(stepNum);
+    };
+
     return (
       <div className="space-y-4">
         {renderStepIndicator()}
@@ -551,8 +657,8 @@ const CharacterCreationWizard = ({ onCreated, onCancel, gameId }: CharacterCreat
                 onToggleExpand={() => setExpandedFeatId(expandedFeatId === options.feat.id ? null : options.feat.id)}
               />
             </div>
-            <Button onClick={() => goToNextStep(stepNum)} className="w-full font-display gap-2">
-              <ChevronRight className="h-4 w-4" /> Continue
+            <Button onClick={() => handleSubfeatSelect(options.feat.id)} className="w-full font-display gap-2" disabled={saving}>
+              {saving ? <Loader2 className="h-4 w-4 animate-spin" /> : <ChevronRight className="h-4 w-4" />} Continue
             </Button>
           </div>
         ) : options?.type === "list" ? (
@@ -562,11 +668,7 @@ const CharacterCreationWizard = ({ onCreated, onCancel, gameId }: CharacterCreat
             </p>
             {slotInfo.optional && (
               <button
-                onClick={() => {
-                  setId(null);
-                  setSlot(null);
-                  goToNextStep(stepNum);
-                }}
+                onClick={() => handleSubfeatSelect(null)}
                 className="w-full text-left p-3 rounded border border-border hover:border-primary/50 transition-colors"
               >
                 <div className="flex items-center gap-2">
@@ -577,9 +679,7 @@ const CharacterCreationWizard = ({ onCreated, onCancel, gameId }: CharacterCreat
             )}
             {renderSearchBar()}
             {renderFeatList(filterBySearch(options.feats), (id) => {
-              setId(id);
-              setSlot(slotInfo.slot);
-              goToNextStep(stepNum);
+              handleSubfeatSelect(id);
             })}
           </div>
         ) : (
@@ -617,6 +717,14 @@ const CharacterCreationWizard = ({ onCreated, onCancel, gameId }: CharacterCreat
 
   // Step 1: Archetype pick
   if (step === 1) {
+    const handleArchetypeSelect = async (id: string) => {
+      setArchetypeFeatId(id);
+      await saveArchetype(id);
+      setStep(2);
+      setSearchTerm("");
+      setExpandedFeatId(null);
+    };
+
     return (
       <div className="space-y-4">
         {renderStepIndicator()}
@@ -628,12 +736,7 @@ const CharacterCreationWizard = ({ onCreated, onCancel, gameId }: CharacterCreat
           Your archetype defines who you are — your core abilities and role in the world.
         </p>
         {renderSearchBar()}
-        {renderFeatList(filterBySearch(archetypes), (id) => {
-          setArchetypeFeatId(id);
-          setStep(2);
-          setSearchTerm("");
-          setExpandedFeatId(null);
-        })}
+        {renderFeatList(filterBySearch(archetypes), handleArchetypeSelect)}
       </div>
     );
   }
@@ -641,6 +744,14 @@ const CharacterCreationWizard = ({ onCreated, onCancel, gameId }: CharacterCreat
   // Step 2: Faith
   if (step === 2) {
     const combinedFaithFeats = [...faithFeats, ...darkFaithFeats];
+
+    const handleFaithSelect = async (id: string | null) => {
+      setFaithFeatId(id);
+      setFaithSlot(id ? faithInfo!.slot : null);
+      await saveSubfeat(faithInfo!.slot, id);
+      goToNextStep(2);
+    };
+
     return (
       <div className="space-y-4">
         {renderStepIndicator()}
@@ -664,11 +775,7 @@ const CharacterCreationWizard = ({ onCreated, onCancel, gameId }: CharacterCreat
 
         {/* None option */}
         <button
-          onClick={() => {
-            setFaithFeatId(null);
-            setFaithSlot(null);
-            goToNextStep(2);
-          }}
+          onClick={() => handleFaithSelect(null)}
           className="w-full text-left p-3 rounded border border-border hover:border-primary/50 transition-colors"
         >
           <div className="flex items-center gap-2">
@@ -678,11 +785,7 @@ const CharacterCreationWizard = ({ onCreated, onCancel, gameId }: CharacterCreat
         </button>
 
         {renderSearchBar()}
-        {renderFeatList(filterBySearch(combinedFaithFeats), (id) => {
-          setFaithFeatId(id);
-          setFaithSlot(faithInfo!.slot);
-          goToNextStep(2);
-        })}
+        {renderFeatList(filterBySearch(combinedFaithFeats), (id) => handleFaithSelect(id))}
       </div>
     );
   }
@@ -820,12 +923,12 @@ const CharacterCreationWizard = ({ onCreated, onCancel, gameId }: CharacterCreat
 
         {/* Create button */}
         <Button
-          onClick={handleFinalCreate}
+          onClick={saveFinalDetails}
           disabled={creating || !name.trim()}
           className="w-full font-display gap-2"
         >
           {creating ? <Loader2 className="h-4 w-4 animate-spin" /> : <Sparkles className="h-4 w-4" />}
-          Create Character
+          Finish Character
         </Button>
       </div>
     );
