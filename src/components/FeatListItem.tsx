@@ -54,13 +54,12 @@ const FeatListItem = ({
   const hasSpecialities = specialities && specialities.length > 0;
 
   return (
-    <div className={`rounded border border-border hover:border-primary/50 transition-colors ${compact ? "p-2" : ""}`}>
+    <div
+      className={`rounded border border-border hover:border-primary/50 transition-colors cursor-pointer ${compact ? "p-2" : ""}`}
+      onClick={onToggleExpand}
+    >
       <div>
-        <button
-          type="button"
-          onClick={onToggleExpand}
-          className={`w-full text-left ${compact ? "" : "p-3"}`}
-        >
+        <div className={`w-full text-left ${compact ? "" : "p-3"}`}>
           <div className="flex items-center gap-2">
             {titlePrefix}
             <span className="text-sm font-medium text-foreground truncate">{feat.title}</span>
@@ -68,9 +67,9 @@ const FeatListItem = ({
               className={`h-3 w-3 shrink-0 text-muted-foreground transition-transform ${expanded ? "rotate-180" : ""}`}
             />
             <FeatCategoryBadges categories={feat.categories} />
-            {actions && <div className="ml-auto flex gap-1 shrink-0">{actions}</div>}
+            {actions && <div className="ml-auto flex gap-1 shrink-0" onClick={(e) => e.stopPropagation()}>{actions}</div>}
           </div>
-        </button>
+        </div>
         {/* Speciality dropdown (editable) */}
         {hasSpecialities && onSpecialityChange && (
           <div className={compact ? "mt-1" : "px-3 pb-1"} onClick={(e) => e.stopPropagation()}>
