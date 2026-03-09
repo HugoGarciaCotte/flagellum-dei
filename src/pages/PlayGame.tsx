@@ -5,8 +5,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useQuery, useQueryClient, useMutation } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
-import { ArrowLeft, Scroll, Plus, Check, X, GripHorizontal } from "lucide-react";
-import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
+import { ArrowLeft, Scroll, Plus, Check, X, GripHorizontal, Pencil } from "lucide-react";
 import CharacterSheet from "@/components/CharacterSheet";
 import { useNetworkStatus } from "@/hooks/useNetworkStatus";
 import { getCachedGameSession } from "@/lib/offlineStorage";
@@ -15,7 +14,9 @@ import DiceRoller from "@/components/DiceRoller";
 import FullPageLoader from "@/components/FullPageLoader";
 import PageHeader from "@/components/PageHeader";
 import CharacterCreationWizard from "@/components/CharacterCreationWizard";
+import CharacterListItem from "@/components/CharacterListItem";
 import { ScrollArea } from "@/components/ui/scroll-area";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 
 const PlayGame = () => {
   const { gameId } = useParams<{ gameId: string }>();
@@ -26,6 +27,7 @@ const PlayGame = () => {
 
   const [sheetExpanded, setSheetExpanded] = useState(false);
   const [creatingChar, setCreatingChar] = useState(false);
+  const [editingCharId, setEditingCharId] = useState<string | null>(null);
 
   // Fetch game WITHOUT scenario content — only title
   const { data: game, error: gameError } = useQuery({
@@ -185,49 +187,30 @@ const PlayGame = () => {
           className="fixed bottom-0 inset-x-0 z-40 bg-card border-t border-border/50 backdrop-blur cursor-pointer"
           onClick={() => setSheetExpanded(true)}
         >
-          <div className="container max-w-3xl flex items-center justify-between py-3 px-4">
+          <div className="container max-w-3xl py-2 px-4">
             <div className="flex items-center gap-3">
-              <GripHorizontal className="h-4 w-4 text-muted-foreground" />
-              <div className="flex items-center gap-2">
-                <Avatar className="h-7 w-7 border border-primary/20">
-                  {(selectedCharacter as any)?.portrait_url ? (
-                    <AvatarImage src={(selectedCharacter as any).portrait_url} alt={selectedCharacter?.name} />
-                  ) : null}
-                  <AvatarFallback className="text-[10px] font-display bg-muted">
-                    {selectedCharacter ? selectedCharacter.name.slice(0, 2).toUpperCase() : "?"}
-                  </AvatarFallback>
-                </Avatar>
-                <span className="font-display text-sm font-medium text-foreground">
-                  {selectedCharacter ? selectedCharacter.name : "Select a character"}
+              <GripHorizontal className="h-4 w-4 text-muted-foreground shrink-0" />
+              {selectedCharacter ? (
+                <div className="flex-1 min-w-0">
+                  <CharacterListItem character={selectedCharacter} />
+                </div>
+              ) : (
+                <span className="font-display text-sm font-medium text-muted-foreground">
+                  Select a character
                 </span>
-              </div>
+              )}
             </div>
           </div>
         </div>
       )}
 
-      {/* Expanded character sheet overlay */}
+      {/* Expanded character overlay */}
       {sheetExpanded && (
         <div className="fixed inset-0 z-50 bg-background flex flex-col animate-in slide-in-from-bottom duration-300">
           {/* Header bar */}
           <div className="border-b border-border/50 bg-card/80 backdrop-blur">
             <div className="container max-w-2xl flex items-center justify-between py-3 px-4">
-              <div className="flex items-center gap-3">
-              <GripHorizontal className="h-4 w-4 text-muted-foreground" />
-                <div className="flex items-center gap-2">
-                  <Avatar className="h-7 w-7 border border-primary/20">
-                    {(selectedCharacter as any)?.portrait_url ? (
-                      <AvatarImage src={(selectedCharacter as any).portrait_url} alt={selectedCharacter?.name} />
-                    ) : null}
-                    <AvatarFallback className="text-[10px] font-display bg-muted">
-                      {selectedCharacter ? selectedCharacter.name.slice(0, 2).toUpperCase() : "?"}
-                    </AvatarFallback>
-                  </Avatar>
-                  <span className="font-display text-sm font-medium text-foreground">
-                    {selectedCharacter ? selectedCharacter.name : "Character"}
-                  </span>
-                </div>
-              </div>
+              <span className="font-display text-sm font-medium text-foreground">Your Characters</span>
               <Button
                 variant="ghost"
                 size="icon"
@@ -241,20 +224,63 @@ const PlayGame = () => {
 
           {/* Scrollable content */}
           <ScrollArea className="flex-1">
-            <div className="container max-w-2xl py-6 px-4 space-y-6">
-              {selectedCharacter && (
-                <CharacterSheet
-                  characterId={selectedCharacter.id}
-                  mode="player"
-                  scenarioLevel={effectiveScenario?.level ?? undefined}
-                />
-              )}
-
-              {/* Character selection list */}
-              <div className="border-t border-border pt-6">
-                <p className="text-sm font-medium text-muted-foreground mb-3">Your characters</p>
-                {(myCharacters ?? []).length === 0 ? (
-                  creatingChar ? (
+            <div className="container max-w-2xl py-6 px-4 space-y-3">
+              {(myCharacters ?? []).length === 0 ? (
+                creatingChar ? (
+                  <div className="border border-border rounded-md p-3">
+                    <CharacterCreationWizard
+                      gameId={gameId}
+                      onCreated={(id) => {
+                        selectCharMutation.mutate(id);
+                        setCreatingChar(false);
+                      }}
+                      onCancel={() => setCreatingChar(false)}
+                    />
+                  </div>
+                ) : (
+                  <div className="space-y-2">
+                    <p className="text-sm text-muted-foreground">No characters yet.</p>
+                    <Button variant="outline" size="sm" className="gap-2 w-full" onClick={() => setCreatingChar(true)}>
+                      <Plus className="h-3 w-3" /> New Character
+                    </Button>
+                  </div>
+                )
+              ) : (
+                <>
+                  {(myCharacters ?? []).map((char) => (
+                    <div
+                      key={char.id}
+                      onClick={() => selectCharMutation.mutate(char.id)}
+                      className={`cursor-pointer rounded-lg transition-colors ${
+                        char.id === myPlayer?.character_id
+                          ? "ring-2 ring-primary"
+                          : "hover:ring-1 hover:ring-primary/50"
+                      }`}
+                    >
+                      <CharacterListItem
+                        character={char}
+                        actions={
+                          <div className="flex items-center gap-1">
+                            {char.id === myPlayer?.character_id && (
+                              <Check className="h-4 w-4 text-primary" />
+                            )}
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              className="h-8 w-8"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                setEditingCharId(char.id);
+                              }}
+                            >
+                              <Pencil className="h-3.5 w-3.5" />
+                            </Button>
+                          </div>
+                        }
+                      />
+                    </div>
+                  ))}
+                  {creatingChar ? (
                     <div className="border border-border rounded-md p-3">
                       <CharacterCreationWizard
                         gameId={gameId}
@@ -266,57 +292,36 @@ const PlayGame = () => {
                       />
                     </div>
                   ) : (
-                    <div className="space-y-2">
-                      <p className="text-sm text-muted-foreground">No characters yet.</p>
-                      <Button variant="outline" size="sm" className="gap-2 w-full" onClick={() => setCreatingChar(true)}>
-                        <Plus className="h-3 w-3" /> New Character
-                      </Button>
-                    </div>
-                  )
-                ) : (
-                  <div className="space-y-2">
-                    {(myCharacters ?? []).map((char) => (
-                      <button
-                        key={char.id}
-                        onClick={() => selectCharMutation.mutate(char.id)}
-                        className={`w-full text-left p-3 rounded-md border transition-colors ${
-                          char.id === myPlayer?.character_id
-                            ? "border-primary bg-primary/10"
-                            : "border-border hover:border-primary/50"
-                        }`}
-                      >
-                        <div className="flex items-center justify-between">
-                          <span className="font-medium text-foreground text-sm">{char.name}</span>
-                          {char.id === myPlayer?.character_id && <Check className="h-4 w-4 text-primary" />}
-                        </div>
-                        {char.description && (
-                          <p className="text-xs text-muted-foreground mt-1 line-clamp-2">{char.description}</p>
-                        )}
-                      </button>
-                    ))}
-                    {creatingChar ? (
-                      <div className="border border-border rounded-md p-3">
-                        <CharacterCreationWizard
-                          gameId={gameId}
-                          onCreated={(id) => {
-                            selectCharMutation.mutate(id);
-                            setCreatingChar(false);
-                          }}
-                          onCancel={() => setCreatingChar(false)}
-                        />
-                      </div>
-                    ) : (
-                      <Button variant="outline" size="sm" className="gap-2 w-full" onClick={() => setCreatingChar(true)}>
-                        <Plus className="h-3 w-3" /> New Character
-                      </Button>
-                    )}
-                  </div>
-                )}
-              </div>
+                    <Button variant="outline" size="sm" className="gap-2 w-full" onClick={() => setCreatingChar(true)}>
+                      <Plus className="h-3 w-3" /> New Character
+                    </Button>
+                  )}
+                </>
+              )}
             </div>
           </ScrollArea>
         </div>
       )}
+
+      {/* Edit Character Dialog */}
+      <Dialog open={!!editingCharId} onOpenChange={(open) => { if (!open) setEditingCharId(null); }}>
+        <DialogContent className="max-h-[85vh] overflow-y-auto sm:max-w-lg">
+          <DialogHeader>
+            <DialogTitle className="font-display">Edit Character</DialogTitle>
+          </DialogHeader>
+          {editingCharId && (
+            <CharacterSheet
+              characterId={editingCharId}
+              mode="player"
+              scenarioLevel={effectiveScenario?.level ?? undefined}
+              onDone={() => {
+                setEditingCharId(null);
+                queryClient.invalidateQueries({ queryKey: ["my-characters"] });
+              }}
+            />
+          )}
+        </DialogContent>
+      </Dialog>
     </div>
   );
 };
