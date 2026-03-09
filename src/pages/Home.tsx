@@ -204,7 +204,7 @@ const Home = () => {
             The plague waits for no one.
           </h2>
           <p className="text-muted-foreground">
-            Gather your party and enter the world of Prima TRPG.
+            Gather your party and enter the world of Flagellum Dei TTRPG.
           </p>
           <div className="flex flex-col sm:flex-row items-center justify-center gap-4 pt-2">
             <Link to="/auth">
