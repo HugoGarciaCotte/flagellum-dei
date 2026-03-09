@@ -515,14 +515,14 @@ const CharacterCreationWizard = ({ onCreated, onCancel, gameId }: CharacterCreat
   ) => {
     const isFixed = options?.type === "fixed";
 
-    const handleSubfeatSelect = async (id: string | null) => {
+    const handleSubfeatSelect = (id: string | null) => {
       setSubfeatSelections(prev => {
         const next = new Map(prev);
         next.set(slotInfo.slot, id);
         return next;
       });
-      await saveSubfeat(slotInfo.slot, id);
       goToNextStep(stepNum);
+      saveSubfeat(slotInfo.slot, id).catch(() => {});
     };
 
     const slotIndex = stepNum - 2;
