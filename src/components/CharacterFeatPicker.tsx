@@ -644,7 +644,7 @@ const CharacterFeatPicker = ({ characterId, mode = "player", scenarioLevel }: Ch
                           variant="ghost"
                           size="sm"
                           className="h-5 w-5 p-0"
-                          onClick={() => openPicker({ type: "subfeat", characterFeatId: cf.id, slot: slotNum })}
+                          onClick={() => openPicker({ type: "subfeat", characterFeatId: cf.id, slot: slotNum, slotMeta: slotMetaByNum.get(slotNum) })}
                         >
                           <Pencil className="h-3 w-3" />
                         </Button>
