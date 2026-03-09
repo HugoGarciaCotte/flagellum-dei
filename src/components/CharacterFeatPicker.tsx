@@ -116,16 +116,23 @@ const CharacterFeatPicker = ({ characterId, mode = "player", scenarioLevel }: Ch
     }
   }, [allFeats, online]);
 
-  // Metadata map: only parse archetype feats for subfeat slot definitions
+  // Metadata map: parse all feats for embedded metadata (one-liners, subfeat slots, etc.)
   const metaMap = useMemo(() => {
     const map = new Map<string, ReturnType<typeof parseEmbeddedFeatMeta>>();
     (allFeats ?? []).forEach((f) => {
-      if (f.categories?.includes("Archetype")) {
-        map.set(f.id, parseEmbeddedFeatMeta(f.raw_content || f.content));
-      }
+      map.set(f.id, parseEmbeddedFeatMeta(f.raw_content || f.content));
     });
     return map;
   }, [allFeats]);
+
+  // Description map: feat ID → one-liner description from parseable fields
+  const descriptionMap = useMemo(() => {
+    const map = new Map<string, string>();
+    metaMap.forEach((meta, id) => {
+      if (meta.description) map.set(id, meta.description);
+    });
+    return map;
+  }, [metaMap]);
 
   const { data: characterFeats } = useQuery({
     queryKey: ["character-feats", characterId],
@@ -634,7 +641,7 @@ const CharacterFeatPicker = ({ characterId, mode = "player", scenarioLevel }: Ch
                 <span className="text-muted-foreground text-xs">↳</span>
                 <div className="flex-1 min-w-0">
                   <FeatListItem
-                    feat={assignedFeat}
+                    feat={{ ...assignedFeat, description: descriptionMap.get(assignedFeat.id) ?? undefined }}
                     expanded={expandedSubfeatKey === subfeatKey}
                     onToggleExpand={() => setExpandedSubfeatKey(expandedSubfeatKey === subfeatKey ? null : subfeatKey)}
                     compact
@@ -777,7 +784,7 @@ const CharacterFeatPicker = ({ characterId, mode = "player", scenarioLevel }: Ch
               return (
                 <FeatListItem
                   key={feat.id}
-                  feat={feat}
+                  feat={{ ...feat, description: descriptionMap.get(feat.id) ?? undefined }}
                   expanded={isExpanded}
                   onToggleExpand={() => setExpandedFeatId(isExpanded ? null : feat.id)}
                   expandedContent={
@@ -825,7 +832,7 @@ const CharacterFeatPicker = ({ characterId, mode = "player", scenarioLevel }: Ch
               {assignedFeat ? (
                 <div className="flex-1 min-w-0">
                    <FeatListItem
-                    feat={assignedFeat}
+                    feat={{ ...assignedFeat, description: descriptionMap.get(assignedFeat.id) ?? undefined }}
                     expanded={expandedAssignedFeatId === assigned!.id}
                     onToggleExpand={() => setExpandedAssignedFeatId(expandedAssignedFeatId === assigned!.id ? null : assigned!.id)}
                     // COMMENTED OUT: preprocessed fields — specialities
@@ -882,7 +889,7 @@ const CharacterFeatPicker = ({ characterId, mode = "player", scenarioLevel }: Ch
             return (
               <FeatListItem
                 key={cf.id}
-                feat={feat}
+                feat={{ ...feat, description: descriptionMap.get(feat.id) ?? undefined }}
                 expanded={expandedAssignedFeatId === cf.id}
                 onToggleExpand={() => setExpandedAssignedFeatId(expandedAssignedFeatId === cf.id ? null : cf.id)}
                 // COMMENTED OUT: preprocessed fields — specialities
