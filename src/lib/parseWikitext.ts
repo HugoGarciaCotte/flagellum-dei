@@ -122,6 +122,11 @@ export function convertBodyToHtml(lines: string[]): string {
 
     closeListsTo(0);
 
+    if (trimmed === "----") {
+      result.push("<hr>");
+      continue;
+    }
+
     if (trimmed === "") {
       result.push("<br>");
     } else {
