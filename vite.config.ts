@@ -73,7 +73,7 @@ export default defineConfig(({ mode }) => ({
         ],
       },
       manifest: {
-        name: "Flagellum Dei TTRPG Helper",
+        name: "Flagellum Dei TTRPG",
         short_name: "FlagellumDei",
         description: "Interactive tabletop TTRPG scenario runner",
         theme_color: "#141318",
