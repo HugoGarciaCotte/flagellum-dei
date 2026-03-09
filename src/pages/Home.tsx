@@ -35,7 +35,7 @@ const Home = () => {
       <header className="fixed top-0 left-0 right-0 z-50 border-b border-primary/20 bg-background/90 backdrop-blur-md">
         <div className="container mx-auto flex items-center justify-between px-6 py-4">
           <div className="flex items-center gap-3">
-            <Skull className="h-6 w-6 text-primary" />
+            <Logo className="text-2xl" />
             <span className="font-display text-lg font-bold text-primary">
               Flagellum Dei TTRPG
             </span>
