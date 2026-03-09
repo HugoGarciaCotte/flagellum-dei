@@ -632,12 +632,12 @@ const CharacterCreationWizard = ({ onCreated, onCancel, gameId }: CharacterCreat
 
   // Step 1: Archetype pick
   if (step === 1) {
-    const handleArchetypeSelect = async (id: string) => {
+    const handleArchetypeSelect = (id: string) => {
       setArchetypeFeatId(id);
-      await saveArchetype(id);
       setStep(2);
       setSearchTerm("");
       setExpandedFeatId(null);
+      saveArchetype(id).catch(() => {});
     };
 
     return (
