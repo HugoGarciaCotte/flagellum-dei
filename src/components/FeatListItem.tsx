@@ -55,15 +55,14 @@ const FeatListItem = ({
   compact,
   titlePrefix,
   onQuickAction,
-  quickActionLabel = "Take",
+  quickActionLabel = "Select",
 }: FeatListItemProps) => {
   const hasSpecialities = specialities && specialities.length > 0;
   const hasPicker = !!onQuickAction;
 
   return (
     <div
-      className={`rounded border border-border hover:border-primary/50 transition-colors ${!hasPicker ? "cursor-pointer" : ""} ${compact ? "p-2" : ""}`}
-      onClick={!hasPicker ? onToggleExpand : undefined}
+      className={`rounded border border-border hover:border-primary/50 transition-colors ${compact ? "p-2" : ""}`}
     >
       <div>
         <div className={`w-full text-left ${compact ? "" : "p-3"}`}>
@@ -71,17 +70,17 @@ const FeatListItem = ({
             {titlePrefix}
             <span className="text-sm font-medium text-foreground truncate">{feat.title}</span>
             <FeatCategoryBadges categories={feat.categories} />
-            {hasPicker && (
-              <div className="ml-auto flex gap-1 shrink-0" onClick={(e) => e.stopPropagation()}>
+            <div className="ml-auto flex gap-1 shrink-0" onClick={(e) => e.stopPropagation()}>
+              {hasPicker && (
                 <Button size="sm" variant="default" className="h-6 text-xs px-2" onClick={onQuickAction}>
                   {quickActionLabel}
                 </Button>
-                <Button size="sm" variant="outline" className="h-6 text-xs px-2" onClick={onToggleExpand}>
-                  Details
-                </Button>
-              </div>
-            )}
-            {!hasPicker && actions && <div className="ml-auto flex gap-1 shrink-0" onClick={(e) => e.stopPropagation()}>{actions}</div>}
+              )}
+              {actions}
+              <Button size="sm" variant="outline" className="h-6 text-xs px-2" onClick={onToggleExpand}>
+                {expanded ? "Hide" : "Info"}
+              </Button>
+            </div>
           </div>
         </div>
         {/* Speciality dropdown (editable) */}

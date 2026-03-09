@@ -21,7 +21,7 @@ import {
 import { toast } from "@/hooks/use-toast";
 import {
   Plus, Pencil, Trash2, Loader2, Sparkles, Layers,
-  ChevronDown, CheckCircle2, AlertCircle, Wand2, Unlock, Eye, ShieldCheck, Ban, Upload,
+  CheckCircle2, AlertCircle, Wand2, Unlock, Eye, ShieldCheck, Ban, Upload,
 } from "lucide-react";
 import FeatCategoryBadges from "@/components/FeatCategoryBadges";
 import { parseEmbeddedFeatMeta, generateParseableBlock, type SubfeatSlot } from "@/lib/parseEmbeddedFeatMeta";
@@ -409,9 +409,6 @@ const ManageFeats = () => {
                     <div className="rounded-lg border border-border hover:border-primary/30 transition-colors">
                       <CollapsibleTrigger asChild>
                         <button className="w-full text-left p-3 flex items-start gap-3 cursor-pointer">
-                          <ChevronDown
-                            className={`h-4 w-4 mt-0.5 shrink-0 text-muted-foreground transition-transform ${isExpanded ? "rotate-180" : ""}`}
-                          />
                           <div className="flex-1 min-w-0">
                             <div className="flex items-center gap-2 flex-wrap">
                               <span className="font-medium text-sm">{f.title}</span>

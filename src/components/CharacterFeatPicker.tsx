@@ -788,7 +788,7 @@ const CharacterFeatPicker = ({ characterId, mode = "player", scenarioLevel }: Ch
                   expanded={isExpanded}
                   onToggleExpand={() => setExpandedFeatId(isExpanded ? null : feat.id)}
                   onQuickAction={() => handleFeatSelect(feat.id)}
-                  quickActionLabel="Take"
+                  quickActionLabel="Select"
                 />
               );
             })
