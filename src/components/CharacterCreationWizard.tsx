@@ -404,22 +404,22 @@ const CharacterCreationWizard = ({ onCreated, onCancel, gameId }: CharacterCreat
     return feats.filter(f => f.title.toLowerCase().includes(lower));
   };
 
-  const renderFeatList = (feats: Feat[], onSelect: (id: string) => void, selectedId?: string | null) => (
+  const renderFeatList = (feats: Feat[], onSelect: (id: string) => void, _selectedId?: string | null) => (
     <div className="space-y-1.5 max-h-[50vh] overflow-y-auto">
       {feats.length === 0 ? (
         <p className="text-sm text-muted-foreground text-center py-4">No feats found.</p>
       ) : feats.map(f => (
-        <div
+        <FeatListItem
           key={f.id}
-          className={`cursor-pointer transition-colors rounded ${selectedId === f.id ? "ring-2 ring-primary" : ""}`}
-          onClick={() => onSelect(f.id)}
-        >
-          <FeatListItem
-            feat={{ ...f, description: descriptionMap.get(f.id) ?? null }}
-            expanded={expandedFeatId === f.id}
-            onToggleExpand={() => setExpandedFeatId(expandedFeatId === f.id ? null : f.id)}
-          />
-        </div>
+          feat={{ ...f, description: descriptionMap.get(f.id) ?? null }}
+          expanded={expandedFeatId === f.id}
+          onToggleExpand={() => setExpandedFeatId(expandedFeatId === f.id ? null : f.id)}
+          expandedContent={
+            <Button size="sm" className="mt-2 w-full" onClick={() => onSelect(f.id)}>
+              Pick this feat
+            </Button>
+          }
+        />
       ))}
     </div>
   );

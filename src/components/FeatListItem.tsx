@@ -94,8 +94,8 @@ const FeatListItem = ({
         {hasSpecialities && !onSpecialityChange && specialityValue && (
           <p className={`text-xs text-muted-foreground italic ${compact ? "mt-1" : "px-3 pb-1"}`}>({specialityValue})</p>
         )}
-        {!expanded && feat.description && (
-          <p className={`text-xs text-muted-foreground line-clamp-1 ${compact ? "mt-1" : "px-3 pb-2 mt-0.5"}`}>
+        {feat.description && (
+          <p className={`text-xs text-muted-foreground ${compact ? "mt-1" : "px-3 pb-2 mt-0.5"}`}>
             {feat.description}
           </p>
         )}
@@ -103,9 +103,6 @@ const FeatListItem = ({
       {collapsedContent}
       {expanded && (
         <div className={`space-y-2 ${compact ? "mt-1" : "px-3 pb-3"}`}>
-          {feat.description && (
-            <p className="text-sm text-muted-foreground whitespace-pre-line">{feat.description}</p>
-          )}
           {feat.content && <FeatDetailsDisplay content={feat.content} rawContent={feat.raw_content} />}
           {expandedContent}
         </div>
