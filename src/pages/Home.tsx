@@ -160,21 +160,21 @@ const faqs = [
 
 const showcaseScenarios = [
   {
-    title: "The Village of Ashes",
+    title: "Danse Macabre Part 1",
     description:
-      "A village burned its own priest. Now the dead speak in the chapel ruins.",
+      "An Austrian abbey hides ritualistic murders and the echo of a pagan curse buried beneath its foundations.",
     level: 1,
   },
   {
-    title: "The Silent Monastery",
+    title: "Danse Macabre Part 2",
     description:
-      "The monks have taken a vow of silence. But something answers prayers at night.",
+      "A criminal syndicate thrives in the catacombs of Provins. The inquisitors must descend into darkness to root it out.",
     level: 2,
   },
   {
-    title: "The Pilgrim's Curse",
+    title: "Danse Macabre Part 3",
     description:
-      "A relic carried across Europe spreads miracles — and fear.",
+      "A vengeful musician unleashes a mass dancing plague across Spain. Faith and madness blur.",
     level: 3,
   },
 ];
@@ -436,6 +436,9 @@ const Home = () => {
             <h2 className="font-display text-3xl font-bold text-foreground md:text-5xl">
               Open a Case. Enter a Nightmare.
             </h2>
+            <p className="text-base text-muted-foreground mt-2">
+              A nine-part campaign across plague-era Europe.
+            </p>
           </div>
 
           <div className="grid gap-6 md:grid-cols-3">
@@ -449,6 +452,10 @@ const Home = () => {
               />
             ))}
           </div>
+
+          <p className="mt-12 text-center font-display text-sm tracking-[0.15em] uppercase text-primary/60">
+            9 scenarios · A campaign spanning Europe · The vast majority took a full year of historical research
+          </p>
         </div>
       </section>
 
@@ -486,7 +493,7 @@ const Home = () => {
           <div className="ornamental-divider mx-auto max-w-xs" />
 
           <blockquote className="font-display text-xl italic text-primary/70">
-            "Some scenarios take nearly a year to write."
+            "9 scenarios spanning Europe — the vast majority took a full year of historical research."
           </blockquote>
         </div>
       </section>
