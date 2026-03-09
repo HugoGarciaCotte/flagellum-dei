@@ -1,7 +1,23 @@
 import { cn } from "@/lib/utils";
 
 const Logo = ({ className }: { className?: string }) => (
-  <span className={cn("font-serif text-primary leading-none inline-flex items-center justify-center translate-y-[-0.05em]", className)}>🜹</span>
+  <svg
+    viewBox="0 0 512 512"
+    xmlns="http://www.w3.org/2000/svg"
+    className={cn("inline-block", className)}
+    style={{ width: "1em", height: "1em" }}
+  >
+    <text
+      x="256" y="280"
+      fontSize="420"
+      fill="currentColor"
+      textAnchor="middle"
+      dominantBaseline="central"
+      fontFamily="serif"
+    >
+      🜹
+    </text>
+  </svg>
 );
 
 export default Logo;
