@@ -160,21 +160,21 @@ const faqs = [
 
 const showcaseScenarios = [
   {
-    title: "The Village of Ashes",
+    title: "Danse Macabre Part 1",
     description:
-      "A village burned its own priest. Now the dead speak in the chapel ruins.",
+      "An Austrian abbey hides ritualistic murders and the echo of a pagan curse buried beneath its foundations.",
     level: 1,
   },
   {
-    title: "The Silent Monastery",
+    title: "Danse Macabre Part 2",
     description:
-      "The monks have taken a vow of silence. But something answers prayers at night.",
+      "A criminal syndicate thrives in the catacombs of Provins. The inquisitors must descend into darkness to root it out.",
     level: 2,
   },
   {
-    title: "The Pilgrim's Curse",
+    title: "Danse Macabre Part 3",
     description:
-      "A relic carried across Europe spreads miracles — and fear.",
+      "A vengeful musician unleashes a mass dancing plague across Spain. Faith and madness blur.",
     level: 3,
   },
 ];
