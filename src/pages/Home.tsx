@@ -65,6 +65,11 @@ const Home = () => {
             grip. In the shadows, ancient cults perform unspeakable rites. Will
             you uncover the truth — or become its next victim?
           </p>
+          <p className="mx-auto max-w-xl text-sm leading-relaxed text-muted-foreground/70 italic">
+            Flagellum Dei is a pen-and-paper tabletop RPG — gather around the
+            table with 3 to 9 players, or connect via video call. This app is
+            your digital companion for characters, scenarios, and game sessions.
+          </p>
           <Link to="/auth">
             <Button
               size="lg"
