@@ -784,7 +784,7 @@ const CharacterFeatPicker = ({ characterId, mode = "player", scenarioLevel }: Ch
               return (
                 <FeatListItem
                   key={feat.id}
-                  feat={{ ...feat, description: descriptionMap.get(feat.id) ?? feat.description }}
+                  feat={{ ...feat, description: descriptionMap.get(feat.id) ?? undefined }}
                   expanded={isExpanded}
                   onToggleExpand={() => setExpandedFeatId(isExpanded ? null : feat.id)}
                   expandedContent={
