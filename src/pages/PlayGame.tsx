@@ -267,22 +267,9 @@ const PlayGame = () => {
                       />
                     </div>
                   ))}
-                  {creatingChar ? (
-                    <div className="border border-border rounded-md p-3">
-                      <CharacterCreationWizard
-                        gameId={gameId}
-                        onCreated={(id) => {
-                          selectCharMutation.mutate(id);
-                          setCreatingChar(false);
-                        }}
-                        onCancel={() => setCreatingChar(false)}
-                      />
-                    </div>
-                  ) : (
-                    <Button variant="outline" size="sm" className="gap-2 w-full" onClick={() => setCreatingChar(true)}>
-                      <Plus className="h-3 w-3" /> New Character
-                    </Button>
-                  )}
+                  <Button variant="outline" size="sm" className="gap-2 w-full" onClick={() => setCreatingChar(true)}>
+                    <Plus className="h-3 w-3" /> New Character
+                  </Button>
                 </>
               )}
             </div>
