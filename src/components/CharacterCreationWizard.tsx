@@ -613,7 +613,7 @@ const CharacterCreationWizard = ({ onCreated, onCancel, gameId }: CharacterCreat
     return (
       <div className="space-y-6 text-center py-4">
         <div className="space-y-2">
-          <Shield className="h-12 w-12 mx-auto text-primary" />
+          <Logo className="text-5xl mx-auto" />
           <h2 className="font-display text-2xl text-foreground">Create Your Character</h2>
           <p className="text-muted-foreground text-sm max-w-sm mx-auto">
             Every hero begins with a calling. Let's forge yours step by step — choose your path, your beliefs, and your skills.

@@ -82,7 +82,7 @@ const Auth = () => {
                   <Sword className="h-4 w-4" /> Login
                 </TabsTrigger>
                 <TabsTrigger value="signup" className="flex-1 gap-2">
-                  <Shield className="h-4 w-4" /> Sign Up
+                  <Logo className="text-sm" /> Sign Up
                 </TabsTrigger>
               </TabsList>
             </CardHeader>
