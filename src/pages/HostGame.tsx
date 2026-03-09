@@ -6,7 +6,7 @@ import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { toast } from "@/hooks/use-toast";
-import { ArrowLeft, Copy, Crown, StopCircle } from "lucide-react";
+import { ArrowLeft, Copy, Skull, StopCircle } from "lucide-react";
 import PlayerListSheet from "@/components/PlayerListSheet";
 import { parseWikitext, extractImageUrls } from "@/lib/parseWikitext";
 import WikiSectionTree from "@/components/WikiSectionTree";
