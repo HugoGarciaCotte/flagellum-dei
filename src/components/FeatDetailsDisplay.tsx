@@ -4,6 +4,10 @@ import { parseEmbeddedFeatMeta } from "@/lib/parseEmbeddedFeatMeta";
 import WikiLinkedText from "@/components/WikiLinkedText";
 import { useMemo } from "react";
 
+function fieldToHtml(text: string): string {
+  return convertBodyToHtml(text.split("\n"));
+}
+
 interface FeatDetailsDisplayProps {
   content: string | null | undefined;
   rawContent?: string | null | undefined;
