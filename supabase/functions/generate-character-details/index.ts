@@ -22,7 +22,7 @@ serve(async (req) => {
       if (feats && feats.length > 0) parts.push(`Feats: ${feats.join(", ")}`);
       prompt = `You are a narrator for a dark medieval tabletop RPG set in Europe around 1340. Write a single epic sentence (max 30 words) describing a character with these traits:\n${parts.join("\n")}\nOutput ONLY the sentence, nothing else. Make it dramatic and evocative. Do not use the character's name.`;
     } else if (type === "name") {
-      prompt = `Generate a single realistic European name (first name and surname) that would fit a person living around 1340 AD. The character is described as: "${description || "a mysterious traveler"}". Their archetype is: ${archetype || "unknown"}.\nOutput ONLY the name, nothing else. No quotes, no explanation. Choose from French, English, German, Italian, Spanish, or Eastern European naming conventions.`;
+      prompt = `Generate a single historically authentic name (first name and surname) for a person living in Europe around 1340 AD. The character is described as: "${description || "a mysterious traveler"}". Their archetype is: ${archetype || "unknown"}.\nThe name should sound period-appropriate and could be from any European origin: French, English, German, Flemish, Italian, Castilian, or Eastern European.\nOutput ONLY the full name, nothing else. No quotes, no explanation.`;
     } else {
       throw new Error("Invalid type. Use 'description' or 'name'.");
     }
