@@ -85,7 +85,7 @@ async function checkFeatWithAI(
   const systemPrompt = `You are a TRPG feat metadata reviewer. Given a feat's wiki content and its current parseable metadata fields, determine if each field is accurate, missing, or should be removed.
 
 Fields to review:
-- description: A short (under 15 words) mechanical summary
+- description: A short (under 15 words) sentence. For Archetypes (check categories): character personality/flavor (who they are). For other feats: practical effect (what they can do). Never use mechanical jargon.
 - prerequisites: Free-form text listing what is required to take this feat (e.g. "Level 3, [[Prowess]]"). Most feats have none.
 - specialities: List of speciality options the player must choose from (most feats have none)
 - subfeats: Subfeat slot definitions (fixed/list/type) — most feats have none
