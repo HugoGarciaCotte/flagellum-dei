@@ -9,7 +9,8 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/com
 import { Badge } from "@/components/ui/badge";
 import { Table, TableHeader, TableBody, TableHead, TableRow, TableCell } from "@/components/ui/table";
 import { toast } from "@/hooks/use-toast";
-import { ArrowLeft, Skull, Download, Loader2, Search, X, Check } from "lucide-react";
+import { ArrowLeft, Download, Loader2, Search, X, Check } from "lucide-react";
+import Logo from "@/components/Logo";
 import ManageScenarios from "@/components/ManageScenarios";
 import ImportFeatsCard from "@/components/ImportFeatsCard";
 import { Swords } from "lucide-react";
@@ -104,7 +105,7 @@ const Admin = () => {
     <div className="min-h-screen bg-background">
       <PageHeader
         title="Admin Panel"
-        icon={<Skull className="h-5 w-5 text-primary" />}
+        icon={<Logo className="text-xl" />}
         leftAction={
           <Button variant="ghost" size="icon" onClick={() => navigate("/")}>
             <ArrowLeft className="h-4 w-4" />

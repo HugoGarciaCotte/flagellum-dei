@@ -6,7 +6,8 @@ import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { toast } from "@/hooks/use-toast";
-import { ArrowLeft, Copy, Skull, StopCircle } from "lucide-react";
+import { ArrowLeft, Copy, StopCircle } from "lucide-react";
+import Logo from "@/components/Logo";
 import PlayerListSheet from "@/components/PlayerListSheet";
 import { parseWikitext, extractImageUrls } from "@/lib/parseWikitext";
 import WikiSectionTree from "@/components/WikiSectionTree";
@@ -173,7 +174,7 @@ const HostGame = () => {
     <div className="min-h-screen bg-background flex flex-col">
       <PageHeader
         title={effectiveScenario?.title ?? ""}
-        icon={<Skull className="h-4 w-4 text-primary" />}
+        icon={<Logo className="text-lg" />}
         leftAction={
           <Button variant="ghost" size="icon" onClick={() => navigate("/")}>
             <ArrowLeft className="h-4 w-4" />

@@ -9,13 +9,13 @@ import {
   Users,
   WifiOff,
   Smartphone,
-  Skull,
   Search,
   Shield,
   Sparkles,
   Swords,
   ChevronDown,
 } from "lucide-react";
+import Logo from "@/components/Logo";
 
 const Home = () => {
   const { data: scenarios } = useQuery({
@@ -35,7 +35,7 @@ const Home = () => {
       <header className="fixed top-0 left-0 right-0 z-50 border-b border-primary/20 bg-background/90 backdrop-blur-md">
         <div className="container mx-auto flex items-center justify-between px-6 py-4">
           <div className="flex items-center gap-3">
-            <Skull className="h-6 w-6 text-primary" />
+            <Logo className="text-2xl" />
             <span className="font-display text-lg font-bold text-primary">
               Flagellum Dei TTRPG
             </span>
@@ -87,7 +87,7 @@ const Home = () => {
       {/* The World */}
       <section className="border-t border-primary/10 py-24 px-6">
         <div className="container mx-auto max-w-3xl text-center space-y-8">
-          <Skull className="mx-auto h-10 w-10 text-primary/60" />
+          <Logo className="mx-auto text-4xl text-primary/60" />
           <h2 className="font-display text-3xl font-bold text-foreground md:text-4xl">
             The World Awaits
           </h2>
@@ -204,7 +204,7 @@ const Home = () => {
       {/* Final CTA */}
       <section className="border-t border-primary/10 py-24 px-6 text-center">
         <div className="mx-auto max-w-xl space-y-6">
-          <Skull className="mx-auto h-12 w-12 text-primary/40" />
+          <Logo className="mx-auto text-5xl text-primary/40" />
           <h2 className="font-display text-3xl font-bold text-foreground md:text-4xl">
             The plague waits for no one.
           </h2>
@@ -236,7 +236,7 @@ const Home = () => {
       {/* Footer */}
       <footer className="border-t border-primary/10 py-10 text-center">
         <div className="flex items-center justify-center gap-2 text-muted-foreground">
-          <Skull className="h-4 w-4 text-primary/40" />
+          <Logo className="text-base text-primary/40" />
           <span className="font-display text-sm">Flagellum Dei TTRPG</span>
         </div>
       </footer>
