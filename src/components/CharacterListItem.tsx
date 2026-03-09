@@ -15,11 +15,29 @@ const CharacterListItem = ({ character, actions }: CharacterListItemProps) => {
     queryFn: async () => {
       const { data, error } = await supabase
         .from("character_feats")
-        .select("id, feat_id, feats!character_feats_feat_id_fkey(title), character_feat_subfeats!character_feat_subfeats_character_feat_id_fkey(subfeat_id, feats!character_feat_subfeats_subfeat_id_fkey(title))")
+        .select("id, feat_id, feats!character_feats_feat_id_fkey(title)")
         .eq("character_id", character.id)
         .order("level");
       if (error) throw error;
-      return data;
+      if (!data || data.length === 0) return [];
+
+      const cfIds = data.map(cf => cf.id);
+      const { data: subfeats } = await supabase
+        .from("character_feat_subfeats")
+        .select("character_feat_id, subfeat_id, feats!character_feat_subfeats_subfeat_id_fkey(title)")
+        .in("character_feat_id", cfIds);
+
+      const subfeatMap = new Map<string, typeof subfeats>();
+      for (const sf of subfeats || []) {
+        const list = subfeatMap.get(sf.character_feat_id) || [];
+        list.push(sf);
+        subfeatMap.set(sf.character_feat_id, list);
+      }
+
+      return data.map(cf => ({
+        ...cf,
+        character_feat_subfeats: subfeatMap.get(cf.id) || [],
+      }));
     },
   });
 
