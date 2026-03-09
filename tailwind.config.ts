@@ -66,6 +66,7 @@ export default {
         parchment: "hsl(var(--parchment))",
         blood: "hsl(var(--blood))",
         mystic: "hsl(var(--mystic))",
+        crimson: "hsl(var(--crimson))",
       },
       borderRadius: {
         lg: "var(--radius)",
