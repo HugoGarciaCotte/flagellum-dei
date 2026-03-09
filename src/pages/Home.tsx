@@ -9,13 +9,13 @@ import {
   Users,
   WifiOff,
   Smartphone,
-  Skull,
   Search,
   Shield,
   Sparkles,
   Swords,
   ChevronDown,
 } from "lucide-react";
+import Logo from "@/components/Logo";
 
 const Home = () => {
   const { data: scenarios } = useQuery({
