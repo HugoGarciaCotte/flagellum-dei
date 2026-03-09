@@ -99,4 +99,18 @@
     background: hsl(0 0% 7%);
     padding: 0 0.75rem;
   }
+  .vignette-overlay {
+    position: relative;
+  }
+  .vignette-overlay::after {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background: radial-gradient(ellipse at center, transparent 40%, hsl(0 0% 7%) 100%);
+    pointer-events: none;
+  }
+  .aged-border {
+    border: 1px solid hsl(43 30% 25% / 0.4);
+    box-shadow: inset 0 0 30px hsl(43 30% 15% / 0.15), 0 0 20px hsl(0 0% 0% / 0.3);
+  }
 }
