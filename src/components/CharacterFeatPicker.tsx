@@ -9,8 +9,7 @@ import { toast } from "sonner";
 import FeatListItem from "@/components/FeatListItem";
 import { Alert, AlertTitle, AlertDescription } from "@/components/ui/alert";
 
-// COMMENTED OUT: preprocessed fields — parseEmbeddedFeatMeta import
-// import { parseEmbeddedFeatMeta, type SubfeatSlot } from "@/lib/parseEmbeddedFeatMeta";
+import { parseEmbeddedFeatMeta, type SubfeatSlot } from "@/lib/parseEmbeddedFeatMeta";
 
 // COMMENTED OUT: preprocessed fields — Select for list-based subfeats
 // import {
@@ -67,7 +66,7 @@ const ARCHETYPE_DEFAULT_SLOTS = 3;
 type PickerTarget =
   | { type: "level"; level: number }
   | { type: "free" }
-  | { type: "subfeat"; characterFeatId: string; slot: number };
+  | { type: "subfeat"; characterFeatId: string; slot: number; slotMeta?: SubfeatSlot };
 
 type ValidationResult = {
   allowed: boolean;
@@ -117,12 +116,16 @@ const CharacterFeatPicker = ({ characterId, mode = "player", scenarioLevel }: Ch
     }
   }, [allFeats, online]);
 
-  // COMMENTED OUT: preprocessed fields — metaMap computation
-  // const metaMap = useMemo(() => {
-  //   const map = new Map<string, ReturnType<typeof parseEmbeddedFeatMeta>>();
-  //   (allFeats ?? []).forEach((f) => map.set(f.id, parseEmbeddedFeatMeta(f.raw_content || f.content)));
-  //   return map;
-  // }, [allFeats]);
+  // Metadata map: only parse archetype feats for subfeat slot definitions
+  const metaMap = useMemo(() => {
+    const map = new Map<string, ReturnType<typeof parseEmbeddedFeatMeta>>();
+    (allFeats ?? []).forEach((f) => {
+      if (f.categories?.includes("Archetype")) {
+        map.set(f.id, parseEmbeddedFeatMeta(f.raw_content || f.content));
+      }
+    });
+    return map;
+  }, [allFeats]);
 
   const { data: characterFeats } = useQuery({
     queryKey: ["character-feats", characterId],
@@ -257,21 +260,21 @@ const CharacterFeatPicker = ({ characterId, mode = "player", scenarioLevel }: Ch
         .single();
       if (error) throw error;
 
-      // COMMENTED OUT: preprocessed fields — auto-insert fixed subfeats from metadata
-      // const meta = metaMap.get(featId);
-      // if (meta?.subfeats && inserted) {
-      //   const fixedSlots = meta.subfeats.filter(s => s.kind === "fixed" && s.feat_title);
-      //   for (const slot of fixedSlots) {
-      //     const subfeat = allFeats?.find(f => f.title === slot.feat_title);
-      //     if (subfeat) {
-      //       await supabase.from("character_feat_subfeats").insert({
-      //         character_feat_id: inserted.id,
-      //         slot: slot.slot,
-      //         subfeat_id: subfeat.id,
-      //       });
-      //     }
-      //   }
-      // }
+      // Auto-insert fixed subfeats from metadata for archetypes
+      const meta = metaMap.get(featId);
+      if (meta?.subfeats && inserted) {
+        const fixedSlots = meta.subfeats.filter(s => s.kind === "fixed" && s.feat_title);
+        for (const slot of fixedSlots) {
+          const subfeat = featByTitle.get(slot.feat_title!);
+          if (subfeat) {
+            await supabase.from("character_feat_subfeats").insert({
+              character_feat_id: inserted.id,
+              slot: slot.slot,
+              subfeat_id: subfeat.id,
+            });
+          }
+        }
+      }
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["character-feats", characterId] });
@@ -408,12 +411,11 @@ const CharacterFeatPicker = ({ characterId, mode = "player", scenarioLevel }: Ch
     return map;
   }, [allFeats]);
 
-  // COMMENTED OUT: preprocessed fields — featByTitle (used for metadata-driven subfeats)
-  // const featByTitle = useMemo(() => {
-  //   const map = new Map<string, Feat>();
-  //   (allFeats ?? []).forEach((f) => map.set(f.title, f));
-  //   return map;
-  // }, [allFeats]);
+  const featByTitle = useMemo(() => {
+    const map = new Map<string, Feat>();
+    (allFeats ?? []).forEach((f) => map.set(f.title, f));
+    return map;
+  }, [allFeats]);
 
   const subfeatMap = useMemo(() => {
     const map = new Map<string, CharacterFeatSubfeat[]>();
@@ -462,17 +464,30 @@ const CharacterFeatPicker = ({ characterId, mode = "player", scenarioLevel }: Ch
     if (!allFeats) return [];
     let filtered: Feat[];
 
-    // COMMENTED OUT: preprocessed fields — metadata-driven subfeat filtering
-    // if (pickerTarget?.type === "subfeat") {
-    //   const slot = pickerTarget.slot;
-    //   if (slot.kind === "list" && slot.options) { ... }
-    //   else if (slot.kind === "type" && slot.filter) { ... }
-    //   else { filtered = []; }
-    // }
-
-    // New: subfeat picker shows all feats
     if (pickerTarget?.type === "subfeat") {
-      filtered = [...allFeats];
+      const slotMeta = pickerTarget.slotMeta;
+      if (slotMeta) {
+        if (slotMeta.kind === "fixed" && slotMeta.feat_title) {
+          filtered = allFeats.filter(f => f.title === slotMeta.feat_title);
+        } else if (slotMeta.kind === "list" && slotMeta.options) {
+          const optionSet = new Set(slotMeta.options);
+          filtered = allFeats.filter(f => optionSet.has(f.title));
+        } else if (slotMeta.kind === "type" && slotMeta.filter) {
+          const filters = slotMeta.filter.split(",").map(s => s.trim()).filter(Boolean);
+          const include = filters.filter(f => !f.startsWith("!"));
+          const exclude = filters.filter(f => f.startsWith("!")).map(f => f.slice(1));
+          filtered = allFeats.filter(f => {
+            const cats = f.categories ?? [];
+            if (include.length > 0 && !include.some(c => cats.includes(c))) return false;
+            if (exclude.some(c => cats.includes(c))) return false;
+            return true;
+          });
+        } else {
+          filtered = [...allFeats];
+        }
+      } else {
+        filtered = [...allFeats];
+      }
     } else if (pickerTarget?.type === "free" || mode === "gm") {
       filtered = [...allFeats];
     } else {
@@ -572,25 +587,37 @@ const CharacterFeatPicker = ({ characterId, mode = "player", scenarioLevel }: Ch
     ? `Choose Subfeat`
     : "Add Free Feat";
 
-  // New subfeat rendering: simple slots with + button
+  // Subfeat rendering: uses metadata slots for archetypes when available
   const renderSubfeats = (cf: CharacterFeat, feat: Feat) => {
     const subs = subfeatMap.get(cf.id) || [];
-    const slotsToShow = getDefaultSlots(feat, cf.id);
+    const meta = isArchetype(feat) ? metaMap.get(cf.feat_id) : null;
+    const metaSlots = meta?.subfeats ?? null;
     const currentCount = subs.length;
-    const canAddMore = currentCount < MAX_SUBFEATS;
 
-    // Build slot list: existing subs + empty slots up to slotsToShow
+    // Build slot list from metadata if available, otherwise fall back to defaults
     const slotNumbers: number[] = [];
     const subsBySlot = new Map<number, CharacterFeatSubfeat>();
+    const slotMetaByNum = new Map<number, SubfeatSlot>();
     subs.forEach(s => {
       subsBySlot.set(s.slot, s);
       slotNumbers.push(s.slot);
     });
-    // Add empty slots for archetypes
-    for (let i = 1; i <= slotsToShow; i++) {
-      if (!slotNumbers.includes(i)) slotNumbers.push(i);
+
+    if (metaSlots) {
+      // Use metadata-defined slots
+      metaSlots.forEach(s => {
+        slotMetaByNum.set(s.slot, s);
+        if (!slotNumbers.includes(s.slot)) slotNumbers.push(s.slot);
+      });
+    } else {
+      // Fallback: default empty slots for archetypes
+      const slotsToShow = getDefaultSlots(feat, cf.id);
+      for (let i = 1; i <= slotsToShow; i++) {
+        if (!slotNumbers.includes(i)) slotNumbers.push(i);
+      }
     }
     slotNumbers.sort((a, b) => a - b);
+    const canAddMore = !metaSlots && currentCount < MAX_SUBFEATS;
 
     if (slotNumbers.length === 0 && !canAddMore) return null;
 
@@ -617,7 +644,7 @@ const CharacterFeatPicker = ({ characterId, mode = "player", scenarioLevel }: Ch
                           variant="ghost"
                           size="sm"
                           className="h-5 w-5 p-0"
-                          onClick={() => openPicker({ type: "subfeat", characterFeatId: cf.id, slot: slotNum })}
+                          onClick={() => openPicker({ type: "subfeat", characterFeatId: cf.id, slot: slotNum, slotMeta: slotMetaByNum.get(slotNum) })}
                         >
                           <Pencil className="h-3 w-3" />
                         </Button>
@@ -646,7 +673,7 @@ const CharacterFeatPicker = ({ characterId, mode = "player", scenarioLevel }: Ch
                   variant="ghost"
                   size="sm"
                   className="h-5 px-1 text-xs text-muted-foreground"
-                  onClick={() => openPicker({ type: "subfeat", characterFeatId: cf.id, slot: slotNum })}
+                  onClick={() => openPicker({ type: "subfeat", characterFeatId: cf.id, slot: slotNum, slotMeta: slotMetaByNum.get(slotNum) })}
                 >
                   + Choose subfeat
                 </Button>
