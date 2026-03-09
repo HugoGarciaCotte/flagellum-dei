@@ -632,7 +632,7 @@ const CharacterFeatPicker = ({ characterId, mode = "player", scenarioLevel }: Ch
       }
     }
     slotNumbers.sort((a, b) => a - b);
-    const canAddMore = !metaSlots && currentCount < MAX_SUBFEATS;
+    const canAddMore = currentCount < MAX_SUBFEATS;
 
     if (slotNumbers.length === 0 && !canAddMore) return null;
 
