@@ -9,7 +9,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from 
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import { toast } from "@/hooks/use-toast";
 import { useNavigate } from "react-router-dom";
-import { Skull, LogOut, Plus, DoorOpen, Scroll, Users, Settings, ChevronDown, Sword, Trash2, Pencil, ShieldCheck, ArrowLeft } from "lucide-react";
+import { Skull, LogOut, Plus, DoorOpen, Scroll, Users, Settings, ChevronDown, Sword, Trash2, Pencil, ShieldCheck } from "lucide-react";
 import CharacterSheet from "@/components/CharacterSheet";
 import { useOfflineScenarios } from "@/hooks/useOfflineScenarios";
 import { useOfflineFeats } from "@/hooks/useOfflineFeats";
@@ -208,47 +208,31 @@ const Dashboard = () => {
         <section className="space-y-4">
           <div className="flex items-center justify-between">
             <h2 className="font-display text-2xl text-foreground flex items-center gap-2">
-              {editingCharId && (
-                <Button variant="ghost" size="icon" className="h-8 w-8 mr-1" onClick={() => setEditingCharId(null)}>
-                  <ArrowLeft className="h-4 w-4" />
-                </Button>
-              )}
-              <Sword className="h-6 w-6 text-primary" /> {editingCharId ? "Edit Character" : "My Characters"}
+              <Sword className="h-6 w-6 text-primary" /> My Characters
             </h2>
-            {!editingCharId && (
-              <Dialog open={newCharDialogOpen} onOpenChange={setNewCharDialogOpen}>
-                <DialogTrigger asChild>
-                  <Button size="sm" className="gap-2 font-display">
-                    <Plus className="h-4 w-4" /> New Character
-                  </Button>
-                </DialogTrigger>
-                <DialogContent className="max-h-[85vh] overflow-y-auto sm:max-w-lg">
-                  <DialogHeader>
-                    <DialogTitle className="font-display">Create Character</DialogTitle>
-                  </DialogHeader>
-                  <CharacterCreationWizard
-                    onCreated={(charId) => {
-                      setNewCharDialogOpen(false);
-                      setEditingCharId(charId);
-                      toast({ title: "Character created!" });
-                    }}
-                    onCancel={() => setNewCharDialogOpen(false)}
-                  />
-                </DialogContent>
-              </Dialog>
-            )}
+            <Dialog open={newCharDialogOpen} onOpenChange={setNewCharDialogOpen}>
+              <DialogTrigger asChild>
+                <Button size="sm" className="gap-2 font-display">
+                  <Plus className="h-4 w-4" /> New Character
+                </Button>
+              </DialogTrigger>
+              <DialogContent className="max-h-[85vh] overflow-y-auto sm:max-w-lg">
+                <DialogHeader>
+                  <DialogTitle className="font-display">Create Character</DialogTitle>
+                </DialogHeader>
+                <CharacterCreationWizard
+                  onCreated={(charId) => {
+                    setNewCharDialogOpen(false);
+                    setEditingCharId(charId);
+                    toast({ title: "Character created!" });
+                  }}
+                  onCancel={() => setNewCharDialogOpen(false)}
+                />
+              </DialogContent>
+            </Dialog>
           </div>
 
-          {editingCharId ? (
-            <CharacterSheet
-              characterId={editingCharId}
-              mode="player"
-              onDone={() => {
-                setEditingCharId(null);
-                queryClient.invalidateQueries({ queryKey: ["my-characters"] });
-              }}
-            />
-          ) : characters && characters.length > 0 ? (
+          {characters && characters.length > 0 ? (
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
               {characters.map((c) => (
                 <CharacterListItem
@@ -276,6 +260,25 @@ const Dashboard = () => {
               </CardContent>
             </Card>
           )}
+
+          {/* Edit Character Dialog */}
+          <Dialog open={!!editingCharId} onOpenChange={(open) => { if (!open) setEditingCharId(null); }}>
+            <DialogContent className="max-h-[85vh] overflow-y-auto sm:max-w-lg">
+              <DialogHeader>
+                <DialogTitle className="font-display">Edit Character</DialogTitle>
+              </DialogHeader>
+              {editingCharId && (
+                <CharacterSheet
+                  characterId={editingCharId}
+                  mode="player"
+                  onDone={() => {
+                    setEditingCharId(null);
+                    queryClient.invalidateQueries({ queryKey: ["my-characters"] });
+                  }}
+                />
+              )}
+            </DialogContent>
+          </Dialog>
         </section>
 
         {/* Active Games */}
