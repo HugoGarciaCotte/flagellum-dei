@@ -116,12 +116,16 @@ const CharacterFeatPicker = ({ characterId, mode = "player", scenarioLevel }: Ch
     }
   }, [allFeats, online]);
 
-  // COMMENTED OUT: preprocessed fields — metaMap computation
-  // const metaMap = useMemo(() => {
-  //   const map = new Map<string, ReturnType<typeof parseEmbeddedFeatMeta>>();
-  //   (allFeats ?? []).forEach((f) => map.set(f.id, parseEmbeddedFeatMeta(f.raw_content || f.content)));
-  //   return map;
-  // }, [allFeats]);
+  // Metadata map: only parse archetype feats for subfeat slot definitions
+  const metaMap = useMemo(() => {
+    const map = new Map<string, ReturnType<typeof parseEmbeddedFeatMeta>>();
+    (allFeats ?? []).forEach((f) => {
+      if (f.categories?.includes("Archetype")) {
+        map.set(f.id, parseEmbeddedFeatMeta(f.raw_content || f.content));
+      }
+    });
+    return map;
+  }, [allFeats]);
 
   const { data: characterFeats } = useQuery({
     queryKey: ["character-feats", characterId],
