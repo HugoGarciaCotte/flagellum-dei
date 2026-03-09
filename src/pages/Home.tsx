@@ -182,12 +182,12 @@ const Home = () => {
           </h2>
           <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-4 text-center">
             <MiniFeature
-              icon={<Scroll className="h-6 w-6" />}
-              label="GM hosts the scenario and reveals the story section by section"
+              icon={<Users className="h-6 w-6" />}
+              label="Gather 3–9 players around a table — or via video call"
             />
             <MiniFeature
-              icon={<Users className="h-6 w-6" />}
-              label="Players join with a code — everything syncs in real time"
+              icon={<Scroll className="h-6 w-6" />}
+              label="The GM hosts the scenario and reveals the story section by section"
             />
             <MiniFeature
               icon={<WifiOff className="h-6 w-6" />}
