@@ -41,7 +41,7 @@ const Install = () => {
       <div className="w-full max-w-md space-y-6">
         <div className="text-center space-y-2">
           <Shield className="h-12 w-12 text-primary mx-auto" />
-          <h1 className="font-display text-3xl font-bold text-foreground">Install Flagellum Dei TTRPG Helper</h1>
+          <h1 className="font-display text-3xl font-bold text-foreground">Install Flagellum Dei TTRPG</h1>
           <p className="text-muted-foreground">Play offline, anytime.</p>
         </div>
 
