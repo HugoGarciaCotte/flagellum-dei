@@ -11,36 +11,17 @@ interface FeatDetailsDisplayProps {
 }
 
 const FeatDetailsDisplay = ({ content, rawContent, className = "" }: FeatDetailsDisplayProps) => {
-  const fields = parseFeatFields(content);
+  const fields = parseFeatFields(rawContent || content);
   const meta = parseEmbeddedFeatMeta(rawContent || content);
   const prerequisites = meta.prerequisites || fields.prerequisites;
   const blocking = meta.blocking;
   const hasFields = fields.description || fields.special || prerequisites || fields.synonyms || (blocking && blocking.length > 0);
 
-  // Render the full raw content through the wiki engine
   const fullHtml = useMemo(() => {
     if (!content) return null;
-    // Strip the outer {{Feats...}} wrapper if present, render remaining wiki markup
-    let raw = content.trim();
-    // Remove HTML comments
-    raw = raw.replace(/<!--[\s\S]*?-->/g, "");
-    // Remove the {{Feats template wrapper
-    raw = raw.replace(/^\s*\{\{\s*Feats\s*/i, "").replace(/\}\}\s*$/, "");
-    // Split by | field separators and reconstruct readable lines
-    const parts = ("\n" + raw).split(/\n\|\s*/);
-    const lines: string[] = [];
-    for (const part of parts) {
-      const eqIdx = part.indexOf("=");
-      if (eqIdx === -1) continue;
-      const key = part.slice(0, eqIdx).trim();
-      const value = part.slice(eqIdx + 1).trim();
-      if (!value || value.toLowerCase().includes("leave blank if none")) continue;
-      lines.push(`; ${key}`);
-      // Split multi-line values
-      value.split("\n").forEach(l => lines.push(`: ${l}`));
-    }
-    if (lines.length === 0) return null;
-    return convertBodyToHtml(lines);
+    const cleaned = content.replace(/<!--[\s\S]*?-->/g, "").trim();
+    if (!cleaned) return null;
+    return convertBodyToHtml(cleaned.split("\n"));
   }, [content]);
 
   if (!hasFields && !fullHtml) return null;
