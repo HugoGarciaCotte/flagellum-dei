@@ -16,7 +16,7 @@ import PageHeader from "@/components/PageHeader";
 import CharacterCreationWizard from "@/components/CharacterCreationWizard";
 import CharacterListItem from "@/components/CharacterListItem";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+
 
 const PlayGame = () => {
   const { gameId } = useParams<{ gameId: string }>();
