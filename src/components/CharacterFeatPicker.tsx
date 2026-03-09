@@ -411,12 +411,11 @@ const CharacterFeatPicker = ({ characterId, mode = "player", scenarioLevel }: Ch
     return map;
   }, [allFeats]);
 
-  // COMMENTED OUT: preprocessed fields — featByTitle (used for metadata-driven subfeats)
-  // const featByTitle = useMemo(() => {
-  //   const map = new Map<string, Feat>();
-  //   (allFeats ?? []).forEach((f) => map.set(f.title, f));
-  //   return map;
-  // }, [allFeats]);
+  const featByTitle = useMemo(() => {
+    const map = new Map<string, Feat>();
+    (allFeats ?? []).forEach((f) => map.set(f.title, f));
+    return map;
+  }, [allFeats]);
 
   const subfeatMap = useMemo(() => {
     const map = new Map<string, CharacterFeatSubfeat[]>();
