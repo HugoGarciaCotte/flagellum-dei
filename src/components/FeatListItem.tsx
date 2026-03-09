@@ -103,9 +103,6 @@ const FeatListItem = ({
       {collapsedContent}
       {expanded && (
         <div className={`space-y-2 ${compact ? "mt-1" : "px-3 pb-3"}`}>
-          {feat.description && (
-            <p className="text-sm text-muted-foreground whitespace-pre-line">{feat.description}</p>
-          )}
           {feat.content && <FeatDetailsDisplay content={feat.content} rawContent={feat.raw_content} />}
           {expandedContent}
         </div>
