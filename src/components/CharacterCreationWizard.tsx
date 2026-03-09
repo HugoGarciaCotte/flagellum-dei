@@ -278,28 +278,31 @@ const CharacterCreationWizard = ({ onCreated, onCancel, gameId }: CharacterCreat
 
   // --- End progressive save helpers ---
 
-  const getSelectedFeatNames = () => {
-    const featNames: string[] = [];
-    if (archetypeFeat) featNames.push(archetypeFeat.title);
+  const getSelectedFeatSummaries = () => {
+    const summaries: string[] = [];
+    const addFeat = (f: { title: string; description?: string | null }) => {
+      summaries.push(f.description ? `${f.title} (${f.description})` : f.title);
+    };
+    if (archetypeFeat) addFeat(archetypeFeat);
     subfeatSelections.forEach((id) => {
       if (id) {
         const f = featMap.get(id);
-        if (f) featNames.push(f.title);
+        if (f) addFeat(f);
       }
     });
-    return featNames;
+    return summaries;
   };
 
   const generateDescription = async () => {
     setGeneratingDesc(true);
     try {
-      const featNames = getSelectedFeatNames();
+      const featSummaries = getSelectedFeatSummaries();
       const { data, error } = await supabase.functions.invoke("generate-character-details", {
         body: {
           type: "description",
           archetype: archetypeFeat?.title ?? "Unknown",
           faith: "None",
-          feats: featNames,
+          feats: featSummaries,
         },
       });
       if (error) throw error;
@@ -392,9 +395,9 @@ const CharacterCreationWizard = ({ onCreated, onCancel, gameId }: CharacterCreat
   const handleGeneratePortrait = async () => {
     setGeneratingPortrait(true);
     try {
-      const featNames = getSelectedFeatNames();
+      const featSummaries = getSelectedFeatSummaries();
       const { data, error } = await supabase.functions.invoke("generate-portrait-preview", {
-        body: { description: description || "A medieval fantasy character", featNames: featNames.filter(Boolean) },
+        body: { description: description || "A medieval fantasy character", featNames: featSummaries.filter(Boolean) },
       });
 
       if (error) throw error;
