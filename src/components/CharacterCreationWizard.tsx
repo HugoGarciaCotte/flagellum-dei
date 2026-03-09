@@ -395,9 +395,9 @@ const CharacterCreationWizard = ({ onCreated, onCancel, gameId }: CharacterCreat
   const handleGeneratePortrait = async () => {
     setGeneratingPortrait(true);
     try {
-      const featNames = getSelectedFeatNames();
+      const featSummaries = getSelectedFeatSummaries();
       const { data, error } = await supabase.functions.invoke("generate-portrait-preview", {
-        body: { description: description || "A medieval fantasy character", featNames: featNames.filter(Boolean) },
+        body: { description: description || "A medieval fantasy character", featNames: featSummaries.filter(Boolean) },
       });
 
       if (error) throw error;
