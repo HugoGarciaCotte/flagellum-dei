@@ -169,7 +169,7 @@ const Dashboard = () => {
       {/* Header */}
       <PageHeader
         title="Prima TRPG Helper"
-        icon={<Crown className="h-5 w-5 text-primary" />}
+        icon={<Skull className="h-5 w-5 text-primary" />}
         rightActions={
           <>
             {isOwner && (
