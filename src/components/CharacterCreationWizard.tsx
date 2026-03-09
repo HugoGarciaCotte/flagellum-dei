@@ -652,7 +652,7 @@ const CharacterCreationWizard = ({ onCreated, onCancel, gameId }: CharacterCreat
           {skipButton}
         </div>
         <p className="text-sm text-muted-foreground">
-          Faith is a powerful roleplaying constraint. In exchange, your character gains one extra save.
+          Faith is a strong roleplay constraint — your character must act according to their beliefs. In exchange, faith can be invoked once to save your character from certain death.
           {faithInfo?.allowsDarkFaith && (
             <span className="block mt-1 text-destructive/80">
               Your archetype also allows Dark Faith — a forbidden path with its own rewards.
