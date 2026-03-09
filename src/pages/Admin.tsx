@@ -9,7 +9,7 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/com
 import { Badge } from "@/components/ui/badge";
 import { Table, TableHeader, TableBody, TableHead, TableRow, TableCell } from "@/components/ui/table";
 import { toast } from "@/hooks/use-toast";
-import { ArrowLeft, Crown, Download, Loader2, Search, X, Check } from "lucide-react";
+import { ArrowLeft, Skull, Download, Loader2, Search, X, Check } from "lucide-react";
 import ManageScenarios from "@/components/ManageScenarios";
 import ImportFeatsCard from "@/components/ImportFeatsCard";
 import { Swords } from "lucide-react";
