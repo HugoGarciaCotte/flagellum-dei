@@ -296,13 +296,13 @@ const CharacterCreationWizard = ({ onCreated, onCancel, gameId }: CharacterCreat
   const generateDescription = async () => {
     setGeneratingDesc(true);
     try {
-      const featNames = getSelectedFeatNames();
+      const featSummaries = getSelectedFeatSummaries();
       const { data, error } = await supabase.functions.invoke("generate-character-details", {
         body: {
           type: "description",
           archetype: archetypeFeat?.title ?? "Unknown",
           faith: "None",
-          feats: featNames,
+          feats: featSummaries,
         },
       });
       if (error) throw error;
