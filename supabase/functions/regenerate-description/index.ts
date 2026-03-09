@@ -142,9 +142,19 @@ There are 3 kinds of subfeat slots (up to 4 slots per feat):
 2. "list" — The player picks from a named list of feats. Use "options" array with feat titles. Set "optional" to true if the player can choose not to pick.
 3. "type" — The player picks any feat matching a category filter. Use "filter" string with comma-separated rules. Prefix "not:" to exclude a category (e.g. "not:Archetype,not:Hidden Feat"). Use a bare category name to REQUIRE it (e.g. "Dark Feat" means only feats in that category). You can combine both: "Dark Feat,not:Hidden Feat". Set "optional" to false if they must pick one.
 
+ARCHETYPE PATTERN: If the feat is an Archetype (has "Archetype" in its categories), it almost always follows this 3-slot structure:
+- Slot 1: kind="list", optional=true, containing "⭐ Faith" (and "⭐ Dark Faith" if the wiki content mentions dark faith is allowed). This represents the optional faith choice.
+- Slot 2: Usually kind="fixed" with a single feat the archetype always grants. Sometimes kind="list" if there are multiple options.
+- Slot 3: A long kind="list", optional=false, containing ALL feats the archetype can access during level-up — this is the archetype's full feat pool.
+
+Example output for an Alchemist archetype:
+  Slot 1: kind=list, optional=true, options=["⭐ Faith"]
+  Slot 2: kind=fixed, feat_title="Knowledge"
+  Slot 3: kind=list, optional=false, options=["Knowledge (apothecary)", "Knowledge (pyrotechnics)", "Rich", "Eternal Youth", ...]
+
 CATEGORY UNLOCKING: Some feats unlock entire categories for the character. For example, "Dark Faith" allows the character to pick "Dark Feat" feats during normal level-up. If a feat grants access to a category, return it in "unlocks_categories". Most feats unlock nothing — return an empty array.
 
-Most feats do NOT grant subfeats. Only return subfeats if the wiki content clearly indicates the feat grants additional feats.
+Most non-Archetype feats do NOT grant subfeats. Only return subfeats if the wiki content clearly indicates the feat grants additional feats.
 
 Available feat titles for reference:
 ${allFeatTitles.join(", ")}`;
