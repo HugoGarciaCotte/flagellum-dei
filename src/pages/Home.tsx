@@ -436,6 +436,9 @@ const Home = () => {
             <h2 className="font-display text-3xl font-bold text-foreground md:text-5xl">
               Open a Case. Enter a Nightmare.
             </h2>
+            <p className="text-base text-muted-foreground mt-2">
+              A nine-part campaign across plague-era Europe.
+            </p>
           </div>
 
           <div className="grid gap-6 md:grid-cols-3">
@@ -449,6 +452,10 @@ const Home = () => {
               />
             ))}
           </div>
+
+          <p className="mt-12 text-center font-display text-sm tracking-[0.15em] uppercase text-primary/60">
+            9 scenarios · A campaign spanning Europe · The vast majority took a full year of historical research
+          </p>
         </div>
       </section>
 
