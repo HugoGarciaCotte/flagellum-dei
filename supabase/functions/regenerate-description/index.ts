@@ -94,7 +94,15 @@ async function generateDescription(title: string, content: string, categories?: 
     body: JSON.stringify({
       model: "google/gemini-3-flash-preview",
       messages: [
-        { role: "system", content: "You are a TRPG content summarizer. Given a feat's title, categories, and wiki content, write a single short sentence (under 15 words) describing the feat's mechanical effect, suitable for a compact list view." },
+        { role: "system", content: `You are a TRPG content summarizer. Given a feat's title, categories, and wiki content, write a single short sentence (under 15 words).
+
+IMPORTANT RULE for tone:
+- If the feat is an ARCHETYPE (has "Archetype" in its categories): describe the CHARACTER PERSONALITY and FLAVOR — who this person is, their temperament, their place in medieval society. Do NOT mention game mechanics.
+- If the feat is NOT an archetype: describe the feat's PRACTICAL EFFECT — what it lets the character do, their capability. Be vivid but focus on the tangible ability.
+
+Do not copy these examples, generate original text in the same spirit:
+- Archetype example tone: "A cunning dealmaker who thrives in the shadowy markets of medieval cities."
+- Non-archetype example tone: "Move with uncanny grace, scaling walls and dodging blows effortlessly."` },
         { role: "user", content: `Title: ${title}\nCategories:${categoryInfo}\n\nContent:\n${(content || "").slice(0, 3000)}` },
       ],
       tools: [{
