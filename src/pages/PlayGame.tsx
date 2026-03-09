@@ -14,7 +14,7 @@ import { toast } from "@/hooks/use-toast";
 import DiceRoller from "@/components/DiceRoller";
 import FullPageLoader from "@/components/FullPageLoader";
 import PageHeader from "@/components/PageHeader";
-import CreateCharacterForm from "@/components/CreateCharacterForm";
+import CharacterCreationWizard from "@/components/CharacterCreationWizard";
 import { ScrollArea } from "@/components/ui/scroll-area";
 
 const PlayGame = () => {
@@ -256,8 +256,8 @@ const PlayGame = () => {
                 {(myCharacters ?? []).length === 0 ? (
                   creatingChar ? (
                     <div className="border border-border rounded-md p-3">
-                      <CreateCharacterForm
-                        submitLabel="Create & Select"
+                      <CharacterCreationWizard
+                        gameId={gameId}
                         onCreated={(id) => {
                           selectCharMutation.mutate(id);
                           setCreatingChar(false);
@@ -296,8 +296,8 @@ const PlayGame = () => {
                     ))}
                     {creatingChar ? (
                       <div className="border border-border rounded-md p-3">
-                        <CreateCharacterForm
-                          submitLabel="Create & Select"
+                        <CharacterCreationWizard
+                          gameId={gameId}
                           onCreated={(id) => {
                             selectCharMutation.mutate(id);
                             setCreatingChar(false);
