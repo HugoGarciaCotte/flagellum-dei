@@ -521,16 +521,24 @@ const CharacterCreationWizard = ({ onCreated, onCancel, gameId }: CharacterCreat
       goToNextStep(stepNum);
     };
 
-    // Derive a label from the slot's filter/options
-    const slotLabel = (() => {
-      if (isFixed && options.type === "fixed") return "Granted Ability";
-      if (slotInfo.kind === "type" && slotInfo.filter) {
-        // Use the first include filter as label
-        const filters = slotInfo.filter.split(",").map(s => s.trim()).filter(s => !s.startsWith("!"));
-        if (filters.length > 0) return filters[0];
-      }
-      return "Choose Your Specialty";
-    })();
+    const slotIndex = stepNum - 2;
+    const stepConfig = [
+      {
+        title: "Choose Your Faith",
+        subtitleChoice: "Faith is a major roleplay choice — but it can save your life once. Choose wisely:",
+        subtitleFixed: "Your archetype grants you this faith by default:",
+      },
+      {
+        title: "Archetype Ability",
+        subtitleChoice: "This is the main ability granted by your archetype:",
+        subtitleFixed: "Your archetype grants you this ability by default:",
+      },
+      {
+        title: "Sub-Specialty",
+        subtitleChoice: "Pick a sub-specialty to further define your character:",
+        subtitleFixed: "Your archetype grants you this sub-specialty by default:",
+      },
+    ][slotIndex] ?? { title: "Choose an Ability", subtitleChoice: "Choose one:", subtitleFixed: "Granted by default:" };
 
     return (
       <div className="space-y-4">
@@ -540,7 +548,7 @@ const CharacterCreationWizard = ({ onCreated, onCancel, gameId }: CharacterCreat
             <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => goToPrevStep(stepNum)}>
               <ArrowLeft className="h-4 w-4" />
             </Button>
-            <h3 className="font-display text-lg text-foreground">{slotLabel}</h3>
+            <h3 className="font-display text-lg text-foreground">{stepConfig.title}</h3>
           </div>
           {skipButton}
         </div>
@@ -548,7 +556,7 @@ const CharacterCreationWizard = ({ onCreated, onCancel, gameId }: CharacterCreat
         {isFixed && options.type === "fixed" ? (
           <div className="space-y-3">
             <p className="text-sm text-muted-foreground">
-              Your archetype grants you this ability by default:
+              {stepConfig.subtitleFixed}
             </p>
             <div className="ring-2 ring-primary rounded">
               <FeatListItem
@@ -564,7 +572,7 @@ const CharacterCreationWizard = ({ onCreated, onCancel, gameId }: CharacterCreat
         ) : options?.type === "list" ? (
           <div className="space-y-3">
             <p className="text-sm text-muted-foreground">
-              Your archetype lets you choose one of these abilities:
+              {stepConfig.subtitleChoice}
             </p>
             {/* Always offer a "None" / skip option */}
             <button
