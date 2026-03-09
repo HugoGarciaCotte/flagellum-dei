@@ -87,7 +87,7 @@ const Home = () => {
       {/* The World */}
       <section className="border-t border-primary/10 py-24 px-6">
         <div className="container mx-auto max-w-3xl text-center space-y-8">
-          <Skull className="mx-auto h-10 w-10 text-primary/60" />
+          <Logo className="mx-auto text-4xl text-primary/60" />
           <h2 className="font-display text-3xl font-bold text-foreground md:text-4xl">
             The World Awaits
           </h2>
