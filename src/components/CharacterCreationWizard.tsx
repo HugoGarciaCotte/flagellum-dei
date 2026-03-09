@@ -572,7 +572,7 @@ const CharacterCreationWizard = ({ onCreated, onCancel, gameId }: CharacterCreat
         ) : options?.type === "list" ? (
           <div className="space-y-3">
             <p className="text-sm text-muted-foreground">
-              Your archetype lets you choose one of these abilities:
+              {stepConfig.subtitleChoice}
             </p>
             {/* Always offer a "None" / skip option */}
             <button
