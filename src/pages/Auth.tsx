@@ -7,7 +7,8 @@ import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { toast } from "@/hooks/use-toast";
-import { Shield, Sword } from "lucide-react";
+import { Sword } from "lucide-react";
+import Logo from "@/components/Logo";
 
 const Auth = () => {
   const { user } = useAuth();
