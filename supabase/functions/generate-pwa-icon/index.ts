@@ -35,7 +35,7 @@ serve(async (req) => {
             {
               role: "user",
               content:
-                "Generate a square app icon (512x512) for a tabletop RPG helper app called 'Flagellum Dei TTRPG'. A stylized human skull with a dark medieval aesthetic on a solid #141318 background, warm parchment and gold tones, clean and bold for mobile home screens. No text whatsoever. Fantasy horror style, simple silhouette.",
+                "Generate a square app icon (512x512). Render ONLY the Unicode alchemical symbol for antimony '🜹' in gold color (#C6930A) perfectly centered on a solid black (#141318) background. The symbol must be large, filling most of the square, vertically and horizontally centered with no extra space on top. No other text, no decorations, just the single gold alchemical antimony symbol on black.",
             },
           ],
           modalities: ["image", "text"],
