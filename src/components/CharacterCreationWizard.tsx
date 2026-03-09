@@ -548,7 +548,7 @@ const CharacterCreationWizard = ({ onCreated, onCancel, gameId }: CharacterCreat
             <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => goToPrevStep(stepNum)}>
               <ArrowLeft className="h-4 w-4" />
             </Button>
-            <h3 className="font-display text-lg text-foreground">{slotLabel}</h3>
+            <h3 className="font-display text-lg text-foreground">{stepConfig.title}</h3>
           </div>
           {skipButton}
         </div>
