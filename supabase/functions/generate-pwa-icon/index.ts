@@ -35,7 +35,7 @@ serve(async (req) => {
             {
               role: "user",
               content:
-                "Generate a square app icon (512x512) for a tabletop RPG helper app called 'Prima TRPG'. A stylized human skull with a dark medieval aesthetic on a solid #141318 background, warm parchment and gold tones, clean and bold for mobile home screens. No text whatsoever. Fantasy horror style, simple silhouette.",
+                "Generate a square app icon (512x512) for a tabletop RPG helper app called 'Flagellum Dei TTRPG'. A stylized human skull with a dark medieval aesthetic on a solid #141318 background, warm parchment and gold tones, clean and bold for mobile home screens. No text whatsoever. Fantasy horror style, simple silhouette.",
             },
           ],
           modalities: ["image", "text"],

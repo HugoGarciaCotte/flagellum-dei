@@ -37,7 +37,7 @@ const Home = () => {
           <div className="flex items-center gap-3">
             <Skull className="h-6 w-6 text-primary" />
             <span className="font-display text-lg font-bold text-primary">
-              Prima TRPG
+              Flagellum Dei TTRPG
             </span>
           </div>
           <Link to="/auth">
@@ -204,7 +204,7 @@ const Home = () => {
             The plague waits for no one.
           </h2>
           <p className="text-muted-foreground">
-            Gather your party and enter the world of Prima TRPG.
+            Gather your party and enter the world of Flagellum Dei TTRPG.
           </p>
           <div className="flex flex-col sm:flex-row items-center justify-center gap-4 pt-2">
             <Link to="/auth">
@@ -232,7 +232,7 @@ const Home = () => {
       <footer className="border-t border-primary/10 py-10 text-center">
         <div className="flex items-center justify-center gap-2 text-muted-foreground">
           <Skull className="h-4 w-4 text-primary/40" />
-          <span className="font-display text-sm">Prima TRPG Helper</span>
+          <span className="font-display text-sm">Flagellum Dei TTRPG Helper</span>
         </div>
       </footer>
     </div>
