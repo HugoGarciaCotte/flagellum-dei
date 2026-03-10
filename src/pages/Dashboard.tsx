@@ -305,7 +305,6 @@ const Dashboard = () => {
                           setCacheData(`character-${c.id}`, c);
                           queryClient.setQueryData(["character", c.id], c);
                         }
-                        }
                         setEditingCharId(c.id);
                       }}>
                         <Pencil className="h-3.5 w-3.5" />
