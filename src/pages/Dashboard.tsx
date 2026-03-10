@@ -92,7 +92,7 @@ const Dashboard = () => {
       if (error) throw error;
       return data;
     },
-    enabled: !!user,
+    enabled: !!user && !isGuest,
   });
 
   // Active games (joined as player)
