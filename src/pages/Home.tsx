@@ -376,7 +376,7 @@ const Home = () => {
                 <p>
                   No rulebooks to buy, no expansions to unlock. Characters,
                   scenarios, rules, music, and visuals — everything lives here,
-                  entirely free.
+                  entirely free and open source.
                 </p>
               }
             />
