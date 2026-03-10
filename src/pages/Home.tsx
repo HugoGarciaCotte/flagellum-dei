@@ -354,8 +354,9 @@ const Home = () => {
               title="Relentless Atmosphere"
               description={
                 <p>
-                  Each scenario is written to create dread, tension, and moral
-                  doubt. Violence is rare. Suspicion is constant.
+                  A real-time countdown drives every session. Events escalate
+                  relentlessly, pressure never lifts, and every wasted minute
+                  brings darker consequences.
                 </p>
               }
             />
