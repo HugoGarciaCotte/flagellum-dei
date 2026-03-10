@@ -283,22 +283,18 @@ const CharacterFeatPicker = ({ characterId, mode = "player", scenarioLevel }: Ch
         return "queued";
       };
 
-      try {
-        if (isFree && id) {
-          const { error } = await supabase.from("character_feats").delete().eq("id", id);
-          if (error) throw error;
-        } else {
-          const { error } = await supabase
-            .from("character_feats")
-            .delete()
-            .eq("character_id", characterId)
-            .eq("level", level)
-            .eq("is_free", false);
-          if (error) throw error;
-        }
-      } catch {
-        return doOffline();
-      }
+      return resilientMutation(
+        async () => {
+          if (isFree && id) {
+            const { error } = await supabase.from("character_feats").delete().eq("id", id);
+            if (error) throw error;
+          } else {
+            const { error } = await supabase.from("character_feats").delete().eq("character_id", characterId).eq("level", level).eq("is_free", false);
+            if (error) throw error;
+          }
+        },
+        doOffline,
+      );
     },
     onSuccess: (result) => {
       if (result !== "queued") {
