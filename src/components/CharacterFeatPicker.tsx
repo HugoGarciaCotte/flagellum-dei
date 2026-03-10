@@ -118,7 +118,7 @@ const CharacterFeatPicker = ({ characterId, mode = "player", scenarioLevel }: Ch
     enabled: !!characterId,
   });
 
-  const { data: characterSubfeats } = useQuery({
+  const { data: characterSubfeats } = useOfflineQuery<CharacterFeatSubfeat[]>(`character-feat-subfeats-${characterId}`, {
     queryKey: ["character-feat-subfeats", characterId],
     queryFn: async () => {
       const cfIds = (characterFeats ?? []).map(cf => cf.id);
