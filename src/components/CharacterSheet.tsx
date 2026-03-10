@@ -55,7 +55,7 @@ const CharacterSheet = ({ characterId, mode = "player", scenarioLevel, onDone }:
 
   const saveMutation = useMutation({
     mutationFn: async () => {
-      if (!online) {
+      if (effectivelyOffline) {
         // Queue for later sync
         queueAction({
           table: "characters",

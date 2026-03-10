@@ -338,6 +338,12 @@ const CharacterCreationWizard = ({ onCreated, onCancel, gameId }: CharacterCreat
         queryClient.setQueryData(["my-characters", user.id], (old: any[]) =>
           old?.map((c: any) => c.id === characterId ? { ...c, name: name || "Blank", description: description || null, portrait_url: portraitUrl } : c)
         );
+
+        // Update individual character cache
+        const updatedChar = { id: characterId, user_id: user.id, name: name || "Blank", description: description || null, portrait_url: portraitUrl, created_at: new Date().toISOString(), updated_at: new Date().toISOString() };
+        setCacheData(`character-${characterId}`, updatedChar);
+        queryClient.setQueryData(["character", characterId], updatedChar);
+
         onCreated(characterId);
         toast({ title: "Character saved locally — will sync when online" });
       } else {
