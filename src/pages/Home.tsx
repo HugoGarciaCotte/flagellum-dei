@@ -456,7 +456,7 @@ const Home = () => {
           </div>
 
           <p className="mt-12 text-center font-display text-sm tracking-[0.15em] uppercase text-primary/60">
-            9 scenarios · A campaign spanning Europe · The vast majority took a full year of historical research
+            10 chapters · Austria · Provins · Spain · Marseille · Avignon · The Hundred Years' War · Isle of Man · Arabian Deserts · Rhodes
           </p>
         </div>
       </section>
