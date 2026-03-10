@@ -13,12 +13,12 @@ export function useOfflineQuery<T>(
   options: UseQueryOptions<T, Error, T>,
 ) {
   const online = useNetworkStatus();
-  const { syncReady } = useAuth();
+  const { syncReady, isLocalGuest } = useAuth();
   const effectivelyOffline = !online;
   const syncing = getIsSyncing();
 
-  // Queries only fire when: online + syncReady + not currently syncing
-  const canFetch = syncReady && !effectivelyOffline && !syncing;
+  // Queries only fire when: online + syncReady + not syncing + not a local guest
+  const canFetch = syncReady && !effectivelyOffline && !syncing && !isLocalGuest;
 
   const query = useQuery<T, Error, T>({
     ...options,
