@@ -1,12 +1,12 @@
 import { useNavigate } from "react-router-dom";
 import { useIsOwner } from "@/hooks/useIsOwner";
 import { Button } from "@/components/ui/button";
-import { ArrowLeft, Swords } from "lucide-react";
-import FeatEditorPanel from "@/components/FeatEditorPanel";
+import { ArrowLeft, FileText } from "lucide-react";
+import ScenarioEditorPanel from "@/components/ScenarioEditorPanel";
 import FullPageLoader from "@/components/FullPageLoader";
 import PageHeader from "@/components/PageHeader";
 
-const AdminFeats = () => {
+const AdminScenarios = () => {
   const navigate = useNavigate();
   const { isOwner, isLoading } = useIsOwner();
 
@@ -24,8 +24,8 @@ const AdminFeats = () => {
   return (
     <div className="flex flex-col h-screen bg-background">
       <PageHeader
-        title="Feat Editor"
-        icon={<Swords className="h-5 w-5 text-primary" />}
+        title="Scenario Manager"
+        icon={<FileText className="h-5 w-5 text-primary" />}
         leftAction={
           <Button variant="ghost" size="icon" onClick={() => navigate("/admin")}>
             <ArrowLeft className="h-4 w-4" />
@@ -33,10 +33,10 @@ const AdminFeats = () => {
         }
       />
       <main className="container flex-1 overflow-hidden py-4 max-w-5xl flex flex-col">
-        <FeatEditorPanel />
+        <ScenarioEditorPanel />
       </main>
     </div>
   );
 };
 
-export default AdminFeats;
+export default AdminScenarios;

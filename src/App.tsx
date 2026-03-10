@@ -15,6 +15,7 @@ import ResetPassword from "./pages/ResetPassword";
 import Install from "./pages/Install";
 import Admin from "./pages/Admin";
 import AdminFeats from "./pages/AdminFeats";
+import AdminScenarios from "./pages/AdminScenarios";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient({
