@@ -136,7 +136,7 @@ const ScenarioCard = ({
 const faqs = [
   {
     q: "Is it really free? What's the catch?",
-    a: "There is no catch. Flagellum Dei was created by history and tabletop lovers who simply wanted to share their passion. The game is completely free — no subscriptions, no paywalls, no hidden fees. It's also fully open source — if you want to build your own game using the same website or game system, you're welcome to fork it and make it yours. If you'd like to thank us, please help spread the word.",
+    a: "There is no catch. Flagellum Dei was created by history and tabletop lovers who simply wanted to share their passion. The game is completely free — no subscriptions, no paywalls, no hidden fees. If you'd like to thank us, please help spread the word.",
   },
   {
     q: "What is Flagellum Dei?",
@@ -164,7 +164,7 @@ const faqs = [
   },
   {
     q: "Is this project open source?",
-    a: "Yes! The entire website is open source. It was built with Lovable — only the game content (scenarios, feats, and lore) was handwritten and guaranteed zero AI-generated. You can remix the project freely on Lovable or browse the source code on GitHub.",
+    a: "Yes! The entire website is open source. It was built with Lovable — only the game content (scenarios, feats, and lore) was handwritten. You can remix the project freely on Lovable or browse the source code on GitHub.",
     links: {
       lovable: "https://lovable.dev/projects/81d72331-f39f-42a0-8104-483bc69c26ee",
       github: "https://github.com/HugoGarciaCotte/flagellum-dei",
@@ -326,6 +326,10 @@ const Home = () => {
             icon={<Gift className="h-4 w-4" />}
             label="100% Free"
           />
+          <ClarityItem
+            icon={<Smartphone className="h-4 w-4" />}
+            label="Works as an App"
+          />
         </div>
       </section>
 
@@ -371,13 +375,12 @@ const Home = () => {
             />
             <FeatureColumn
               icon={<span className="text-4xl">🜩</span>}
-              title="100% Free & Open Source"
+              title="Everything in the Website"
               description={
                 <p>
-                  No rulebooks to buy, no expansions to unlock. Everything lives
-                  here, entirely free and open source. Want to build your own
-                  game from it? Fork the code, remix the system, and make it
-                  yours.
+                  No rulebooks to buy, no expansions to unlock. Characters,
+                  scenarios, rules, music, and visuals — everything lives here,
+                  entirely free.
                 </p>
               }
             />

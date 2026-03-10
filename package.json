@@ -1,7 +1,6 @@
 {
   "name": "vite_react_shadcn_ts",
   "private": true,
-  "license": "Unlicense",
   "version": "0.0.0",
   "type": "module",
   "scripts": {
