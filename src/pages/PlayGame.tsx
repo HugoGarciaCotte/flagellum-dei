@@ -23,7 +23,7 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 
 const PlayGame = () => {
   const { gameId } = useParams<{ gameId: string }>();
-  const { user } = useAuth();
+  const { user, isGuest } = useAuth();
   const navigate = useNavigate();
   const queryClient = useQueryClient();
   const online = useNetworkStatus();
@@ -170,7 +170,7 @@ const PlayGame = () => {
       />
 
       {/* Quest content — always visible */}
-      <main className="flex-1 container py-8 pb-24 flex items-center justify-center max-w-3xl">
+      <main className={`flex-1 container py-8 flex items-center justify-center max-w-3xl ${isGuest ? "pb-32" : "pb-24"}`}>
         {sectionTitle ? (
           <Card className="w-full aged-border">
             <CardContent className="p-8 text-center">
@@ -206,7 +206,7 @@ const PlayGame = () => {
       {/* Bottom character peek bar */}
       {!sheetExpanded && (
         <div
-          className="fixed bottom-0 inset-x-0 z-40 bg-card border-t border-primary/10 backdrop-blur cursor-pointer gold-glow-box"
+          className={`fixed inset-x-0 z-40 bg-card border-t border-primary/10 backdrop-blur cursor-pointer gold-glow-box ${isGuest ? "bottom-10" : "bottom-0"}`}
           onClick={() => setSheetExpanded(true)}
         >
           <div className="container max-w-3xl py-2 px-4">
