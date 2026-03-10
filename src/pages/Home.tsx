@@ -136,7 +136,7 @@ const ScenarioCard = ({
 const faqs = [
   {
     q: "Is it really free? What's the catch?",
-    a: "There is no catch. Flagellum Dei was created by history and tabletop lovers who simply wanted to share their passion. The game is completely free — no subscriptions, no paywalls, no hidden fees. If you'd like to thank us, please help spread the word.",
+    a: "There is no catch. Flagellum Dei was created by history and tabletop lovers who simply wanted to share their passion. The game is completely free — no subscriptions, no paywalls, no hidden fees. It's also fully open source — if you want to build your own game using the same website or game system, you're welcome to fork it and make it yours. If you'd like to thank us, please help spread the word.",
   },
   {
     q: "What is Flagellum Dei?",
