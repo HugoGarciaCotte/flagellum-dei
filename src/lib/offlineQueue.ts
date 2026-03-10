@@ -100,7 +100,7 @@ function remapTempId(actions: QueuedAction[], tempId: string, realId: string) {
     }
     if (action.deleteBefore?.filter) {
       for (const key of Object.keys(action.deleteBefore.filter)) {
-        if (action.deleteBefore.filter[key] === tempId) action.deleteBefore.filter[key] = newId;
+        if (action.deleteBefore.filter[key] === tempId) action.deleteBefore.filter[key] = realId;
       }
     }
   }
