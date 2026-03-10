@@ -135,6 +135,10 @@ const ScenarioCard = ({
 
 const faqs = [
   {
+    q: "Is it really free? What's the catch?",
+    a: "There is no catch. Flagellum Dei was created by history and tabletop lovers who simply wanted to share their passion. The game is completely free — no subscriptions, no paywalls, no hidden fees. If you'd like to thank us, please help spread the word.",
+  },
+  {
     q: "What is Flagellum Dei?",
     a: "Flagellum Dei is a historical horror tabletop role-playing game set during the Black Death. Players take on the roles of inquisitors investigating heresy, dark rituals, and supernatural terrors across 14th-century Europe.",
   },
@@ -153,6 +157,10 @@ const faqs = [
   {
     q: "Can we play online?",
     a: "Yes. While Flagellum Dei is designed for in-person play, you can connect through any video call platform. Each player opens the website on their device to access their character sheet and game tools.",
+  },
+  {
+    q: "The game talks a lot about religion and heresy. Does it promote a particular faith?",
+    a: "Not at all. In the 14th century, religion shaped every aspect of daily life — faith and heresy were central topics of the era. The game explores these themes purely for historical immersion. The writers do not endorse or discriminate against any religion; the only goal is to faithfully recreate the atmosphere of the period.",
   },
 ];
 
