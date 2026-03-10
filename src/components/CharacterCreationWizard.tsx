@@ -203,6 +203,13 @@ const CharacterCreationWizard = ({ onCreated, onCancel, gameId }: CharacterCreat
           const newChar = { id: tempCharId, user_id: user.id, name: "New Character", description: null, portrait_url: null, created_at: new Date().toISOString(), updated_at: new Date().toISOString() };
           setCacheData(cacheKey, [newChar, ...cached]);
           queryClient.setQueryData(["my-characters", user.id], (old: any[]) => old ? [newChar, ...old] : [newChar]);
+
+          // Seed feat caches so CharacterFeatPicker can display them
+          const newCf = { id: tempCfId, character_id: tempCharId, feat_id: featId, level: 1, is_free: false, note: null };
+          queryClient.setQueryData(["character-feats", tempCharId], [newCf]);
+          setCacheData(`character-feats-${tempCharId}`, [newCf]);
+          queryClient.setQueryData(["character-feat-subfeats", tempCharId], []);
+          setCacheData(`character-feat-subfeats-${tempCharId}`, []);
         } else {
           // Already have a character, update archetype
           queueAction({
