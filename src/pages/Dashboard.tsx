@@ -109,7 +109,6 @@ const Dashboard = () => {
     },
     enabled: !!user,
   });
-  });
 
   // Merge hosted + joined games, deduplicated
   const allActiveGames = useMemo(() => {
