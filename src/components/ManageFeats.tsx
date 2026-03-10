@@ -5,9 +5,9 @@ import {
 } from "@/components/ui/collapsible";
 import { Swords } from "lucide-react";
 import FeatCategoryBadges from "@/components/FeatCategoryBadges";
-import { parseEmbeddedFeatMeta } from "@/lib/parseEmbeddedFeatMeta";
 import { Badge } from "@/components/ui/badge";
-import { getAllFeats } from "@/data/feats";
+import { getAllFeats, getFeatMeta } from "@/data/feats";
+import { Input } from "@/components/ui/input";
 import { Input } from "@/components/ui/input";
 import { Search } from "lucide-react";
 
