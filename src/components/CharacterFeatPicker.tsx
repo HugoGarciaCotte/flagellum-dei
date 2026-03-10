@@ -180,7 +180,7 @@ const CharacterFeatPicker = ({ characterId, mode = "player", scenarioLevel }: Ch
     level?: number | null,
     parentFeatTitle?: string | null,
   ) => {
-    if (!online) {
+    if (effectivelyOffline) {
       action();
       return;
     }
