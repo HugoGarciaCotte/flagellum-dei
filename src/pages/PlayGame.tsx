@@ -319,7 +319,7 @@ const PlayGame = () => {
               <CharacterSheet
                 characterId={editingCharId}
                 mode="player"
-                scenarioLevel={effectiveScenario?.level ?? undefined}
+                scenarioLevel={(effectiveScenario as any)?.level ?? undefined}
                 onDone={() => {
                   setEditingCharId(null);
                   queryClient.invalidateQueries({ queryKey: ["my-characters"] });
