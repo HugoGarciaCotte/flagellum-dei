@@ -1,7 +1,7 @@
 import { useState, useMemo, useRef, useEffect } from "react";
 import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
-import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { useQueryClient } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
@@ -14,7 +14,7 @@ import {
   Loader2, Sparkles, Upload, Dices, ChevronRight, SkipForward,
   Search, ArrowLeft,
 } from "lucide-react";
-import { getCachedFeats } from "@/lib/offlineStorage";
+import { getAllFeats } from "@/data/feats";
 import Logo from "@/components/Logo";
 
 interface CharacterCreationWizardProps {
