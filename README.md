@@ -68,7 +68,7 @@ All rules, feats, and lore are built directly into the app — no external ruleb
 
 ## Open Source — Unlicense
 
-This project is released under the [Unlicense](https://unlicense.org) — it's in the **public domain**. The entire website and game engine were built with [Lovable](https://lovable.dev) — only the game content (scenarios, feats, and lore) was handwritten by the creators.
+This project is released under the [Unlicense](https://unlicense.org) — it's in the **public domain**. The entire website and game engine were built with [Lovable](https://lovable.dev) — only the game content (scenarios, feats, and lore) was handwritten and guaranteed zero AI-generated.
 
 You are free to copy, modify, publish, sell, or distribute this software for any purpose — no permission needed, no attribution required. Want to build your own TTRPG from it? Go ahead.
 

@@ -164,7 +164,7 @@ const faqs = [
   },
   {
     q: "Is this project open source?",
-    a: "Yes! The entire website is open source. It was built with Lovable — only the game content (scenarios, feats, and lore) was handwritten. You can remix the project freely on Lovable or browse the source code on GitHub.",
+    a: "Yes! The entire website is open source. It was built with Lovable — only the game content (scenarios, feats, and lore) was handwritten and guaranteed zero AI-generated. You can remix the project freely on Lovable or browse the source code on GitHub.",
     links: {
       lovable: "https://lovable.dev/projects/81d72331-f39f-42a0-8104-483bc69c26ee",
       github: "https://github.com/HugoGarciaCotte/flagellum-dei",
