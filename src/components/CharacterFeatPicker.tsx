@@ -1,7 +1,7 @@
 import { useState, useMemo } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { sortTitlesEmojiLast } from "@/lib/utils";
-import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { X, Search, Loader2, WifiOff, Pencil, ArrowLeft, Plus } from "lucide-react";
@@ -12,6 +12,8 @@ import { Alert, AlertTitle, AlertDescription } from "@/components/ui/alert";
 import { type SubfeatSlot } from "@/lib/parseEmbeddedFeatMeta";
 
 import { useNetworkStatus } from "@/hooks/useNetworkStatus";
+import { useOfflineQuery } from "@/hooks/useOfflineQuery";
+import { queueAction, setCacheData, getCacheData } from "@/lib/offlineQueue";
 import { getAllFeats, getFeatMeta } from "@/data/feats";
 
 interface CharacterFeatPickerProps {
@@ -102,7 +104,7 @@ const CharacterFeatPicker = ({ characterId, mode = "player", scenarioLevel }: Ch
     return map;
   }, [metaMap]);
 
-  const { data: characterFeats } = useQuery({
+  const { data: characterFeats } = useOfflineQuery<CharacterFeat[]>(`character-feats-${characterId}`, {
     queryKey: ["character-feats", characterId],
     queryFn: async () => {
       const { data, error } = await supabase
@@ -116,7 +118,7 @@ const CharacterFeatPicker = ({ characterId, mode = "player", scenarioLevel }: Ch
     enabled: !!characterId,
   });
 
-  const { data: characterSubfeats } = useQuery({
+  const { data: characterSubfeats } = useOfflineQuery<CharacterFeatSubfeat[]>(`character-feat-subfeats-${characterId}`, {
     queryKey: ["character-feat-subfeats", characterId],
     queryFn: async () => {
       const cfIds = (characterFeats ?? []).map(cf => cf.id);
@@ -210,10 +212,28 @@ const CharacterFeatPicker = ({ characterId, mode = "player", scenarioLevel }: Ch
 
   const upsertMutation = useMutation({
     mutationFn: async ({ level, featId }: { level: number; featId: string }) => {
-      // COMMENTED OUT: preprocessed fields — validateFeatLocally call
-      // if (mode === "player") {
-      //   validateFeatLocally(featId);
-      // }
+      if (!online) {
+        const tempId = crypto.randomUUID();
+        // Queue delete + insert
+        queueAction({
+          table: "character_feats",
+          operation: "delete",
+          payload: {},
+          filter: { character_id: characterId, level, is_free: false },
+        });
+        queueAction({
+          table: "character_feats",
+          operation: "insert",
+          payload: { character_id: characterId, level, feat_id: featId, is_free: false },
+          tempId,
+        });
+        // Optimistic update
+        queryClient.setQueryData(["character-feats", characterId], (old: CharacterFeat[] | undefined) => {
+          const filtered = (old ?? []).filter(cf => !(cf.level === level && !cf.is_free));
+          return [...filtered, { id: tempId, character_id: characterId, level, feat_id: featId, is_free: false, note: null }];
+        });
+        return;
+      }
 
       await supabase
         .from("character_feats")
@@ -245,16 +265,10 @@ const CharacterFeatPicker = ({ characterId, mode = "player", scenarioLevel }: Ch
       }
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["character-feats", characterId] });
-      queryClient.invalidateQueries({ queryKey: ["character-feat-subfeats", characterId] });
-
-      // COMMENTED OUT: preprocessed fields — auto-prompt for non-fixed subfeat slots
-      // const meta = metaMap.get(variables.featId);
-      // const nonFixedSlots = (meta?.subfeats ?? []).filter(s => s.kind !== "fixed");
-      // if (nonFixedSlots.length > 0) {
-      //   supabase.from("character_feats").select("id")...
-      // }
-
+      if (online) {
+        queryClient.invalidateQueries({ queryKey: ["character-feats", characterId] });
+        queryClient.invalidateQueries({ queryKey: ["character-feat-subfeats", characterId] });
+      }
       setPickerTarget(null);
       setSearchTerm("");
     },
@@ -267,6 +281,20 @@ const CharacterFeatPicker = ({ characterId, mode = "player", scenarioLevel }: Ch
 
   const deleteMutation = useMutation({
     mutationFn: async ({ level, isFree, id }: { level: number; isFree: boolean; id?: string }) => {
+      if (!online) {
+        if (isFree && id) {
+          queueAction({ table: "character_feats", operation: "delete", payload: {}, filter: { id } });
+          queryClient.setQueryData(["character-feats", characterId], (old: CharacterFeat[] | undefined) =>
+            (old ?? []).filter(cf => cf.id !== id)
+          );
+        } else {
+          queueAction({ table: "character_feats", operation: "delete", payload: {}, filter: { character_id: characterId, level, is_free: false } });
+          queryClient.setQueryData(["character-feats", characterId], (old: CharacterFeat[] | undefined) =>
+            (old ?? []).filter(cf => !(cf.level === level && !cf.is_free))
+          );
+        }
+        return;
+      }
       if (isFree && id) {
         const { error } = await supabase.from("character_feats").delete().eq("id", id);
         if (error) throw error;
@@ -281,26 +309,37 @@ const CharacterFeatPicker = ({ characterId, mode = "player", scenarioLevel }: Ch
       }
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["character-feats", characterId] });
-      queryClient.invalidateQueries({ queryKey: ["character-feat-subfeats", characterId] });
+      if (online) {
+        queryClient.invalidateQueries({ queryKey: ["character-feats", characterId] });
+        queryClient.invalidateQueries({ queryKey: ["character-feat-subfeats", characterId] });
+      }
     },
   });
 
   const addFreeFeatMutation = useMutation({
     mutationFn: async (featId: string) => {
+      if (!online) {
+        const tempId = crypto.randomUUID();
+        queueAction({
+          table: "character_feats",
+          operation: "insert",
+          payload: { character_id: characterId, level: 0, feat_id: featId, is_free: true },
+          tempId,
+        });
+        queryClient.setQueryData(["character-feats", characterId], (old: CharacterFeat[] | undefined) =>
+          [...(old ?? []), { id: tempId, character_id: characterId, level: 0, feat_id: featId, is_free: true, note: null }]
+        );
+        return;
+      }
       const { error } = await supabase
         .from("character_feats")
         .insert({ character_id: characterId, level: 0, feat_id: featId, is_free: true });
       if (error) throw error;
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["character-feats", characterId] });
-
-      // COMMENTED OUT: preprocessed fields — auto-prompt for non-fixed subfeat slots on free feats
-      // const meta = metaMap.get(featId);
-      // const nonFixedSlots = (meta?.subfeats ?? []).filter(s => s.kind !== "fixed");
-      // ...
-
+      if (online) {
+        queryClient.invalidateQueries({ queryKey: ["character-feats", characterId] });
+      }
       setPickerTarget(null);
       setSearchTerm("");
     },
@@ -309,6 +348,13 @@ const CharacterFeatPicker = ({ characterId, mode = "player", scenarioLevel }: Ch
   const updateNoteMutation = useMutation({
     mutationFn: async ({ id, note }: { id: string; note: string }) => {
       const trimmed = note.trim() || null;
+      if (!online) {
+        queueAction({ table: "character_feats", operation: "update", payload: { note: trimmed }, filter: { id } });
+        queryClient.setQueryData(["character-feats", characterId], (old: CharacterFeat[] | undefined) =>
+          (old ?? []).map(cf => cf.id === id ? { ...cf, note: trimmed } : cf)
+        );
+        return;
+      }
       const { error } = await supabase
         .from("character_feats")
         .update({ note: trimmed } as any)
@@ -316,12 +362,35 @@ const CharacterFeatPicker = ({ characterId, mode = "player", scenarioLevel }: Ch
       if (error) throw error;
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["character-feats", characterId] });
+      if (online) {
+        queryClient.invalidateQueries({ queryKey: ["character-feats", characterId] });
+      }
     },
   });
 
   const setSubfeatMutation = useMutation({
     mutationFn: async ({ characterFeatId, slot, subfeatId }: { characterFeatId: string; slot: number; subfeatId: string | null }) => {
+      if (!online) {
+        queueAction({ table: "character_feat_subfeats", operation: "delete", payload: {}, filter: { character_feat_id: characterFeatId, slot } });
+        if (subfeatId) {
+          const tempId = crypto.randomUUID();
+          queueAction({
+            table: "character_feat_subfeats",
+            operation: "insert",
+            payload: { character_feat_id: characterFeatId, slot, subfeat_id: subfeatId },
+            tempId,
+          });
+          queryClient.setQueryData(["character-feat-subfeats", characterId], (old: CharacterFeatSubfeat[] | undefined) => {
+            const filtered = (old ?? []).filter(cs => !(cs.character_feat_id === characterFeatId && cs.slot === slot));
+            return [...filtered, { id: tempId, character_feat_id: characterFeatId, slot, subfeat_id: subfeatId }];
+          });
+        } else {
+          queryClient.setQueryData(["character-feat-subfeats", characterId], (old: CharacterFeatSubfeat[] | undefined) =>
+            (old ?? []).filter(cs => !(cs.character_feat_id === characterFeatId && cs.slot === slot))
+          );
+        }
+        return;
+      }
       await supabase.from("character_feat_subfeats")
         .delete()
         .eq("character_feat_id", characterFeatId)
@@ -336,11 +405,9 @@ const CharacterFeatPicker = ({ characterId, mode = "player", scenarioLevel }: Ch
       }
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["character-feat-subfeats", characterId] });
-
-      // COMMENTED OUT: preprocessed fields — pending subfeat slots queue
-      // if (pendingSubfeatSlots.length > 0) { ... }
-
+      if (online) {
+        queryClient.invalidateQueries({ queryKey: ["character-feat-subfeats", characterId] });
+      }
       setPickerTarget(null);
       setSearchTerm("");
     },
@@ -515,17 +582,10 @@ const CharacterFeatPicker = ({ characterId, mode = "player", scenarioLevel }: Ch
   }, [allFeats, searchTerm, mode, pickerTarget, characterFeats]);
 
   const openPicker = (target: PickerTarget) => {
-    if (!online) return;
     setPickerTarget(target);
     setSearchTerm("");
     setExpandedFeatId(null);
     setValidationResult(null);
-    // COMMENTED OUT: preprocessed fields — filterMode toggle
-    // if (target.type === "level" && mode !== "gm") {
-    //   setFilterMode(canPickArchetype(target.level) ? "archetype" : "feat");
-    // } else {
-    //   setFilterMode("feat");
-    // }
   };
 
   const handleFeatSelect = (featId: string) => {
@@ -775,7 +835,7 @@ const CharacterFeatPicker = ({ characterId, mode = "player", scenarioLevel }: Ch
         <p className="text-sm font-medium text-muted-foreground">Feats per Level</p>
         {!online && (
           <span className="flex items-center gap-1 text-xs text-muted-foreground">
-            <WifiOff className="h-3 w-3" /> Read-only
+            <WifiOff className="h-3 w-3" /> Offline — changes saved locally
           </span>
         )}
       </div>

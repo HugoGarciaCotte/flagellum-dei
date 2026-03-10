@@ -2,7 +2,7 @@ import { useState, useMemo } from "react";
 import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
 import { getAllScenarios, getScenarioById } from "@/data/scenarios";
-import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
@@ -11,7 +11,7 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import { toast } from "@/hooks/use-toast";
 import { useNavigate } from "react-router-dom";
-import { LogOut, Plus, Settings, ChevronDown, Trash2, Pencil } from "lucide-react";
+import { LogOut, Plus, Settings, ChevronDown, Trash2, Pencil, WifiOff } from "lucide-react";
 
 import CharacterSheet from "@/components/CharacterSheet";
 
@@ -23,11 +23,15 @@ import { useIsOwner } from "@/hooks/useIsOwner";
 import { useIsGameMaster } from "@/hooks/useIsGameMaster";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
 import GMPlayerList from "@/components/GMPlayerList";
+import { useNetworkStatus } from "@/hooks/useNetworkStatus";
+import { useOfflineQuery } from "@/hooks/useOfflineQuery";
+import { queueAction, setCacheData, getCacheData } from "@/lib/offlineQueue";
 
 const Dashboard = () => {
   const { user, signOut } = useAuth();
   const navigate = useNavigate();
   const queryClient = useQueryClient();
+  const online = useNetworkStatus();
   const [joinCode, setJoinCode] = useState("");
   const [hostOpen, setHostOpen] = useState(false);
   const [newCharDialogOpen, setNewCharDialogOpen] = useState(false);
@@ -38,7 +42,7 @@ const Dashboard = () => {
   const [deleteCharTarget, setDeleteCharTarget] = useState<{ id: string; name: string } | null>(null);
 
   // Characters
-  const { data: characters } = useQuery({
+  const { data: characters } = useOfflineQuery<any[]>(`my-characters-${user?.id}`, {
     queryKey: ["my-characters", user?.id],
     queryFn: async () => {
       const { data, error } = await supabase
@@ -54,11 +58,21 @@ const Dashboard = () => {
 
   const deleteCharMutation = useMutation({
     mutationFn: async (id: string) => {
+      if (!online) {
+        queueAction({ table: "characters", operation: "delete", payload: {}, filter: { id } });
+        queryClient.setQueryData(["my-characters", user?.id], (old: any[]) =>
+          (old ?? []).filter((c: any) => c.id !== id)
+        );
+        const cacheKey = `my-characters-${user?.id}`;
+        const cached = getCacheData<any[]>(cacheKey) ?? [];
+        setCacheData(cacheKey, cached.filter((c: any) => c.id !== id));
+        return;
+      }
       const { error } = await supabase.from("characters").delete().eq("id", id);
       if (error) throw error;
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["my-characters"] });
+      if (online) queryClient.invalidateQueries({ queryKey: ["my-characters"] });
       setDeleteCharTarget(null);
       toast({ title: "Character deleted" });
     },
@@ -67,7 +81,7 @@ const Dashboard = () => {
   const scenarios = getAllScenarios();
 
   // Active games (hosted)
-  const { data: myGames } = useQuery({
+  const { data: myGames } = useOfflineQuery<any[]>(`my-games-${user?.id}`, {
     queryKey: ["my-games", user?.id],
     queryFn: async () => {
       const { data, error } = await supabase
@@ -82,7 +96,7 @@ const Dashboard = () => {
   });
 
   // Active games (joined as player)
-  const { data: joinedGames } = useQuery({
+  const { data: joinedGames } = useOfflineQuery<any[]>(`joined-games-${user?.id}`, {
     queryKey: ["joined-games", user?.id],
     queryFn: async () => {
       const { data, error } = await supabase
@@ -121,6 +135,26 @@ const Dashboard = () => {
   }, [myGames, joinedGames]);
 
   const handleCreateGame = async (scenarioId: string) => {
+    if (!online) {
+      // Offline: create game locally with temp ID, no join code
+      const tempGameId = crypto.randomUUID();
+      const code = "OFFLINE";
+      queueAction({
+        table: "games",
+        operation: "insert",
+        payload: { host_user_id: user!.id, scenario_id: scenarioId, join_code: code },
+        tempId: tempGameId,
+      });
+      // Optimistic cache update
+      const cacheKey = `my-games-${user!.id}`;
+      const cached = getCacheData<any[]>(cacheKey) ?? [];
+      const newGame = { id: tempGameId, host_user_id: user!.id, scenario_id: scenarioId, join_code: code, status: "active", current_section: null, created_at: new Date().toISOString(), updated_at: new Date().toISOString() };
+      setCacheData(cacheKey, [newGame, ...cached]);
+      queryClient.setQueryData(["my-games", user!.id], (old: any[]) => old ? [newGame, ...old] : [newGame]);
+      toast({ title: "Game created locally", description: "Join code will be generated when back online." });
+      navigate(`/game/${tempGameId}/host`);
+      return;
+    }
     const letters = "ABCDEFGHIJKLMNOPQRSTUVWXYZ";
     const code = Array.from({ length: 6 }, () => letters[Math.floor(Math.random() * 26)]).join("");
     const { data, error } = await supabase
@@ -137,6 +171,10 @@ const Dashboard = () => {
 
   const handleJoinGame = async () => {
     if (!joinCode.trim()) return;
+    if (!online) {
+      toast({ title: "Offline", description: "You need to be online to join a game.", variant: "destructive" });
+      return;
+    }
     const { data: game, error } = await supabase
       .from("games")
       .select("*")
@@ -184,16 +222,22 @@ const Dashboard = () => {
           </h2>
           <div className="flex gap-2">
             <Input
-              placeholder="Enter join code"
+              placeholder={online ? "Enter join code" : "Offline — join unavailable"}
               value={joinCode}
               onChange={(e) => setJoinCode(e.target.value)}
               onKeyDown={(e) => e.key === "Enter" && handleJoinGame()}
               className="font-display text-lg tracking-widest uppercase text-center"
+              disabled={!online}
             />
-            <Button onClick={handleJoinGame} className="font-display px-6 shrink-0">
+            <Button onClick={handleJoinGame} className="font-display px-6 shrink-0" disabled={!online}>
               Join
             </Button>
           </div>
+          {!online && (
+            <p className="text-xs text-muted-foreground flex items-center gap-1">
+              <WifiOff className="h-3 w-3" /> You need to be online to join a game
+            </p>
+          )}
         </section>
 
         <div className="ornamental-divider" />

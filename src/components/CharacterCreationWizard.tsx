@@ -12,10 +12,12 @@ import FeatListItem from "@/components/FeatListItem";
 import { sortTitlesEmojiLast } from "@/lib/utils";
 import {
   Loader2, Sparkles, Upload, Dices, ChevronRight, SkipForward,
-  Search, ArrowLeft,
+  Search, ArrowLeft, WifiOff,
 } from "lucide-react";
 import { getAllFeats, getFeatMeta } from "@/data/feats";
 import Logo from "@/components/Logo";
+import { useNetworkStatus } from "@/hooks/useNetworkStatus";
+import { queueAction, setCacheData, getCacheData } from "@/lib/offlineQueue";
 
 interface CharacterCreationWizardProps {
   onCreated: (characterId: string) => void;
@@ -35,6 +37,7 @@ const CharacterCreationWizard = ({ onCreated, onCancel, gameId }: CharacterCreat
   const { user } = useAuth();
   const queryClient = useQueryClient();
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const online = useNetworkStatus();
 
   // Wizard state
   const [step, setStep] = useState(0);
@@ -155,10 +158,10 @@ const CharacterCreationWizard = ({ onCreated, onCancel, gameId }: CharacterCreat
 
   // Generate description when reaching final step
   useEffect(() => {
-    if (step === finalStep && !description && !generatingDesc) {
+    if (step === finalStep && !description && !generatingDesc && online) {
       generateDescription();
     }
-  }, [step, finalStep]);
+  }, [step, finalStep, online]);
 
   // --- Progressive save helpers ---
 
@@ -167,20 +170,59 @@ const CharacterCreationWizard = ({ onCreated, onCancel, gameId }: CharacterCreat
     if (!user) return;
     setSaving(true);
     try {
-      if (characterId && characterFeatId) {
+      if (!online) {
+        // Offline: create locally with temp IDs
+        if (!characterId) {
+          const tempCharId = crypto.randomUUID();
+          const tempCfId = crypto.randomUUID();
+          setCharacterId(tempCharId);
+          setCharacterFeatId(tempCfId);
+          queueAction({
+            table: "characters",
+            operation: "insert",
+            payload: { user_id: user.id, name: "New Character" },
+            tempId: tempCharId,
+          });
+          queueAction({
+            table: "character_feats",
+            operation: "insert",
+            payload: { character_id: tempCharId, feat_id: featId, level: 1 },
+            tempId: tempCfId,
+          });
+          if (gameId) {
+            queueAction({
+              table: "game_players",
+              operation: "update",
+              payload: { character_id: tempCharId },
+              filter: { game_id: gameId, user_id: user.id },
+            });
+          }
+          // Optimistic cache update
+          const cacheKey = `my-characters-${user.id}`;
+          const cached = getCacheData<any[]>(cacheKey) ?? [];
+          const newChar = { id: tempCharId, user_id: user.id, name: "New Character", description: null, portrait_url: null, created_at: new Date().toISOString(), updated_at: new Date().toISOString() };
+          setCacheData(cacheKey, [newChar, ...cached]);
+          queryClient.setQueryData(["my-characters", user.id], (old: any[]) => old ? [newChar, ...old] : [newChar]);
+        } else {
+          // Already have a character, update archetype
+          queueAction({
+            table: "character_feats",
+            operation: "update",
+            payload: { feat_id: featId },
+            filter: { id: characterFeatId },
+          });
+          setSubfeatSelections(new Map());
+        }
+      } else if (characterId && characterFeatId) {
         const { error: cfErr } = await supabase
           .from("character_feats")
           .update({ feat_id: featId })
           .eq("id", characterFeatId);
         if (cfErr) throw cfErr;
-
-        // Delete all existing subfeats since archetype changed
         await supabase
           .from("character_feat_subfeats")
           .delete()
           .eq("character_feat_id", characterFeatId);
-
-        // Reset subfeat selections
         setSubfeatSelections(new Map());
       } else {
         const { data: charData, error: charError } = await supabase
@@ -223,17 +265,28 @@ const CharacterCreationWizard = ({ onCreated, onCancel, gameId }: CharacterCreat
     if (!characterFeatId) return;
     setSaving(true);
     try {
-      await supabase
-        .from("character_feat_subfeats")
-        .delete()
-        .eq("character_feat_id", characterFeatId)
-        .eq("slot", slotNum);
-
-      if (subfeatId) {
-        const { error } = await supabase
+      if (!online) {
+        queueAction({ table: "character_feat_subfeats", operation: "delete", payload: {}, filter: { character_feat_id: characterFeatId, slot: slotNum } });
+        if (subfeatId) {
+          queueAction({
+            table: "character_feat_subfeats",
+            operation: "insert",
+            payload: { character_feat_id: characterFeatId, slot: slotNum, subfeat_id: subfeatId },
+            tempId: crypto.randomUUID(),
+          });
+        }
+      } else {
+        await supabase
           .from("character_feat_subfeats")
-          .insert({ character_feat_id: characterFeatId, slot: slotNum, subfeat_id: subfeatId });
-        if (error) throw error;
+          .delete()
+          .eq("character_feat_id", characterFeatId)
+          .eq("slot", slotNum);
+        if (subfeatId) {
+          const { error } = await supabase
+            .from("character_feat_subfeats")
+            .insert({ character_feat_id: characterFeatId, slot: slotNum, subfeat_id: subfeatId });
+          if (error) throw error;
+        }
       }
     } catch (e: any) {
       toast({ title: "Error saving selection", description: e.message, variant: "destructive" });
@@ -247,18 +300,35 @@ const CharacterCreationWizard = ({ onCreated, onCancel, gameId }: CharacterCreat
     if (!characterId || !user) return;
     setCreating(true);
     try {
-      const { error } = await supabase
-        .from("characters")
-        .update({
-          name: name || "Blank",
-          description: description || null,
-          portrait_url: portraitUrl,
-        })
-        .eq("id", characterId);
-      if (error) throw error;
-
-      queryClient.invalidateQueries({ queryKey: ["my-characters"] });
-      onCreated(characterId);
+      if (!online) {
+        queueAction({
+          table: "characters",
+          operation: "update",
+          payload: { name: name || "Blank", description: description || null, portrait_url: portraitUrl },
+          filter: { id: characterId },
+        });
+        // Optimistic cache update
+        const cacheKey = `my-characters-${user.id}`;
+        const cached = getCacheData<any[]>(cacheKey) ?? [];
+        setCacheData(cacheKey, cached.map((c: any) => c.id === characterId ? { ...c, name: name || "Blank", description: description || null, portrait_url: portraitUrl } : c));
+        queryClient.setQueryData(["my-characters", user.id], (old: any[]) =>
+          old?.map((c: any) => c.id === characterId ? { ...c, name: name || "Blank", description: description || null, portrait_url: portraitUrl } : c)
+        );
+        onCreated(characterId);
+        toast({ title: "Character saved locally — will sync when online" });
+      } else {
+        const { error } = await supabase
+          .from("characters")
+          .update({
+            name: name || "Blank",
+            description: description || null,
+            portrait_url: portraitUrl,
+          })
+          .eq("id", characterId);
+        if (error) throw error;
+        queryClient.invalidateQueries({ queryKey: ["my-characters"] });
+        onCreated(characterId);
+      }
     } catch (e: any) {
       toast({ title: "Error saving character", description: e.message, variant: "destructive" });
     } finally {
@@ -329,23 +399,48 @@ const CharacterCreationWizard = ({ onCreated, onCancel, gameId }: CharacterCreat
     if (!user) return;
     setCreating(true);
     try {
-      const { data: charData, error: charError } = await supabase
-        .from("characters")
-        .insert({ user_id: user.id, name: "Blank" } as any)
-        .select()
-        .single();
-      if (charError) throw charError;
+      if (!online) {
+        const tempCharId = crypto.randomUUID();
+        queueAction({
+          table: "characters",
+          operation: "insert",
+          payload: { user_id: user.id, name: "Blank" },
+          tempId: tempCharId,
+        });
+        if (gameId) {
+          queueAction({
+            table: "game_players",
+            operation: "update",
+            payload: { character_id: tempCharId },
+            filter: { game_id: gameId, user_id: user.id },
+          });
+        }
+        const cacheKey = `my-characters-${user.id}`;
+        const cached = getCacheData<any[]>(cacheKey) ?? [];
+        const newChar = { id: tempCharId, user_id: user.id, name: "Blank", description: null, portrait_url: null, created_at: new Date().toISOString(), updated_at: new Date().toISOString() };
+        setCacheData(cacheKey, [newChar, ...cached]);
+        queryClient.setQueryData(["my-characters", user.id], (old: any[]) => old ? [newChar, ...old] : [newChar]);
+        onCreated(tempCharId);
+        toast({ title: "Character saved locally — will sync when online" });
+      } else {
+        const { data: charData, error: charError } = await supabase
+          .from("characters")
+          .insert({ user_id: user.id, name: "Blank" } as any)
+          .select()
+          .single();
+        if (charError) throw charError;
 
-      if (gameId) {
-        await supabase
-          .from("game_players")
-          .update({ character_id: charData.id })
-          .eq("game_id", gameId)
-          .eq("user_id", user.id);
+        if (gameId) {
+          await supabase
+            .from("game_players")
+            .update({ character_id: charData.id })
+            .eq("game_id", gameId)
+            .eq("user_id", user.id);
+        }
+
+        queryClient.invalidateQueries({ queryKey: ["my-characters"] });
+        onCreated(charData.id);
       }
-
-      queryClient.invalidateQueries({ queryKey: ["my-characters"] });
-      onCreated(charData.id);
     } catch (e: any) {
       toast({ title: "Error creating character", description: e.message, variant: "destructive" });
     } finally {
@@ -718,7 +813,7 @@ const CharacterCreationWizard = ({ onCreated, onCancel, gameId }: CharacterCreat
           </Avatar>
           <div className="flex gap-2">
             <input ref={fileInputRef} type="file" accept="image/*" className="hidden" onChange={handleUpload} />
-            <Button variant="outline" size="sm" className="gap-1.5" onClick={() => fileInputRef.current?.click()} disabled={generatingPortrait}>
+            <Button variant="outline" size="sm" className="gap-1.5" onClick={() => fileInputRef.current?.click()} disabled={generatingPortrait || !online}>
               <Upload className="h-3.5 w-3.5" /> Upload
             </Button>
             <Button
@@ -726,15 +821,17 @@ const CharacterCreationWizard = ({ onCreated, onCancel, gameId }: CharacterCreat
               size="sm"
               className="gap-1.5"
               onClick={handleGeneratePortrait}
-              disabled={generatingPortrait || (!description && !archetypeFeatId)}
+              disabled={generatingPortrait || !online || (!description && !archetypeFeatId)}
             >
               {generatingPortrait ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Sparkles className="h-3.5 w-3.5" />}
               Generate
             </Button>
           </div>
-          <p className="text-xs text-muted-foreground/70 italic text-center max-w-xs">
-            Portrait is generated from your description — include details like gender, age, appearance…
-          </p>
+          {!online && (
+            <p className="text-xs text-muted-foreground flex items-center gap-1">
+              <WifiOff className="h-3 w-3" /> Portrait features available when online
+            </p>
+          )}
         </div>
 
         {/* Description */}
@@ -746,7 +843,7 @@ const CharacterCreationWizard = ({ onCreated, onCancel, gameId }: CharacterCreat
               size="sm"
               className="gap-1 text-xs"
               onClick={generateDescription}
-              disabled={generatingDesc}
+              disabled={generatingDesc || !online}
             >
               {generatingDesc ? <Loader2 className="h-3 w-3 animate-spin" /> : <Sparkles className="h-3 w-3" />}
               Regenerate
@@ -776,7 +873,7 @@ const CharacterCreationWizard = ({ onCreated, onCancel, gameId }: CharacterCreat
               size="sm"
               className="gap-1 text-xs"
               onClick={generateName}
-              disabled={generatingName}
+              disabled={generatingName || !online}
             >
               {generatingName ? <Loader2 className="h-3 w-3 animate-spin" /> : <Dices className="h-3 w-3" />}
               Random Name

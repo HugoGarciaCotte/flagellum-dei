@@ -6,6 +6,8 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { toast } from "@/hooks/use-toast";
+import { useNetworkStatus } from "@/hooks/useNetworkStatus";
+import { queueAction, setCacheData, getCacheData } from "@/lib/offlineQueue";
 
 interface CreateCharacterFormProps {
   onCreated: (characterId: string) => void;
@@ -16,11 +18,38 @@ interface CreateCharacterFormProps {
 const CreateCharacterForm = ({ onCreated, onCancel, submitLabel = "Create Character" }: CreateCharacterFormProps) => {
   const { user } = useAuth();
   const queryClient = useQueryClient();
+  const online = useNetworkStatus();
   const [name, setName] = useState("");
   const [description, setDescription] = useState("");
 
   const mutation = useMutation({
     mutationFn: async () => {
+      if (!online) {
+        const tempId = crypto.randomUUID();
+        const newChar = {
+          id: tempId,
+          user_id: user!.id,
+          name,
+          description: description || null,
+          portrait_url: null,
+          created_at: new Date().toISOString(),
+          updated_at: new Date().toISOString(),
+        };
+        queueAction({
+          table: "characters",
+          operation: "insert",
+          payload: { user_id: user!.id, name, description: description || null },
+          tempId,
+        });
+        // Optimistically add to cache
+        const cacheKey = `my-characters-${user!.id}`;
+        const cached = getCacheData<any[]>(cacheKey) ?? [];
+        setCacheData(cacheKey, [newChar, ...cached]);
+        queryClient.setQueryData(["my-characters", user!.id], (old: any[]) =>
+          old ? [newChar, ...old] : [newChar]
+        );
+        return newChar;
+      }
       const { data, error } = await supabase
         .from("characters")
         .insert({ user_id: user!.id, name, description: description || null })
@@ -30,10 +59,15 @@ const CreateCharacterForm = ({ onCreated, onCancel, submitLabel = "Create Charac
       return data;
     },
     onSuccess: (data) => {
-      queryClient.invalidateQueries({ queryKey: ["my-characters"] });
+      if (online) {
+        queryClient.invalidateQueries({ queryKey: ["my-characters"] });
+      }
       setName("");
       setDescription("");
       onCreated(data.id);
+      if (!online) {
+        toast({ title: "Character saved locally — will sync when online" });
+      }
     },
     onError: (e: any) => toast({ title: "Error", description: e.message, variant: "destructive" }),
   });

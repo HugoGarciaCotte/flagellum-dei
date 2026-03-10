@@ -3,12 +3,14 @@ import { useParams, useNavigate } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
 import { getScenarioById } from "@/data/scenarios";
-import { useQuery, useQueryClient, useMutation } from "@tanstack/react-query";
+import { useQueryClient, useMutation } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { ArrowLeft, Plus, Check, X, GripHorizontal, Pencil } from "lucide-react";
 import CharacterSheet from "@/components/CharacterSheet";
 import { useNetworkStatus } from "@/hooks/useNetworkStatus";
+import { useOfflineQuery } from "@/hooks/useOfflineQuery";
+import { queueAction } from "@/lib/offlineQueue";
 import { getCachedGameSession } from "@/lib/offlineStorage";
 import { toast } from "@/hooks/use-toast";
 import DiceRoller from "@/components/DiceRoller";
@@ -31,7 +33,7 @@ const PlayGame = () => {
   const [editingCharId, setEditingCharId] = useState<string | null>(null);
 
   // Fetch game WITHOUT scenario content — only title
-  const { data: game, error: gameError } = useQuery({
+  const { data: game, error: gameError } = useOfflineQuery<any>(`game-${gameId}`, {
     queryKey: ["game", gameId],
     queryFn: async () => {
       const { data, error } = await supabase
@@ -43,11 +45,9 @@ const PlayGame = () => {
       return data;
     },
     enabled: !!gameId,
-    retry: online ? 3 : 0,
   });
 
-  // Fetch current player's game_player row
-  const { data: myPlayer } = useQuery({
+  const { data: myPlayer } = useOfflineQuery<any>(`my-game-player-${gameId}-${user?.id}`, {
     queryKey: ["my-game-player", gameId, user?.id],
     queryFn: async () => {
       const { data, error } = await supabase
@@ -62,8 +62,7 @@ const PlayGame = () => {
     enabled: !!gameId && !!user,
   });
 
-  // Fetch user's characters
-  const { data: myCharacters } = useQuery({
+  const { data: myCharacters } = useOfflineQuery<any[]>(`my-characters-${user?.id}`, {
     queryKey: ["my-characters", user?.id],
     queryFn: async () => {
       const { data, error } = await supabase
@@ -86,6 +85,18 @@ const PlayGame = () => {
   // Select character mutation
   const selectCharMutation = useMutation({
     mutationFn: async (characterId: string) => {
+      if (!online) {
+        queueAction({
+          table: "game_players",
+          operation: "update",
+          payload: { character_id: characterId },
+          filter: { game_id: gameId!, user_id: user!.id },
+        });
+        queryClient.setQueryData(["my-game-player", gameId, user?.id], (old: any) =>
+          old ? { ...old, character_id: characterId } : old
+        );
+        return;
+      }
       const { error } = await supabase
         .from("game_players")
         .update({ character_id: characterId })
@@ -94,8 +105,8 @@ const PlayGame = () => {
       if (error) throw error;
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["my-game-player", gameId, user?.id] });
-      toast({ title: "Character selected!" });
+      if (online) queryClient.invalidateQueries({ queryKey: ["my-game-player", gameId, user?.id] });
+      toast({ title: online ? "Character selected!" : "Character selected — will sync when online" });
     },
   });
 
