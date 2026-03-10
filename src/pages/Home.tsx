@@ -324,7 +324,7 @@ const Home = () => {
           />
           <ClarityItem
             icon={<Gift className="h-4 w-4" />}
-            label="100% Free"
+            label="100% Free & Open Source"
           />
           <ClarityItem
             icon={<Smartphone className="h-4 w-4" />}
