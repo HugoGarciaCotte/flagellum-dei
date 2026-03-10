@@ -371,7 +371,7 @@ const Dashboard = () => {
             <AlertDialogContent>
               <AlertDialogHeader>
                 <AlertDialogTitle className="font-display flex items-center gap-2">
-                  <ShieldCheck className="h-5 w-5 text-primary" /> Become a Game Master
+                  <span className="text-lg text-primary" aria-hidden="true">🜁</span> Become a Game Master
                 </AlertDialogTitle>
                 <AlertDialogDescription className="text-sm leading-relaxed">
                   You are currently a <strong>player</strong>. As a Game Master, you'll be able to host games and guide other players through scenarios.
