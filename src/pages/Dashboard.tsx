@@ -2,7 +2,7 @@ import { useState, useMemo } from "react";
 import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
 import { getAllScenarios, getScenarioById } from "@/data/scenarios";
-import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
@@ -11,7 +11,7 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import { toast } from "@/hooks/use-toast";
 import { useNavigate } from "react-router-dom";
-import { LogOut, Plus, Settings, ChevronDown, Trash2, Pencil } from "lucide-react";
+import { LogOut, Plus, Settings, ChevronDown, Trash2, Pencil, WifiOff } from "lucide-react";
 
 import CharacterSheet from "@/components/CharacterSheet";
 
@@ -23,6 +23,9 @@ import { useIsOwner } from "@/hooks/useIsOwner";
 import { useIsGameMaster } from "@/hooks/useIsGameMaster";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
 import GMPlayerList from "@/components/GMPlayerList";
+import { useNetworkStatus } from "@/hooks/useNetworkStatus";
+import { useOfflineQuery } from "@/hooks/useOfflineQuery";
+import { queueAction, setCacheData, getCacheData } from "@/lib/offlineQueue";
 
 const Dashboard = () => {
   const { user, signOut } = useAuth();
