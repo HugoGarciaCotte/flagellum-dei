@@ -96,7 +96,7 @@
     transform: translate(-50%, -50%);
     color: hsl(43 74% 49% / 0.5);
     font-size: 0.75rem;
-    background: hsl(var(--background));
+    
     padding: 0 0.75rem;
   }
   .vignette-overlay {
