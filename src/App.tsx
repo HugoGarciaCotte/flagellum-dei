@@ -15,6 +15,7 @@ import ResetPassword from "./pages/ResetPassword";
 import Install from "./pages/Install";
 import Admin from "./pages/Admin";
 import AdminFeats from "./pages/AdminFeats";
+import AdminScenarios from "./pages/AdminScenarios";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient({
@@ -51,6 +52,7 @@ const App = () => (
             <Route path="/install" element={<Install />} />
             <Route path="/admin" element={<Admin />} />
             <Route path="/admin/feats" element={<AdminFeats />} />
+            <Route path="/admin/scenarios" element={<AdminScenarios />} />
             <Route path="*" element={<NotFound />} />
           </Routes>
           <OfflineBanner />
