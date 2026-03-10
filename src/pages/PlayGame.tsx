@@ -274,7 +274,7 @@ const PlayGame = () => {
 
       {/* Fullscreen Edit Character */}
       {editingCharId && (
-        <div className="fixed inset-0 z-50 bg-background flex flex-col animate-in fade-in duration-200">
+        <div className="fixed inset-0 z-50 bg-background flex flex-col animate-in fade-in duration-200 pt-[env(safe-area-inset-top)]">
           <div className="border-b border-border/50 bg-card/80 backdrop-blur px-4 py-3 flex items-center justify-between shrink-0">
             <span className="font-display text-sm font-medium text-foreground">Edit Character</span>
             <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => setEditingCharId(null)}>
