@@ -1,6 +1,5 @@
 import { Fragment, useMemo } from "react";
-import { useQuery } from "@tanstack/react-query";
-import { supabase } from "@/integrations/supabase/client";
+import { buildFeatsMap, type Feat } from "@/data/feats";
 import { parseFeatFields } from "@/lib/parseFeatContent";
 import { parseEmbeddedFeatMeta } from "@/lib/parseEmbeddedFeatMeta";
 import { convertInlineMarkup } from "@/lib/parseWikitext";
@@ -66,7 +65,7 @@ function parseSegments(raw: string): TextSegment[] {
   return segments;
 }
 
-function FeatHoverContent({ featTitle, featsMap }: { featTitle: string; featsMap: Map<string, any> }) {
+function FeatHoverContent({ featTitle, featsMap }: { featTitle: string; featsMap: Map<string, Feat> }) {
   const feat = featsMap.get(featTitle.toLowerCase());
   if (!feat) {
     return <p className="text-xs text-muted-foreground">Feat not found: {featTitle}</p>;
@@ -118,29 +117,17 @@ function stripLinks(text: string): string {
     .replace(/\[\[([^\]]+)\]\]/g, "$1");
 }
 
+// Build the feats map once (module-level singleton, lazy)
+let _featsMap: Map<string, Feat> | null = null;
+function getFeatsMap(): Map<string, Feat> {
+  if (!_featsMap) _featsMap = buildFeatsMap();
+  return _featsMap;
+}
+
 export default function WikiLinkedText({ text, className = "" }: WikiLinkedTextProps) {
   const segments = useMemo(() => parseSegments(text), [text]);
   const hasLinks = segments.some((s) => s.type === "link");
-
-  const { data: featsMap } = useQuery({
-    queryKey: ["feats-map-for-links"],
-    queryFn: async () => {
-      const [featsRes, redirectsRes] = await Promise.all([
-        supabase.from("feats").select("title, content, raw_content"),
-        supabase.from("feat_redirects").select("from_title, to_title"),
-      ]);
-      const map = new Map<string, any>();
-      featsRes.data?.forEach((f) => map.set(f.title.toLowerCase(), f));
-      redirectsRes.data?.forEach((r) => {
-        const target = map.get(r.to_title.toLowerCase());
-        if (target) map.set(r.from_title.toLowerCase(), target);
-      });
-      return map;
-    },
-    enabled: hasLinks,
-    staleTime: 5 * 60 * 1000,
-    gcTime: 10 * 60 * 1000,
-  });
+  const featsMap = hasLinks ? getFeatsMap() : null;
 
   return (
     <span className={className}>

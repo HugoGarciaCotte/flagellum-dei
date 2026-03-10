@@ -60,21 +60,21 @@ const Admin = () => {
 
         <ManageScenarios />
 
-        {/* Feats Import */}
+        {/* Feats Import — disabled (hardcoded in source) */}
         <ImportFeatsCard />
 
-        <Card className="border-primary/20">
+        <Card className="border-primary/20 opacity-60">
           <CardHeader>
             <CardTitle className="font-display flex items-center gap-2">
-              <Swords className="h-5 w-5 text-primary" /> Manage Feats
+              <Swords className="h-5 w-5 text-muted-foreground" /> Manage Feats
             </CardTitle>
             <CardDescription>
-              Create, edit, check with AI, and push feats to the wiki.
+              Feats are hardcoded in the source code. Open the read-only viewer below.
             </CardDescription>
           </CardHeader>
           <CardContent>
-            <Button onClick={() => navigate("/admin/feats")} className="gap-2 font-display">
-              <Swords className="h-4 w-4" /> Open Feat Manager
+            <Button onClick={() => navigate("/admin/feats")} variant="outline" className="gap-2 font-display">
+              <Swords className="h-4 w-4" /> View Feats Library
             </Button>
           </CardContent>
         </Card>

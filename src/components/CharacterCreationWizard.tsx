@@ -1,7 +1,7 @@
 import { useState, useMemo, useRef, useEffect } from "react";
 import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
-import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { useQueryClient } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
@@ -14,7 +14,7 @@ import {
   Loader2, Sparkles, Upload, Dices, ChevronRight, SkipForward,
   Search, ArrowLeft,
 } from "lucide-react";
-import { getCachedFeats } from "@/lib/offlineStorage";
+import { getAllFeats } from "@/data/feats";
 import Logo from "@/components/Logo";
 
 interface CharacterCreationWizardProps {
@@ -57,19 +57,8 @@ const CharacterCreationWizard = ({ onCreated, onCancel, gameId }: CharacterCreat
   const [generatingPortrait, setGeneratingPortrait] = useState(false);
   const [creating, setCreating] = useState(false);
 
-  // Fetch all feats
-  const { data: allFeats } = useQuery({
-    queryKey: ["all-feats"],
-    queryFn: async () => {
-      const { data, error } = await supabase
-        .from("feats")
-        .select("id, title, categories, content, raw_content")
-        .order("title");
-      if (error) throw error;
-      return data as Feat[];
-    },
-    placeholderData: () => getCachedFeats() as Feat[] | undefined ?? undefined,
-  });
+  // All feats from hardcoded data
+  const allFeats = useMemo(() => getAllFeats() as Feat[], []);
 
   // Maps
   const featMap = useMemo(() => {

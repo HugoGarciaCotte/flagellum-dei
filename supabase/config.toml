@@ -1,28 +1,16 @@
 project_id = "bcisbkompyqtfrtzccit"
 
-[functions.import-wiki-feats]
-verify_jwt = false
-
 [functions.validate-feat]
 verify_jwt = false
 
-[functions.regenerate-description]
+[functions.generate-character-details]
 verify_jwt = false
 
-[functions.check-wiki-redirects]
-verify_jwt = false
-
-[functions.push-wiki-feats]
-verify_jwt = false
-
-[functions.check-feats-ai]
-verify_jwt = false
-
-[functions.generate-pwa-icon]
+[functions.generate-character-portrait]
 verify_jwt = false
 
 [functions.generate-portrait-preview]
 verify_jwt = false
 
-[functions.generate-character-portrait]
+[functions.generate-pwa-icon]
 verify_jwt = false

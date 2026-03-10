@@ -1,10 +1,9 @@
-import { useState, useRef, useEffect, useCallback } from "react";
+import { useState, useRef, useEffect, useCallback, useMemo } from "react";
 import { createPortal } from "react-dom";
-import { useQuery } from "@tanstack/react-query";
 import { ChevronRight, Play } from "lucide-react";
 import { WikiSection, resolveBackgroundImage } from "@/lib/parseWikitext";
 import { cn } from "@/lib/utils";
-import { supabase } from "@/integrations/supabase/client";
+import { buildFeatsMap } from "@/data/feats";
 import { parseFeatFields } from "@/lib/parseFeatContent";
 
 interface WikiSectionTreeProps {
@@ -70,24 +69,8 @@ function FeatLinkTooltip({ featName, rect, featsMap }: { featName: string; rect:
 }
 
 function useFeatsMap() {
-  return useQuery({
-    queryKey: ["feats-map-for-links"],
-    queryFn: async () => {
-      const [featsRes, redirectsRes] = await Promise.all([
-        supabase.from("feats").select("title, content, raw_content"),
-        supabase.from("feat_redirects").select("from_title, to_title"),
-      ]);
-      const map = new Map<string, any>();
-      featsRes.data?.forEach((f) => map.set(f.title.toLowerCase(), f));
-      redirectsRes.data?.forEach((r) => {
-        const target = map.get(r.to_title.toLowerCase());
-        if (target) map.set(r.from_title.toLowerCase(), target);
-      });
-      return map;
-    },
-    staleTime: 5 * 60 * 1000,
-    gcTime: 10 * 60 * 1000,
-  });
+  const map = useMemo(() => buildFeatsMap(), []);
+  return { data: map };
 }
 
 function SectionNode({

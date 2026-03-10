@@ -1,4 +1,4 @@
-import { useState, useMemo, useEffect } from "react";
+import { useState, useMemo } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { sortTitlesEmojiLast } from "@/lib/utils";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
@@ -11,22 +11,8 @@ import { Alert, AlertTitle, AlertDescription } from "@/components/ui/alert";
 
 import { parseEmbeddedFeatMeta, type SubfeatSlot } from "@/lib/parseEmbeddedFeatMeta";
 
-// COMMENTED OUT: preprocessed fields — Select for list-based subfeats
-// import {
-//   Select,
-//   SelectContent,
-//   SelectItem,
-//   SelectTrigger,
-//   SelectValue,
-// } from "@/components/ui/select";
-
 import { useNetworkStatus } from "@/hooks/useNetworkStatus";
-import {
-  cacheFeats,
-  getCachedFeats,
-  cacheCharacterFeats,
-  getCachedCharacterFeats,
-} from "@/lib/offlineStorage";
+import { getAllFeats } from "@/data/feats";
 
 interface CharacterFeatPickerProps {
   characterId: string;
@@ -96,24 +82,7 @@ const CharacterFeatPicker = ({ characterId, mode = "player", scenarioLevel }: Ch
   const [validating, setValidating] = useState(false);
   const [validationResult, setValidationResult] = useState<ValidationResult>(null);
 
-  const { data: allFeats } = useQuery({
-    queryKey: ["all-feats"],
-    queryFn: async () => {
-      const { data, error } = await supabase
-        .from("feats")
-        .select("id, title, categories, content, raw_content")
-        .order("title");
-      if (error) throw error;
-      return data as Feat[];
-    },
-    placeholderData: () => getCachedFeats() as Feat[] | undefined ?? undefined,
-  });
-
-  useEffect(() => {
-    if (allFeats && allFeats.length > 0 && online) {
-      cacheFeats(allFeats);
-    }
-  }, [allFeats, online]);
+  const allFeats = useMemo(() => getAllFeats() as Feat[], []);
 
   // Metadata map: parse all feats for embedded metadata (one-liners, subfeat slots, etc.)
   const metaMap = useMemo(() => {
@@ -145,14 +114,7 @@ const CharacterFeatPicker = ({ characterId, mode = "player", scenarioLevel }: Ch
       return data as CharacterFeat[];
     },
     enabled: !!characterId,
-    placeholderData: () => getCachedCharacterFeats(characterId) as CharacterFeat[] | undefined ?? undefined,
   });
-
-  useEffect(() => {
-    if (characterFeats && online) {
-      cacheCharacterFeats(characterId, characterFeats);
-    }
-  }, [characterFeats, characterId, online]);
 
   const { data: characterSubfeats } = useQuery({
     queryKey: ["character-feat-subfeats", characterId],
