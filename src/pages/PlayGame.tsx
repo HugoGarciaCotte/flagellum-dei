@@ -10,7 +10,7 @@ import { ArrowLeft, Plus, Check, X, GripHorizontal, Pencil, Copy } from "lucide-
 import CharacterSheet from "@/components/CharacterSheet";
 import { useNetworkStatus } from "@/hooks/useNetworkStatus";
 import { useOfflineQuery } from "@/hooks/useOfflineQuery";
-import { queueAction } from "@/lib/offlineQueue";
+import { queueAction, resilientMutation } from "@/lib/offlineQueue";
 import { getCachedGameSession } from "@/lib/offlineStorage";
 import { toast } from "@/hooks/use-toast";
 import DiceRoller from "@/components/DiceRoller";
