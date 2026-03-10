@@ -151,7 +151,7 @@ const faqs = [
   },
   {
     q: "Do I need a rulebook?",
-    a: "No books, no downloads. Everything you need — rules, character creation, scenarios, and game tools — is built directly into this website.",
+    a: "No books, no paid addons. Everything you need — rules, character creation, scenarios, and game tools — is built directly into this website.",
   },
   {
     q: "Can we play online?",
@@ -261,7 +261,7 @@ const Home = () => {
               investigation. Entirely free.
             </p>
             <p className="max-w-lg text-sm text-muted-foreground/60">
-              No books. No downloads. Only the screams of the damned.
+              No books. No paid addons. Only the screams of the damned.
             </p>
 
             <div className="flex flex-col gap-4 sm:flex-row sm:items-center">
