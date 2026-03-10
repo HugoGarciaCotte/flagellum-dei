@@ -231,38 +231,24 @@ const CharacterFeatPicker = ({ characterId, mode = "player", scenarioLevel }: Ch
         return "queued";
       };
 
-      try {
-        await supabase
-          .from("character_feats")
-          .delete()
-          .eq("character_id", characterId)
-          .eq("level", level)
-          .eq("is_free", false);
-        const { data: inserted, error } = await supabase
-          .from("character_feats")
-          .insert({ character_id: characterId, level, feat_id: featId, is_free: false })
-          .select()
-          .single();
-        if (error) throw error;
-
-        // Auto-insert fixed subfeats from metadata for archetypes
-        const meta = metaMap.get(featId);
-        if (meta?.subfeats && inserted) {
-          const fixedSlots = meta.subfeats.filter(s => s.kind === "fixed" && s.feat_title);
-          for (const slot of fixedSlots) {
-            const subfeat = featByTitle.get(slot.feat_title!);
-            if (subfeat) {
-              await supabase.from("character_feat_subfeats").insert({
-                character_feat_id: inserted.id,
-                slot: slot.slot,
-                subfeat_id: subfeat.id,
-              });
+      return resilientMutation(
+        async () => {
+          await supabase.from("character_feats").delete().eq("character_id", characterId).eq("level", level).eq("is_free", false);
+          const { data: inserted, error } = await supabase.from("character_feats").insert({ character_id: characterId, level, feat_id: featId, is_free: false }).select().single();
+          if (error) throw error;
+          const meta = metaMap.get(featId);
+          if (meta?.subfeats && inserted) {
+            const fixedSlots = meta.subfeats.filter(s => s.kind === "fixed" && s.feat_title);
+            for (const slot of fixedSlots) {
+              const subfeat = featByTitle.get(slot.feat_title!);
+              if (subfeat) {
+                await supabase.from("character_feat_subfeats").insert({ character_feat_id: inserted.id, slot: slot.slot, subfeat_id: subfeat.id });
+              }
             }
           }
-        }
-      } catch {
-        return doOffline();
-      }
+        },
+        doOffline,
+      );
     },
     onSuccess: (result) => {
       if (result !== "queued") {
