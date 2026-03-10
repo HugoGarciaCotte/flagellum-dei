@@ -12,28 +12,9 @@ import ManageRedirects from "@/components/ManageRedirects";
 import FullPageLoader from "@/components/FullPageLoader";
 import PageHeader from "@/components/PageHeader";
 
-type PreviewItem = { title: string; status: "new" | "modified" | "unchanged" };
-
-const statusBadge = (status: PreviewItem["status"]) => {
-  switch (status) {
-    case "new":
-      return <Badge className="bg-emerald-500/20 text-emerald-400 border-emerald-500/30 hover:bg-emerald-500/30">New</Badge>;
-    case "modified":
-      return <Badge className="bg-amber-500/20 text-amber-400 border-amber-500/30 hover:bg-amber-500/30">Modified</Badge>;
-    case "unchanged":
-      return <Badge variant="outline" className="text-muted-foreground">Unchanged</Badge>;
-  }
-};
-
 const Admin = () => {
   const navigate = useNavigate();
-  const { user } = useAuth();
-  const queryClient = useQueryClient();
   const { isOwner, isLoading: roleLoading } = useIsOwner();
-  const [checking, setChecking] = useState(false);
-  const [importing, setImporting] = useState(false);
-  const [preview, setPreview] = useState<PreviewItem[] | null>(null);
-  const [result, setResult] = useState<{ imported: number; total: number; errors: string[] } | null>(null);
 
   if (roleLoading) {
     return <FullPageLoader />;
