@@ -174,6 +174,7 @@ const PlayGame = () => {
             <p className="text-muted-foreground text-sm">
               {online ? "The quest will begin shortly." : "Realtime updates will resume when back online."}
             </p>
+            <div className="ornamental-divider w-32 mx-auto" />
           </div>
         )}
       </main>

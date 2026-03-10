@@ -296,6 +296,8 @@ const Dashboard = () => {
           </Dialog>
         </section>
 
+        <div className="ornamental-divider" />
+
         {/* Active Games */}
         {allActiveGames.length > 0 && (
           <section className="space-y-4">
