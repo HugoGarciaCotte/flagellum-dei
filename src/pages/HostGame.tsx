@@ -166,8 +166,11 @@ const HostGame = () => {
 
     if (!effectiveGame) return;
 
-    if (online) {
-      await supabase.from("games").update({ current_section: sectionId } as any).eq("id", (effectiveGame as any).id);
+    try {
+      const { error } = await supabase.from("games").update({ current_section: sectionId } as any).eq("id", (effectiveGame as any).id);
+      if (error) throw error;
+    } catch {
+      // Server unreachable — local state already updated, will be stale but functional
     }
   };
 

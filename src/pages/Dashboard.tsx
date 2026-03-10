@@ -184,28 +184,28 @@ const Dashboard = () => {
 
   const handleJoinGame = async () => {
     if (!joinCode.trim()) return;
-    if (!online) {
-      toast({ title: "Offline", description: "You need to be online to join a game.", variant: "destructive" });
-      return;
+    try {
+      const { data: game, error } = await supabase
+        .from("games")
+        .select("*")
+        .eq("join_code", joinCode.toUpperCase())
+        .eq("status", "active")
+        .single();
+      if (error || !game) {
+        toast({ title: "Game not found", description: "Check the code and try again.", variant: "destructive" });
+        return;
+      }
+      const { error: joinError } = await supabase
+        .from("game_players")
+        .insert({ game_id: game.id, user_id: user!.id });
+      if (joinError && !joinError.message.includes("duplicate")) {
+        toast({ title: "Error joining", description: joinError.message, variant: "destructive" });
+        return;
+      }
+      navigate(`/game/${game.id}/play`);
+    } catch {
+      toast({ title: "Server unreachable", description: "You need to be online to join a game.", variant: "destructive" });
     }
-    const { data: game, error } = await supabase
-      .from("games")
-      .select("*")
-      .eq("join_code", joinCode.toUpperCase())
-      .eq("status", "active")
-      .single();
-    if (error || !game) {
-      toast({ title: "Game not found", description: "Check the code and try again.", variant: "destructive" });
-      return;
-    }
-    const { error: joinError } = await supabase
-      .from("game_players")
-      .insert({ game_id: game.id, user_id: user!.id });
-    if (joinError && !joinError.message.includes("duplicate")) {
-      toast({ title: "Error joining", description: joinError.message, variant: "destructive" });
-      return;
-    }
-    navigate(`/game/${game.id}/play`);
   };
 
   return (
