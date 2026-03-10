@@ -31,7 +31,7 @@ const HostGame = () => {
   // Local override for current_section when offline
   const [localSection, setLocalSection] = useState<string | null>(null);
 
-  const { data: game, error: gameError } = useQuery({
+  const { data: game, error: gameError } = useOfflineQuery<any>(`host_game_${gameId}`, {
     queryKey: ["game", gameId],
     queryFn: async () => {
       const { data, error } = await supabase
@@ -42,11 +42,10 @@ const HostGame = () => {
       if (error) throw error;
       return data;
     },
-    enabled: !!gameId && !effectivelyOffline,
-    retry: effectivelyOffline ? 0 : 3,
+    enabled: !!gameId,
   });
 
-  const { data: players } = useQuery({
+  const { data: players } = useOfflineQuery<any[]>(`host_players_${gameId}`, {
     queryKey: ["game-players", gameId],
     queryFn: async () => {
       const { data, error } = await supabase
@@ -56,8 +55,7 @@ const HostGame = () => {
       if (error) throw error;
       return data;
     },
-    enabled: !!gameId && !effectivelyOffline,
-    retry: effectivelyOffline ? 0 : 3,
+    enabled: !!gameId,
   });
 
   // Fetch ALL characters for all players (not just selected ones)
@@ -66,7 +64,7 @@ const HostGame = () => {
     [players]
   );
 
-  const { data: characters } = useQuery({
+  const { data: characters } = useOfflineQuery<any[]>(`host_chars_${gameId}`, {
     queryKey: ["game-characters", gameId, playerUserIds],
     queryFn: async () => {
       if (playerUserIds.length === 0) return [];
@@ -77,8 +75,7 @@ const HostGame = () => {
       if (error) throw error;
       return data;
     },
-    enabled: !!gameId && playerUserIds.length > 0 && !effectivelyOffline,
-    retry: effectivelyOffline ? 0 : 3,
+    enabled: !!gameId && playerUserIds.length > 0,
   });
 
   // Cache session for offline use

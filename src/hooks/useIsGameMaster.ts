@@ -1,13 +1,14 @@
 import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
-import { useQuery } from "@tanstack/react-query";
+import { useOfflineQuery } from "@/hooks/useOfflineQuery";
 
 const GUEST_GM_KEY = "guest_is_game_master";
+const GM_CACHE_KEY = "qs_is_game_master";
 
 export function useIsGameMaster() {
   const { user, isGuest } = useAuth();
 
-  const { data: isGameMaster, isLoading } = useQuery({
+  const { data: isGameMaster, isLoading } = useOfflineQuery<boolean>(GM_CACHE_KEY, {
     queryKey: ["user-role-game-master", user?.id],
     queryFn: async () => {
       if (isGuest) {
