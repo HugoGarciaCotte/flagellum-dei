@@ -397,8 +397,10 @@ const Home = () => {
               title="Choose a Scenario"
               description={
                 <p>
-                  Select a complete investigation set in plague-era Europe. Each
-                  scenario is a self-contained descent into darkness.
+                  Begin the Danse Macabre — a 10-part campaign handwritten over a
+                  decade of research. No AI, no filler. Every scenario was crafted
+                  from historical archives, scientific publications, and obsessive
+                  attention to detail.
                 </p>
               }
             />
@@ -437,7 +439,7 @@ const Home = () => {
               Open a Case. Enter a Nightmare.
             </h2>
             <p className="text-base text-muted-foreground mt-2">
-              A nine-part campaign across plague-era Europe.
+              80+ hours of gameplay. A decade of writing. Every word handwritten — from Austrian abbeys to the shores of Rhodes.
             </p>
           </div>
 
@@ -454,7 +456,7 @@ const Home = () => {
           </div>
 
           <p className="mt-12 text-center font-display text-sm tracking-[0.15em] uppercase text-primary/60">
-            9 scenarios · A campaign spanning Europe · The vast majority took a full year of historical research
+            10 chapters · Austria · Provins · Spain · Marseille · Avignon · The Hundred Years' War · Isle of Man · Arabian Deserts · Rhodes
           </p>
         </div>
       </section>
@@ -493,7 +495,7 @@ const Home = () => {
           <div className="ornamental-divider mx-auto max-w-xs" />
 
           <blockquote className="font-display text-xl italic text-primary/70">
-            "9 scenarios spanning Europe — the vast majority took a full year of historical research."
+            "A decade of writing. 10 chapters across Europe and beyond — every scenario handwritten from historical research, not generated."
           </blockquote>
         </div>
       </section>
