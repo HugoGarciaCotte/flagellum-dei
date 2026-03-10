@@ -1,4 +1,4 @@
-const SCENARIOS_KEY = "qs_offline_scenarios";
+const GAME_SESSION_PREFIX = "qs_game_";
 const GAME_SESSION_PREFIX = "qs_game_";
 const FEATS_KEY = "qs_offline_feats";
 const CHAR_FEATS_PREFIX = "qs_charfeats_";
