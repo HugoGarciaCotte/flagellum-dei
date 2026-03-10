@@ -41,13 +41,6 @@ export type Database = {
             referencedRelation: "character_feats"
             referencedColumns: ["id"]
           },
-          {
-            foreignKeyName: "character_feat_subfeats_subfeat_id_fkey"
-            columns: ["subfeat_id"]
-            isOneToOne: false
-            referencedRelation: "feats"
-            referencedColumns: ["id"]
-          },
         ]
       }
       character_feats: {
@@ -83,13 +76,6 @@ export type Database = {
             referencedRelation: "characters"
             referencedColumns: ["id"]
           },
-          {
-            foreignKeyName: "character_feats_feat_id_fkey"
-            columns: ["feat_id"]
-            isOneToOne: false
-            referencedRelation: "feats"
-            referencedColumns: ["id"]
-          },
         ]
       }
       characters: {
@@ -119,51 +105,6 @@ export type Database = {
           portrait_url?: string | null
           updated_at?: string
           user_id?: string
-        }
-        Relationships: []
-      }
-      feat_redirects: {
-        Row: {
-          from_title: string
-          id: string
-          to_title: string
-        }
-        Insert: {
-          from_title: string
-          id?: string
-          to_title: string
-        }
-        Update: {
-          from_title?: string
-          id?: string
-          to_title?: string
-        }
-        Relationships: []
-      }
-      feats: {
-        Row: {
-          categories: string[]
-          content: string | null
-          created_at: string
-          id: string
-          raw_content: string | null
-          title: string
-        }
-        Insert: {
-          categories?: string[]
-          content?: string | null
-          created_at?: string
-          id?: string
-          raw_content?: string | null
-          title: string
-        }
-        Update: {
-          categories?: string[]
-          content?: string | null
-          created_at?: string
-          id?: string
-          raw_content?: string | null
-          title?: string
         }
         Relationships: []
       }
@@ -244,15 +185,7 @@ export type Database = {
           status?: string
           updated_at?: string
         }
-        Relationships: [
-          {
-            foreignKeyName: "games_scenario_id_fkey"
-            columns: ["scenario_id"]
-            isOneToOne: false
-            referencedRelation: "scenarios"
-            referencedColumns: ["id"]
-          },
-        ]
+        Relationships: []
       }
       profiles: {
         Row: {
@@ -275,33 +208,6 @@ export type Database = {
           id?: string
           updated_at?: string
           user_id?: string
-        }
-        Relationships: []
-      }
-      scenarios: {
-        Row: {
-          content: string | null
-          created_at: string
-          description: string | null
-          id: string
-          level: number | null
-          title: string
-        }
-        Insert: {
-          content?: string | null
-          created_at?: string
-          description?: string | null
-          id?: string
-          level?: number | null
-          title: string
-        }
-        Update: {
-          content?: string | null
-          created_at?: string
-          description?: string | null
-          id?: string
-          level?: number | null
-          title?: string
         }
         Relationships: []
       }
