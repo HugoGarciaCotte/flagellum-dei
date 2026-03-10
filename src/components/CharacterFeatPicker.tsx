@@ -323,7 +323,7 @@ const CharacterFeatPicker = ({ characterId, mode = "player", scenarioLevel }: Ch
 
   const addFreeFeatMutation = useMutation({
     mutationFn: async (featId: string) => {
-      if (!online) {
+      if (effectivelyOffline) {
         const tempId = crypto.randomUUID();
         queueAction({
           table: "character_feats",
