@@ -64,18 +64,7 @@ const Dashboard = () => {
     },
   });
 
-  const { data: scenarios } = useQuery({
-    queryKey: ["scenarios"],
-    queryFn: async () => {
-      if (isOffline()) {
-        const cached = getCachedScenarios();
-        if (cached) return cached;
-      }
-      const { data, error } = await supabase.from("scenarios").select("*").order("title");
-      if (error) throw error;
-      return data;
-    },
-  });
+  const scenarios = getAllScenarios();
 
   // Active games (hosted)
   const { data: myGames } = useQuery({
