@@ -334,19 +334,18 @@ const CharacterFeatPicker = ({ characterId, mode = "player", scenarioLevel }: Ch
   const updateNoteMutation = useMutation({
     mutationFn: async ({ id, note }: { id: string; note: string }) => {
       const trimmed = note.trim() || null;
-      try {
-        const { error } = await supabase
-          .from("character_feats")
-          .update({ note: trimmed } as any)
-          .eq("id", id);
-        if (error) throw error;
-      } catch {
-        queueAction({ table: "character_feats", operation: "update", payload: { note: trimmed }, filter: { id } });
-        queryClient.setQueryData(["character-feats", characterId], (old: CharacterFeat[] | undefined) =>
-          (old ?? []).map(cf => cf.id === id ? { ...cf, note: trimmed } : cf)
-        );
-        return "queued";
-      }
+      return resilientMutation(
+        async () => {
+          const { error } = await supabase.from("character_feats").update({ note: trimmed } as any).eq("id", id);
+          if (error) throw error;
+        },
+        () => {
+          queueAction({ table: "character_feats", operation: "update", payload: { note: trimmed }, filter: { id } });
+          queryClient.setQueryData(["character-feats", characterId], (old: CharacterFeat[] | undefined) =>
+            (old ?? []).map(cf => cf.id === id ? { ...cf, note: trimmed } : cf)
+          );
+        },
+      );
     },
     onSuccess: (result) => {
       if (result !== "queued") {
