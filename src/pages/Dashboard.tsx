@@ -304,7 +304,7 @@ const Dashboard = () => {
               {allActiveGames.map((game) => (
                 <Card
                   key={game.id}
-                  className="cursor-pointer border-primary/20 hover:border-primary/50 transition-colors"
+                  className="cursor-pointer aged-border gold-glow-box hover:border-primary/50 transition-colors"
                   onClick={() => navigate(game.role === "hosting" ? `/game/${game.id}/host` : `/game/${game.id}/play`)}
                 >
                   <CardHeader className="pb-2">
