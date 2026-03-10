@@ -1,22 +1,16 @@
 
 
-## No Changes Needed
+## Add Offline FAQ Entry
 
-All 4 edge functions are actively used in the codebase. No unused edge functions exist.
+Add a new FAQ item after the "Can I install this as an app?" entry (line 176) that addresses offline functionality.
 
-| Function | Used In | Purpose |
-|----------|---------|---------|
-| `generate-character-details` | `CharacterCreationWizard.tsx` | AI name & description generation |
-| `generate-character-portrait` | `CharacterSheet.tsx` | Generate + upload + save portrait for existing character |
-| `generate-portrait-preview` | `CharacterCreationWizard.tsx` | Generate temporary preview portrait during creation (no storage) |
-| `validate-feat` | `CharacterFeatPicker.tsx` | AI feat validation |
+**New FAQ entry:**
+```typescript
+{
+  q: "Does it work offline?",
+  a: "Yes! Once installed as a PWA, the game works fully offline — character creation, feat browsing, dice rolling, and scenario reading all function without an internet connection. The only features that require connectivity are online multiplayer gaming and background music.",
+}
+```
 
-### Portrait preview vs portrait — the difference
-
-- **`generate-portrait-preview`**: No auth needed, no storage. Returns a base64 data URL for a temporary preview shown during the creation wizard before the character exists in the DB.
-- **`generate-character-portrait`**: Requires auth. Loads the character from DB, generates the image, uploads to `character-portraits` storage bucket, updates `portrait_url` on the character row.
-
-### Only actionable item
-
-The **`app-assets`** storage bucket is unused and can be deleted from the Cloud storage UI — no code references it.
+Single edit to `src/pages/Home.tsx`, inserting after line 176.
 
