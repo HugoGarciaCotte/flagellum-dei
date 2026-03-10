@@ -252,6 +252,7 @@ const CharacterCreationWizard = ({ onCreated, onCancel, gameId }: CharacterCreat
         }
 
         queryClient.invalidateQueries({ queryKey: ["my-characters"] });
+        queryClient.invalidateQueries({ queryKey: ["character-feats-summary"] });
       }
     } catch (e: any) {
       toast({ title: "Error saving archetype", description: e.message, variant: "destructive" });
