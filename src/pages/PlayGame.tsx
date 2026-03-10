@@ -3,15 +3,11 @@ import { useParams, useNavigate, Link } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
 import { getScenarioById } from "@/data/scenarios";
-import { useQueryClient, useMutation } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { ArrowLeft, Plus, Check, X, GripHorizontal, Pencil, Copy } from "lucide-react";
 import CharacterSheet from "@/components/CharacterSheet";
 import { useNetworkStatus } from "@/hooks/useNetworkStatus";
-import { useOfflineQuery } from "@/hooks/useOfflineQuery";
-import { queueAction, resilientMutation } from "@/lib/offlineQueue";
-import { getCachedGameSession } from "@/lib/offlineStorage";
 import { toast } from "@/hooks/use-toast";
 import DiceRoller from "@/components/DiceRoller";
 import FullPageLoader from "@/components/FullPageLoader";
@@ -20,103 +16,43 @@ import CharacterCreationWizard from "@/components/CharacterCreationWizard";
 import CharacterListItem from "@/components/CharacterListItem";
 import { ScrollArea } from "@/components/ui/scroll-area";
 
+import { useLocalRow, useLocalRows } from "@/hooks/useLocalData";
+import { upsertRow } from "@/lib/localStore";
+import { triggerPush, pullAll } from "@/lib/syncManager";
 
 const PlayGame = () => {
   const { gameId } = useParams<{ gameId: string }>();
   const { user, isGuest } = useAuth();
   const navigate = useNavigate();
-  const queryClient = useQueryClient();
   const online = useNetworkStatus();
 
   const [sheetExpanded, setSheetExpanded] = useState(false);
   const [creatingChar, setCreatingChar] = useState(false);
   const [editingCharId, setEditingCharId] = useState<string | null>(null);
 
-  // Fetch game WITHOUT scenario content — only title
-  const { data: game, error: gameError } = useOfflineQuery<any>(`game-${gameId}`, {
-    queryKey: ["game", gameId],
-    queryFn: async () => {
-      const { data, error } = await supabase
-        .from("games")
-        .select("*")
-        .eq("id", gameId!)
-        .single();
-      if (error) throw error;
-      return data;
-    },
-    enabled: !!gameId,
-  });
+  // Local-first data
+  const game = useLocalRow<any>("games", gameId);
+  const allMyPlayers = useLocalRows<any>("game_players", gameId && user ? { game_id: gameId, user_id: user.id } : undefined);
+  const myPlayer = allMyPlayers.length > 0 ? allMyPlayers[0] : null;
+  const myCharacters = useLocalRows<any>("characters", user ? { user_id: user.id } : undefined);
+  const sortedCharacters = useMemo(() =>
+    [...myCharacters].sort((a, b) => (b.created_at || "").localeCompare(a.created_at || "")),
+    [myCharacters]
+  );
 
-  const { data: myPlayer } = useOfflineQuery<any>(`my-game-player-${gameId}-${user?.id}`, {
-    queryKey: ["my-game-player", gameId, user?.id],
-    queryFn: async () => {
-      const { data, error } = await supabase
-        .from("game_players")
-        .select("*")
-        .eq("game_id", gameId!)
-        .eq("user_id", user!.id)
-        .maybeSingle();
-      if (error) throw error;
-      return data;
-    },
-    enabled: !!gameId && !!user,
-  });
-
-  const { data: myCharacters } = useOfflineQuery<any[]>(`my-characters-${user?.id}`, {
-    queryKey: ["my-characters", user?.id],
-    queryFn: async () => {
-      const { data, error } = await supabase
-        .from("characters")
-        .select("*")
-        .eq("user_id", user!.id)
-        .order("created_at", { ascending: false });
-      if (error) throw error;
-      return data;
-    },
-    enabled: !!user,
-  });
-
-  // Selected character details
   const selectedCharacter = useMemo(
-    () => (myCharacters ?? []).find((c) => c.id === myPlayer?.character_id) ?? null,
+    () => myCharacters.find((c) => c.id === myPlayer?.character_id) ?? null,
     [myCharacters, myPlayer]
   );
 
-  // Select character mutation
-  const selectCharMutation = useMutation({
-    mutationFn: async (characterId: string) => {
-      return resilientMutation(
-        async () => {
-          const { error } = await supabase
-            .from("game_players")
-            .update({ character_id: characterId })
-            .eq("game_id", gameId!)
-            .eq("user_id", user!.id);
-          if (error) throw error;
-        },
-        () => {
-          queueAction({ table: "game_players", operation: "update", payload: { character_id: characterId }, filter: { game_id: gameId!, user_id: user!.id } });
-          queryClient.setQueryData(["my-game-player", gameId, user?.id], (old: any) => old ? { ...old, character_id: characterId } : old);
-        }
-      );
-    },
-    onSuccess: (result) => {
-      if (result !== "queued") queryClient.invalidateQueries({ queryKey: ["my-game-player", gameId, user?.id] });
-      toast({ title: result === "queued" ? "Character selected — will sync when online" : "Character selected!" });
-    },
-  });
+  const selectCharacter = (characterId: string) => {
+    if (!myPlayer) return;
+    upsertRow("game_players", { ...myPlayer, character_id: characterId });
+    triggerPush();
+    toast({ title: "Character selected!" });
+  };
 
-  // Offline fallback
-  const cachedSession = useMemo(() => {
-    if (game) return null;
-    if (!gameId) return null;
-    return getCachedGameSession(gameId);
-  }, [game, gameId, gameError]);
-
-  const effectiveGame = game ?? cachedSession?.game;
-  const effectiveScenario = game
-    ? getScenarioById(game.scenario_id)
-    : cachedSession?.scenario;
+  const effectiveScenario = game ? getScenarioById(game.scenario_id) : null;
 
   // Realtime: listen for game updates
   useEffect(() => {
@@ -124,30 +60,30 @@ const PlayGame = () => {
     const channel = supabase
       .channel(`game-${gameId}`)
       .on("postgres_changes", { event: "UPDATE", schema: "public", table: "games", filter: `id=eq.${gameId}` }, () => {
-        queryClient.invalidateQueries({ queryKey: ["game", gameId] });
+        pullAll();
       })
       .subscribe();
     return () => { supabase.removeChannel(channel); };
-  }, [gameId, queryClient]);
+  }, [gameId]);
 
-  const currentSectionId = (effectiveGame as any)?.current_section ?? null;
+  const currentSectionId = game?.current_section ?? null;
 
   const sectionTitle = currentSectionId
     ? currentSectionId.replace(/-/g, " ").replace(/\b\w/g, (c: string) => c.toUpperCase())
     : null;
 
-  if (!effectiveGame) {
+  if (!game) {
     return <FullPageLoader message="Joining quest..." />;
   }
 
   const copyCode = () => {
-    if (effectiveGame?.join_code) {
-      navigator.clipboard.writeText(effectiveGame.join_code);
+    if (game?.join_code) {
+      navigator.clipboard.writeText(game.join_code);
       toast({ title: "Join code copied!" });
     }
   };
 
-  if ((effectiveGame as any).status === "ended") {
+  if (game.status === "ended") {
     return (
       <div className="flex min-h-screen items-center justify-center bg-background flex-col gap-4">
         <p className="font-display text-xl text-muted-foreground">This quest has ended.</p>
@@ -166,9 +102,9 @@ const PlayGame = () => {
           </Button>
         }
         rightActions={
-          effectiveGame?.join_code ? (
+          game?.join_code ? (
             <Button variant="outline" size="sm" onClick={copyCode} className="font-mono text-xs gap-1.5">
-              {effectiveGame.join_code}
+              {game.join_code}
               <Copy className="h-3.5 w-3.5" />
             </Button>
           ) : undefined
@@ -244,7 +180,6 @@ const PlayGame = () => {
       {/* Expanded character overlay */}
       {sheetExpanded && (
         <div className="fixed inset-0 z-50 bg-background flex flex-col animate-in slide-in-from-bottom duration-300">
-          {/* Header bar */}
           <div className="border-b border-border/50 bg-card/80 backdrop-blur">
             <div className="container max-w-2xl flex items-center justify-between py-3 px-4">
               <span className="font-display text-sm font-medium text-foreground">Your Characters</span>
@@ -259,10 +194,9 @@ const PlayGame = () => {
             </div>
           </div>
 
-          {/* Scrollable content */}
           <ScrollArea className="flex-1">
             <div className="container max-w-2xl py-6 px-4 space-y-3">
-              {(myCharacters ?? []).length === 0 ? (
+              {sortedCharacters.length === 0 ? (
                 <div className="space-y-2">
                   <p className="text-sm text-muted-foreground">No characters yet.</p>
                   <Button variant="outline" size="sm" className="gap-2 w-full" onClick={() => setCreatingChar(true)}>
@@ -271,10 +205,10 @@ const PlayGame = () => {
                 </div>
               ) : (
                 <>
-                  {(myCharacters ?? []).map((char) => (
+                  {sortedCharacters.map((char) => (
                     <div
                       key={char.id}
-                      onClick={() => selectCharMutation.mutate(char.id)}
+                      onClick={() => selectCharacter(char.id)}
                       className={`cursor-pointer rounded-lg transition-colors ${
                         char.id === myPlayer?.character_id
                           ? "ring-2 ring-primary"
@@ -328,7 +262,7 @@ const PlayGame = () => {
               <CharacterCreationWizard
                 gameId={gameId}
                 onCreated={(id) => {
-                  selectCharMutation.mutate(id);
+                  selectCharacter(id);
                   setCreatingChar(false);
                 }}
                 onCancel={() => setCreatingChar(false)}
@@ -353,10 +287,7 @@ const PlayGame = () => {
                 characterId={editingCharId}
                 mode="player"
                 scenarioLevel={(effectiveScenario as any)?.level ?? undefined}
-                onDone={() => {
-                  setEditingCharId(null);
-                  queryClient.invalidateQueries({ queryKey: ["my-characters"] });
-                }}
+                onDone={() => setEditingCharId(null)}
               />
             </div>
           </ScrollArea>

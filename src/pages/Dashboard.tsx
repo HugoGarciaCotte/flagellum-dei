@@ -2,7 +2,6 @@ import { useState, useMemo } from "react";
 import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
 import { getAllScenarios, getScenarioById } from "@/data/scenarios";
-import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
@@ -24,14 +23,13 @@ import { useIsGameMaster } from "@/hooks/useIsGameMaster";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
 import GMPlayerList from "@/components/GMPlayerList";
 import { useNetworkStatus } from "@/hooks/useNetworkStatus";
-import { useOfflineQuery } from "@/hooks/useOfflineQuery";
-import { queueAction, setCacheData, getCacheData, resilientMutation } from "@/lib/offlineQueue";
-import { cacheGameSession } from "@/lib/offlineStorage";
+import { useLocalRows } from "@/hooks/useLocalData";
+import { upsertRow, deleteRow, deleteBy } from "@/lib/localStore";
+import { triggerPush } from "@/lib/syncManager";
 
 const Dashboard = () => {
   const { user, signOut, isGuest } = useAuth();
   const navigate = useNavigate();
-  const queryClient = useQueryClient();
   const online = useNetworkStatus();
   const [joinCode, setJoinCode] = useState("");
   const [hostOpen, setHostOpen] = useState(false);
@@ -41,92 +39,48 @@ const Dashboard = () => {
   const { isGameMaster, setGuestGameMaster } = useIsGameMaster();
   const [gmDialogOpen, setGmDialogOpen] = useState(false);
   const [deleteCharTarget, setDeleteCharTarget] = useState<{ id: string; name: string } | null>(null);
+  const [deleting, setDeleting] = useState(false);
 
-  // Characters
-  const { data: characters } = useOfflineQuery<any[]>(`my-characters-${user?.id}`, {
-    queryKey: ["my-characters", user?.id],
-    queryFn: async () => {
-      const { data, error } = await supabase
-        .from("characters")
-        .select("*")
-        .eq("user_id", user!.id)
-        .order("created_at", { ascending: false });
-      if (error) throw error;
-      return data;
-    },
-    enabled: !!user,
-  });
+  // Characters from local store
+  const characters = useLocalRows<any>("characters", user ? { user_id: user.id } : undefined);
+  const sortedCharacters = useMemo(() =>
+    [...characters].sort((a, b) => (b.created_at || "").localeCompare(a.created_at || "")),
+    [characters]
+  );
 
-  const deleteCharMutation = useMutation({
-    mutationFn: async (id: string) => {
-      return resilientMutation(
-        async () => {
-          const { error } = await supabase.from("characters").delete().eq("id", id);
-          if (error) throw error;
-        },
-        () => {
-          queueAction({ table: "characters", operation: "delete", payload: {}, filter: { id } });
-          queryClient.setQueryData(["my-characters", user?.id], (old: any[]) => (old ?? []).filter((c: any) => c.id !== id));
-          const cacheKey = `my-characters-${user?.id}`;
-          const cached = getCacheData<any[]>(cacheKey) ?? [];
-          setCacheData(cacheKey, cached.filter((c: any) => c.id !== id));
-        }
-      );
-    },
-    onSuccess: (result) => {
-      if (result !== "queued") queryClient.invalidateQueries({ queryKey: ["my-characters"] });
-      setDeleteCharTarget(null);
-      toast({ title: "Character deleted" });
-    },
-  });
+  const handleDeleteChar = (id: string) => {
+    setDeleting(true);
+    deleteRow("characters", id);
+    deleteBy("character_feats", { character_id: id });
+    deleteBy("character_feat_subfeats", {}); // will be cleaned by FK logic on sync
+    triggerPush();
+    setDeleteCharTarget(null);
+    setDeleting(false);
+    toast({ title: "Character deleted" });
+  };
 
   const scenarios = getAllScenarios();
 
-  // Active games (hosted)
-  const { data: myGames } = useOfflineQuery<any[]>(`my-games-${user?.id}`, {
-    queryKey: ["my-games", user?.id],
-    queryFn: async () => {
-      const { data, error } = await supabase
-        .from("games")
-        .select("*")
-        .eq("host_user_id", user!.id)
-        .eq("status", "active");
-      if (error) throw error;
-      return data;
-    },
-    enabled: !!user,
-  });
+  // Active games from local store
+  const allGames = useLocalRows<any>("games");
+  const gamePlayers = useLocalRows<any>("game_players", user ? { user_id: user.id } : undefined);
 
-  // Active games (joined as player)
-  const { data: joinedGames } = useOfflineQuery<any[]>(`joined-games-${user?.id}`, {
-    queryKey: ["joined-games", user?.id],
-    queryFn: async () => {
-      const { data, error } = await supabase
-        .from("game_players")
-        .select("game_id, games!inner(id, join_code, status, host_user_id, scenario_id)")
-        .eq("user_id", user!.id)
-        .eq("games.status", "active");
-      if (error) throw error;
-      return data;
-    },
-    enabled: !!user,
-  });
-
-  // Merge hosted + joined games, deduplicated
   const allActiveGames = useMemo(() => {
     const games: { id: string; title: string; join_code: string; role: "hosting" | "playing" }[] = [];
     const seen = new Set<string>();
-    if (myGames) {
-      for (const g of myGames) {
+    // Hosted games
+    for (const g of allGames) {
+      if (g.host_user_id === user?.id && g.status === "active") {
         seen.add(g.id);
         const sc = getScenarioById(g.scenario_id);
         games.push({ id: g.id, title: sc?.title || "Untitled", join_code: g.join_code, role: "hosting" });
       }
     }
-    if (joinedGames) {
-      for (const jp of joinedGames) {
-        const g = (jp as any).games;
-        if (g && !seen.has(g.id)) {
+    // Joined games
+    for (const gp of gamePlayers) {
+      if (!seen.has(gp.game_id)) {
+        const g = allGames.find((g: any) => g.id === gp.game_id && g.status === "active");
+        if (g) {
           seen.add(g.id);
           const sc = getScenarioById(g.scenario_id);
           games.push({ id: g.id, title: sc?.title || "Untitled", join_code: g.join_code, role: "playing" });
@@ -134,52 +88,46 @@ const Dashboard = () => {
       }
     }
     return games;
-  }, [myGames, joinedGames]);
+  }, [allGames, gamePlayers, user]);
 
-  const createLocalGame = (scenarioId: string) => {
+  const handleCreateGame = async (scenarioId: string) => {
     const tempGameId = crypto.randomUUID();
+    const letters = "ABCDEFGHIJKLMNOPQRSTUVWXYZ";
+    const code = Array.from({ length: 6 }, () => letters[Math.floor(Math.random() * 26)]).join("");
+    const now = new Date().toISOString();
+
     const newGame = {
       id: tempGameId,
       host_user_id: user!.id,
       scenario_id: scenarioId,
-      join_code: null,
+      join_code: code,
       status: "active",
       current_section: null,
-      created_at: new Date().toISOString(),
-      updated_at: new Date().toISOString(),
+      created_at: now,
+      updated_at: now,
     };
-    const cacheKey = `my-games-${user!.id}`;
-    const cached = getCacheData<any[]>(cacheKey) ?? [];
-    setCacheData(cacheKey, [newGame, ...cached]);
-    queryClient.setQueryData(["my-games", user!.id], (old: any[]) => old ? [newGame, ...old] : [newGame]);
 
-    const scenario = getScenarioById(scenarioId);
-    cacheGameSession(tempGameId, {
-      game: { id: tempGameId, status: "active", join_code: "LOCAL", current_section: null, host_user_id: user!.id, scenario_id: scenarioId },
-      scenario: { title: scenario?.title ?? "", description: scenario?.description ?? null, content: scenario?.content ?? null },
-      players: [],
-      characters: [],
-      cachedAt: Date.now(),
-    });
+    // Write locally first
+    upsertRow("games", newGame);
+    triggerPush();
 
-    toast({ title: "Game created", description: "Local game — no join code needed." });
-    navigate(`/game/${tempGameId}/host`);
-  };
-
-  const handleCreateGame = async (scenarioId: string) => {
+    // Also try server for a real join code
     try {
-      const letters = "ABCDEFGHIJKLMNOPQRSTUVWXYZ";
-      const code = Array.from({ length: 6 }, () => letters[Math.floor(Math.random() * 26)]).join("");
       const { data, error } = await supabase
         .from("games")
         .insert({ host_user_id: user!.id, scenario_id: scenarioId, join_code: code })
         .select()
         .single();
-      if (error) throw error;
-      navigate(`/game/${data.id}/host`);
-    } catch {
-      createLocalGame(scenarioId);
-    }
+      if (!error && data) {
+        // Replace local with server version
+        deleteRow("games", tempGameId);
+        upsertRow("games", data);
+        navigate(`/game/${data.id}/host`);
+        return;
+      }
+    } catch {}
+
+    navigate(`/game/${tempGameId}/host`);
   };
 
   const handleJoinGame = async () => {
@@ -195,6 +143,7 @@ const Dashboard = () => {
         toast({ title: "Game not found", description: "Check the code and try again.", variant: "destructive" });
         return;
       }
+      // Insert player
       const { error: joinError } = await supabase
         .from("game_players")
         .insert({ game_id: game.id, user_id: user!.id });
@@ -202,6 +151,9 @@ const Dashboard = () => {
         toast({ title: "Error joining", description: joinError.message, variant: "destructive" });
         return;
       }
+      // Store locally
+      upsertRow("games", game);
+      upsertRow("game_players", { id: crypto.randomUUID(), game_id: game.id, user_id: user!.id, character_id: null, joined_at: new Date().toISOString() });
       navigate(`/game/${game.id}/play`);
     } catch {
       toast({ title: "Server unreachable", description: "You need to be online to join a game.", variant: "destructive" });
@@ -294,21 +246,15 @@ const Dashboard = () => {
             </Dialog>
           </div>
 
-          {characters && characters.length > 0 ? (
+          {sortedCharacters.length > 0 ? (
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-              {characters.map((c) => (
+              {sortedCharacters.map((c) => (
                 <CharacterListItem
                   key={c.id}
                   character={c}
                   actions={
                     <>
-                      <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => {
-                        if (!online) {
-                          setCacheData(`character-${c.id}`, c);
-                          queryClient.setQueryData(["character", c.id], c);
-                        }
-                        setEditingCharId(c.id);
-                      }}>
+                      <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => setEditingCharId(c.id)}>
                         <Pencil className="h-3.5 w-3.5" />
                       </Button>
                       <Button variant="ghost" size="icon" className="h-7 w-7 text-destructive" onClick={() => setDeleteCharTarget({ id: c.id, name: c.name })}>
@@ -342,10 +288,7 @@ const Dashboard = () => {
                       <CharacterSheet
                         characterId={editingCharId}
                         mode="player"
-                        onDone={() => {
-                          setEditingCharId(null);
-                          queryClient.invalidateQueries({ queryKey: ["my-characters"] });
-                        }}
+                        onDone={() => setEditingCharId(null)}
                       />
                     )}
                   </div>
@@ -449,29 +392,12 @@ const Dashboard = () => {
                   onClick={async () => {
                     if (isGuest) {
                       setGuestGameMaster(true);
-                      queryClient.invalidateQueries({ queryKey: ["user-role-game-master"] });
                       toast({ title: "You are now a Game Master!", description: "You can now host games." });
                       return;
                     }
-                    if (!online) {
-                      queueAction({
-                        table: "user_roles",
-                        operation: "insert",
-                        payload: { user_id: user!.id, role: "game_master" },
-                      });
-                      setCacheData("qs_is_game_master", true);
-                      queryClient.invalidateQueries({ queryKey: ["user-role-game-master"] });
-                      toast({ title: "You are now a Game Master!", description: "Will sync when back online." });
-                      return;
-                    }
-                    const { error } = await supabase
-                      .from("user_roles")
-                      .insert({ user_id: user!.id, role: "game_master" as any });
-                    if (error) {
-                      toast({ title: "Error", description: error.message, variant: "destructive" });
-                      return;
-                    }
-                    queryClient.invalidateQueries({ queryKey: ["user-role-game-master"] });
+                    const roleRow = { id: crypto.randomUUID(), user_id: user!.id, role: "game_master" };
+                    upsertRow("user_roles", roleRow);
+                    triggerPush();
                     toast({ title: "You are now a Game Master!", description: "You can now host games." });
                   }}
                 >
@@ -495,13 +421,13 @@ const Dashboard = () => {
               </AlertDialogDescription>
             </AlertDialogHeader>
             <AlertDialogFooter>
-              <AlertDialogCancel disabled={deleteCharMutation.isPending}>Cancel</AlertDialogCancel>
+              <AlertDialogCancel disabled={deleting}>Cancel</AlertDialogCancel>
               <AlertDialogAction
-                onClick={() => deleteCharTarget && deleteCharMutation.mutate(deleteCharTarget.id)}
-                disabled={deleteCharMutation.isPending}
+                onClick={() => deleteCharTarget && handleDeleteChar(deleteCharTarget.id)}
+                disabled={deleting}
                 className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
               >
-                {deleteCharMutation.isPending ? "Deleting..." : "Delete"}
+                {deleting ? "Deleting..." : "Delete"}
               </AlertDialogAction>
             </AlertDialogFooter>
           </AlertDialogContent>
