@@ -278,7 +278,7 @@ const Home = () => {
                   size="lg"
                   className="font-display text-sm tracking-[0.2em] uppercase px-10 py-7 gold-glow gold-glow-box"
                 >
-                  Start Your First Hunt
+                  Descend Into Darkness
                 </Button>
               </Link>
               <a href="#how-it-works">
