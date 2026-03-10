@@ -462,6 +462,13 @@ const CharacterCreationWizard = ({ onCreated, onCancel, gameId }: CharacterCreat
     const file = e.target.files?.[0];
     if (!file || !user) return;
 
+    if (isGuest || !online) {
+      const localUrl = URL.createObjectURL(file);
+      setPortraitUrl(localUrl);
+      toast({ title: "Portrait saved locally" });
+      return;
+    }
+
     const targetId = characterId || crypto.randomUUID();
     const filePath = `${user.id}/${targetId}.png`;
     const { error: uploadError } = await supabase.storage
