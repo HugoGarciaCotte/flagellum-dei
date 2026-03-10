@@ -158,10 +158,10 @@ const CharacterCreationWizard = ({ onCreated, onCancel, gameId }: CharacterCreat
 
   // Generate description when reaching final step
   useEffect(() => {
-    if (step === finalStep && !description && !generatingDesc) {
+    if (step === finalStep && !description && !generatingDesc && online) {
       generateDescription();
     }
-  }, [step, finalStep]);
+  }, [step, finalStep, online]);
 
   // --- Progressive save helpers ---
 
