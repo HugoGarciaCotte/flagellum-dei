@@ -18,6 +18,7 @@ import GameTimer from "@/components/GameTimer";
 import { useOfflineGameSession } from "@/hooks/useOfflineGameSession";
 import { useNetworkStatus } from "@/hooks/useNetworkStatus";
 import { getCachedGameSession, updateCachedSection, prefetchImages } from "@/lib/offlineStorage";
+import { resilientMutation } from "@/lib/offlineQueue";
 import FullPageLoader from "@/components/FullPageLoader";
 import PageHeader from "@/components/PageHeader";
 
