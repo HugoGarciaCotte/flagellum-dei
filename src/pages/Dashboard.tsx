@@ -333,7 +333,7 @@ const Dashboard = () => {
             <CollapsibleTrigger asChild>
               <Button variant="ghost" className="gap-2 text-muted-foreground hover:text-foreground font-display w-full justify-between">
                 <span className="flex items-center gap-2">
-                  <Scroll className="h-4 w-4" /> Host a Game
+                  <span className="text-base" aria-hidden="true">🜾</span> Host a Game
                 </span>
                 <ChevronDown className={`h-4 w-4 transition-transform ${hostOpen ? "rotate-180" : ""}`} />
               </Button>
