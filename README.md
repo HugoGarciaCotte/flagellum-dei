@@ -4,6 +4,7 @@
 
 [![Play Now](https://img.shields.io/badge/Play_Now-flagellum--dei.lovable.app-d4a44a?style=for-the-badge)](https://flagellum-dei.lovable.app)
 [![Remix on Lovable](https://img.shields.io/badge/Remix_on-Lovable-ff69b4?style=for-the-badge)](https://lovable.dev/projects/81d72331-f39f-42a0-8104-483bc69c26ee)
+[![License: Unlicense](https://img.shields.io/badge/License-Unlicense-blue?style=for-the-badge)](https://unlicense.org)
 
 ---
 
