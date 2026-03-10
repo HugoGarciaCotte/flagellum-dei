@@ -12,7 +12,7 @@ import { useNetworkStatus } from "@/hooks/useNetworkStatus";
 import { getFeatById } from "@/data/feats";
 
 import { useOfflineQuery } from "@/hooks/useOfflineQuery";
-import { queueAction, setCacheData, getCacheData } from "@/lib/offlineQueue";
+import { queueAction, setCacheData, getCacheData, resilientMutation } from "@/lib/offlineQueue";
 
 interface CharacterSheetProps {
   characterId: string;
