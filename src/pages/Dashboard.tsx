@@ -54,7 +54,7 @@ const Dashboard = () => {
       if (error) throw error;
       return data;
     },
-    enabled: !!user && !isGuest,
+    enabled: !!user,
   });
 
   const deleteCharMutation = useMutation({
