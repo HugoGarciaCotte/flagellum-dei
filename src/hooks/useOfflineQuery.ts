@@ -1,22 +1,28 @@
 import { useEffect } from "react";
 import { useQuery, UseQueryOptions } from "@tanstack/react-query";
 import { useNetworkStatus } from "@/hooks/useNetworkStatus";
-import { setCacheData, getCacheData } from "@/lib/offlineQueue";
+import { useAuth } from "@/contexts/AuthContext";
+import { setCacheData, getCacheData, getIsSyncing } from "@/lib/offlineQueue";
 
 /**
  * Wraps useQuery with localStorage caching for offline support.
- * On success, caches data. When offline with no data, returns cached data.
+ * Blocks queries until syncReady (queue drained) to prevent stale overwrites.
  */
 export function useOfflineQuery<T>(
   cacheKey: string,
   options: UseQueryOptions<T, Error, T>,
 ) {
   const online = useNetworkStatus();
+  const { syncReady } = useAuth();
   const effectivelyOffline = !online;
+  const syncing = getIsSyncing();
+
+  // Queries only fire when: online + syncReady + not currently syncing
+  const canFetch = syncReady && !effectivelyOffline && !syncing;
 
   const query = useQuery<T, Error, T>({
     ...options,
-    enabled: effectivelyOffline ? false : (options.enabled ?? true),
+    enabled: canFetch ? (options.enabled ?? true) : false,
     retry: effectivelyOffline ? 0 : (options.retry as number ?? 3),
     refetchOnMount: effectivelyOffline ? false : (options.refetchOnMount ?? true),
     refetchOnWindowFocus: effectivelyOffline ? false : (options.refetchOnWindowFocus ?? true),
@@ -29,8 +35,8 @@ export function useOfflineQuery<T>(
     }
   }, [query.data, cacheKey]);
 
-  // Return cached data when offline/guest and no fresh data
-  if (query.data === undefined && effectivelyOffline) {
+  // Return cached data when offline/syncing and no fresh data
+  if (query.data === undefined && (effectivelyOffline || !syncReady || syncing)) {
     const cached = getCacheData<T>(cacheKey);
     if (cached !== null) {
       return {

@@ -10,7 +10,7 @@ import { toast } from "@/hooks/use-toast";
 import Logo from "@/components/Logo";
 
 const Auth = () => {
-  const { user, isGuest, enterGuestMode } = useAuth();
+  const { user, isGuest, isLocalGuest, enterGuestMode } = useAuth();
   const navigate = useNavigate();
 
   useEffect(() => {
@@ -50,8 +50,8 @@ const Auth = () => {
     e.preventDefault();
     setLoading(true);
 
-    if (isGuest) {
-      // Convert anonymous account to permanent
+    if (isGuest && !isLocalGuest) {
+      // Convert real anonymous account to permanent
       const { error } = await supabase.auth.updateUser({
         email,
         password,
@@ -68,6 +68,8 @@ const Auth = () => {
         toast({ title: "Account created!", description: "Your guest data has been preserved. Please check your email to verify your account." });
       }
     } else {
+      // Standard signup (also handles local guests — their offline data used a fake UUID
+      // and won't carry over, but the sync gate will have already attempted to upgrade them)
       const { error } = await supabase.auth.signUp({
         email,
         password,

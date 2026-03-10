@@ -15,6 +15,19 @@ export interface QueuedAction {
   deleteBefore?: { table: string; filter: Record<string, any> };
 }
 
+// --- Sync gate ---
+
+let _isSyncing = false;
+
+export function getIsSyncing(): boolean {
+  return _isSyncing;
+}
+
+export function setIsSyncing(value: boolean) {
+  _isSyncing = value;
+  window.dispatchEvent(new Event("offline-queue-change"));
+}
+
 // --- Queue management ---
 
 export function getQueuedActions(): QueuedAction[] {
@@ -48,6 +61,28 @@ export function clearQueue() {
   window.dispatchEvent(new Event("offline-queue-change"));
 }
 
+// --- User ID remapping (local guest → real anonymous user) ---
+
+export function remapUserId(oldId: string, newId: string) {
+  const actions = getQueuedActions();
+  for (const action of actions) {
+    for (const key of Object.keys(action.payload)) {
+      if (action.payload[key] === oldId) action.payload[key] = newId;
+    }
+    if (action.filter) {
+      for (const key of Object.keys(action.filter)) {
+        if (action.filter[key] === oldId) action.filter[key] = newId;
+      }
+    }
+    if (action.deleteBefore?.filter) {
+      for (const key of Object.keys(action.deleteBefore.filter)) {
+        if (action.deleteBefore.filter[key] === oldId) action.deleteBefore.filter[key] = newId;
+      }
+    }
+  }
+  saveQueue(actions);
+}
+
 // --- Temp ID remapping ---
 
 /** After an insert resolves with a real ID, remap all queued references */
@@ -76,6 +111,8 @@ function remapTempId(actions: QueuedAction[], tempId: string, realId: string) {
 export async function processQueue(): Promise<{ success: number; failed: number }> {
   const actions = getQueuedActions();
   if (actions.length === 0) return { success: 0, failed: 0 };
+
+  setIsSyncing(true);
 
   let success = 0;
   let failed = 0;
@@ -131,7 +168,7 @@ export async function processQueue(): Promise<{ success: number; failed: number 
   }
 
   saveQueue(remaining);
-  window.dispatchEvent(new Event("offline-queue-change"));
+  setIsSyncing(false);
   return { success, failed };
 }
 
