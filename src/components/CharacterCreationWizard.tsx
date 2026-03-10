@@ -301,7 +301,7 @@ const CharacterCreationWizard = ({ onCreated, onCancel, gameId }: CharacterCreat
     if (!characterId || !user) return;
     setCreating(true);
     try {
-      if (!online) {
+      if (!online || isGuest) {
         queueAction({
           table: "characters",
           operation: "update",
