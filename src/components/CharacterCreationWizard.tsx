@@ -441,6 +441,7 @@ const CharacterCreationWizard = ({ onCreated, onCancel, gameId }: CharacterCreat
         }
 
         queryClient.invalidateQueries({ queryKey: ["my-characters"] });
+        queryClient.invalidateQueries({ queryKey: ["character-feats-summary"] });
         onCreated(charData.id);
       }
     } catch (e: any) {
