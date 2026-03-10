@@ -813,7 +813,7 @@ const CharacterCreationWizard = ({ onCreated, onCancel, gameId }: CharacterCreat
           </Avatar>
           <div className="flex gap-2">
             <input ref={fileInputRef} type="file" accept="image/*" className="hidden" onChange={handleUpload} />
-            <Button variant="outline" size="sm" className="gap-1.5" onClick={() => fileInputRef.current?.click()} disabled={generatingPortrait}>
+            <Button variant="outline" size="sm" className="gap-1.5" onClick={() => fileInputRef.current?.click()} disabled={generatingPortrait || !online}>
               <Upload className="h-3.5 w-3.5" /> Upload
             </Button>
             <Button
@@ -821,15 +821,17 @@ const CharacterCreationWizard = ({ onCreated, onCancel, gameId }: CharacterCreat
               size="sm"
               className="gap-1.5"
               onClick={handleGeneratePortrait}
-              disabled={generatingPortrait || (!description && !archetypeFeatId)}
+              disabled={generatingPortrait || !online || (!description && !archetypeFeatId)}
             >
               {generatingPortrait ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Sparkles className="h-3.5 w-3.5" />}
               Generate
             </Button>
           </div>
-          <p className="text-xs text-muted-foreground/70 italic text-center max-w-xs">
-            Portrait is generated from your description — include details like gender, age, appearance…
-          </p>
+          {!online && (
+            <p className="text-xs text-muted-foreground flex items-center gap-1">
+              <WifiOff className="h-3 w-3" /> Portrait features available when online
+            </p>
+          )}
         </div>
 
         {/* Description */}
