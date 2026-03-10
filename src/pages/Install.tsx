@@ -38,7 +38,7 @@ const Install = () => {
   };
 
   return (
-    <div className="flex min-h-screen items-center justify-center bg-background p-4">
+    <div className="flex min-h-screen items-center justify-center bg-background p-4" style={{ background: "radial-gradient(ellipse at center top, hsl(43 74% 49% / 0.06) 0%, hsl(0 0% 7%) 70%)" }}>
       <div className="w-full max-w-md space-y-6">
         <div className="text-center space-y-2">
           <Logo className="text-5xl mx-auto" />
@@ -46,7 +46,9 @@ const Install = () => {
           <p className="text-muted-foreground">Play offline, anytime.</p>
         </div>
 
-        <Card className="border-primary/20 bg-card/80 backdrop-blur">
+        <div className="ornamental-divider w-48 mx-auto" />
+
+        <Card className="aged-border bg-card/80 backdrop-blur">
           <CardHeader>
             <CardTitle className="font-display flex items-center gap-2">
               <Smartphone className="h-5 w-5 text-primary" /> Get the App

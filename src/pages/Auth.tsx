@@ -62,7 +62,7 @@ const Auth = () => {
   };
 
   return (
-    <div className="flex min-h-screen items-center justify-center bg-background p-4">
+    <div className="flex min-h-screen items-center justify-center bg-background p-4" style={{ background: "radial-gradient(ellipse at center top, hsl(43 74% 49% / 0.06) 0%, hsl(0 0% 7%) 70%)" }}>
       <div className="w-full max-w-md space-y-8">
         <div className="text-center space-y-2">
           <div className="flex justify-center">
@@ -71,10 +71,12 @@ const Auth = () => {
           <h1 className="font-display text-3xl font-bold text-foreground tracking-wide">
             Flagellum Dei TTRPG
           </h1>
-          <p className="text-muted-foreground text-lg">Your adventure awaits</p>
+          <p className="text-muted-foreground text-lg">The Inquisition awaits</p>
         </div>
 
-        <Card className="border-primary/20 bg-card/80 backdrop-blur">
+        <div className="ornamental-divider w-48 mx-auto" />
+
+        <Card className="aged-border bg-card/80 backdrop-blur">
           <Tabs defaultValue="login">
             <CardHeader className="pb-2">
               <TabsList className="w-full">

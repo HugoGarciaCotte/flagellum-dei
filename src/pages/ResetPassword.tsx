@@ -52,8 +52,8 @@ const ResetPassword = () => {
 
   if (!isRecovery) {
     return (
-      <div className="flex min-h-screen items-center justify-center bg-background p-4">
-        <Card className="w-full max-w-md border-primary/20 bg-card/80 backdrop-blur">
+      <div className="flex min-h-screen items-center justify-center bg-background p-4" style={{ background: "radial-gradient(ellipse at center top, hsl(43 74% 49% / 0.06) 0%, hsl(0 0% 7%) 70%)" }}>
+        <Card className="w-full max-w-md aged-border bg-card/80 backdrop-blur">
           <CardContent className="p-6 text-center space-y-4">
             <KeyRound className="h-12 w-12 text-muted-foreground mx-auto" />
             <p className="text-muted-foreground">No recovery session found. Please use the reset link from your email.</p>
@@ -67,7 +67,7 @@ const ResetPassword = () => {
   }
 
   return (
-    <div className="flex min-h-screen items-center justify-center bg-background p-4">
+    <div className="flex min-h-screen items-center justify-center bg-background p-4" style={{ background: "radial-gradient(ellipse at center top, hsl(43 74% 49% / 0.06) 0%, hsl(0 0% 7%) 70%)" }}>
       <div className="w-full max-w-md space-y-8">
         <div className="text-center space-y-2">
           <div className="flex justify-center">
@@ -76,10 +76,12 @@ const ResetPassword = () => {
           <h1 className="font-display text-3xl font-bold text-foreground tracking-wide">
             Forge New Password
           </h1>
-          <p className="text-muted-foreground text-lg">Reforge your enchantment</p>
+          <p className="text-muted-foreground text-lg">Seal your oath anew</p>
         </div>
 
-        <Card className="border-primary/20 bg-card/80 backdrop-blur">
+        <div className="ornamental-divider w-48 mx-auto" />
+
+        <Card className="aged-border bg-card/80 backdrop-blur">
           <CardHeader className="pb-2">
             <div className="flex items-center gap-2 text-foreground font-display text-lg">
               <KeyRound className="h-5 w-5 text-primary" /> Set New Password
