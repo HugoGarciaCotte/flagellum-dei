@@ -8,7 +8,7 @@ const Logo = ({ className }: { className?: string }) => (
     style={{ width: "1em", height: "1em" }}
   >
     <text
-      x="256" y="280"
+      x="256" y="240"
       fontSize="420"
       fill="currentColor"
       textAnchor="middle"
