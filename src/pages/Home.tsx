@@ -536,7 +536,7 @@ const Home = () => {
                   {faq.q}
                 </AccordionTrigger>
                 <AccordionContent className="text-sm leading-relaxed text-muted-foreground space-y-2">
-                  <p>{faq.a}</p>
+                  <p dangerouslySetInnerHTML={{ __html: faq.a }} />
                   {faq.links && (
                     <p className="flex gap-4">
                       {faq.links.lovable && (
