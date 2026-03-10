@@ -344,8 +344,8 @@ const Home = () => {
               description={
                 <p>
                   A decade of research across historical archives and scientific
-                  publications. Every ritual, belief, and institution is rooted
-                  in documented medieval reality.
+                  publications. Real events, real figures, real institutions —
+                  woven together with just enough artistic license to terrify.
                 </p>
               }
             />
