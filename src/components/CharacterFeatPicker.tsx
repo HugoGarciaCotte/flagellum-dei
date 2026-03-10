@@ -1,7 +1,7 @@
-import { useState, useMemo, useEffect } from "react";
+import { useState, useMemo } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { sortTitlesEmojiLast } from "@/lib/utils";
-import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { X, Search, Loader2, WifiOff, Pencil, ArrowLeft, Plus } from "lucide-react";
@@ -11,22 +11,8 @@ import { Alert, AlertTitle, AlertDescription } from "@/components/ui/alert";
 
 import { parseEmbeddedFeatMeta, type SubfeatSlot } from "@/lib/parseEmbeddedFeatMeta";
 
-// COMMENTED OUT: preprocessed fields — Select for list-based subfeats
-// import {
-//   Select,
-//   SelectContent,
-//   SelectItem,
-//   SelectTrigger,
-//   SelectValue,
-// } from "@/components/ui/select";
-
 import { useNetworkStatus } from "@/hooks/useNetworkStatus";
-import {
-  cacheFeats,
-  getCachedFeats,
-  cacheCharacterFeats,
-  getCachedCharacterFeats,
-} from "@/lib/offlineStorage";
+import { getAllFeats } from "@/data/feats";
 
 interface CharacterFeatPickerProps {
   characterId: string;
