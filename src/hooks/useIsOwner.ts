@@ -1,14 +1,14 @@
 import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
-import { useQuery } from "@tanstack/react-query";
+import { useOfflineQuery } from "@/hooks/useOfflineQuery";
 
 export function useIsOwner() {
   const { user, isGuest } = useAuth();
 
-  const { data: isOwner, isLoading } = useQuery({
+  const { data: isOwner, isLoading } = useOfflineQuery<boolean>("qs_is_owner", {
     queryKey: ["user-role-owner", user?.id],
     queryFn: async () => {
-      const { data, error } = await supabase
+      const { data } = await supabase
         .from("user_roles")
         .select("role")
         .eq("user_id", user!.id)

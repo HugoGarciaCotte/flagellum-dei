@@ -22,7 +22,7 @@ const GMPlayerList = () => {
   const [open, setOpen] = useState(false);
   const [editPlayer, setEditPlayer] = useState<PlayerRow | null>(null);
 
-  const { data: players } = useQuery({
+  const { data: players } = useOfflineQuery<PlayerRow[]>(`gm-players-${user?.id}`, {
     queryKey: ["gm-players", user?.id],
     queryFn: async () => {
       const { data, error } = await supabase

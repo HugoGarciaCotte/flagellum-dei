@@ -11,7 +11,7 @@ interface CharacterListItemProps {
 }
 
 const CharacterListItem = ({ character, actions }: CharacterListItemProps) => {
-  const { data: feats } = useQuery({
+  const { data: feats } = useOfflineQuery<any[]>(`char-feats-summary-${character.id}`, {
     queryKey: ["character-feats-summary", character.id],
     queryFn: async () => {
       const { data, error } = await supabase
