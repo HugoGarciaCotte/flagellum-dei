@@ -52,7 +52,7 @@ const ResetPassword = () => {
 
   if (!isRecovery) {
     return (
-      <div className="flex min-h-screen items-center justify-center bg-background p-4" style={{ background: "radial-gradient(ellipse at center top, hsl(43 74% 49% / 0.06) 0%, hsl(0 0% 7%) 70%)" }}>
+      <div className="flex min-h-screen items-center justify-center bg-background p-4 safe-top" style={{ background: "radial-gradient(ellipse at center top, hsl(43 74% 49% / 0.06) 0%, hsl(0 0% 7%) 70%)" }}>
         <Card className="w-full max-w-md aged-border bg-card/80 backdrop-blur">
           <CardContent className="p-6 text-center space-y-4">
             <span className="text-4xl text-muted-foreground mx-auto block text-center" aria-hidden="true">🜐</span>
