@@ -212,10 +212,28 @@ const CharacterFeatPicker = ({ characterId, mode = "player", scenarioLevel }: Ch
 
   const upsertMutation = useMutation({
     mutationFn: async ({ level, featId }: { level: number; featId: string }) => {
-      // COMMENTED OUT: preprocessed fields — validateFeatLocally call
-      // if (mode === "player") {
-      //   validateFeatLocally(featId);
-      // }
+      if (!online) {
+        const tempId = crypto.randomUUID();
+        // Queue delete + insert
+        queueAction({
+          table: "character_feats",
+          operation: "delete",
+          payload: {},
+          filter: { character_id: characterId, level, is_free: false },
+        });
+        queueAction({
+          table: "character_feats",
+          operation: "insert",
+          payload: { character_id: characterId, level, feat_id: featId, is_free: false },
+          tempId,
+        });
+        // Optimistic update
+        queryClient.setQueryData(["character-feats", characterId], (old: CharacterFeat[] | undefined) => {
+          const filtered = (old ?? []).filter(cf => !(cf.level === level && !cf.is_free));
+          return [...filtered, { id: tempId, character_id: characterId, level, feat_id: featId, is_free: false, note: null }];
+        });
+        return;
+      }
 
       await supabase
         .from("character_feats")
@@ -247,16 +265,10 @@ const CharacterFeatPicker = ({ characterId, mode = "player", scenarioLevel }: Ch
       }
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["character-feats", characterId] });
-      queryClient.invalidateQueries({ queryKey: ["character-feat-subfeats", characterId] });
-
-      // COMMENTED OUT: preprocessed fields — auto-prompt for non-fixed subfeat slots
-      // const meta = metaMap.get(variables.featId);
-      // const nonFixedSlots = (meta?.subfeats ?? []).filter(s => s.kind !== "fixed");
-      // if (nonFixedSlots.length > 0) {
-      //   supabase.from("character_feats").select("id")...
-      // }
-
+      if (online) {
+        queryClient.invalidateQueries({ queryKey: ["character-feats", characterId] });
+        queryClient.invalidateQueries({ queryKey: ["character-feat-subfeats", characterId] });
+      }
       setPickerTarget(null);
       setSearchTerm("");
     },
