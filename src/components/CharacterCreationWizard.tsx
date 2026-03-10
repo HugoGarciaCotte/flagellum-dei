@@ -873,7 +873,7 @@ const CharacterCreationWizard = ({ onCreated, onCancel, gameId }: CharacterCreat
               size="sm"
               className="gap-1 text-xs"
               onClick={generateName}
-              disabled={generatingName}
+              disabled={generatingName || !online}
             >
               {generatingName ? <Loader2 className="h-3 w-3 animate-spin" /> : <Dices className="h-3 w-3" />}
               Random Name
