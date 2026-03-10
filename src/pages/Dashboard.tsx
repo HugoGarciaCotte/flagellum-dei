@@ -53,7 +53,7 @@ const Dashboard = () => {
       if (error) throw error;
       return data;
     },
-    enabled: !!user,
+    enabled: !!user && !isGuest,
   });
 
   const deleteCharMutation = useMutation({
