@@ -3,7 +3,8 @@ import { useParams, useNavigate, Link } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
 import { getScenarioById } from "@/data/scenarios";
-import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { useQueryClient } from "@tanstack/react-query";
+import { useOfflineQuery } from "@/hooks/useOfflineQuery";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { toast } from "@/hooks/use-toast";
@@ -31,7 +32,7 @@ const HostGame = () => {
   // Local override for current_section when offline
   const [localSection, setLocalSection] = useState<string | null>(null);
 
-  const { data: game, error: gameError } = useQuery({
+  const { data: game, error: gameError } = useOfflineQuery<any>(`host_game_${gameId}`, {
     queryKey: ["game", gameId],
     queryFn: async () => {
       const { data, error } = await supabase
@@ -42,11 +43,10 @@ const HostGame = () => {
       if (error) throw error;
       return data;
     },
-    enabled: !!gameId && !effectivelyOffline,
-    retry: effectivelyOffline ? 0 : 3,
+    enabled: !!gameId,
   });
 
-  const { data: players } = useQuery({
+  const { data: players } = useOfflineQuery<any[]>(`host_players_${gameId}`, {
     queryKey: ["game-players", gameId],
     queryFn: async () => {
       const { data, error } = await supabase
@@ -56,17 +56,16 @@ const HostGame = () => {
       if (error) throw error;
       return data;
     },
-    enabled: !!gameId && !effectivelyOffline,
-    retry: effectivelyOffline ? 0 : 3,
+    enabled: !!gameId,
   });
 
   // Fetch ALL characters for all players (not just selected ones)
   const playerUserIds = useMemo(
-    () => [...new Set((players ?? []).map((p: any) => p.user_id))],
+    () => [...new Set((players ?? []).map((p: any) => p.user_id as string))],
     [players]
   );
 
-  const { data: characters } = useQuery({
+  const { data: characters } = useOfflineQuery<any[]>(`host_chars_${gameId}`, {
     queryKey: ["game-characters", gameId, playerUserIds],
     queryFn: async () => {
       if (playerUserIds.length === 0) return [];
@@ -77,8 +76,7 @@ const HostGame = () => {
       if (error) throw error;
       return data;
     },
-    enabled: !!gameId && playerUserIds.length > 0 && !effectivelyOffline,
-    retry: effectivelyOffline ? 0 : 3,
+    enabled: !!gameId && playerUserIds.length > 0,
   });
 
   // Cache session for offline use
