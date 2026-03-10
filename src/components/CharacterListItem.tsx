@@ -1,6 +1,6 @@
 import { ReactNode } from "react";
-import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
+import { useOfflineQuery } from "@/hooks/useOfflineQuery";
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
 import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
 import { getFeatById } from "@/data/feats";
@@ -11,7 +11,7 @@ interface CharacterListItemProps {
 }
 
 const CharacterListItem = ({ character, actions }: CharacterListItemProps) => {
-  const { data: feats } = useQuery({
+  const { data: feats } = useOfflineQuery<any[]>(`char-feats-summary-${character.id}`, {
     queryKey: ["character-feats-summary", character.id],
     queryFn: async () => {
       const { data, error } = await supabase
