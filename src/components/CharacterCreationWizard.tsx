@@ -273,23 +273,17 @@ const CharacterCreationWizard = ({ onCreated, onCancel, gameId }: CharacterCreat
       }
     };
 
-    try {
-      await supabase
-        .from("character_feat_subfeats")
-        .delete()
-        .eq("character_feat_id", characterFeatId)
-        .eq("slot", slotNum);
-      if (subfeatId) {
-        const { error } = await supabase
-          .from("character_feat_subfeats")
-          .insert({ character_feat_id: characterFeatId, slot: slotNum, subfeat_id: subfeatId });
-        if (error) throw error;
-      }
-    } catch {
-      doOffline();
-    } finally {
-      setSaving(false);
-    }
+    await resilientMutation(
+      async () => {
+        await supabase.from("character_feat_subfeats").delete().eq("character_feat_id", characterFeatId).eq("slot", slotNum);
+        if (subfeatId) {
+          const { error } = await supabase.from("character_feat_subfeats").insert({ character_feat_id: characterFeatId, slot: slotNum, subfeat_id: subfeatId });
+          if (error) throw error;
+        }
+      },
+      doOffline,
+    );
+    setSaving(false);
   };
 
   /** Final step: update character name/description/portrait */
