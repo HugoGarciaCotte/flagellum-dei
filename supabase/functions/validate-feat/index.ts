@@ -1,5 +1,4 @@
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
-import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -7,7 +6,7 @@ const corsHeaders = {
     "authorization, x-client-info, apikey, content-type, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version",
 };
 
-serve(async (req) => {
+Deno.serve(async (req) => {
   if (req.method === "OPTIONS") {
     return new Response(null, { headers: corsHeaders });
   }
@@ -36,7 +35,8 @@ serve(async (req) => {
       });
     }
 
-    const { characterId, featId, pickType, level, parentFeatTitle } = await req.json();
+    // The client now sends feat data directly since the feats table no longer exists
+    const { characterId, featId, pickType, level, parentFeatTitle, targetFeat, allFeatsContext } = await req.json();
     if (!characterId || !featId) {
       return new Response(JSON.stringify({ error: "characterId and featId required" }), {
         status: 400,
@@ -44,16 +44,10 @@ serve(async (req) => {
       });
     }
 
-    // Fetch target feat
-    const { data: targetFeat, error: featError } = await supabase
-      .from("feats")
-      .select("id, title, categories, content")
-      .eq("id", featId)
-      .single();
-
-    if (featError || !targetFeat) {
-      return new Response(JSON.stringify({ error: "Feat not found" }), {
-        status: 404,
+    // targetFeat is now provided by the client from the hardcoded bundle
+    if (!targetFeat) {
+      return new Response(JSON.stringify({ error: "targetFeat data required (feats are no longer in DB)" }), {
+        status: 400,
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
@@ -72,20 +66,20 @@ serve(async (req) => {
       });
     }
 
-    // Fetch current character feats with full feat details
+    // Fetch current character feats (only the join table, not the feat content)
     const { data: characterFeats } = await supabase
       .from("character_feats")
       .select("id, level, is_free, feat_id")
       .eq("character_id", characterId);
 
-    const featIds = (characterFeats ?? []).map((cf: any) => cf.feat_id);
-    let currentFeatsDetails: any[] = [];
-    if (featIds.length > 0) {
-      const { data } = await supabase
-        .from("feats")
-        .select("id, title, categories, content")
-        .in("id", featIds);
-      currentFeatsDetails = data ?? [];
+    // The client sends allFeatsContext: an array of { id, title, categories, content } 
+    // for all feats the character currently has + the target feat
+    // This replaces the old DB queries for feat details
+    const allFeatsMap = new Map<string, any>();
+    if (allFeatsContext && Array.isArray(allFeatsContext)) {
+      for (const f of allFeatsContext) {
+        allFeatsMap.set(f.id, f);
+      }
     }
 
     // Fetch subfeats for all character feats
@@ -99,23 +93,10 @@ serve(async (req) => {
       allSubfeats = data ?? [];
     }
 
-    // Fetch subfeat feat details
-    const subfeatFeatIds = allSubfeats.map((s: any) => s.subfeat_id);
-    let subfeatDetails: any[] = [];
-    if (subfeatFeatIds.length > 0) {
-      const { data } = await supabase
-        .from("feats")
-        .select("id, title, categories, content")
-        .in("id", subfeatFeatIds);
-      subfeatDetails = data ?? [];
-    }
-    const subfeatFeatMap = new Map(subfeatDetails.map((f: any) => [f.id, f]));
-
-    // Build context for AI
-    const featMap = new Map(currentFeatsDetails.map((f: any) => [f.id, f]));
+    // Build context for AI using client-provided feat data
     const currentFeatsFormatted = (characterFeats ?? [])
       .map((cf: any) => {
-        const feat = featMap.get(cf.feat_id);
+        const feat = allFeatsMap.get(cf.feat_id);
         if (!feat) return null;
         let line = `- ${feat.title} (Level ${cf.level}${cf.is_free ? ", Free" : ""}, Categories: ${feat.categories?.join(", ") || "none"})\n  Content: ${feat.content || "N/A"}`;
 
@@ -123,7 +104,7 @@ serve(async (req) => {
         const cfSubs = allSubfeats.filter((s: any) => s.character_feat_id === cf.id);
         if (cfSubs.length > 0) {
           const subLines = cfSubs.map((s: any) => {
-            const sf = subfeatFeatMap.get(s.subfeat_id);
+            const sf = allFeatsMap.get(s.subfeat_id);
             return sf ? `    ↳ Subfeat slot ${s.slot}: ${sf.title} (Categories: ${sf.categories?.join(", ") || "none"})` : null;
           }).filter(Boolean);
           if (subLines.length > 0) line += "\n" + subLines.join("\n");
