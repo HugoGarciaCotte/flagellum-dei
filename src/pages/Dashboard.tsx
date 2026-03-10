@@ -170,8 +170,7 @@ const Dashboard = () => {
     <div className="min-h-screen bg-background">
       {/* Header */}
       <PageHeader
-        title="Flagellum Dei TTRPG"
-        icon={<Logo className="text-xl" />}
+        title="Flagellum Dei"
         rightActions={
           <>
             {isOwner && (
