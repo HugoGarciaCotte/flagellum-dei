@@ -167,7 +167,7 @@ const PlayGame = () => {
             </CardContent>
           </Card>
         ) : (
-          <div className="text-center space-y-2">
+          <div className="text-center space-y-4">
             <div className="animate-pulse-glow text-primary font-display text-xl">
               {online ? "Waiting for the Game Master..." : "Offline — showing last known state"}
             </div>
