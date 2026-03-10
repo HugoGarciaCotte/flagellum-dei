@@ -539,7 +539,7 @@ const Home = () => {
           <h2 className="font-display text-3xl font-bold text-foreground md:text-5xl leading-tight">
             Bring your players to the table.
             <br />
-            <span className="text-crimson">The heresy is waiting.</span>
+            <span className="text-primary">The heresy is waiting.</span>
           </h2>
 
           <div className="flex flex-col sm:flex-row items-center justify-center gap-4 pt-4">
