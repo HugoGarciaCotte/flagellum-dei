@@ -85,7 +85,14 @@ const PlayGame = () => {
   // Select character mutation
   const selectCharMutation = useMutation({
     mutationFn: async (characterId: string) => {
-      if (!online) {
+      try {
+        const { error } = await supabase
+          .from("game_players")
+          .update({ character_id: characterId })
+          .eq("game_id", gameId!)
+          .eq("user_id", user!.id);
+        if (error) throw error;
+      } catch {
         queueAction({
           table: "game_players",
           operation: "update",
@@ -95,18 +102,12 @@ const PlayGame = () => {
         queryClient.setQueryData(["my-game-player", gameId, user?.id], (old: any) =>
           old ? { ...old, character_id: characterId } : old
         );
-        return;
+        return "queued";
       }
-      const { error } = await supabase
-        .from("game_players")
-        .update({ character_id: characterId })
-        .eq("game_id", gameId!)
-        .eq("user_id", user!.id);
-      if (error) throw error;
     },
-    onSuccess: () => {
-      if (online) queryClient.invalidateQueries({ queryKey: ["my-game-player", gameId, user?.id] });
-      toast({ title: online ? "Character selected!" : "Character selected — will sync when online" });
+    onSuccess: (result) => {
+      if (result !== "queued") queryClient.invalidateQueries({ queryKey: ["my-game-player", gameId, user?.id] });
+      toast({ title: result === "queued" ? "Character selected — will sync when online" : "Character selected!" });
     },
   });
 

@@ -59,7 +59,10 @@ const Dashboard = () => {
 
   const deleteCharMutation = useMutation({
     mutationFn: async (id: string) => {
-      if (!online) {
+      try {
+        const { error } = await supabase.from("characters").delete().eq("id", id);
+        if (error) throw error;
+      } catch {
         queueAction({ table: "characters", operation: "delete", payload: {}, filter: { id } });
         queryClient.setQueryData(["my-characters", user?.id], (old: any[]) =>
           (old ?? []).filter((c: any) => c.id !== id)
@@ -67,13 +70,11 @@ const Dashboard = () => {
         const cacheKey = `my-characters-${user?.id}`;
         const cached = getCacheData<any[]>(cacheKey) ?? [];
         setCacheData(cacheKey, cached.filter((c: any) => c.id !== id));
-        return;
+        return "queued";
       }
-      const { error } = await supabase.from("characters").delete().eq("id", id);
-      if (error) throw error;
     },
-    onSuccess: () => {
-      if (online) queryClient.invalidateQueries({ queryKey: ["my-characters"] });
+    onSuccess: (result) => {
+      if (result !== "queued") queryClient.invalidateQueries({ queryKey: ["my-characters"] });
       setDeleteCharTarget(null);
       toast({ title: "Character deleted" });
     },
@@ -166,49 +167,45 @@ const Dashboard = () => {
   };
 
   const handleCreateGame = async (scenarioId: string) => {
-    if (!online) {
+    try {
+      const letters = "ABCDEFGHIJKLMNOPQRSTUVWXYZ";
+      const code = Array.from({ length: 6 }, () => letters[Math.floor(Math.random() * 26)]).join("");
+      const { data, error } = await supabase
+        .from("games")
+        .insert({ host_user_id: user!.id, scenario_id: scenarioId, join_code: code })
+        .select()
+        .single();
+      if (error) throw error;
+      navigate(`/game/${data.id}/host`);
+    } catch {
       createLocalGame(scenarioId);
-      return;
     }
-    const letters = "ABCDEFGHIJKLMNOPQRSTUVWXYZ";
-    const code = Array.from({ length: 6 }, () => letters[Math.floor(Math.random() * 26)]).join("");
-    const { data, error } = await supabase
-      .from("games")
-      .insert({ host_user_id: user!.id, scenario_id: scenarioId, join_code: code })
-      .select()
-      .single();
-    if (error) {
-      console.warn("DB game creation failed, falling back to local:", error.message);
-      createLocalGame(scenarioId);
-      return;
-    }
-    navigate(`/game/${data.id}/host`);
   };
 
   const handleJoinGame = async () => {
     if (!joinCode.trim()) return;
-    if (!online) {
-      toast({ title: "Offline", description: "You need to be online to join a game.", variant: "destructive" });
-      return;
+    try {
+      const { data: game, error } = await supabase
+        .from("games")
+        .select("*")
+        .eq("join_code", joinCode.toUpperCase())
+        .eq("status", "active")
+        .single();
+      if (error || !game) {
+        toast({ title: "Game not found", description: "Check the code and try again.", variant: "destructive" });
+        return;
+      }
+      const { error: joinError } = await supabase
+        .from("game_players")
+        .insert({ game_id: game.id, user_id: user!.id });
+      if (joinError && !joinError.message.includes("duplicate")) {
+        toast({ title: "Error joining", description: joinError.message, variant: "destructive" });
+        return;
+      }
+      navigate(`/game/${game.id}/play`);
+    } catch {
+      toast({ title: "Server unreachable", description: "You need to be online to join a game.", variant: "destructive" });
     }
-    const { data: game, error } = await supabase
-      .from("games")
-      .select("*")
-      .eq("join_code", joinCode.toUpperCase())
-      .eq("status", "active")
-      .single();
-    if (error || !game) {
-      toast({ title: "Game not found", description: "Check the code and try again.", variant: "destructive" });
-      return;
-    }
-    const { error: joinError } = await supabase
-      .from("game_players")
-      .insert({ game_id: game.id, user_id: user!.id });
-    if (joinError && !joinError.message.includes("duplicate")) {
-      toast({ title: "Error joining", description: joinError.message, variant: "destructive" });
-      return;
-    }
-    navigate(`/game/${game.id}/play`);
   };
 
   return (

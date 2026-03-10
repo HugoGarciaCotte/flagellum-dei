@@ -55,44 +55,45 @@ const CharacterSheet = ({ characterId, mode = "player", scenarioLevel, onDone }:
 
   const saveMutation = useMutation({
     mutationFn: async () => {
-      if (effectivelyOffline) {
-        // Queue for later sync
+      try {
+        const { error } = await supabase
+          .from("characters")
+          .update({ name, description: desc || null })
+          .eq("id", characterId);
+        if (error) throw error;
+      } catch {
+        // Server unreachable — fall back to offline queue
         queueAction({
           table: "characters",
           operation: "update",
           payload: { name, description: desc || null },
           filter: { id: characterId },
         });
-        // Optimistically update cache
         const cacheKey = `character-${characterId}`;
         const cached = getCacheData<any>(cacheKey);
         if (cached) {
           setCacheData(cacheKey, { ...cached, name, description: desc || null });
         }
-        // Update query cache
         queryClient.setQueryData(["character", characterId], (old: any) =>
           old ? { ...old, name, description: desc || null } : old
         );
         queryClient.setQueryData(["my-characters", character?.user_id], (old: any[]) =>
           old?.map((c: any) => c.id === characterId ? { ...c, name, description: desc || null } : c)
         );
-        return;
+        return "queued";
       }
-      const { error } = await supabase
-        .from("characters")
-        .update({ name, description: desc || null })
-        .eq("id", characterId);
-      if (error) throw error;
     },
-    onSuccess: () => {
+    onSuccess: (result) => {
       setDirty(false);
-      if (!effectivelyOffline) {
+      if (result === "queued") {
+        toast({ title: "Saved locally — will sync when online" });
+      } else {
         queryClient.invalidateQueries({ queryKey: ["character", characterId] });
         queryClient.invalidateQueries({ queryKey: ["my-characters"] });
         queryClient.invalidateQueries({ queryKey: ["gm-players"] });
         queryClient.invalidateQueries({ queryKey: ["game-characters"] });
+        toast({ title: "Character updated" });
       }
-      toast({ title: !effectivelyOffline ? "Character updated" : "Saved locally — will sync when online" });
     },
     onError: (e: any) => toast({ title: "Error", description: e.message, variant: "destructive" }),
   });

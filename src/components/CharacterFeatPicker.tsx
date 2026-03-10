@@ -65,7 +65,7 @@ type ValidationResult = {
 const CharacterFeatPicker = ({ characterId, mode = "player", scenarioLevel }: CharacterFeatPickerProps) => {
   const queryClient = useQueryClient();
   const online = useNetworkStatus();
-  const effectivelyOffline = !online;
+  
   const [pickerTarget, setPickerTarget] = useState<PickerTarget | null>(null);
   const [searchTerm, setSearchTerm] = useState("");
   // COMMENTED OUT: preprocessed fields — filterMode for archetype toggle
@@ -179,10 +179,6 @@ const CharacterFeatPicker = ({ characterId, mode = "player", scenarioLevel }: Ch
     level?: number | null,
     parentFeatTitle?: string | null,
   ) => {
-    if (effectivelyOffline) {
-      action();
-      return;
-    }
     setValidating(true);
     setValidationResult(null);
     try {
@@ -191,7 +187,6 @@ const CharacterFeatPicker = ({ characterId, mode = "player", scenarioLevel }: Ch
       });
       if (error) {
         console.error("AI validation error:", error);
-        // On error, allow anyway
         action();
         return;
       }
@@ -206,6 +201,7 @@ const CharacterFeatPicker = ({ characterId, mode = "player", scenarioLevel }: Ch
       }
     } catch (e) {
       console.error("AI validation exception:", e);
+      // Server unreachable or offline — allow anyway
       action();
     } finally {
       setValidating(false);
@@ -214,9 +210,8 @@ const CharacterFeatPicker = ({ characterId, mode = "player", scenarioLevel }: Ch
 
   const upsertMutation = useMutation({
     mutationFn: async ({ level, featId }: { level: number; featId: string }) => {
-      if (effectivelyOffline) {
+      const doOffline = () => {
         const tempId = crypto.randomUUID();
-        // Queue delete + insert
         queueAction({
           table: "character_feats",
           operation: "delete",
@@ -229,45 +224,48 @@ const CharacterFeatPicker = ({ characterId, mode = "player", scenarioLevel }: Ch
           payload: { character_id: characterId, level, feat_id: featId, is_free: false },
           tempId,
         });
-        // Optimistic update
         queryClient.setQueryData(["character-feats", characterId], (old: CharacterFeat[] | undefined) => {
           const filtered = (old ?? []).filter(cf => !(cf.level === level && !cf.is_free));
           return [...filtered, { id: tempId, character_id: characterId, level, feat_id: featId, is_free: false, note: null }];
         });
-        return;
-      }
+        return "queued";
+      };
 
-      await supabase
-        .from("character_feats")
-        .delete()
-        .eq("character_id", characterId)
-        .eq("level", level)
-        .eq("is_free", false);
-      const { data: inserted, error } = await supabase
-        .from("character_feats")
-        .insert({ character_id: characterId, level, feat_id: featId, is_free: false })
-        .select()
-        .single();
-      if (error) throw error;
+      try {
+        await supabase
+          .from("character_feats")
+          .delete()
+          .eq("character_id", characterId)
+          .eq("level", level)
+          .eq("is_free", false);
+        const { data: inserted, error } = await supabase
+          .from("character_feats")
+          .insert({ character_id: characterId, level, feat_id: featId, is_free: false })
+          .select()
+          .single();
+        if (error) throw error;
 
-      // Auto-insert fixed subfeats from metadata for archetypes
-      const meta = metaMap.get(featId);
-      if (meta?.subfeats && inserted) {
-        const fixedSlots = meta.subfeats.filter(s => s.kind === "fixed" && s.feat_title);
-        for (const slot of fixedSlots) {
-          const subfeat = featByTitle.get(slot.feat_title!);
-          if (subfeat) {
-            await supabase.from("character_feat_subfeats").insert({
-              character_feat_id: inserted.id,
-              slot: slot.slot,
-              subfeat_id: subfeat.id,
-            });
+        // Auto-insert fixed subfeats from metadata for archetypes
+        const meta = metaMap.get(featId);
+        if (meta?.subfeats && inserted) {
+          const fixedSlots = meta.subfeats.filter(s => s.kind === "fixed" && s.feat_title);
+          for (const slot of fixedSlots) {
+            const subfeat = featByTitle.get(slot.feat_title!);
+            if (subfeat) {
+              await supabase.from("character_feat_subfeats").insert({
+                character_feat_id: inserted.id,
+                slot: slot.slot,
+                subfeat_id: subfeat.id,
+              });
+            }
           }
         }
+      } catch {
+        return doOffline();
       }
     },
-    onSuccess: () => {
-      if (!effectivelyOffline) {
+    onSuccess: (result) => {
+      if (result !== "queued") {
         queryClient.invalidateQueries({ queryKey: ["character-feats", characterId] });
         queryClient.invalidateQueries({ queryKey: ["character-feat-subfeats", characterId] });
         queryClient.invalidateQueries({ queryKey: ["character-feats-summary", characterId] });
@@ -284,7 +282,7 @@ const CharacterFeatPicker = ({ characterId, mode = "player", scenarioLevel }: Ch
 
   const deleteMutation = useMutation({
     mutationFn: async ({ level, isFree, id }: { level: number; isFree: boolean; id?: string }) => {
-      if (effectivelyOffline) {
+      const doOffline = () => {
         if (isFree && id) {
           queueAction({ table: "character_feats", operation: "delete", payload: {}, filter: { id } });
           queryClient.setQueryData(["character-feats", characterId], (old: CharacterFeat[] | undefined) =>
@@ -296,23 +294,28 @@ const CharacterFeatPicker = ({ characterId, mode = "player", scenarioLevel }: Ch
             (old ?? []).filter(cf => !(cf.level === level && !cf.is_free))
           );
         }
-        return;
-      }
-      if (isFree && id) {
-        const { error } = await supabase.from("character_feats").delete().eq("id", id);
-        if (error) throw error;
-      } else {
-        const { error } = await supabase
-          .from("character_feats")
-          .delete()
-          .eq("character_id", characterId)
-          .eq("level", level)
-          .eq("is_free", false);
-        if (error) throw error;
+        return "queued";
+      };
+
+      try {
+        if (isFree && id) {
+          const { error } = await supabase.from("character_feats").delete().eq("id", id);
+          if (error) throw error;
+        } else {
+          const { error } = await supabase
+            .from("character_feats")
+            .delete()
+            .eq("character_id", characterId)
+            .eq("level", level)
+            .eq("is_free", false);
+          if (error) throw error;
+        }
+      } catch {
+        return doOffline();
       }
     },
-    onSuccess: () => {
-      if (!effectivelyOffline) {
+    onSuccess: (result) => {
+      if (result !== "queued") {
         queryClient.invalidateQueries({ queryKey: ["character-feats", characterId] });
         queryClient.invalidateQueries({ queryKey: ["character-feat-subfeats", characterId] });
         queryClient.invalidateQueries({ queryKey: ["character-feats-summary", characterId] });
@@ -322,7 +325,12 @@ const CharacterFeatPicker = ({ characterId, mode = "player", scenarioLevel }: Ch
 
   const addFreeFeatMutation = useMutation({
     mutationFn: async (featId: string) => {
-      if (effectivelyOffline) {
+      try {
+        const { error } = await supabase
+          .from("character_feats")
+          .insert({ character_id: characterId, level: 0, feat_id: featId, is_free: true });
+        if (error) throw error;
+      } catch {
         const tempId = crypto.randomUUID();
         queueAction({
           table: "character_feats",
@@ -333,15 +341,11 @@ const CharacterFeatPicker = ({ characterId, mode = "player", scenarioLevel }: Ch
         queryClient.setQueryData(["character-feats", characterId], (old: CharacterFeat[] | undefined) =>
           [...(old ?? []), { id: tempId, character_id: characterId, level: 0, feat_id: featId, is_free: true, note: null }]
         );
-        return;
+        return "queued";
       }
-      const { error } = await supabase
-        .from("character_feats")
-        .insert({ character_id: characterId, level: 0, feat_id: featId, is_free: true });
-      if (error) throw error;
     },
-    onSuccess: () => {
-      if (!effectivelyOffline) {
+    onSuccess: (result) => {
+      if (result !== "queued") {
         queryClient.invalidateQueries({ queryKey: ["character-feats", characterId] });
         queryClient.invalidateQueries({ queryKey: ["character-feats-summary", characterId] });
       }
@@ -353,21 +357,22 @@ const CharacterFeatPicker = ({ characterId, mode = "player", scenarioLevel }: Ch
   const updateNoteMutation = useMutation({
     mutationFn: async ({ id, note }: { id: string; note: string }) => {
       const trimmed = note.trim() || null;
-      if (effectivelyOffline) {
+      try {
+        const { error } = await supabase
+          .from("character_feats")
+          .update({ note: trimmed } as any)
+          .eq("id", id);
+        if (error) throw error;
+      } catch {
         queueAction({ table: "character_feats", operation: "update", payload: { note: trimmed }, filter: { id } });
         queryClient.setQueryData(["character-feats", characterId], (old: CharacterFeat[] | undefined) =>
           (old ?? []).map(cf => cf.id === id ? { ...cf, note: trimmed } : cf)
         );
-        return;
+        return "queued";
       }
-      const { error } = await supabase
-        .from("character_feats")
-        .update({ note: trimmed } as any)
-        .eq("id", id);
-      if (error) throw error;
     },
-    onSuccess: () => {
-      if (!effectivelyOffline) {
+    onSuccess: (result) => {
+      if (result !== "queued") {
         queryClient.invalidateQueries({ queryKey: ["character-feats", characterId] });
         queryClient.invalidateQueries({ queryKey: ["character-feats-summary", characterId] });
       }
@@ -376,7 +381,7 @@ const CharacterFeatPicker = ({ characterId, mode = "player", scenarioLevel }: Ch
 
   const setSubfeatMutation = useMutation({
     mutationFn: async ({ characterFeatId, slot, subfeatId }: { characterFeatId: string; slot: number; subfeatId: string | null }) => {
-      if (effectivelyOffline) {
+      const doOffline = () => {
         queueAction({ table: "character_feat_subfeats", operation: "delete", payload: {}, filter: { character_feat_id: characterFeatId, slot } });
         if (subfeatId) {
           const tempId = crypto.randomUUID();
@@ -395,23 +400,28 @@ const CharacterFeatPicker = ({ characterId, mode = "player", scenarioLevel }: Ch
             (old ?? []).filter(cs => !(cs.character_feat_id === characterFeatId && cs.slot === slot))
           );
         }
-        return;
-      }
-      await supabase.from("character_feat_subfeats")
-        .delete()
-        .eq("character_feat_id", characterFeatId)
-        .eq("slot", slot);
-      if (subfeatId) {
-        const { error } = await supabase.from("character_feat_subfeats").insert({
-          character_feat_id: characterFeatId,
-          slot,
-          subfeat_id: subfeatId,
-        });
-        if (error) throw error;
+        return "queued";
+      };
+
+      try {
+        await supabase.from("character_feat_subfeats")
+          .delete()
+          .eq("character_feat_id", characterFeatId)
+          .eq("slot", slot);
+        if (subfeatId) {
+          const { error } = await supabase.from("character_feat_subfeats").insert({
+            character_feat_id: characterFeatId,
+            slot,
+            subfeat_id: subfeatId,
+          });
+          if (error) throw error;
+        }
+      } catch {
+        return doOffline();
       }
     },
-    onSuccess: () => {
-      if (!effectivelyOffline) {
+    onSuccess: (result) => {
+      if (result !== "queued") {
         queryClient.invalidateQueries({ queryKey: ["character-feat-subfeats", characterId] });
       }
       setPickerTarget(null);

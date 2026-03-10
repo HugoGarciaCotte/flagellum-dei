@@ -143,12 +143,13 @@ const HostGame = () => {
 
   const endGame = async () => {
     if (!effectiveGame) return;
-    if (!online) {
-      toast({ title: "Offline", description: "Cannot end the game while offline.", variant: "destructive" });
-      return;
+    try {
+      const { error } = await supabase.from("games").update({ status: "ended" }).eq("id", (effectiveGame as any).id);
+      if (error) throw error;
+      navigate("/");
+    } catch {
+      toast({ title: "Server unreachable", description: "Cannot end the game right now.", variant: "destructive" });
     }
-    await supabase.from("games").update({ status: "ended" }).eq("id", (effectiveGame as any).id);
-    navigate("/");
   };
 
   const copyCode = () => {
@@ -165,8 +166,11 @@ const HostGame = () => {
 
     if (!effectiveGame) return;
 
-    if (online) {
-      await supabase.from("games").update({ current_section: sectionId } as any).eq("id", (effectiveGame as any).id);
+    try {
+      const { error } = await supabase.from("games").update({ current_section: sectionId } as any).eq("id", (effectiveGame as any).id);
+      if (error) throw error;
+    } catch {
+      // Server unreachable — local state already updated, will be stale but functional
     }
   };
 
