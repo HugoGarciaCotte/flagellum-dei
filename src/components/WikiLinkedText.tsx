@@ -1,7 +1,5 @@
 import { Fragment, useMemo } from "react";
-import { buildFeatsMap, type Feat } from "@/data/feats";
-import { parseFeatFields } from "@/lib/parseFeatContent";
-import { parseEmbeddedFeatMeta } from "@/lib/parseEmbeddedFeatMeta";
+import { buildFeatsMap, getFeatMeta, type Feat } from "@/data/feats";
 import { convertInlineMarkup } from "@/lib/parseWikitext";
 import {
   HoverCard,
