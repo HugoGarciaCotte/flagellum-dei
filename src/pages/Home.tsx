@@ -16,6 +16,7 @@ import {
   Cross,
   ScrollText,
   Gift,
+  Smartphone,
 } from "lucide-react";
 import Logo from "@/components/Logo";
 import BrandTitle from "@/components/BrandTitle";
