@@ -1,8 +1,5 @@
 project_id = "bcisbkompyqtfrtzccit"
 
-[functions.export-feats-json]
-verify_jwt = false
-
 [functions.validate-feat]
 verify_jwt = false
 
