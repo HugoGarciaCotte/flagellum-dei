@@ -10,7 +10,7 @@ import { toast } from "@/hooks/use-toast";
 import Logo from "@/components/Logo";
 
 const Auth = () => {
-  const { user } = useAuth();
+  const { user, isGuest, enterGuestMode } = useAuth();
   const navigate = useNavigate();
 
   useEffect(() => {
