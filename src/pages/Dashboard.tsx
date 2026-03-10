@@ -135,6 +135,26 @@ const Dashboard = () => {
   }, [myGames, joinedGames]);
 
   const handleCreateGame = async (scenarioId: string) => {
+    if (!online) {
+      // Offline: create game locally with temp ID, no join code
+      const tempGameId = crypto.randomUUID();
+      const code = "OFFLINE";
+      queueAction({
+        table: "games",
+        operation: "insert",
+        payload: { host_user_id: user!.id, scenario_id: scenarioId, join_code: code },
+        tempId: tempGameId,
+      });
+      // Optimistic cache update
+      const cacheKey = `my-games-${user!.id}`;
+      const cached = getCacheData<any[]>(cacheKey) ?? [];
+      const newGame = { id: tempGameId, host_user_id: user!.id, scenario_id: scenarioId, join_code: code, status: "active", current_section: null, created_at: new Date().toISOString(), updated_at: new Date().toISOString() };
+      setCacheData(cacheKey, [newGame, ...cached]);
+      queryClient.setQueryData(["my-games", user!.id], (old: any[]) => old ? [newGame, ...old] : [newGame]);
+      toast({ title: "Game created locally", description: "Join code will be generated when back online." });
+      navigate(`/game/${tempGameId}/host`);
+      return;
+    }
     const letters = "ABCDEFGHIJKLMNOPQRSTUVWXYZ";
     const code = Array.from({ length: 6 }, () => letters[Math.floor(Math.random() * 26)]).join("");
     const { data, error } = await supabase
@@ -151,6 +171,10 @@ const Dashboard = () => {
 
   const handleJoinGame = async () => {
     if (!joinCode.trim()) return;
+    if (!online) {
+      toast({ title: "Offline", description: "You need to be online to join a game.", variant: "destructive" });
+      return;
+    }
     const { data: game, error } = await supabase
       .from("games")
       .select("*")
