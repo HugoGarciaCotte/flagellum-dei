@@ -365,7 +365,7 @@ const Dashboard = () => {
           <AlertDialog open={gmDialogOpen} onOpenChange={setGmDialogOpen}>
             <AlertDialogTrigger asChild>
               <Button variant="outline" className="gap-2 font-display w-full justify-center border-dashed border-muted-foreground/30 text-muted-foreground hover:text-foreground hover:border-primary/40">
-                <ShieldCheck className="h-4 w-4" /> Become a Game Master
+                <span className="text-base" aria-hidden="true">🜁</span> Become a Game Master
               </Button>
             </AlertDialogTrigger>
             <AlertDialogContent>
