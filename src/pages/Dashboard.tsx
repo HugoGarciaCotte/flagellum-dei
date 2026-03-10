@@ -228,18 +228,18 @@ const Dashboard = () => {
           </h2>
           <div className="flex gap-2">
             <Input
-              placeholder={online ? "Enter join code" : "Offline — join unavailable"}
+              placeholder={!online && !isGuest ? "Offline — join unavailable" : "Enter join code"}
               value={joinCode}
               onChange={(e) => setJoinCode(e.target.value)}
               onKeyDown={(e) => e.key === "Enter" && handleJoinGame()}
               className="font-display text-lg tracking-widest uppercase text-center"
-              disabled={!online}
+              disabled={!online && !isGuest}
             />
-            <Button onClick={handleJoinGame} className="font-display px-6 shrink-0" disabled={!online}>
+            <Button onClick={handleJoinGame} className="font-display px-6 shrink-0" disabled={!online && !isGuest}>
               Join
             </Button>
           </div>
-          {!online && (
+          {!online && !isGuest && (
             <p className="text-xs text-muted-foreground flex items-center gap-1">
               <WifiOff className="h-3 w-3" /> You need to be online to join a game
             </p>
