@@ -262,13 +262,14 @@ const Home = () => {
               </p>
             </div>
             <p className="max-w-lg text-base leading-relaxed text-muted-foreground">
-              A historical horror tabletop role-playing game where players become
-              inquisitors hunting heresy during the Black Death. Gather 3–9
-              players around a table, open the website, and begin an
-              investigation.
+              A dark historical horror RPG where you become an inquisitor,
+              interrogating heretics, uncovering blasphemous rituals, and
+              confronting unspeakable dread during the Black Death. Gather 3–9
+              players around a table, open the website, and begin your
+              investigation. Entirely free.
             </p>
             <p className="max-w-lg text-sm text-muted-foreground/60">
-              No books. No downloads. Only the hunt.
+              No books. No downloads. Only the screams of the damned.
             </p>
 
             <div className="flex flex-col gap-4 sm:flex-row sm:items-center">
