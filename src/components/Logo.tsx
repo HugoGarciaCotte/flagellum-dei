@@ -1,23 +1,13 @@
 import { cn } from "@/lib/utils";
+import logoSvg from "@/assets/logo.svg";
 
 const Logo = ({ className }: { className?: string }) => (
-  <svg
-    viewBox="0 92 512 420"
-    xmlns="http://www.w3.org/2000/svg"
+  <img
+    src={logoSvg}
+    alt="🜹"
     className={cn("inline-block", className)}
     style={{ width: "1em", height: "1em" }}
-  >
-    <text
-      x="256" y="280"
-      fontSize="420"
-      fill="currentColor"
-      textAnchor="middle"
-      dominantBaseline="central"
-      fontFamily="serif"
-    >
-      🜹
-    </text>
-  </svg>
+  />
 );
 
 export default Logo;
