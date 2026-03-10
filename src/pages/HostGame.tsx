@@ -56,8 +56,8 @@ const HostGame = () => {
       if (error) throw error;
       return data;
     },
-    enabled: !!gameId,
-    retry: online ? 3 : 0,
+    enabled: !!gameId && !effectivelyOffline,
+    retry: effectivelyOffline ? 0 : 3,
   });
 
   // Fetch ALL characters for all players (not just selected ones)
