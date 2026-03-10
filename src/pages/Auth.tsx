@@ -65,7 +65,7 @@ const Auth = () => {
           .from("profiles")
           .update({ display_name: displayName })
           .eq("user_id", user!.id);
-        toast({ title: "Account created!", description: "Your guest data has been preserved. Please check your email to verify your account." });
+        toast({ title: "Welcome aboard!", description: "Your guest data has been preserved." });
       }
     } else {
       // Standard signup (also handles local guests — their offline data used a fake UUID
@@ -77,6 +77,9 @@ const Auth = () => {
       });
       if (error) {
         toast({ title: "Signup failed", description: error.message, variant: "destructive" });
+      } else {
+        toast({ title: "Account created!", description: "Welcome to Flagellum Dei." });
+        navigate("/");
       }
     }
     setLoading(false);
