@@ -747,7 +747,7 @@ const CharacterFeatPicker = ({ characterId, mode = "player", scenarioLevel }: Ch
         {/* AI validation denied alert */}
         {validationResult && !validationResult.allowed && (
           <Alert variant="destructive">
-            <ShieldAlert className="h-4 w-4" />
+            <span className="text-base" aria-hidden="true">🝍</span>
             <AlertTitle>AI says this feat may not be valid</AlertTitle>
             <AlertDescription className="space-y-2">
               <p className="text-sm">{validationResult.reason}</p>
