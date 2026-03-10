@@ -1,7 +1,6 @@
 import { Link } from "react-router-dom";
-import { useQuery } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
-import { supabase } from "@/integrations/supabase/client";
+import { getAllScenarios } from "@/data/scenarios";
 import {
   Accordion,
   AccordionContent,
@@ -194,20 +193,9 @@ const showcaseScenarios = [
    ────────────────────────────────────────────── */
 
 const Home = () => {
-  const { data: scenarios } = useQuery({
-    queryKey: ["landing-scenarios"],
-    queryFn: async () => {
-      const { data } = await supabase
-        .from("scenarios")
-        .select("title, description, level")
-        .order("level", { ascending: true })
-        .limit(6);
-      return data ?? [];
-    },
-  });
-
+  const allScenarios = getAllScenarios();
   const displayScenarios =
-    scenarios && scenarios.length > 0 ? scenarios : showcaseScenarios;
+    allScenarios.length > 0 ? allScenarios : showcaseScenarios;
 
   return (
     <div className="min-h-screen bg-background text-foreground">

@@ -1,6 +1,7 @@
 import { useState, useMemo } from "react";
 import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
+import { getAllScenarios, getScenarioById } from "@/data/scenarios";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -13,12 +14,11 @@ import { useNavigate } from "react-router-dom";
 import { LogOut, Plus, Settings, ChevronDown, Trash2, Pencil } from "lucide-react";
 
 import CharacterSheet from "@/components/CharacterSheet";
-import { useOfflineScenarios } from "@/hooks/useOfflineScenarios";
 import { useOfflineFeats } from "@/hooks/useOfflineFeats";
 import PageHeader from "@/components/PageHeader";
 import CharacterCreationWizard from "@/components/CharacterCreationWizard";
 import CharacterListItem from "@/components/CharacterListItem";
-import { getCachedScenarios, isOffline } from "@/lib/offlineStorage";
+
 import { useIsOwner } from "@/hooks/useIsOwner";
 import { useIsGameMaster } from "@/hooks/useIsGameMaster";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
@@ -64,18 +64,7 @@ const Dashboard = () => {
     },
   });
 
-  const { data: scenarios } = useQuery({
-    queryKey: ["scenarios"],
-    queryFn: async () => {
-      if (isOffline()) {
-        const cached = getCachedScenarios();
-        if (cached) return cached;
-      }
-      const { data, error } = await supabase.from("scenarios").select("*").order("title");
-      if (error) throw error;
-      return data;
-    },
-  });
+  const scenarios = getAllScenarios();
 
   // Active games (hosted)
   const { data: myGames } = useQuery({
@@ -83,7 +72,7 @@ const Dashboard = () => {
     queryFn: async () => {
       const { data, error } = await supabase
         .from("games")
-        .select("*, scenarios(title)")
+        .select("*")
         .eq("host_user_id", user!.id)
         .eq("status", "active");
       if (error) throw error;
@@ -98,7 +87,7 @@ const Dashboard = () => {
     queryFn: async () => {
       const { data, error } = await supabase
         .from("game_players")
-        .select("game_id, games!inner(id, join_code, status, host_user_id, scenarios(title))")
+        .select("game_id, games!inner(id, join_code, status, host_user_id, scenario_id)")
         .eq("user_id", user!.id)
         .eq("games.status", "active");
       if (error) throw error;
@@ -114,7 +103,8 @@ const Dashboard = () => {
     if (myGames) {
       for (const g of myGames) {
         seen.add(g.id);
-        games.push({ id: g.id, title: (g as any).scenarios?.title || "Untitled", join_code: g.join_code, role: "hosting" });
+        const sc = getScenarioById(g.scenario_id);
+        games.push({ id: g.id, title: sc?.title || "Untitled", join_code: g.join_code, role: "hosting" });
       }
     }
     if (joinedGames) {
@@ -122,7 +112,8 @@ const Dashboard = () => {
         const g = (jp as any).games;
         if (g && !seen.has(g.id)) {
           seen.add(g.id);
-          games.push({ id: g.id, title: g.scenarios?.title || "Untitled", join_code: g.join_code, role: "playing" });
+          const sc = getScenarioById(g.scenario_id);
+          games.push({ id: g.id, title: sc?.title || "Untitled", join_code: g.join_code, role: "playing" });
         }
       }
     }

@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
+import { getScenarioById } from "@/data/scenarios";
 import { useQuery, useQueryClient, useMutation } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
@@ -35,7 +36,7 @@ const PlayGame = () => {
     queryFn: async () => {
       const { data, error } = await supabase
         .from("games")
-        .select("*, scenarios(title, level)")
+        .select("*")
         .eq("id", gameId!)
         .single();
       if (error) throw error;
@@ -106,7 +107,9 @@ const PlayGame = () => {
   }, [game, gameId, gameError]);
 
   const effectiveGame = game ?? cachedSession?.game;
-  const effectiveScenario = game ? (game as any).scenarios : cachedSession?.scenario;
+  const effectiveScenario = game
+    ? getScenarioById(game.scenario_id)
+    : cachedSession?.scenario;
 
   // Realtime: listen for game updates
   useEffect(() => {
@@ -316,7 +319,7 @@ const PlayGame = () => {
               <CharacterSheet
                 characterId={editingCharId}
                 mode="player"
-                scenarioLevel={effectiveScenario?.level ?? undefined}
+                scenarioLevel={(effectiveScenario as any)?.level ?? undefined}
                 onDone={() => {
                   setEditingCharId(null);
                   queryClient.invalidateQueries({ queryKey: ["my-characters"] });
