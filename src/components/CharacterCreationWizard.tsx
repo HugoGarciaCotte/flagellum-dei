@@ -1,7 +1,6 @@
 import { useState, useMemo, useRef, useEffect } from "react";
 import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
-import { useQueryClient } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
@@ -17,7 +16,8 @@ import {
 import { getAllFeats, getFeatMeta } from "@/data/feats";
 import Logo from "@/components/Logo";
 import { useNetworkStatus } from "@/hooks/useNetworkStatus";
-import { queueAction, setCacheData, getCacheData, resilientMutation } from "@/lib/offlineQueue";
+import { upsertRow, deleteBy } from "@/lib/localStore";
+import { triggerPush } from "@/lib/syncManager";
 
 interface CharacterCreationWizardProps {
   onCreated: (characterId: string) => void;
@@ -35,7 +35,6 @@ type Feat = {
 
 const CharacterCreationWizard = ({ onCreated, onCancel, gameId }: CharacterCreationWizardProps) => {
   const { user } = useAuth();
-  const queryClient = useQueryClient();
   const fileInputRef = useRef<HTMLInputElement>(null);
   const online = useNetworkStatus();
 
@@ -60,10 +59,8 @@ const CharacterCreationWizard = ({ onCreated, onCancel, gameId }: CharacterCreat
   const [generatingPortrait, setGeneratingPortrait] = useState(false);
   const [creating, setCreating] = useState(false);
 
-  // All feats from hardcoded data
   const allFeats = useMemo(() => getAllFeats() as Feat[], []);
 
-  // Maps
   const featMap = useMemo(() => {
     const map = new Map<string, Feat>();
     (allFeats ?? []).forEach((f) => map.set(f.id, f));
@@ -92,19 +89,15 @@ const CharacterCreationWizard = ({ onCreated, onCancel, gameId }: CharacterCreat
     return map;
   }, [metaMap]);
 
-  // Derived state
   const archetypeFeat = archetypeFeatId ? featMap.get(archetypeFeatId) : null;
   const archetypeMeta = archetypeFeatId ? metaMap.get(archetypeFeatId) : null;
 
-  // Dynamic subfeat slots from archetype metadata (already sorted by slot number)
   const subfeatSlots = useMemo(() => {
     return archetypeMeta?.subfeats ?? [];
   }, [archetypeMeta]);
 
-  // Total steps: 0=welcome, 1=archetype, 2..1+N=subfeat slots, finalStep=name/desc/portrait
   const finalStep = 2 + subfeatSlots.length;
 
-  // Helper to resolve subfeat options from a slot definition
   const resolveSubfeatOptions = (slotInfo: SubfeatSlot) => {
     if (!allFeats) return null;
     if (slotInfo.kind === "fixed" && slotInfo.feat_title) {
@@ -131,12 +124,10 @@ const CharacterCreationWizard = ({ onCreated, onCancel, gameId }: CharacterCreat
     return null;
   };
 
-  // Resolved options for each subfeat slot
   const subfeatOptionsList = useMemo(() => {
     return subfeatSlots.map(slot => resolveSubfeatOptions(slot));
   }, [subfeatSlots, allFeats, featByTitle]);
 
-  // Archetypes for step 1
   const archetypes = useMemo(() => {
     if (!allFeats) return [];
     return allFeats.filter(f => f.categories?.includes("Archetype")).sort(sortTitlesEmojiLast);
@@ -163,168 +154,81 @@ const CharacterCreationWizard = ({ onCreated, onCancel, gameId }: CharacterCreat
     }
   }, [step, finalStep, online]);
 
-  // --- Progressive save helpers ---
+  // --- Progressive save helpers (local-first) ---
 
-  /** Step 1: Create character + archetype feat in DB */
   const saveArchetype = async (featId: string) => {
     if (!user) return;
     setSaving(true);
 
-    const doOfflineCreate = () => {
-      if (!characterId) {
-        const tempCharId = crypto.randomUUID();
-        const tempCfId = crypto.randomUUID();
-        setCharacterId(tempCharId);
-        setCharacterFeatId(tempCfId);
-        queueAction({
-          table: "characters",
-          operation: "insert",
-          payload: { user_id: user.id, name: "New Character" },
-          tempId: tempCharId,
-        });
-        queueAction({
-          table: "character_feats",
-          operation: "insert",
-          payload: { character_id: tempCharId, feat_id: featId, level: 1 },
-          tempId: tempCfId,
-        });
-        if (gameId) {
-          queueAction({
-            table: "game_players",
-            operation: "update",
-            payload: { character_id: tempCharId },
-            filter: { game_id: gameId, user_id: user.id },
-          });
-        }
-        const cacheKey = `my-characters-${user.id}`;
-        const cached = getCacheData<any[]>(cacheKey) ?? [];
-        const newChar = { id: tempCharId, user_id: user.id, name: "New Character", description: null, portrait_url: null, created_at: new Date().toISOString(), updated_at: new Date().toISOString() };
-        setCacheData(cacheKey, [newChar, ...cached]);
-        queryClient.setQueryData(["my-characters", user.id], (old: any[]) => old ? [newChar, ...old] : [newChar]);
-        setCacheData(`character-${tempCharId}`, newChar);
-        queryClient.setQueryData(["character", tempCharId], newChar);
-        const newCf = { id: tempCfId, character_id: tempCharId, feat_id: featId, level: 1, is_free: false, note: null };
-        queryClient.setQueryData(["character-feats", tempCharId], [newCf]);
-        setCacheData(`character-feats-${tempCharId}`, [newCf]);
-        queryClient.setQueryData(["character-feat-subfeats", tempCharId], []);
-        setCacheData(`character-feat-subfeats-${tempCharId}`, []);
-      } else {
-        queueAction({
-          table: "character_feats",
-          operation: "update",
-          payload: { feat_id: featId },
-          filter: { id: characterFeatId },
-        });
-        setSubfeatSelections(new Map());
-      }
-    };
+    if (characterId && characterFeatId) {
+      // Update existing
+      upsertRow("character_feats", { id: characterFeatId, character_id: characterId, feat_id: featId, level: 1, is_free: false, note: null });
+      deleteBy("character_feat_subfeats", { character_feat_id: characterFeatId });
+      setSubfeatSelections(new Map());
+    } else {
+      const tempCharId = crypto.randomUUID();
+      const tempCfId = crypto.randomUUID();
+      setCharacterId(tempCharId);
+      setCharacterFeatId(tempCfId);
 
-    const result = await resilientMutation(
-      async () => {
-        if (characterId && characterFeatId) {
-          const { error: cfErr } = await supabase.from("character_feats").update({ feat_id: featId }).eq("id", characterFeatId);
-          if (cfErr) throw cfErr;
-          await supabase.from("character_feat_subfeats").delete().eq("character_feat_id", characterFeatId);
-          setSubfeatSelections(new Map());
-        } else {
-          const { data: charData, error: charError } = await supabase.from("characters").insert({ user_id: user.id, name: "New Character" } as any).select().single();
-          if (charError) throw charError;
-          setCharacterId(charData.id);
-          const { data: cfData, error: cfError } = await supabase.from("character_feats").insert({ character_id: charData.id, feat_id: featId, level: 1 }).select().single();
-          if (cfError) throw cfError;
-          setCharacterFeatId(cfData.id);
-          if (gameId) {
-            await supabase.from("game_players").update({ character_id: charData.id }).eq("game_id", gameId).eq("user_id", user.id);
-          }
-          queryClient.invalidateQueries({ queryKey: ["my-characters"] });
-          queryClient.invalidateQueries({ queryKey: ["character-feats-summary"] });
+      const now = new Date().toISOString();
+      upsertRow("characters", { id: tempCharId, user_id: user.id, name: "New Character", description: null, portrait_url: null, created_at: now, updated_at: now });
+      upsertRow("character_feats", { id: tempCfId, character_id: tempCharId, feat_id: featId, level: 1, is_free: false, note: null });
+
+      if (gameId) {
+        // Find player row and update
+        const { getBy } = await import("@/lib/localStore");
+        const playerRows = getBy("game_players", { game_id: gameId, user_id: user.id });
+        if (playerRows.length > 0) {
+          upsertRow("game_players", { ...playerRows[0], character_id: tempCharId });
         }
-      },
-      doOfflineCreate,
-    );
+      }
+    }
+
+    triggerPush();
     setSaving(false);
   };
 
-  /** Save a subfeat selection for a given slot */
   const saveSubfeat = async (slotNum: number, subfeatId: string | null) => {
     if (!characterFeatId) return;
     setSaving(true);
 
-    const doOffline = () => {
-      queueAction({ table: "character_feat_subfeats", operation: "delete", payload: {}, filter: { character_feat_id: characterFeatId, slot: slotNum } });
-      const tempSfId = crypto.randomUUID();
-      if (subfeatId) {
-        queueAction({
-          table: "character_feat_subfeats",
-          operation: "insert",
-          payload: { character_feat_id: characterFeatId, slot: slotNum, subfeat_id: subfeatId },
-          tempId: tempSfId,
-        });
+    // Delete existing at slot
+    if (characterId) {
+      const { getBy } = await import("@/lib/localStore");
+      const existing = getBy("character_feat_subfeats", { character_feat_id: characterFeatId, slot: slotNum });
+      for (const row of existing) {
+        const { deleteRow } = await import("@/lib/localStore");
+        deleteRow("character_feat_subfeats", row.id);
       }
-      if (characterId) {
-        queryClient.setQueryData(["character-feat-subfeats", characterId], (old: any[] | undefined) => {
-          const filtered = (old ?? []).filter((cs: any) => !(cs.character_feat_id === characterFeatId && cs.slot === slotNum));
-          if (subfeatId) {
-            return [...filtered, { id: tempSfId, character_feat_id: characterFeatId, slot: slotNum, subfeat_id: subfeatId }];
-          }
-          return filtered;
-        });
-        setCacheData(`character-feat-subfeats-${characterId}`, queryClient.getQueryData(["character-feat-subfeats", characterId]) ?? []);
-      }
-    };
+    }
 
-    await resilientMutation(
-      async () => {
-        await supabase.from("character_feat_subfeats").delete().eq("character_feat_id", characterFeatId).eq("slot", slotNum);
-        if (subfeatId) {
-          const { error } = await supabase.from("character_feat_subfeats").insert({ character_feat_id: characterFeatId, slot: slotNum, subfeat_id: subfeatId });
-          if (error) throw error;
-        }
-      },
-      doOffline,
-    );
+    if (subfeatId) {
+      upsertRow("character_feat_subfeats", { id: crypto.randomUUID(), character_feat_id: characterFeatId, slot: slotNum, subfeat_id: subfeatId });
+    }
+
+    triggerPush();
     setSaving(false);
   };
 
-  /** Final step: update character name/description/portrait */
   const saveFinalDetails = async () => {
     if (!characterId || !user) return;
     setCreating(true);
 
-    const doOffline = () => {
-      queueAction({
-        table: "characters",
-        operation: "update",
-        payload: { name: name || "Blank", description: description || null, portrait_url: portraitUrl },
-        filter: { id: characterId },
-      });
-      const cacheKey = `my-characters-${user.id}`;
-      const cached = getCacheData<any[]>(cacheKey) ?? [];
-      setCacheData(cacheKey, cached.map((c: any) => c.id === characterId ? { ...c, name: name || "Blank", description: description || null, portrait_url: portraitUrl } : c));
-      queryClient.setQueryData(["my-characters", user.id], (old: any[]) =>
-        old?.map((c: any) => c.id === characterId ? { ...c, name: name || "Blank", description: description || null, portrait_url: portraitUrl } : c)
-      );
-      const updatedChar = { id: characterId, user_id: user.id, name: name || "Blank", description: description || null, portrait_url: portraitUrl, created_at: new Date().toISOString(), updated_at: new Date().toISOString() };
-      setCacheData(`character-${characterId}`, updatedChar);
-      queryClient.setQueryData(["character", characterId], updatedChar);
-      onCreated(characterId);
-      toast({ title: "Character saved locally — will sync when online" });
-    };
+    const now = new Date().toISOString();
+    upsertRow("characters", {
+      id: characterId,
+      user_id: user.id,
+      name: name || "Blank",
+      description: description || null,
+      portrait_url: portraitUrl,
+      updated_at: now,
+    });
+    triggerPush();
 
-    const result = await resilientMutation(
-      async () => {
-        const { error } = await supabase.from("characters").update({ name: name || "Blank", description: description || null, portrait_url: portraitUrl }).eq("id", characterId);
-        if (error) throw error;
-        queryClient.invalidateQueries({ queryKey: ["my-characters"] });
-        queryClient.invalidateQueries({ queryKey: ["character-feats-summary"] });
-        onCreated(characterId);
-      },
-      doOffline,
-    );
+    onCreated(characterId);
     setCreating(false);
   };
-
-  // --- End progressive save helpers ---
 
   const getSelectedFeatSummaries = () => {
     const summaries: string[] = [];
@@ -387,44 +291,20 @@ const CharacterCreationWizard = ({ onCreated, onCancel, gameId }: CharacterCreat
     if (!user) return;
     setCreating(true);
 
-    const doOffline = () => {
-      const tempCharId = crypto.randomUUID();
-      queueAction({
-        table: "characters",
-        operation: "insert",
-        payload: { user_id: user.id, name: "Blank" },
-        tempId: tempCharId,
-      });
-      if (gameId) {
-        queueAction({
-          table: "game_players",
-          operation: "update",
-          payload: { character_id: tempCharId },
-          filter: { game_id: gameId, user_id: user.id },
-        });
-      }
-      const cacheKey = `my-characters-${user.id}`;
-      const cached = getCacheData<any[]>(cacheKey) ?? [];
-      const newChar = { id: tempCharId, user_id: user.id, name: "Blank", description: null, portrait_url: null, created_at: new Date().toISOString(), updated_at: new Date().toISOString() };
-      setCacheData(cacheKey, [newChar, ...cached]);
-      queryClient.setQueryData(["my-characters", user.id], (old: any[]) => old ? [newChar, ...old] : [newChar]);
-      onCreated(tempCharId);
-      toast({ title: "Character saved locally — will sync when online" });
-    };
+    const tempCharId = crypto.randomUUID();
+    const now = new Date().toISOString();
+    upsertRow("characters", { id: tempCharId, user_id: user.id, name: "Blank", description: null, portrait_url: null, created_at: now, updated_at: now });
 
-    await resilientMutation(
-      async () => {
-        const { data: charData, error: charError } = await supabase.from("characters").insert({ user_id: user.id, name: "Blank" } as any).select().single();
-        if (charError) throw charError;
-        if (gameId) {
-          await supabase.from("game_players").update({ character_id: charData.id }).eq("game_id", gameId).eq("user_id", user.id);
-        }
-        queryClient.invalidateQueries({ queryKey: ["my-characters"] });
-        queryClient.invalidateQueries({ queryKey: ["character-feats-summary"] });
-        onCreated(charData.id);
-      },
-      doOffline,
-    );
+    if (gameId) {
+      const { getBy } = await import("@/lib/localStore");
+      const playerRows = getBy("game_players", { game_id: gameId, user_id: user.id });
+      if (playerRows.length > 0) {
+        upsertRow("game_players", { ...playerRows[0], character_id: tempCharId });
+      }
+    }
+
+    triggerPush();
+    onCreated(tempCharId);
     setCreating(false);
   };
 
@@ -521,14 +401,12 @@ const CharacterCreationWizard = ({ onCreated, onCancel, gameId }: CharacterCreat
     </div>
   );
 
-  // Dynamic step indicator
   const renderStepIndicator = () => {
-    // Steps: 1 (archetype) + subfeat slots + 1 (final)
     const totalDots = 1 + subfeatSlots.length + 1;
     return (
       <div className="flex items-center justify-center gap-1.5 mb-4">
         {Array.from({ length: totalDots }, (_, i) => {
-          const dotStep = i + 1; // steps start at 1
+          const dotStep = i + 1;
           return (
             <div
               key={i}
@@ -542,7 +420,6 @@ const CharacterCreationWizard = ({ onCreated, onCancel, gameId }: CharacterCreat
     );
   };
 
-  // Skip button changes depending on whether character already exists
   const skipButton = characterId ? (
     <Button
       variant="ghost"
@@ -565,7 +442,6 @@ const CharacterCreationWizard = ({ onCreated, onCancel, gameId }: CharacterCreat
     </Button>
   );
 
-  // Navigate helpers
   const goToNextStep = (fromStep: number) => {
     setStep(fromStep + 1);
     setSearchTerm("");
@@ -578,7 +454,6 @@ const CharacterCreationWizard = ({ onCreated, onCancel, gameId }: CharacterCreat
     setExpandedFeatId(null);
   };
 
-  // Generic subfeat step renderer
   const renderSubfeatStep = (
     stepNum: number,
     slotInfo: SubfeatSlot,
@@ -649,7 +524,6 @@ const CharacterCreationWizard = ({ onCreated, onCancel, gameId }: CharacterCreat
             <p className="text-sm text-muted-foreground">
               {stepConfig.subtitleChoice}
             </p>
-            {/* Always offer a "None" / skip option */}
             <button
               onClick={() => handleSubfeatSelect(null)}
               className="w-full text-left p-3 rounded border border-border hover:border-primary/50 transition-colors"
@@ -732,12 +606,6 @@ const CharacterCreationWizard = ({ onCreated, onCancel, gameId }: CharacterCreat
   if (subfeatIndex >= 0 && subfeatIndex < subfeatSlots.length) {
     const slotInfo = subfeatSlots[subfeatIndex];
     const options = subfeatOptionsList[subfeatIndex];
-
-    // Auto-skip fixed subfeats that are already set
-    if (options?.type === "fixed" && subfeatSelections.get(slotInfo.slot)) {
-      // Still render so user sees the granted ability, but they can just click Continue
-    }
-
     return renderSubfeatStep(step, slotInfo, options);
   }
 
@@ -745,14 +613,12 @@ const CharacterCreationWizard = ({ onCreated, onCancel, gameId }: CharacterCreat
   if (step === finalStep) {
     const initials = name ? name.slice(0, 2).toUpperCase() : "??";
 
-    // Build summary of selections
     const selectedSubfeats = subfeatSlots
       .map(slot => {
         const id = subfeatSelections.get(slot.slot);
         if (!id) return null;
         const feat = featMap.get(id);
         if (!feat) return null;
-        // Use the same labels as the wizard step titles
         const slotIndex = subfeatSlots.indexOf(slot);
         const label = [
           "Faith",
@@ -776,7 +642,6 @@ const CharacterCreationWizard = ({ onCreated, onCancel, gameId }: CharacterCreat
           {skipButton}
         </div>
 
-        {/* Summary of choices */}
         <div className="space-y-1 text-sm">
           {archetypeFeat && (
             <p className="text-muted-foreground">
@@ -790,7 +655,6 @@ const CharacterCreationWizard = ({ onCreated, onCancel, gameId }: CharacterCreat
           ))}
         </div>
 
-        {/* Portrait */}
         <div className="flex flex-col items-center gap-3">
           <Avatar className="h-24 w-24 border-2 border-primary/30">
             {portraitUrl ? <AvatarImage src={portraitUrl} /> : null}
@@ -821,7 +685,6 @@ const CharacterCreationWizard = ({ onCreated, onCancel, gameId }: CharacterCreat
           )}
         </div>
 
-        {/* Description */}
         <div className="space-y-2">
           <div className="flex items-center justify-between">
             <label className="text-sm font-medium text-foreground">Description</label>
@@ -851,7 +714,6 @@ const CharacterCreationWizard = ({ onCreated, onCancel, gameId }: CharacterCreat
           )}
         </div>
 
-        {/* Name */}
         <div className="space-y-2">
           <div className="flex items-center justify-between">
             <label className="text-sm font-medium text-foreground">Name</label>
@@ -873,7 +735,6 @@ const CharacterCreationWizard = ({ onCreated, onCancel, gameId }: CharacterCreat
           />
         </div>
 
-        {/* Create button */}
         <Button
           onClick={saveFinalDetails}
           disabled={creating || !name.trim()}

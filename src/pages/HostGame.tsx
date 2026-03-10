@@ -3,8 +3,6 @@ import { useParams, useNavigate, Link } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
 import { getScenarioById } from "@/data/scenarios";
-import { useQueryClient } from "@tanstack/react-query";
-import { useOfflineQuery } from "@/hooks/useOfflineQuery";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { toast } from "@/hooks/use-toast";
@@ -15,90 +13,48 @@ import { parseWikitext, extractImageUrls } from "@/lib/parseWikitext";
 import WikiSectionTree from "@/components/WikiSectionTree";
 import DiceRoller from "@/components/DiceRoller";
 import GameTimer from "@/components/GameTimer";
-import { useOfflineGameSession } from "@/hooks/useOfflineGameSession";
 import { useNetworkStatus } from "@/hooks/useNetworkStatus";
-import { getCachedGameSession, updateCachedSection, prefetchImages } from "@/lib/offlineStorage";
-import { resilientMutation } from "@/lib/offlineQueue";
 import FullPageLoader from "@/components/FullPageLoader";
 import PageHeader from "@/components/PageHeader";
+
+import { useLocalRow, useLocalRows } from "@/hooks/useLocalData";
+import { upsertRow } from "@/lib/localStore";
+import { triggerPush, pullAll } from "@/lib/syncManager";
 
 const HostGame = () => {
   const { gameId } = useParams<{ gameId: string }>();
   const { user } = useAuth();
   const navigate = useNavigate();
-  const queryClient = useQueryClient();
   const online = useNetworkStatus();
-  const effectivelyOffline = !online;
 
-  // Local override for current_section when offline
   const [localSection, setLocalSection] = useState<string | null>(null);
 
-  const { data: game, error: gameError } = useOfflineQuery<any>(`host_game_${gameId}`, {
-    queryKey: ["game", gameId],
-    queryFn: async () => {
-      const { data, error } = await supabase
-        .from("games")
-        .select("*")
-        .eq("id", gameId!)
-        .single();
-      if (error) throw error;
-      return data;
-    },
-    enabled: !!gameId,
-  });
+  // Local-first data
+  const game = useLocalRow<any>("games", gameId);
+  const allPlayers = useLocalRows<any>("game_players", gameId ? { game_id: gameId } : undefined);
+  const allCharacters = useLocalRows<any>("characters");
+  const allProfiles = useLocalRows<any>("profiles");
 
-  const { data: players } = useOfflineQuery<any[]>(`host_players_${gameId}`, {
-    queryKey: ["game-players", gameId],
-    queryFn: async () => {
-      const { data, error } = await supabase
-        .from("game_players")
-        .select("*, profiles:user_id(display_name)")
-        .eq("game_id", gameId!);
-      if (error) throw error;
-      return data;
-    },
-    enabled: !!gameId,
-  });
+  // Build players with profile display names
+  const players = useMemo(() => {
+    return allPlayers.map((p: any) => {
+      const profile = allProfiles.find((pr: any) => pr.user_id === p.user_id);
+      return { ...p, profiles: profile ? { display_name: profile.display_name } : undefined };
+    });
+  }, [allPlayers, allProfiles]);
 
-  // Fetch ALL characters for all players (not just selected ones)
+  // Characters for players in this game
   const playerUserIds = useMemo(
-    () => [...new Set((players ?? []).map((p: any) => p.user_id as string))],
-    [players]
+    () => [...new Set(allPlayers.map((p: any) => p.user_id as string))],
+    [allPlayers]
+  );
+  const characters = useMemo(
+    () => allCharacters.filter((c: any) => playerUserIds.includes(c.user_id)),
+    [allCharacters, playerUserIds]
   );
 
-  const { data: characters } = useOfflineQuery<any[]>(`host_chars_${gameId}`, {
-    queryKey: ["game-characters", gameId, playerUserIds],
-    queryFn: async () => {
-      if (playerUserIds.length === 0) return [];
-      const { data, error } = await supabase
-        .from("characters")
-        .select("id, name, description, user_id")
-        .in("user_id", playerUserIds);
-      if (error) throw error;
-      return data;
-    },
-    enabled: !!gameId && playerUserIds.length > 0,
-  });
+  const effectiveScenario = game ? getScenarioById(game.scenario_id) : null;
 
-  // Cache session for offline use
-  useOfflineGameSession({ gameId, game, players, characters });
-
-  // Offline fallback data
-  const cachedSession = useMemo(() => {
-    if (game) return null; // online data available
-    if (!gameId) return null;
-    return getCachedGameSession(gameId);
-  }, [game, gameId, gameError]);
-
-  const effectiveGame = game ?? cachedSession?.game;
-  const effectiveScenario = game
-    ? getScenarioById(game.scenario_id)
-    : cachedSession?.game?.scenario_id
-      ? getScenarioById(cachedSession.game.scenario_id) ?? cachedSession?.scenario
-      : cachedSession?.scenario;
-  const effectivePlayers = players ?? cachedSession?.players ?? [];
-
-  // Prefetch scenario images
   const scenarioContent = effectiveScenario?.content || "";
   const parsed = useMemo(() => parseWikitext(scenarioContent), [scenarioContent]);
   const sections = parsed.sections;
@@ -106,17 +62,16 @@ const HostGame = () => {
 
   useEffect(() => {
     const urls = extractImageUrls(scenarioContent);
-    if (urls.length > 0) prefetchImages(urls);
+    if (urls.length > 0) {
+      for (const url of urls) { const img = new Image(); img.src = url; }
+    }
   }, [scenarioContent]);
 
-  const activeSection = localSection ?? (effectiveGame as any)?.current_section ?? null;
+  const activeSection = localSection ?? game?.current_section ?? null;
 
-  // Sync localSection when online data arrives
   useEffect(() => {
-    if (game) {
-      setLocalSection(null);
-    }
-  }, [game]);
+    if (game) setLocalSection(null);
+  }, [game?.current_section]);
 
   // Realtime for game updates
   useEffect(() => {
@@ -124,11 +79,11 @@ const HostGame = () => {
     const channel = supabase
       .channel(`game-host-${gameId}`)
       .on("postgres_changes", { event: "UPDATE", schema: "public", table: "games", filter: `id=eq.${gameId}` }, () => {
-        queryClient.invalidateQueries({ queryKey: ["game", gameId] });
+        pullAll();
       })
       .subscribe();
     return () => { supabase.removeChannel(channel); };
-  }, [gameId, queryClient]);
+  }, [gameId]);
 
   // Realtime for players joining
   useEffect(() => {
@@ -136,46 +91,40 @@ const HostGame = () => {
     const channel = supabase
       .channel(`game-players-${gameId}`)
       .on("postgres_changes", { event: "*", schema: "public", table: "game_players", filter: `game_id=eq.${gameId}` }, () => {
-        queryClient.invalidateQueries({ queryKey: ["game-players", gameId] });
+        pullAll();
       })
       .subscribe();
     return () => { supabase.removeChannel(channel); };
-  }, [gameId, queryClient]);
+  }, [gameId]);
 
   const endGame = async () => {
-    if (!effectiveGame) return;
-    const result = await resilientMutation(
-      async () => {
-        const { error } = await supabase.from("games").update({ status: "ended" }).eq("id", (effectiveGame as any).id);
-        if (error) throw error;
-      },
-      () => {} // no offline fallback — ending requires server
-    );
-    if (result === "ok") navigate("/");
-    else toast({ title: "Server unreachable", description: "Cannot end the game right now.", variant: "destructive" });
+    if (!game) return;
+    upsertRow("games", { ...game, status: "ended", updated_at: new Date().toISOString() });
+    try {
+      await supabase.from("games").update({ status: "ended" }).eq("id", game.id);
+    } catch {}
+    triggerPush();
+    navigate("/");
   };
 
   const copyCode = () => {
-    if (effectiveGame) {
-      navigator.clipboard.writeText((effectiveGame as any).join_code);
+    if (game) {
+      navigator.clipboard.writeText(game.join_code);
       toast({ title: "Copied!", description: "Join code copied to clipboard." });
     }
   };
 
   const activateSection = async (sectionId: string) => {
     setLocalSection(sectionId);
-    if (gameId) updateCachedSection(gameId, sectionId);
-    if (!effectiveGame) return;
-    await resilientMutation(
-      async () => {
-        const { error } = await supabase.from("games").update({ current_section: sectionId } as any).eq("id", (effectiveGame as any).id);
-        if (error) throw error;
-      },
-      () => {} // local state already updated
-    );
+    if (!game) return;
+    upsertRow("games", { ...game, current_section: sectionId, updated_at: new Date().toISOString() });
+    try {
+      await supabase.from("games").update({ current_section: sectionId } as any).eq("id", game.id);
+    } catch {}
+    triggerPush();
   };
 
-  if (!effectiveGame) {
+  if (!game) {
     return <FullPageLoader message="Loading quest..." />;
   }
 
@@ -203,11 +152,11 @@ const HostGame = () => {
         rightActions={
           <>
             <Button variant="outline" size="sm" onClick={copyCode} className="gap-2 border-primary/30 font-mono tracking-widest">
-              <Copy className="h-3 w-3" /> {(effectiveGame as any).join_code}
+              <Copy className="h-3 w-3" /> {game.join_code}
             </Button>
             <PlayerListSheet
-              players={effectivePlayers}
-              characters={characters ?? []}
+              players={players}
+              characters={characters}
               gameId={gameId!}
             />
             <Button variant="destructive" size="sm" onClick={endGame} className="gap-1">

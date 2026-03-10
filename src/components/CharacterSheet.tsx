@@ -1,6 +1,5 @@
 import { useState, useEffect, useRef } from "react";
 import { supabase } from "@/integrations/supabase/client";
-import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
@@ -11,8 +10,10 @@ import CharacterFeatPicker from "@/components/CharacterFeatPicker";
 import { useNetworkStatus } from "@/hooks/useNetworkStatus";
 import { getFeatById } from "@/data/feats";
 
-import { useOfflineQuery } from "@/hooks/useOfflineQuery";
-import { queueAction, setCacheData, getCacheData, resilientMutation } from "@/lib/offlineQueue";
+import { useLocalRow } from "@/hooks/useLocalData";
+import { useLocalRows } from "@/hooks/useLocalData";
+import { upsertRow } from "@/lib/localStore";
+import { triggerPush } from "@/lib/syncManager";
 
 interface CharacterSheetProps {
   characterId: string;
@@ -22,7 +23,6 @@ interface CharacterSheetProps {
 }
 
 const CharacterSheet = ({ characterId, mode = "player", scenarioLevel, onDone }: CharacterSheetProps) => {
-  const queryClient = useQueryClient();
   const online = useNetworkStatus();
   const effectivelyOffline = !online;
   const [name, setName] = useState("");
@@ -31,19 +31,7 @@ const CharacterSheet = ({ characterId, mode = "player", scenarioLevel, onDone }:
   const [generating, setGenerating] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
-  const { data: character } = useOfflineQuery(`character-${characterId}`, {
-    queryKey: ["character", characterId],
-    queryFn: async () => {
-      const { data, error } = await supabase
-        .from("characters")
-        .select("*")
-        .eq("id", characterId)
-        .single();
-      if (error) throw error;
-      return data;
-    },
-    enabled: !!characterId,
-  });
+  const character = useLocalRow<any>("characters", characterId);
 
   useEffect(() => {
     if (character) {
@@ -53,40 +41,13 @@ const CharacterSheet = ({ characterId, mode = "player", scenarioLevel, onDone }:
     }
   }, [character]);
 
-  const saveMutation = useMutation({
-    mutationFn: async () => {
-      return resilientMutation(
-        async () => {
-          const { error } = await supabase
-            .from("characters")
-            .update({ name, description: desc || null })
-            .eq("id", characterId);
-          if (error) throw error;
-        },
-        () => {
-          queueAction({ table: "characters", operation: "update", payload: { name, description: desc || null }, filter: { id: characterId } });
-          const cacheKey = `character-${characterId}`;
-          const cached = getCacheData<any>(cacheKey);
-          if (cached) setCacheData(cacheKey, { ...cached, name, description: desc || null });
-          queryClient.setQueryData(["character", characterId], (old: any) => old ? { ...old, name, description: desc || null } : old);
-          queryClient.setQueryData(["my-characters", character?.user_id], (old: any[]) => old?.map((c: any) => c.id === characterId ? { ...c, name, description: desc || null } : c));
-        }
-      );
-    },
-    onSuccess: (result) => {
-      setDirty(false);
-      if (result === "queued") {
-        toast({ title: "Saved locally — will sync when online" });
-      } else {
-        queryClient.invalidateQueries({ queryKey: ["character", characterId] });
-        queryClient.invalidateQueries({ queryKey: ["my-characters"] });
-        queryClient.invalidateQueries({ queryKey: ["gm-players"] });
-        queryClient.invalidateQueries({ queryKey: ["game-characters"] });
-        toast({ title: "Character updated" });
-      }
-    },
-    onError: (e: any) => toast({ title: "Error", description: e.message, variant: "destructive" }),
-  });
+  const handleSave = () => {
+    if (!character) return;
+    upsertRow("characters", { ...character, name, description: desc || null, updated_at: new Date().toISOString() });
+    triggerPush();
+    setDirty(false);
+    toast({ title: "Character updated" });
+  };
 
   const handleUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -107,31 +68,17 @@ const CharacterSheet = ({ characterId, mode = "player", scenarioLevel, onDone }:
       .getPublicUrl(filePath);
     const portraitUrl = `${publicUrlData.publicUrl}?t=${Date.now()}`;
 
-    const { error: updateError } = await supabase
-      .from("characters")
-      .update({ portrait_url: portraitUrl } as any)
-      .eq("id", characterId);
-
-    if (updateError) {
-      toast({ title: "Error", description: updateError.message, variant: "destructive" });
-      return;
-    }
-
-    queryClient.invalidateQueries({ queryKey: ["character", characterId] });
-    queryClient.invalidateQueries({ queryKey: ["my-characters"] });
-    queryClient.invalidateQueries({ queryKey: ["game-characters"] });
+    upsertRow("characters", { ...character, portrait_url: portraitUrl, updated_at: new Date().toISOString() });
+    triggerPush();
     toast({ title: "Portrait uploaded!" });
   };
 
   const handleGenerate = async () => {
+    if (!character) return;
     setGenerating(true);
     try {
-      // Resolve feat names locally to avoid DB join on removed feats table
-      const { data: cfRows } = await supabase
-        .from("character_feats")
-        .select("feat_id")
-        .eq("character_id", characterId);
-      const featNames = (cfRows ?? [])
+      const characterFeats = useLocalRowsStatic("character_feats", { character_id: characterId });
+      const featNames = characterFeats
         .map((cf: any) => getFeatById(cf.feat_id)?.title)
         .filter(Boolean);
 
@@ -140,9 +87,12 @@ const CharacterSheet = ({ characterId, mode = "player", scenarioLevel, onDone }:
       });
       if (error) throw error;
       if (data?.error) throw new Error(data.error);
-      queryClient.invalidateQueries({ queryKey: ["character", characterId] });
-      queryClient.invalidateQueries({ queryKey: ["my-characters"] });
-      queryClient.invalidateQueries({ queryKey: ["game-characters"] });
+
+      // Update local store with new portrait URL
+      if (data?.portrait_url) {
+        upsertRow("characters", { ...character, portrait_url: data.portrait_url, updated_at: new Date().toISOString() });
+        triggerPush();
+      }
       toast({ title: "Portrait generated!" });
     } catch (e: any) {
       toast({ title: "Generation failed", description: e.message, variant: "destructive" });
@@ -159,7 +109,7 @@ const CharacterSheet = ({ characterId, mode = "player", scenarioLevel, onDone }:
   }
 
   const initials = character.name.slice(0, 2).toUpperCase();
-  const portraitUrl = (character as any).portrait_url;
+  const portraitUrl = character.portrait_url;
 
   return (
     <div className="space-y-4">
@@ -223,8 +173,8 @@ const CharacterSheet = ({ characterId, mode = "player", scenarioLevel, onDone }:
       />
       {dirty && (
         <Button
-          onClick={() => saveMutation.mutate()}
-          disabled={!name.trim() || saveMutation.isPending}
+          onClick={handleSave}
+          disabled={!name.trim()}
           className="w-full font-display"
         >
           Save Changes
@@ -249,5 +199,11 @@ const CharacterSheet = ({ characterId, mode = "player", scenarioLevel, onDone }:
     </div>
   );
 };
+
+// Non-hook helper for reading local rows inside async functions
+import { getBy } from "@/lib/localStore";
+function useLocalRowsStatic(table: any, filter: any) {
+  return getBy(table, filter);
+}
 
 export default CharacterSheet;
