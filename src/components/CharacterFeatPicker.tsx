@@ -412,7 +412,7 @@ const CharacterFeatPicker = ({ characterId, mode = "player", scenarioLevel }: Ch
       }
     },
     onSuccess: () => {
-      if (online) {
+      if (!effectivelyOffline) {
         queryClient.invalidateQueries({ queryKey: ["character-feat-subfeats", characterId] });
       }
       setPickerTarget(null);
