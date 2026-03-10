@@ -42,7 +42,7 @@ const Dashboard = () => {
   const [deleteCharTarget, setDeleteCharTarget] = useState<{ id: string; name: string } | null>(null);
 
   // Characters
-  const { data: characters } = useQuery({
+  const { data: characters } = useOfflineQuery<any[]>(`my-characters-${user?.id}`, {
     queryKey: ["my-characters", user?.id],
     queryFn: async () => {
       const { data, error } = await supabase
