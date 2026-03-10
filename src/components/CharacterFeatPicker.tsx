@@ -286,7 +286,7 @@ const CharacterFeatPicker = ({ characterId, mode = "player", scenarioLevel }: Ch
 
   const deleteMutation = useMutation({
     mutationFn: async ({ level, isFree, id }: { level: number; isFree: boolean; id?: string }) => {
-      if (effectivelyOffline) {
+      const doOffline = () => {
         if (isFree && id) {
           queueAction({ table: "character_feats", operation: "delete", payload: {}, filter: { id } });
           queryClient.setQueryData(["character-feats", characterId], (old: CharacterFeat[] | undefined) =>
@@ -298,23 +298,28 @@ const CharacterFeatPicker = ({ characterId, mode = "player", scenarioLevel }: Ch
             (old ?? []).filter(cf => !(cf.level === level && !cf.is_free))
           );
         }
-        return;
-      }
-      if (isFree && id) {
-        const { error } = await supabase.from("character_feats").delete().eq("id", id);
-        if (error) throw error;
-      } else {
-        const { error } = await supabase
-          .from("character_feats")
-          .delete()
-          .eq("character_id", characterId)
-          .eq("level", level)
-          .eq("is_free", false);
-        if (error) throw error;
+        return "queued";
+      };
+
+      try {
+        if (isFree && id) {
+          const { error } = await supabase.from("character_feats").delete().eq("id", id);
+          if (error) throw error;
+        } else {
+          const { error } = await supabase
+            .from("character_feats")
+            .delete()
+            .eq("character_id", characterId)
+            .eq("level", level)
+            .eq("is_free", false);
+          if (error) throw error;
+        }
+      } catch {
+        return doOffline();
       }
     },
-    onSuccess: () => {
-      if (!effectivelyOffline) {
+    onSuccess: (result) => {
+      if (result !== "queued") {
         queryClient.invalidateQueries({ queryKey: ["character-feats", characterId] });
         queryClient.invalidateQueries({ queryKey: ["character-feat-subfeats", characterId] });
         queryClient.invalidateQueries({ queryKey: ["character-feats-summary", characterId] });
