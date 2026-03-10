@@ -582,17 +582,10 @@ const CharacterFeatPicker = ({ characterId, mode = "player", scenarioLevel }: Ch
   }, [allFeats, searchTerm, mode, pickerTarget, characterFeats]);
 
   const openPicker = (target: PickerTarget) => {
-    if (!online) return;
     setPickerTarget(target);
     setSearchTerm("");
     setExpandedFeatId(null);
     setValidationResult(null);
-    // COMMENTED OUT: preprocessed fields — filterMode toggle
-    // if (target.type === "level" && mode !== "gm") {
-    //   setFilterMode(canPickArchetype(target.level) ? "archetype" : "feat");
-    // } else {
-    //   setFilterMode("feat");
-    // }
   };
 
   const handleFeatSelect = (featId: string) => {
