@@ -438,12 +438,12 @@ const Home = () => {
       <section className="border-t border-primary/10 py-32 px-6">
         <div className="container mx-auto max-w-5xl">
           <div className="mb-20 text-center space-y-4">
-            <ScrollText className="mx-auto h-8 w-8 text-primary/40" />
+            <span className="mx-auto block text-3xl text-primary/40">🝳</span>
             <h2 className="font-display text-3xl font-bold text-foreground md:text-5xl">
               Open a Case. Enter a Nightmare.
             </h2>
             <p className="text-base text-muted-foreground mt-2">
-              80+ hours of gameplay. A decade of writing. Every word handwritten — from Austrian abbeys to the shores of Rhodes.
+              80+ hours of gameplay. A decade of writing. Every word handwritten without AI — from Austrian abbeys to the shores of Rhodes.
             </p>
           </div>
 
