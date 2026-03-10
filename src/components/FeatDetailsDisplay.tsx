@@ -71,11 +71,10 @@ interface FeatDetailsDisplayProps {
 }
 
 const FeatDetailsDisplay = ({ content, rawContent, className = "" }: FeatDetailsDisplayProps) => {
-  // Try to find the feat in the map to use getFeatMeta; fall back to building meta from content
   const featsMap = getFeatsMap();
+
   const featFromMap = useMemo(() => {
     if (!content && !rawContent) return null;
-    // Try to find by iterating — not ideal but FeatDetailsDisplay receives content, not feat
     for (const [, feat] of featsMap) {
       if (feat.content === content || feat.raw_content === rawContent) return feat;
     }
@@ -84,7 +83,7 @@ const FeatDetailsDisplay = ({ content, rawContent, className = "" }: FeatDetails
 
   const meta = useMemo(() => {
     if (featFromMap) return getFeatMeta(featFromMap);
-    // Fallback: parse inline (for content not in the feats map)
+    // Fallback for content not in the feats map
     const { parseEmbeddedFeatMeta } = require("@/lib/parseEmbeddedFeatMeta");
     const { parseFeatFields } = require("@/lib/parseFeatContent");
     const embedded = parseEmbeddedFeatMeta(rawContent || content);
