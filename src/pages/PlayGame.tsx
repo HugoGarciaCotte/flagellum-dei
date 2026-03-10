@@ -184,7 +184,7 @@ const PlayGame = () => {
       {/* Bottom character peek bar */}
       {!sheetExpanded && (
         <div
-          className="fixed bottom-0 inset-x-0 z-40 bg-card border-t border-border/50 backdrop-blur cursor-pointer"
+          className="fixed bottom-0 inset-x-0 z-40 bg-card border-t border-primary/10 backdrop-blur cursor-pointer gold-glow-box"
           onClick={() => setSheetExpanded(true)}
         >
           <div className="container max-w-3xl py-2 px-4">

@@ -338,7 +338,7 @@ const Dashboard = () => {
               {scenarios && scenarios.length > 0 ? (
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                   {scenarios.map((scenario) => (
-                    <Card key={scenario.id} className="border-border hover:border-primary/40 transition-colors">
+                    <Card key={scenario.id} className="aged-border hover:border-primary/40 transition-colors gold-glow-box">
                       <CardHeader className="pb-2">
                         <CardTitle className="font-display text-base">{scenario.title}</CardTitle>
                         {scenario.description && <CardDescription className="text-xs">{scenario.description}</CardDescription>}
