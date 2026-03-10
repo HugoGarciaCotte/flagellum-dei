@@ -5,7 +5,7 @@ const Logo = ({ className }: { className?: string }) => (
   <img
     src={logoSvg}
     alt="🜹"
-    className={cn("inline-block", className)}
+    className={cn("inline-block align-middle", className)}
     style={{ width: "1em", height: "1em" }}
   />
 );
