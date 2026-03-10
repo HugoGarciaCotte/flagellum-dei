@@ -94,18 +94,17 @@ export async function processQueue(): Promise<{ success: number; failed: number 
       }
 
       if (action.operation === "insert") {
-        const { data, error } = await supabase
-          .from(action.table)
-          .insert(action.payload)
+        const { data, error } = await (supabase
+          .from(action.table as any)
+          .insert(action.payload as any)
           .select()
-          .single();
+          .single() as any);
         if (error) throw error;
-        // Remap temp ID in all remaining actions
         if (action.tempId && data?.id) {
           remapTempId(actions.slice(i + 1), action.tempId, data.id);
         }
       } else if (action.operation === "update") {
-        let q = supabase.from(action.table).update(action.payload);
+        let q: any = supabase.from(action.table as any).update(action.payload as any);
         if (action.filter) {
           for (const [k, v] of Object.entries(action.filter)) {
             q = q.eq(k, v);
@@ -114,7 +113,7 @@ export async function processQueue(): Promise<{ success: number; failed: number 
         const { error } = await q;
         if (error) throw error;
       } else if (action.operation === "delete") {
-        let q = supabase.from(action.table).delete();
+        let q: any = supabase.from(action.table as any).delete();
         if (action.filter) {
           for (const [k, v] of Object.entries(action.filter)) {
             q = q.eq(k, v);
