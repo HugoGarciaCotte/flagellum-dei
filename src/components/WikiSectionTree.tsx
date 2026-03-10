@@ -70,24 +70,8 @@ function FeatLinkTooltip({ featName, rect, featsMap }: { featName: string; rect:
 }
 
 function useFeatsMap() {
-  return useQuery({
-    queryKey: ["feats-map-for-links"],
-    queryFn: async () => {
-      const [featsRes, redirectsRes] = await Promise.all([
-        supabase.from("feats").select("title, content, raw_content"),
-        supabase.from("feat_redirects").select("from_title, to_title"),
-      ]);
-      const map = new Map<string, any>();
-      featsRes.data?.forEach((f) => map.set(f.title.toLowerCase(), f));
-      redirectsRes.data?.forEach((r) => {
-        const target = map.get(r.to_title.toLowerCase());
-        if (target) map.set(r.from_title.toLowerCase(), target);
-      });
-      return map;
-    },
-    staleTime: 5 * 60 * 1000,
-    gcTime: 10 * 60 * 1000,
-  });
+  const map = useMemo(() => buildFeatsMap(), []);
+  return { data: map };
 }
 
 function SectionNode({
