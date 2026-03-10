@@ -311,24 +311,17 @@ const CharacterCreationWizard = ({ onCreated, onCancel, gameId }: CharacterCreat
       toast({ title: "Character saved locally — will sync when online" });
     };
 
-    try {
-      const { error } = await supabase
-        .from("characters")
-        .update({
-          name: name || "Blank",
-          description: description || null,
-          portrait_url: portraitUrl,
-        })
-        .eq("id", characterId);
-      if (error) throw error;
-      queryClient.invalidateQueries({ queryKey: ["my-characters"] });
-      queryClient.invalidateQueries({ queryKey: ["character-feats-summary"] });
-      onCreated(characterId);
-    } catch {
-      doOffline();
-    } finally {
-      setCreating(false);
-    }
+    const result = await resilientMutation(
+      async () => {
+        const { error } = await supabase.from("characters").update({ name: name || "Blank", description: description || null, portrait_url: portraitUrl }).eq("id", characterId);
+        if (error) throw error;
+        queryClient.invalidateQueries({ queryKey: ["my-characters"] });
+        queryClient.invalidateQueries({ queryKey: ["character-feats-summary"] });
+        onCreated(characterId);
+      },
+      doOffline,
+    );
+    setCreating(false);
   };
 
   // --- End progressive save helpers ---
