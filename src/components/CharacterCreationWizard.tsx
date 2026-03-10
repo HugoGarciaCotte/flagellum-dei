@@ -219,54 +219,30 @@ const CharacterCreationWizard = ({ onCreated, onCancel, gameId }: CharacterCreat
       }
     };
 
-    try {
-      if (characterId && characterFeatId) {
-        const { error: cfErr } = await supabase
-          .from("character_feats")
-          .update({ feat_id: featId })
-          .eq("id", characterFeatId);
-        if (cfErr) throw cfErr;
-        await supabase
-          .from("character_feat_subfeats")
-          .delete()
-          .eq("character_feat_id", characterFeatId);
-        setSubfeatSelections(new Map());
-      } else {
-        const { data: charData, error: charError } = await supabase
-          .from("characters")
-          .insert({ user_id: user.id, name: "New Character" } as any)
-          .select()
-          .single();
-        if (charError) throw charError;
-
-        const newCharId = charData.id;
-        setCharacterId(newCharId);
-
-        const { data: cfData, error: cfError } = await supabase
-          .from("character_feats")
-          .insert({ character_id: newCharId, feat_id: featId, level: 1 })
-          .select()
-          .single();
-        if (cfError) throw cfError;
-        setCharacterFeatId(cfData.id);
-
-        if (gameId) {
-          await supabase
-            .from("game_players")
-            .update({ character_id: newCharId })
-            .eq("game_id", gameId)
-            .eq("user_id", user.id);
+    const result = await resilientMutation(
+      async () => {
+        if (characterId && characterFeatId) {
+          const { error: cfErr } = await supabase.from("character_feats").update({ feat_id: featId }).eq("id", characterFeatId);
+          if (cfErr) throw cfErr;
+          await supabase.from("character_feat_subfeats").delete().eq("character_feat_id", characterFeatId);
+          setSubfeatSelections(new Map());
+        } else {
+          const { data: charData, error: charError } = await supabase.from("characters").insert({ user_id: user.id, name: "New Character" } as any).select().single();
+          if (charError) throw charError;
+          setCharacterId(charData.id);
+          const { data: cfData, error: cfError } = await supabase.from("character_feats").insert({ character_id: charData.id, feat_id: featId, level: 1 }).select().single();
+          if (cfError) throw cfError;
+          setCharacterFeatId(cfData.id);
+          if (gameId) {
+            await supabase.from("game_players").update({ character_id: charData.id }).eq("game_id", gameId).eq("user_id", user.id);
+          }
+          queryClient.invalidateQueries({ queryKey: ["my-characters"] });
+          queryClient.invalidateQueries({ queryKey: ["character-feats-summary"] });
         }
-
-        queryClient.invalidateQueries({ queryKey: ["my-characters"] });
-        queryClient.invalidateQueries({ queryKey: ["character-feats-summary"] });
-      }
-    } catch (e: any) {
-      // Server unreachable — fall back to offline queue
-      doOfflineCreate();
-    } finally {
-      setSaving(false);
-    }
+      },
+      doOfflineCreate,
+    );
+    setSaving(false);
   };
 
   /** Save a subfeat selection for a given slot */
