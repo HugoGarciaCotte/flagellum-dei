@@ -85,6 +85,18 @@ const PlayGame = () => {
   // Select character mutation
   const selectCharMutation = useMutation({
     mutationFn: async (characterId: string) => {
+      if (!online) {
+        queueAction({
+          table: "game_players",
+          operation: "update",
+          payload: { character_id: characterId },
+          filter: { game_id: gameId!, user_id: user!.id },
+        });
+        queryClient.setQueryData(["my-game-player", gameId, user?.id], (old: any) =>
+          old ? { ...old, character_id: characterId } : old
+        );
+        return;
+      }
       const { error } = await supabase
         .from("game_players")
         .update({ character_id: characterId })
@@ -93,8 +105,8 @@ const PlayGame = () => {
       if (error) throw error;
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["my-game-player", gameId, user?.id] });
-      toast({ title: "Character selected!" });
+      if (online) queryClient.invalidateQueries({ queryKey: ["my-game-player", gameId, user?.id] });
+      toast({ title: online ? "Character selected!" : "Character selected — will sync when online" });
     },
   });
 
