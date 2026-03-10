@@ -57,19 +57,8 @@ const CharacterCreationWizard = ({ onCreated, onCancel, gameId }: CharacterCreat
   const [generatingPortrait, setGeneratingPortrait] = useState(false);
   const [creating, setCreating] = useState(false);
 
-  // Fetch all feats
-  const { data: allFeats } = useQuery({
-    queryKey: ["all-feats"],
-    queryFn: async () => {
-      const { data, error } = await supabase
-        .from("feats")
-        .select("id, title, categories, content, raw_content")
-        .order("title");
-      if (error) throw error;
-      return data as Feat[];
-    },
-    placeholderData: () => getCachedFeats() as Feat[] | undefined ?? undefined,
-  });
+  // All feats from hardcoded data
+  const allFeats = useMemo(() => getAllFeats() as Feat[], []);
 
   // Maps
   const featMap = useMemo(() => {
