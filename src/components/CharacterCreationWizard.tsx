@@ -170,7 +170,7 @@ const CharacterCreationWizard = ({ onCreated, onCancel, gameId }: CharacterCreat
     if (!user) return;
     setSaving(true);
     try {
-      if (!online) {
+      if (!online || isGuest) {
         // Offline: create locally with temp IDs
         if (!characterId) {
           const tempCharId = crypto.randomUUID();
