@@ -1,4 +1,5 @@
 import { ReactNode } from "react";
+import Logo from "@/components/Logo";
 
 interface PageHeaderProps {
   title: string;
@@ -14,8 +15,9 @@ const PageHeader = ({ title, icon, leftAction, rightActions, badge }: PageHeader
       <div className="container flex items-center justify-between h-14">
         <div className="flex items-center gap-3">
           {leftAction}
+          <Logo className="text-xl text-primary" />
           <h1 className="font-display text-lg font-bold text-foreground flex items-center gap-2">
-            {icon}
+            {icon && icon}
             {title}
           </h1>
           {badge}
