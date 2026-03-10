@@ -77,8 +77,8 @@ const HostGame = () => {
       if (error) throw error;
       return data;
     },
-    enabled: !!gameId && playerUserIds.length > 0,
-    retry: online ? 3 : 0,
+    enabled: !!gameId && playerUserIds.length > 0 && !effectivelyOffline,
+    retry: effectivelyOffline ? 0 : 3,
   });
 
   // Cache session for offline use
