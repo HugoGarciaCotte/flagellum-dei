@@ -207,9 +207,15 @@ const Dashboard = () => {
                 <Settings className="h-4 w-4" /> Admin
               </Button>
             )}
-            <Button variant="ghost" size="sm" onClick={signOut} className="gap-2">
-              <LogOut className="h-4 w-4" /> Sign Out
-            </Button>
+            {isGuest ? (
+              <Button variant="ghost" size="sm" onClick={() => { signOut(); navigate("/auth"); }} className="gap-2">
+                Sign Up
+              </Button>
+            ) : (
+              <Button variant="ghost" size="sm" onClick={signOut} className="gap-2">
+                <LogOut className="h-4 w-4" /> Sign Out
+              </Button>
+            )}
           </>
         }
       />
