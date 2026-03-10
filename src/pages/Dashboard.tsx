@@ -211,7 +211,7 @@ const Dashboard = () => {
         <section className="space-y-4">
           <div className="flex items-center justify-between">
             <h2 className="font-display text-2xl text-foreground flex items-center gap-2">
-              <Sword className="h-6 w-6 text-primary" /> My Characters
+              <span className="text-xl text-primary" aria-hidden="true">🝖</span> My Characters
             </h2>
             <Dialog open={newCharDialogOpen} onOpenChange={setNewCharDialogOpen}>
               <DialogTrigger asChild>
