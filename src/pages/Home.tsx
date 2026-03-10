@@ -418,11 +418,14 @@ const Home = () => {
             />
             <StepCard
               number="III"
-              title="Gather the Table"
+              title="Descend Into Darkness"
               description={
                 <p>
                   Bring together 3–9 players around a table or connect through
-                  video call. Open the case. Begin the hunt.
+                  video call. A built-in timer keeps the pressure mounting.
+                  Every scenario comes with its own soundtrack and illustrated
+                  scenes — atmosphere that pulls your players into the
+                  investigation without ever breaking immersion.
                 </p>
               }
             />
