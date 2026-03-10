@@ -19,19 +19,17 @@ serve(async (req) => {
     const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY")!;
     const SUPABASE_ANON_KEY = Deno.env.get("SUPABASE_ANON_KEY")!;
 
-    // Verify user
     const userClient = createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
       global: { headers: { Authorization: authHeader } },
     });
     const { data: { user }, error: userError } = await userClient.auth.getUser();
     if (userError || !user) throw new Error("Unauthorized");
 
-    const { characterId } = await req.json();
+    const { characterId, featNames: clientFeatNames } = await req.json();
     if (!characterId) throw new Error("Missing characterId");
 
     const adminClient = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY);
 
-    // Fetch character
     const { data: character, error: charError } = await adminClient
       .from("characters")
       .select("*")
@@ -40,13 +38,15 @@ serve(async (req) => {
     if (charError || !character) throw new Error("Character not found");
     if (character.user_id !== user.id) throw new Error("Not your character");
 
-    // Fetch feats
-    const { data: charFeats } = await adminClient
-      .from("character_feats")
-      .select("feat_id, feats(title)")
-      .eq("character_id", characterId);
-
-    const featNames = (charFeats ?? []).map((cf: any) => cf.feats?.title).filter(Boolean);
+    // Use client-provided feat names, or fall back to feat_ids only
+    let featNames: string[] = clientFeatNames || [];
+    if (featNames.length === 0) {
+      const { data: charFeats } = await adminClient
+        .from("character_feats")
+        .select("feat_id")
+        .eq("character_id", characterId);
+      featNames = (charFeats ?? []).map((cf: any) => cf.feat_id);
+    }
 
     // Step 1: Generate prompt
     const promptResponse = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
@@ -107,7 +107,6 @@ serve(async (req) => {
     const imageUrl = imageData.choices?.[0]?.message?.images?.[0]?.image_url?.url;
     if (!imageUrl) throw new Error("No image in response");
 
-    // Decode base64
     const base64Data = imageUrl.replace(/^data:image\/\w+;base64,/, "");
     const imageBytes = Uint8Array.from(atob(base64Data), (c) => c.charCodeAt(0));
 
@@ -126,7 +125,6 @@ serve(async (req) => {
       .getPublicUrl(filePath);
     const portraitUrl = `${publicUrlData.publicUrl}?t=${Date.now()}`;
 
-    // Update character
     const { error: updateError } = await adminClient
       .from("characters")
       .update({ portrait_url: portraitUrl })
