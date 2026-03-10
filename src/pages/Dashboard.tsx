@@ -364,7 +364,11 @@ const Dashboard = () => {
                         {game.role === "hosting" ? "Hosting" : "Playing"}
                       </span>
                     </div>
-                    <CardDescription>Code: <span className="font-mono text-primary tracking-widest">{game.join_code}</span></CardDescription>
+                    {game.join_code ? (
+                      <CardDescription>Code: <span className="font-mono text-primary tracking-widest">{game.join_code}</span></CardDescription>
+                    ) : (
+                      <CardDescription className="text-muted-foreground/60">Local game</CardDescription>
+                    )}
                   </CardHeader>
                 </Card>
               ))}
