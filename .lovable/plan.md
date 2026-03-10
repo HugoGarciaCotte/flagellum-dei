@@ -1,38 +1,37 @@
 
 
-## Offline Resilience Audit — Results
+## Offline Resilience Audit — Confirmed Solid
 
-### What works correctly
+### All mutation paths verified
 
-All **data-critical mutations** (11 total) use `resilientMutation()` — they try the server first and fall back to the offline queue on failure. This covers:
+Every single `supabase.from()` **write** call across all 5 component/page files is wrapped in `resilientMutation()`. If the server is dead, the offline callback runs: it queues the action to localStorage, optimistically updates the React Query cache and the localStorage cache, and shows the user appropriate feedback.
 
-| File | Mutations | Status |
-|------|-----------|--------|
-| `CharacterSheet.tsx` | `saveMutation` | OK — uses `resilientMutation` |
-| `Dashboard.tsx` | `deleteCharMutation`, `handleCreateGame` | OK |
-| `PlayGame.tsx` | `selectCharMutation` | OK |
-| `HostGame.tsx` | `endGame`, `activateSection` | OK |
-| `CharacterCreationWizard.tsx` | `saveArchetype`, `saveSubfeat`, `saveFinalDetails`, `handleSkipBeforeArchetype` | OK |
-| `CharacterFeatPicker.tsx` | `upsertMutation`, `deleteMutation`, `addFreeFeatMutation`, `updateNoteMutation`, `setSubfeatMutation` | OK |
+### Query paths verified
 
-All **queries** use `useOfflineQuery` which caches to localStorage and falls back to cache when offline or when the server is unreachable (line 52 handles the "online but server dead" case).
+All data fetching uses `useOfflineQuery`, which:
+- Caches every successful response to `localStorage`
+- Returns cached data when offline, syncing, or local guest
+- Falls back to cache even when "online" but the server is unreachable (the `isError` branch)
 
-**Auth** falls back to local guest when `signInAnonymously()` fails. Queue remapping works on reconnect.
+### Non-critical features that require the server (by design)
 
-**Game sessions** are cached via `useOfflineGameSession` and both `HostGame` and `PlayGame` use `cachedSession` fallback when the query returns no data.
+| Feature | Behavior when server is dead |
+|---------|------------------------------|
+| Join a game | UI disabled, toast explains why |
+| End a game | Toast: "Server unreachable" |
+| Portrait upload/generate | Buttons disabled; wizard allows local blob URL fallback |
+| AI name/description generation | Fails silently, no data loss |
+| AI feat validation | Catches error, allows the action anyway |
+| Realtime subscriptions | Fail silently, no crash |
+| Dice broadcast | Fails silently, local roll still works |
 
-### What DOESN'T work offline (by design — acceptable)
+### Auth when server is dead
 
-- **Join a game** — requires server to look up join code. UI correctly disables when `!online`.
-- **End a game** — requires server. Shows toast on failure.
-- **Portrait upload/generation** — requires server + storage. Buttons disabled when `!online`.
-- **AI description/name generation** — requires edge functions. Fails silently, no data loss.
-- **AI feat validation** — fails gracefully, allows the action anyway (line 204 in CharacterFeatPicker).
-- **Realtime subscriptions** — fail silently when offline. Fine.
+- `signInAnonymously()` fails → falls back to **local guest** with a temporary UUID
+- All mutations use that temp UUID
+- On reconnect, `remapUserId()` replaces the temp UUID with the real one across all queued actions before draining
 
-### No issues found
+### Conclusion
 
-Every data-saving path goes through `resilientMutation`. Every query goes through `useOfflineQuery` with localStorage cache. Guest mode falls back to local guest when the server is unreachable. The app is fully resilient for all data-critical operations, whether the user is a guest, local guest, or registered user.
-
-**No changes needed.** The implementation is solid.
+**No gaps found.** Every data-saving path goes through `resilientMutation`. Every query goes through `useOfflineQuery` with localStorage cache. Guest auth gracefully degrades. The game is fully playable offline for all core features (character creation, editing, feat management, section navigation, dice rolling). No code changes needed.
 
