@@ -161,6 +161,14 @@ const faqs = [
     q: "Does the game promote a particular faith?",
     a: "Not at all. Religion shaped every aspect of 14th-century life, so faith and heresy are central to the setting. The game explores these themes purely for historical immersion — the writers do not endorse or discriminate against any religion.",
   },
+  {
+    q: "Is this project open source?",
+    a: "Yes! The entire website is open source. It was built with Lovable — only the game content (scenarios, feats, and lore) was handwritten. You can remix the project freely on Lovable or browse the source code on GitHub.",
+    links: {
+      lovable: "https://lovable.dev/projects/81d72331-f39f-42a0-8104-483bc69c26ee",
+      github: "https://github.com/HugoGarciaCotte/flagellum-dei",
+    },
+  },
 ];
 
 /* ──────────────────────────────────────────────
@@ -518,8 +526,22 @@ const Home = () => {
                 <AccordionTrigger className="font-display text-sm tracking-wide text-foreground/90 hover:no-underline hover:text-primary text-left">
                   {faq.q}
                 </AccordionTrigger>
-                <AccordionContent className="text-sm leading-relaxed text-muted-foreground">
-                  {faq.a}
+                <AccordionContent className="text-sm leading-relaxed text-muted-foreground space-y-2">
+                  <p>{faq.a}</p>
+                  {faq.links && (
+                    <p className="flex gap-4">
+                      {faq.links.lovable && (
+                        <a href={faq.links.lovable} target="_blank" rel="noopener noreferrer" className="text-primary hover:underline">
+                          Remix on Lovable ↗
+                        </a>
+                      )}
+                      {faq.links.github && (
+                        <a href={faq.links.github} target="_blank" rel="noopener noreferrer" className="text-primary hover:underline">
+                          View on GitHub ↗
+                        </a>
+                      )}
+                    </p>
+                  )}
                 </AccordionContent>
               </AccordionItem>
             ))}
