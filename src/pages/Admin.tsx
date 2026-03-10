@@ -3,7 +3,6 @@ import { useIsOwner } from "@/hooks/useIsOwner";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { ArrowLeft, Download, Search } from "lucide-react";
-import { ArrowLeft, Download, Loader2, Search, X, Check } from "lucide-react";
 
 import ManageScenarios from "@/components/ManageScenarios";
 import ImportFeatsCard from "@/components/ImportFeatsCard";
