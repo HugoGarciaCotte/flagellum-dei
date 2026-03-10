@@ -563,15 +563,6 @@ const Home = () => {
                 Begin the Investigation
               </Button>
             </Link>
-            <Link to="/auth">
-              <Button
-                variant="outline"
-                size="lg"
-                className="font-display text-xs tracking-[0.2em] uppercase border-primary/20 text-primary hover:bg-primary/5 hover:text-primary"
-              >
-                Browse the Scenarios
-              </Button>
-            </Link>
           </div>
 
           <p className="text-xs text-muted-foreground/40 tracking-wide">
