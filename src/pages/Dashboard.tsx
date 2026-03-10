@@ -167,23 +167,19 @@ const Dashboard = () => {
   };
 
   const handleCreateGame = async (scenarioId: string) => {
-    if (!online) {
+    try {
+      const letters = "ABCDEFGHIJKLMNOPQRSTUVWXYZ";
+      const code = Array.from({ length: 6 }, () => letters[Math.floor(Math.random() * 26)]).join("");
+      const { data, error } = await supabase
+        .from("games")
+        .insert({ host_user_id: user!.id, scenario_id: scenarioId, join_code: code })
+        .select()
+        .single();
+      if (error) throw error;
+      navigate(`/game/${data.id}/host`);
+    } catch {
       createLocalGame(scenarioId);
-      return;
     }
-    const letters = "ABCDEFGHIJKLMNOPQRSTUVWXYZ";
-    const code = Array.from({ length: 6 }, () => letters[Math.floor(Math.random() * 26)]).join("");
-    const { data, error } = await supabase
-      .from("games")
-      .insert({ host_user_id: user!.id, scenario_id: scenarioId, join_code: code })
-      .select()
-      .single();
-    if (error) {
-      console.warn("DB game creation failed, falling back to local:", error.message);
-      createLocalGame(scenarioId);
-      return;
-    }
-    navigate(`/game/${data.id}/host`);
   };
 
   const handleJoinGame = async () => {
