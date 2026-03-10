@@ -1,6 +1,5 @@
-import { ReactNode } from "react";
-import { supabase } from "@/integrations/supabase/client";
-import { useOfflineQuery } from "@/hooks/useOfflineQuery";
+import { ReactNode, useMemo } from "react";
+import { useLocalRows } from "@/hooks/useLocalData";
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
 import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
 import { getFeatById } from "@/data/feats";
@@ -11,36 +10,17 @@ interface CharacterListItemProps {
 }
 
 const CharacterListItem = ({ character, actions }: CharacterListItemProps) => {
-  const { data: feats } = useOfflineQuery<any[]>(`char-feats-summary-${character.id}`, {
-    queryKey: ["character-feats-summary", character.id],
-    queryFn: async () => {
-      const { data, error } = await supabase
-        .from("character_feats")
-        .select("id, feat_id")
-        .eq("character_id", character.id)
-        .order("level");
-      if (error) throw error;
-      if (!data || data.length === 0) return [];
+  const allFeats = useLocalRows("character_feats", { character_id: character.id });
+  const allSubfeats = useLocalRows("character_feat_subfeats");
 
-      const cfIds = data.map(cf => cf.id);
-      const { data: subfeats } = await supabase
-        .from("character_feat_subfeats")
-        .select("character_feat_id, subfeat_id")
-        .in("character_feat_id", cfIds);
-
-      const subfeatMap = new Map<string, typeof subfeats>();
-      for (const sf of subfeats || []) {
-        const list = subfeatMap.get(sf.character_feat_id) || [];
-        list.push(sf);
-        subfeatMap.set(sf.character_feat_id, list);
-      }
-
-      return data.map(cf => ({
-        ...cf,
-        character_feat_subfeats: subfeatMap.get(cf.id) || [],
-      }));
-    },
-  });
+  const feats = useMemo(() => {
+    const cfIds = new Set(allFeats.map((cf: any) => cf.id));
+    const sorted = [...allFeats].sort((a: any, b: any) => (a.level ?? 0) - (b.level ?? 0));
+    return sorted.map((cf: any) => ({
+      ...cf,
+      character_feat_subfeats: allSubfeats.filter((sf: any) => sf.character_feat_id === cf.id),
+    }));
+  }, [allFeats, allSubfeats]);
 
   const initials = character.name.slice(0, 2).toUpperCase();
 
@@ -66,7 +46,7 @@ const CharacterListItem = ({ character, actions }: CharacterListItemProps) => {
       {feats && feats.length > 0 && (
         <CardContent className="pt-0 pb-3">
           <ul className="list-disc list-inside text-sm text-muted-foreground space-y-0.5">
-            {feats.map((cf) => {
+            {feats.map((cf: any) => {
               const featTitle = getFeatById(cf.feat_id)?.title || "Unknown feat";
               return (
                 <li key={cf.id}>

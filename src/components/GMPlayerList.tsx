@@ -1,7 +1,6 @@
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import { useAuth } from "@/contexts/AuthContext";
-import { supabase } from "@/integrations/supabase/client";
-import { useOfflineQuery } from "@/hooks/useOfflineQuery";
+import { useLocalRows } from "@/hooks/useLocalData";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
@@ -22,43 +21,38 @@ const GMPlayerList = () => {
   const [open, setOpen] = useState(false);
   const [editPlayer, setEditPlayer] = useState<PlayerRow | null>(null);
 
-  const { data: players } = useOfflineQuery<PlayerRow[]>(`gm-players-${user?.id}`, {
-    queryKey: ["gm-players", user?.id],
-    queryFn: async () => {
-      const { data, error } = await supabase
-        .from("game_players")
-        .select(`
-          user_id,
-          character_id,
-          games!inner(host_user_id),
-          characters(id, name, description),
-          profiles:user_id(display_name)
-        `)
-        .eq("games.host_user_id", user!.id);
-      if (error) throw error;
+  const games = useLocalRows("games", { host_user_id: user?.id });
+  const allGamePlayers = useLocalRows("game_players");
+  const allCharacters = useLocalRows("characters");
+  const allProfiles = useLocalRows("profiles");
 
-      const map = new Map<string, PlayerRow>();
-      for (const row of data ?? []) {
-        const uid = row.user_id;
-        if (uid === user!.id) continue;
-        const existing = map.get(uid);
-        const char = row.characters as any;
-        const profile = row.profiles as any;
-        const entry: PlayerRow = {
-          user_id: uid,
-          display_name: profile?.display_name ?? null,
-          character_id: char?.id ?? null,
-          character_name: char?.name ?? null,
-          character_description: char?.description ?? null,
-        };
-        if (!existing || (entry.character_id && !existing.character_id)) {
-          map.set(uid, entry);
-        }
+  const players = useMemo(() => {
+    if (!user) return [];
+    const myGameIds = new Set(games.map((g: any) => g.id));
+    const profileMap = new Map(allProfiles.map((p: any) => [p.user_id, p]));
+    const charMap = new Map(allCharacters.map((c: any) => [c.id, c]));
+
+    const map = new Map<string, PlayerRow>();
+    for (const gp of allGamePlayers) {
+      if (!myGameIds.has((gp as any).game_id)) continue;
+      if ((gp as any).user_id === user.id) continue;
+      const uid = (gp as any).user_id;
+      const existing = map.get(uid);
+      const char = (gp as any).character_id ? charMap.get((gp as any).character_id) : null;
+      const profile = profileMap.get(uid);
+      const entry: PlayerRow = {
+        user_id: uid,
+        display_name: (profile as any)?.display_name ?? null,
+        character_id: char?.id ?? null,
+        character_name: char?.name ?? null,
+        character_description: char?.description ?? null,
+      };
+      if (!existing || (entry.character_id && !existing.character_id)) {
+        map.set(uid, entry);
       }
-      return Array.from(map.values());
-    },
-    enabled: !!user,
-  });
+    }
+    return Array.from(map.values());
+  }, [user, games, allGamePlayers, allCharacters, allProfiles]);
 
   if (!players || players.length === 0) return null;
 
