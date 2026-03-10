@@ -385,7 +385,7 @@ const CharacterFeatPicker = ({ characterId, mode = "player", scenarioLevel }: Ch
 
   const setSubfeatMutation = useMutation({
     mutationFn: async ({ characterFeatId, slot, subfeatId }: { characterFeatId: string; slot: number; subfeatId: string | null }) => {
-      if (effectivelyOffline) {
+      const doOffline = () => {
         queueAction({ table: "character_feat_subfeats", operation: "delete", payload: {}, filter: { character_feat_id: characterFeatId, slot } });
         if (subfeatId) {
           const tempId = crypto.randomUUID();
@@ -404,23 +404,28 @@ const CharacterFeatPicker = ({ characterId, mode = "player", scenarioLevel }: Ch
             (old ?? []).filter(cs => !(cs.character_feat_id === characterFeatId && cs.slot === slot))
           );
         }
-        return;
-      }
-      await supabase.from("character_feat_subfeats")
-        .delete()
-        .eq("character_feat_id", characterFeatId)
-        .eq("slot", slot);
-      if (subfeatId) {
-        const { error } = await supabase.from("character_feat_subfeats").insert({
-          character_feat_id: characterFeatId,
-          slot,
-          subfeat_id: subfeatId,
-        });
-        if (error) throw error;
+        return "queued";
+      };
+
+      try {
+        await supabase.from("character_feat_subfeats")
+          .delete()
+          .eq("character_feat_id", characterFeatId)
+          .eq("slot", slot);
+        if (subfeatId) {
+          const { error } = await supabase.from("character_feat_subfeats").insert({
+            character_feat_id: characterFeatId,
+            slot,
+            subfeat_id: subfeatId,
+          });
+          if (error) throw error;
+        }
+      } catch {
+        return doOffline();
       }
     },
-    onSuccess: () => {
-      if (!effectivelyOffline) {
+    onSuccess: (result) => {
+      if (result !== "queued") {
         queryClient.invalidateQueries({ queryKey: ["character-feat-subfeats", characterId] });
       }
       setPickerTarget(null);
