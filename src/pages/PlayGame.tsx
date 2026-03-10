@@ -6,7 +6,7 @@ import { getScenarioById } from "@/data/scenarios";
 import { useQueryClient, useMutation } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
-import { ArrowLeft, Plus, Check, X, GripHorizontal, Pencil } from "lucide-react";
+import { ArrowLeft, Plus, Check, X, GripHorizontal, Pencil, Copy } from "lucide-react";
 import CharacterSheet from "@/components/CharacterSheet";
 import { useNetworkStatus } from "@/hooks/useNetworkStatus";
 import { useOfflineQuery } from "@/hooks/useOfflineQuery";
@@ -144,6 +144,13 @@ const PlayGame = () => {
     return <FullPageLoader message="Joining quest..." />;
   }
 
+  const copyCode = () => {
+    if (effectiveGame?.join_code) {
+      navigator.clipboard.writeText(effectiveGame.join_code);
+      toast({ title: "Join code copied!" });
+    }
+  };
+
   if ((effectiveGame as any).status === "ended") {
     return (
       <div className="flex min-h-screen items-center justify-center bg-background flex-col gap-4">
@@ -161,6 +168,14 @@ const PlayGame = () => {
           <Button variant="ghost" size="icon" onClick={() => navigate("/")}>
             <ArrowLeft className="h-4 w-4" />
           </Button>
+        }
+        rightActions={
+          effectiveGame?.join_code ? (
+            <Button variant="outline" size="sm" onClick={copyCode} className="font-mono text-xs gap-1.5">
+              {effectiveGame.join_code}
+              <Copy className="h-3.5 w-3.5" />
+            </Button>
+          ) : undefined
         }
         badge={
           !online ? (
