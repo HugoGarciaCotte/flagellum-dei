@@ -55,6 +55,7 @@ const App = () => (
           </Routes>
         </BrowserRouter>
         <OfflineBanner />
+        <GuestBanner />
       </TooltipProvider>
     </AuthProvider>
   </QueryClientProvider>
