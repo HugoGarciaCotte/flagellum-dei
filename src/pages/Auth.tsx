@@ -49,13 +49,33 @@ const Auth = () => {
   const handleSignup = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
-    const { error } = await supabase.auth.signUp({
-      email,
-      password,
-      options: { data: { display_name: displayName } },
-    });
-    if (error) {
-      toast({ title: "Signup failed", description: error.message, variant: "destructive" });
+
+    if (isGuest) {
+      // Convert anonymous account to permanent
+      const { error } = await supabase.auth.updateUser({
+        email,
+        password,
+        data: { display_name: displayName },
+      });
+      if (error) {
+        toast({ title: "Conversion failed", description: error.message, variant: "destructive" });
+      } else {
+        // Update profile display name
+        await supabase
+          .from("profiles")
+          .update({ display_name: displayName })
+          .eq("user_id", user!.id);
+        toast({ title: "Account created!", description: "Your guest data has been preserved. Please check your email to verify your account." });
+      }
+    } else {
+      const { error } = await supabase.auth.signUp({
+        email,
+        password,
+        options: { data: { display_name: displayName } },
+      });
+      if (error) {
+        toast({ title: "Signup failed", description: error.message, variant: "destructive" });
+      }
     }
     setLoading(false);
   };
@@ -76,7 +96,7 @@ const Auth = () => {
         <div className="ornamental-divider w-48 mx-auto" />
 
         <Card className="aged-border bg-card/80 backdrop-blur">
-          <Tabs defaultValue="login">
+          <Tabs defaultValue={isGuest ? "signup" : "login"}>
             <CardHeader className="pb-2">
               <TabsList className="w-full">
                 <TabsTrigger value="login" className="flex-1 gap-2">
@@ -111,28 +131,37 @@ const Auth = () => {
                     <button type="button" onClick={() => setShowForgotPassword(true)} className="text-sm text-primary hover:underline w-full text-center">
                       Forgot your password?
                     </button>
-                    <div className="relative my-2">
-                      <div className="absolute inset-0 flex items-center"><span className="w-full border-t border-border/50" /></div>
-                      <div className="relative flex justify-center text-xs"><span className="bg-card px-2 text-muted-foreground">or</span></div>
-                    </div>
-                    <button
-                      type="button"
-                      onClick={() => { enterGuestMode(); navigate("/"); }}
-                      className="w-full text-sm text-muted-foreground hover:text-foreground transition-colors font-display flex items-center justify-center gap-2 py-2"
-                    >
-                      Explore as Guest
-                    </button>
+                    {!isGuest && (
+                      <>
+                        <div className="relative my-2">
+                          <div className="absolute inset-0 flex items-center"><span className="w-full border-t border-border/50" /></div>
+                          <div className="relative flex justify-center text-xs"><span className="bg-card px-2 text-muted-foreground">or</span></div>
+                        </div>
+                        <button
+                          type="button"
+                          onClick={() => { enterGuestMode(); navigate("/"); }}
+                          className="w-full text-sm text-muted-foreground hover:text-foreground transition-colors font-display flex items-center justify-center gap-2 py-2"
+                        >
+                          Explore as Guest
+                        </button>
+                      </>
+                    )}
                   </form>
                 )}
               </TabsContent>
 
               <TabsContent value="signup">
                 <form onSubmit={handleSignup} className="space-y-4">
+                  {isGuest && (
+                    <p className="text-sm text-muted-foreground bg-primary/10 rounded p-2">
+                      Converting your guest account — all your characters and progress will be kept!
+                    </p>
+                  )}
                   <Input placeholder="Display Name" value={displayName} onChange={(e) => setDisplayName(e.target.value)} required />
                   <Input placeholder="Email" type="email" value={email} onChange={(e) => setEmail(e.target.value)} required />
                   <Input placeholder="Password" type="password" value={password} onChange={(e) => setPassword(e.target.value)} required />
                   <Button type="submit" className="w-full font-display" disabled={loading}>
-                    {loading ? "Forging..." : "Forge Your Legend"}
+                    {loading ? "Forging..." : isGuest ? "Convert to Full Account" : "Forge Your Legend"}
                   </Button>
                 </form>
               </TabsContent>
