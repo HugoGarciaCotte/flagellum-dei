@@ -109,7 +109,6 @@ const FeatDetailsDisplay = ({ content, rawContent, className = "" }: FeatDetails
     return convertBodyToHtml(cleaned.split("\n"));
   }, [content]);
 
-  const featsMap = getFeatsMap();
 
   // Style wiki-feat-link spans
   useEffect(() => {

@@ -8,7 +8,6 @@ import FeatCategoryBadges from "@/components/FeatCategoryBadges";
 import { Badge } from "@/components/ui/badge";
 import { getAllFeats, getFeatMeta } from "@/data/feats";
 import { Input } from "@/components/ui/input";
-import { Input } from "@/components/ui/input";
 import { Search } from "lucide-react";
 
 type Feat = {
