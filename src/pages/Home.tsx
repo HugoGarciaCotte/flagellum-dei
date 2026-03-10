@@ -205,12 +205,7 @@ const Home = () => {
       {/* ─── HEADER ─── */}
       <header className="fixed top-0 left-0 right-0 z-50 border-b border-primary/10 bg-background/95 backdrop-blur-md">
         <div className="container mx-auto flex items-center justify-between px-6 py-4">
-          <div className="flex items-center gap-3">
-            <Logo className="text-2xl" />
-            <span className="font-display text-sm font-bold tracking-[0.1em] uppercase text-primary/80 hidden sm:inline">
-              Flagellum Dei
-            </span>
-          </div>
+          <BrandTitle />
           <Link to="/auth">
             <Button
               size="sm"
