@@ -24,9 +24,8 @@ function FeatLinkTooltip({ featName, rect }: { featName: string; rect: DOMRect }
   const featsMap = getFeatsMap();
   const feat = featsMap.get(featName.toLowerCase());
   if (!feat) return null;
-  const fields = parseFeatFields(feat.content);
-  const meta = parseEmbeddedFeatMeta(feat.raw_content || feat.content);
-  const prerequisites = meta.prerequisites || fields.prerequisites;
+  const meta = getFeatMeta(feat);
+  const prerequisites = meta.prerequisites;
 
   return createPortal(
     <div
