@@ -1,14 +1,8 @@
-import { useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { useQueryClient } from "@tanstack/react-query";
 import { useIsOwner } from "@/hooks/useIsOwner";
-import { useAuth } from "@/contexts/AuthContext";
-import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
-import { Table, TableHeader, TableBody, TableHead, TableRow, TableCell } from "@/components/ui/table";
-import { toast } from "@/hooks/use-toast";
+import { ArrowLeft, Download, Search } from "lucide-react";
 import { ArrowLeft, Download, Loader2, Search, X, Check } from "lucide-react";
 
 import ManageScenarios from "@/components/ManageScenarios";
