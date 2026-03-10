@@ -268,6 +268,7 @@ const CharacterFeatPicker = ({ characterId, mode = "player", scenarioLevel }: Ch
       if (online) {
         queryClient.invalidateQueries({ queryKey: ["character-feats", characterId] });
         queryClient.invalidateQueries({ queryKey: ["character-feat-subfeats", characterId] });
+        queryClient.invalidateQueries({ queryKey: ["character-feats-summary", characterId] });
       }
       setPickerTarget(null);
       setSearchTerm("");
@@ -312,6 +313,7 @@ const CharacterFeatPicker = ({ characterId, mode = "player", scenarioLevel }: Ch
       if (online) {
         queryClient.invalidateQueries({ queryKey: ["character-feats", characterId] });
         queryClient.invalidateQueries({ queryKey: ["character-feat-subfeats", characterId] });
+        queryClient.invalidateQueries({ queryKey: ["character-feats-summary", characterId] });
       }
     },
   });
@@ -339,6 +341,7 @@ const CharacterFeatPicker = ({ characterId, mode = "player", scenarioLevel }: Ch
     onSuccess: () => {
       if (online) {
         queryClient.invalidateQueries({ queryKey: ["character-feats", characterId] });
+        queryClient.invalidateQueries({ queryKey: ["character-feats-summary", characterId] });
       }
       setPickerTarget(null);
       setSearchTerm("");
@@ -364,6 +367,7 @@ const CharacterFeatPicker = ({ characterId, mode = "player", scenarioLevel }: Ch
     onSuccess: () => {
       if (online) {
         queryClient.invalidateQueries({ queryKey: ["character-feats", characterId] });
+        queryClient.invalidateQueries({ queryKey: ["character-feats-summary", characterId] });
       }
     },
   });

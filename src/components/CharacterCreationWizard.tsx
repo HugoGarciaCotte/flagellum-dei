@@ -252,6 +252,7 @@ const CharacterCreationWizard = ({ onCreated, onCancel, gameId }: CharacterCreat
         }
 
         queryClient.invalidateQueries({ queryKey: ["my-characters"] });
+        queryClient.invalidateQueries({ queryKey: ["character-feats-summary"] });
       }
     } catch (e: any) {
       toast({ title: "Error saving archetype", description: e.message, variant: "destructive" });
@@ -327,6 +328,7 @@ const CharacterCreationWizard = ({ onCreated, onCancel, gameId }: CharacterCreat
           .eq("id", characterId);
         if (error) throw error;
         queryClient.invalidateQueries({ queryKey: ["my-characters"] });
+        queryClient.invalidateQueries({ queryKey: ["character-feats-summary"] });
         onCreated(characterId);
       }
     } catch (e: any) {
@@ -439,6 +441,7 @@ const CharacterCreationWizard = ({ onCreated, onCancel, gameId }: CharacterCreat
         }
 
         queryClient.invalidateQueries({ queryKey: ["my-characters"] });
+        queryClient.invalidateQueries({ queryKey: ["character-feats-summary"] });
         onCreated(charData.id);
       }
     } catch (e: any) {
