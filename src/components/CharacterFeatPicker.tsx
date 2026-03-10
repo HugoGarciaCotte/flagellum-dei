@@ -12,6 +12,7 @@ import { Alert, AlertTitle, AlertDescription } from "@/components/ui/alert";
 import { type SubfeatSlot } from "@/lib/parseEmbeddedFeatMeta";
 
 import { useNetworkStatus } from "@/hooks/useNetworkStatus";
+import { useAuth } from "@/contexts/AuthContext";
 import { useOfflineQuery } from "@/hooks/useOfflineQuery";
 import { queueAction, setCacheData, getCacheData } from "@/lib/offlineQueue";
 import { getAllFeats, getFeatMeta } from "@/data/feats";
