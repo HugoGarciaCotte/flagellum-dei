@@ -1,9 +1,7 @@
 import { useState, useRef, useEffect, useCallback, useMemo } from "react";
 import { createPortal } from "react-dom";
-import { buildFeatsMap, type Feat } from "@/data/feats";
+import { buildFeatsMap, getFeatMeta, type Feat } from "@/data/feats";
 import { convertBodyToHtml } from "@/lib/parseWikitext";
-import { parseEmbeddedFeatMeta } from "@/lib/parseEmbeddedFeatMeta";
-import { parseFeatFields } from "@/lib/parseFeatContent";
 import WikiLinkedText from "@/components/WikiLinkedText";
 
 function stripLinks(text: string): string {
