@@ -81,7 +81,7 @@ const Dashboard = () => {
   const scenarios = getAllScenarios();
 
   // Active games (hosted)
-  const { data: myGames } = useQuery({
+  const { data: myGames } = useOfflineQuery<any[]>(`my-games-${user?.id}`, {
     queryKey: ["my-games", user?.id],
     queryFn: async () => {
       const { data, error } = await supabase
@@ -96,7 +96,7 @@ const Dashboard = () => {
   });
 
   // Active games (joined as player)
-  const { data: joinedGames } = useQuery({
+  const { data: joinedGames } = useOfflineQuery<any[]>(`joined-games-${user?.id}`, {
     queryKey: ["joined-games", user?.id],
     queryFn: async () => {
       const { data, error } = await supabase
@@ -108,6 +108,7 @@ const Dashboard = () => {
       return data;
     },
     enabled: !!user,
+  });
   });
 
   // Merge hosted + joined games, deduplicated
