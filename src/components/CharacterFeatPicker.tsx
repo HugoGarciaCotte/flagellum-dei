@@ -114,14 +114,7 @@ const CharacterFeatPicker = ({ characterId, mode = "player", scenarioLevel }: Ch
       return data as CharacterFeat[];
     },
     enabled: !!characterId,
-    placeholderData: () => getCachedCharacterFeats(characterId) as CharacterFeat[] | undefined ?? undefined,
   });
-
-  useEffect(() => {
-    if (characterFeats && online) {
-      cacheCharacterFeats(characterId, characterFeats);
-    }
-  }, [characterFeats, characterId, online]);
 
   const { data: characterSubfeats } = useQuery({
     queryKey: ["character-feat-subfeats", characterId],
