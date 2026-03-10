@@ -109,6 +109,7 @@ function remapTempId(actions: QueuedAction[], tempId: string, realId: string) {
 // --- Process queue on reconnect ---
 
 export async function processQueue(): Promise<{ success: number; failed: number }> {
+  if (_isSyncing) return { success: 0, failed: 0 };
   const actions = getQueuedActions();
   if (actions.length === 0) return { success: 0, failed: 0 };
 
