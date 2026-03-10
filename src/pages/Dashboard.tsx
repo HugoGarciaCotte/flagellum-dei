@@ -59,7 +59,10 @@ const Dashboard = () => {
 
   const deleteCharMutation = useMutation({
     mutationFn: async (id: string) => {
-      if (!online) {
+      try {
+        const { error } = await supabase.from("characters").delete().eq("id", id);
+        if (error) throw error;
+      } catch {
         queueAction({ table: "characters", operation: "delete", payload: {}, filter: { id } });
         queryClient.setQueryData(["my-characters", user?.id], (old: any[]) =>
           (old ?? []).filter((c: any) => c.id !== id)
@@ -67,13 +70,11 @@ const Dashboard = () => {
         const cacheKey = `my-characters-${user?.id}`;
         const cached = getCacheData<any[]>(cacheKey) ?? [];
         setCacheData(cacheKey, cached.filter((c: any) => c.id !== id));
-        return;
+        return "queued";
       }
-      const { error } = await supabase.from("characters").delete().eq("id", id);
-      if (error) throw error;
     },
-    onSuccess: () => {
-      if (online) queryClient.invalidateQueries({ queryKey: ["my-characters"] });
+    onSuccess: (result) => {
+      if (result !== "queued") queryClient.invalidateQueries({ queryKey: ["my-characters"] });
       setDeleteCharTarget(null);
       toast({ title: "Character deleted" });
     },
