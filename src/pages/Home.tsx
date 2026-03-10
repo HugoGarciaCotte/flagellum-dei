@@ -439,7 +439,7 @@ const Home = () => {
               Open a Case. Enter a Nightmare.
             </h2>
             <p className="text-base text-muted-foreground mt-2">
-              A nine-part campaign across plague-era Europe.
+              80+ hours of gameplay. A decade of writing. Every word handwritten — from Austrian abbeys to the shores of Rhodes.
             </p>
           </div>
 
