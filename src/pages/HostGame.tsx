@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
-import { useParams, useNavigate } from "react-router-dom";
+import { useParams, useNavigate, Link } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
 import { getScenarioById } from "@/data/scenarios";
@@ -232,6 +232,14 @@ const HostGame = () => {
           </Card>
         )}
       </main>
+
+      {!window.matchMedia('(display-mode: standalone)').matches && (
+        <p className="text-center py-4">
+          <Link to="/install" className="text-xs text-muted-foreground/50 hover:text-primary transition-colors font-display">
+            Install as app →
+          </Link>
+        </p>
+      )}
 
       <GameTimer />
       <DiceRoller />

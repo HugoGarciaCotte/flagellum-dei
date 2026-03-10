@@ -10,7 +10,7 @@ import { Dialog, DialogContent, DialogTrigger } from "@/components/ui/dialog";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import { toast } from "@/hooks/use-toast";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, Link } from "react-router-dom";
 import { LogOut, Plus, Settings, ChevronDown, Trash2, Pencil, WifiOff } from "lucide-react";
 
 import CharacterSheet from "@/components/CharacterSheet";
@@ -461,6 +461,14 @@ const Dashboard = () => {
             </AlertDialogFooter>
           </AlertDialogContent>
         </AlertDialog>
+
+        {!window.matchMedia('(display-mode: standalone)').matches && (
+          <p className="text-center py-6">
+            <Link to="/install" className="text-xs text-muted-foreground/50 hover:text-primary transition-colors font-display">
+              Install as app →
+            </Link>
+          </p>
+        )}
       </main>
     </div>
   );

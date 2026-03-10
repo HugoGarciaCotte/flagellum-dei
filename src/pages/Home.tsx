@@ -16,6 +16,7 @@ import {
   Cross,
   ScrollText,
   Gift,
+  Smartphone,
 } from "lucide-react";
 import Logo from "@/components/Logo";
 import BrandTitle from "@/components/BrandTitle";
@@ -169,6 +170,10 @@ const faqs = [
       github: "https://github.com/HugoGarciaCotte/flagellum-dei",
     },
   },
+  {
+    q: "Can I install this as an app?",
+    a: 'Yes! Flagellum Dei works as a Progressive Web App — you can install it on your phone or computer for quick access and offline play. Visit the <a href="/install" class="underline text-primary hover:text-primary/80">install page</a> for instructions.',
+  },
 ];
 
 /* ──────────────────────────────────────────────
@@ -320,6 +325,10 @@ const Home = () => {
           <ClarityItem
             icon={<Gift className="h-4 w-4" />}
             label="100% Free"
+          />
+          <ClarityItem
+            icon={<Smartphone className="h-4 w-4" />}
+            label="Works as an App"
           />
         </div>
       </section>
@@ -527,7 +536,7 @@ const Home = () => {
                   {faq.q}
                 </AccordionTrigger>
                 <AccordionContent className="text-sm leading-relaxed text-muted-foreground space-y-2">
-                  <p>{faq.a}</p>
+                  <p dangerouslySetInnerHTML={{ __html: faq.a }} />
                   {faq.links && (
                     <p className="flex gap-4">
                       {faq.links.lovable && (
@@ -582,7 +591,7 @@ const Home = () => {
       </section>
 
       {/* ─── FOOTER ─── */}
-      <footer className="border-t border-primary/10 py-10 text-center">
+      <footer className="border-t border-primary/10 py-10 text-center space-y-4">
         <div className="ornamental-divider mx-auto max-w-xs mb-6" />
         <div className="flex items-center justify-center gap-2 text-muted-foreground">
           <Logo className="text-base text-primary/40" />
@@ -590,6 +599,13 @@ const Home = () => {
             Flagellum Dei TTRPG
           </span>
         </div>
+        {!window.matchMedia('(display-mode: standalone)').matches && (
+          <p>
+            <Link to="/install" className="text-xs text-muted-foreground/50 hover:text-primary transition-colors font-display">
+              Install as app →
+            </Link>
+          </p>
+        )}
       </footer>
     </div>
   );
