@@ -169,62 +169,58 @@ const CharacterCreationWizard = ({ onCreated, onCancel, gameId }: CharacterCreat
   const saveArchetype = async (featId: string) => {
     if (!user) return;
     setSaving(true);
-    try {
-      if (!online) {
-        // Offline: create locally with temp IDs
-        if (!characterId) {
-          const tempCharId = crypto.randomUUID();
-          const tempCfId = crypto.randomUUID();
-          setCharacterId(tempCharId);
-          setCharacterFeatId(tempCfId);
-          queueAction({
-            table: "characters",
-            operation: "insert",
-            payload: { user_id: user.id, name: "New Character" },
-            tempId: tempCharId,
-          });
-          queueAction({
-            table: "character_feats",
-            operation: "insert",
-            payload: { character_id: tempCharId, feat_id: featId, level: 1 },
-            tempId: tempCfId,
-          });
-          if (gameId) {
-            queueAction({
-              table: "game_players",
-              operation: "update",
-              payload: { character_id: tempCharId },
-              filter: { game_id: gameId, user_id: user.id },
-            });
-          }
-          // Optimistic cache update
-          const cacheKey = `my-characters-${user.id}`;
-          const cached = getCacheData<any[]>(cacheKey) ?? [];
-          const newChar = { id: tempCharId, user_id: user.id, name: "New Character", description: null, portrait_url: null, created_at: new Date().toISOString(), updated_at: new Date().toISOString() };
-          setCacheData(cacheKey, [newChar, ...cached]);
-          queryClient.setQueryData(["my-characters", user.id], (old: any[]) => old ? [newChar, ...old] : [newChar]);
 
-          // Seed individual character cache so CharacterSheet can load it
-          setCacheData(`character-${tempCharId}`, newChar);
-          queryClient.setQueryData(["character", tempCharId], newChar);
-
-          // Seed feat caches so CharacterFeatPicker can display them
-          const newCf = { id: tempCfId, character_id: tempCharId, feat_id: featId, level: 1, is_free: false, note: null };
-          queryClient.setQueryData(["character-feats", tempCharId], [newCf]);
-          setCacheData(`character-feats-${tempCharId}`, [newCf]);
-          queryClient.setQueryData(["character-feat-subfeats", tempCharId], []);
-          setCacheData(`character-feat-subfeats-${tempCharId}`, []);
-        } else {
-          // Already have a character, update archetype
+    const doOfflineCreate = () => {
+      if (!characterId) {
+        const tempCharId = crypto.randomUUID();
+        const tempCfId = crypto.randomUUID();
+        setCharacterId(tempCharId);
+        setCharacterFeatId(tempCfId);
+        queueAction({
+          table: "characters",
+          operation: "insert",
+          payload: { user_id: user.id, name: "New Character" },
+          tempId: tempCharId,
+        });
+        queueAction({
+          table: "character_feats",
+          operation: "insert",
+          payload: { character_id: tempCharId, feat_id: featId, level: 1 },
+          tempId: tempCfId,
+        });
+        if (gameId) {
           queueAction({
-            table: "character_feats",
+            table: "game_players",
             operation: "update",
-            payload: { feat_id: featId },
-            filter: { id: characterFeatId },
+            payload: { character_id: tempCharId },
+            filter: { game_id: gameId, user_id: user.id },
           });
-          setSubfeatSelections(new Map());
         }
-      } else if (characterId && characterFeatId) {
+        const cacheKey = `my-characters-${user.id}`;
+        const cached = getCacheData<any[]>(cacheKey) ?? [];
+        const newChar = { id: tempCharId, user_id: user.id, name: "New Character", description: null, portrait_url: null, created_at: new Date().toISOString(), updated_at: new Date().toISOString() };
+        setCacheData(cacheKey, [newChar, ...cached]);
+        queryClient.setQueryData(["my-characters", user.id], (old: any[]) => old ? [newChar, ...old] : [newChar]);
+        setCacheData(`character-${tempCharId}`, newChar);
+        queryClient.setQueryData(["character", tempCharId], newChar);
+        const newCf = { id: tempCfId, character_id: tempCharId, feat_id: featId, level: 1, is_free: false, note: null };
+        queryClient.setQueryData(["character-feats", tempCharId], [newCf]);
+        setCacheData(`character-feats-${tempCharId}`, [newCf]);
+        queryClient.setQueryData(["character-feat-subfeats", tempCharId], []);
+        setCacheData(`character-feat-subfeats-${tempCharId}`, []);
+      } else {
+        queueAction({
+          table: "character_feats",
+          operation: "update",
+          payload: { feat_id: featId },
+          filter: { id: characterFeatId },
+        });
+        setSubfeatSelections(new Map());
+      }
+    };
+
+    try {
+      if (characterId && characterFeatId) {
         const { error: cfErr } = await supabase
           .from("character_feats")
           .update({ feat_id: featId })
@@ -266,7 +262,8 @@ const CharacterCreationWizard = ({ onCreated, onCancel, gameId }: CharacterCreat
         queryClient.invalidateQueries({ queryKey: ["character-feats-summary"] });
       }
     } catch (e: any) {
-      toast({ title: "Error saving archetype", description: e.message, variant: "destructive" });
+      // Server unreachable — fall back to offline queue
+      doOfflineCreate();
     } finally {
       setSaving(false);
     }
