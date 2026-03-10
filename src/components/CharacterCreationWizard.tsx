@@ -17,7 +17,7 @@ import {
 import { getAllFeats, getFeatMeta } from "@/data/feats";
 import Logo from "@/components/Logo";
 import { useNetworkStatus } from "@/hooks/useNetworkStatus";
-import { queueAction, setCacheData, getCacheData } from "@/lib/offlineQueue";
+import { queueAction, setCacheData, getCacheData, resilientMutation } from "@/lib/offlineQueue";
 
 interface CharacterCreationWizardProps {
   onCreated: (characterId: string) => void;
