@@ -28,7 +28,7 @@ import { useOfflineQuery } from "@/hooks/useOfflineQuery";
 import { queueAction, setCacheData, getCacheData } from "@/lib/offlineQueue";
 
 const Dashboard = () => {
-  const { user, signOut } = useAuth();
+  const { user, signOut, isGuest } = useAuth();
   const navigate = useNavigate();
   const queryClient = useQueryClient();
   const online = useNetworkStatus();
