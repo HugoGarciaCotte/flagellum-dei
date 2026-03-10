@@ -1,20 +1,18 @@
 import { useEffect } from "react";
 import { useQuery, UseQueryOptions } from "@tanstack/react-query";
 import { useNetworkStatus } from "@/hooks/useNetworkStatus";
-import { useAuth } from "@/contexts/AuthContext";
 import { setCacheData, getCacheData } from "@/lib/offlineQueue";
 
 /**
  * Wraps useQuery with localStorage caching for offline support.
- * On success, caches data. When offline (or guest) with no data, returns cached data.
+ * On success, caches data. When offline with no data, returns cached data.
  */
 export function useOfflineQuery<T>(
   cacheKey: string,
   options: UseQueryOptions<T, Error, T>,
 ) {
   const online = useNetworkStatus();
-  const { isGuest } = useAuth();
-  const effectivelyOffline = !online || isGuest;
+  const effectivelyOffline = !online;
 
   const query = useQuery<T, Error, T>({
     ...options,
