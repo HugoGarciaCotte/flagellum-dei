@@ -214,9 +214,8 @@ const CharacterFeatPicker = ({ characterId, mode = "player", scenarioLevel }: Ch
 
   const upsertMutation = useMutation({
     mutationFn: async ({ level, featId }: { level: number; featId: string }) => {
-      if (effectivelyOffline) {
+      const doOffline = () => {
         const tempId = crypto.randomUUID();
-        // Queue delete + insert
         queueAction({
           table: "character_feats",
           operation: "delete",
@@ -229,45 +228,48 @@ const CharacterFeatPicker = ({ characterId, mode = "player", scenarioLevel }: Ch
           payload: { character_id: characterId, level, feat_id: featId, is_free: false },
           tempId,
         });
-        // Optimistic update
         queryClient.setQueryData(["character-feats", characterId], (old: CharacterFeat[] | undefined) => {
           const filtered = (old ?? []).filter(cf => !(cf.level === level && !cf.is_free));
           return [...filtered, { id: tempId, character_id: characterId, level, feat_id: featId, is_free: false, note: null }];
         });
-        return;
-      }
+        return "queued";
+      };
 
-      await supabase
-        .from("character_feats")
-        .delete()
-        .eq("character_id", characterId)
-        .eq("level", level)
-        .eq("is_free", false);
-      const { data: inserted, error } = await supabase
-        .from("character_feats")
-        .insert({ character_id: characterId, level, feat_id: featId, is_free: false })
-        .select()
-        .single();
-      if (error) throw error;
+      try {
+        await supabase
+          .from("character_feats")
+          .delete()
+          .eq("character_id", characterId)
+          .eq("level", level)
+          .eq("is_free", false);
+        const { data: inserted, error } = await supabase
+          .from("character_feats")
+          .insert({ character_id: characterId, level, feat_id: featId, is_free: false })
+          .select()
+          .single();
+        if (error) throw error;
 
-      // Auto-insert fixed subfeats from metadata for archetypes
-      const meta = metaMap.get(featId);
-      if (meta?.subfeats && inserted) {
-        const fixedSlots = meta.subfeats.filter(s => s.kind === "fixed" && s.feat_title);
-        for (const slot of fixedSlots) {
-          const subfeat = featByTitle.get(slot.feat_title!);
-          if (subfeat) {
-            await supabase.from("character_feat_subfeats").insert({
-              character_feat_id: inserted.id,
-              slot: slot.slot,
-              subfeat_id: subfeat.id,
-            });
+        // Auto-insert fixed subfeats from metadata for archetypes
+        const meta = metaMap.get(featId);
+        if (meta?.subfeats && inserted) {
+          const fixedSlots = meta.subfeats.filter(s => s.kind === "fixed" && s.feat_title);
+          for (const slot of fixedSlots) {
+            const subfeat = featByTitle.get(slot.feat_title!);
+            if (subfeat) {
+              await supabase.from("character_feat_subfeats").insert({
+                character_feat_id: inserted.id,
+                slot: slot.slot,
+                subfeat_id: subfeat.id,
+              });
+            }
           }
         }
+      } catch {
+        return doOffline();
       }
     },
-    onSuccess: () => {
-      if (!effectivelyOffline) {
+    onSuccess: (result) => {
+      if (result !== "queued") {
         queryClient.invalidateQueries({ queryKey: ["character-feats", characterId] });
         queryClient.invalidateQueries({ queryKey: ["character-feat-subfeats", characterId] });
         queryClient.invalidateQueries({ queryKey: ["character-feats-summary", characterId] });
