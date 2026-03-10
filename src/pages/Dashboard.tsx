@@ -107,7 +107,7 @@ const Dashboard = () => {
       if (error) throw error;
       return data;
     },
-    enabled: !!user,
+    enabled: !!user && !isGuest,
   });
 
   // Merge hosted + joined games, deduplicated
