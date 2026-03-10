@@ -285,7 +285,7 @@ const CharacterFeatPicker = ({ characterId, mode = "player", scenarioLevel }: Ch
 
   const deleteMutation = useMutation({
     mutationFn: async ({ level, isFree, id }: { level: number; isFree: boolean; id?: string }) => {
-      if (!online) {
+      if (effectivelyOffline) {
         if (isFree && id) {
           queueAction({ table: "character_feats", operation: "delete", payload: {}, filter: { id } });
           queryClient.setQueryData(["character-feats", characterId], (old: CharacterFeat[] | undefined) =>
