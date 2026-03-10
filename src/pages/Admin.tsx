@@ -28,53 +28,6 @@ const Admin = () => {
     );
   }
 
-  const handlePreview = async () => {
-    setChecking(true);
-    setPreview(null);
-    setResult(null);
-    try {
-      const { data, error } = await supabase.functions.invoke("import-wiki-scenarios", {
-        body: { mode: "preview" },
-      });
-      if (error) throw error;
-      setPreview(data.items || []);
-    } catch (e: any) {
-      toast({ title: "Check failed", description: e.message, variant: "destructive" });
-    } finally {
-      setChecking(false);
-    }
-  };
-
-  const handleImport = async () => {
-    setImporting(true);
-    setResult(null);
-    try {
-      const controller = new AbortController();
-      const timeout = setTimeout(() => controller.abort(), 5 * 60 * 1000);
-      const { data, error } = await supabase.functions.invoke("import-wiki-scenarios", {
-        body: { mode: "execute" },
-      });
-      clearTimeout(timeout);
-      if (error) throw error;
-      setResult(data);
-      setPreview(null);
-      queryClient.invalidateQueries({ queryKey: ["admin-scenarios"] });
-      toast({
-        title: "Import complete",
-        description: `Imported ${data.imported} of ${data.total} scenarios.`,
-      });
-    } catch (e: any) {
-      toast({ title: "Import failed", description: e.message, variant: "destructive" });
-    } finally {
-      setImporting(false);
-    }
-  };
-
-  const newCount = preview?.filter((i) => i.status === "new").length ?? 0;
-  const modifiedCount = preview?.filter((i) => i.status === "modified").length ?? 0;
-  const unchangedCount = preview?.filter((i) => i.status === "unchanged").length ?? 0;
-  const hasChanges = newCount + modifiedCount > 0;
-
   return (
     <div className="min-h-screen bg-background">
       <PageHeader
