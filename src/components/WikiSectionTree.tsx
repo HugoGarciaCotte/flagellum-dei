@@ -38,11 +38,11 @@ function FeatLinkTooltip({ featName, rect, featsMap }: { featName: string; rect:
     >
       <div className="space-y-1.5">
         <p className="text-sm font-semibold">{feat.title}</p>
-        {feat.description && <p className="text-xs text-muted-foreground">{feat.description}</p>}
-        {fields.description && (
+        {meta.description && <p className="text-xs text-muted-foreground">{meta.description}</p>}
+        {meta.description && (
           <div>
             <p className="text-xs font-medium text-muted-foreground">Description</p>
-            <p className="text-xs text-muted-foreground/80 whitespace-pre-line">{stripLinks(fields.description)}</p>
+            <p className="text-xs text-muted-foreground/80 whitespace-pre-line">{stripLinks(meta.description)}</p>
           </div>
         )}
         {prerequisites && (
