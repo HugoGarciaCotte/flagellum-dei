@@ -34,7 +34,7 @@ type Feat = {
 };
 
 const CharacterCreationWizard = ({ onCreated, onCancel, gameId }: CharacterCreationWizardProps) => {
-  const { user, isGuest } = useAuth();
+  const { user } = useAuth();
   const queryClient = useQueryClient();
   const fileInputRef = useRef<HTMLInputElement>(null);
   const online = useNetworkStatus();
