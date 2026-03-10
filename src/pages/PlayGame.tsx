@@ -157,7 +157,6 @@ const PlayGame = () => {
     <div className="min-h-screen bg-background flex flex-col">
       <PageHeader
         title={effectiveScenario?.title ?? ""}
-        icon={<span className="text-base text-primary" aria-hidden="true">🜣</span>}
         leftAction={
           <Button variant="ghost" size="icon" onClick={() => navigate("/")}>
             <ArrowLeft className="h-4 w-4" />
