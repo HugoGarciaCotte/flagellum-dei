@@ -28,12 +28,8 @@ function stripLinks(text: string): string {
 function FeatLinkTooltip({ featName, rect, featsMap }: { featName: string; rect: DOMRect; featsMap: Map<string, any> }) {
   const feat = featsMap.get(featName.toLowerCase());
   if (!feat) return null;
-  const fields = parseFeatFields(feat.content);
-
-  // Parse embedded meta from raw_content (preserves HTML comments)
-  const metaTagRegex = /<!--@\s*feat_prerequisites\s*:\s*(.*?)\s*@-->/;
-  const metaPrereqMatch = (feat.raw_content || feat.content || "").match(metaTagRegex);
-  const prerequisites = metaPrereqMatch?.[1] || fields.prerequisites;
+  const meta = getFeatMeta(feat);
+  const prerequisites = meta.prerequisites;
 
   return createPortal(
     <div
