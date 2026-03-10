@@ -144,6 +144,13 @@ const PlayGame = () => {
     return <FullPageLoader message="Joining quest..." />;
   }
 
+  const copyCode = () => {
+    if (effectiveGame?.join_code) {
+      navigator.clipboard.writeText(effectiveGame.join_code);
+      toast({ title: "Join code copied!" });
+    }
+  };
+
   if ((effectiveGame as any).status === "ended") {
     return (
       <div className="flex min-h-screen items-center justify-center bg-background flex-col gap-4">
