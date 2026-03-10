@@ -307,24 +307,19 @@ const CharacterFeatPicker = ({ characterId, mode = "player", scenarioLevel }: Ch
 
   const addFreeFeatMutation = useMutation({
     mutationFn: async (featId: string) => {
-      try {
-        const { error } = await supabase
-          .from("character_feats")
-          .insert({ character_id: characterId, level: 0, feat_id: featId, is_free: true });
-        if (error) throw error;
-      } catch {
-        const tempId = crypto.randomUUID();
-        queueAction({
-          table: "character_feats",
-          operation: "insert",
-          payload: { character_id: characterId, level: 0, feat_id: featId, is_free: true },
-          tempId,
-        });
-        queryClient.setQueryData(["character-feats", characterId], (old: CharacterFeat[] | undefined) =>
-          [...(old ?? []), { id: tempId, character_id: characterId, level: 0, feat_id: featId, is_free: true, note: null }]
-        );
-        return "queued";
-      }
+      return resilientMutation(
+        async () => {
+          const { error } = await supabase.from("character_feats").insert({ character_id: characterId, level: 0, feat_id: featId, is_free: true });
+          if (error) throw error;
+        },
+        () => {
+          const tempId = crypto.randomUUID();
+          queueAction({ table: "character_feats", operation: "insert", payload: { character_id: characterId, level: 0, feat_id: featId, is_free: true }, tempId });
+          queryClient.setQueryData(["character-feats", characterId], (old: CharacterFeat[] | undefined) =>
+            [...(old ?? []), { id: tempId, character_id: characterId, level: 0, feat_id: featId, is_free: true, note: null }]
+          );
+        },
+      );
     },
     onSuccess: (result) => {
       if (result !== "queued") {
