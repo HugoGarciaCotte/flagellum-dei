@@ -406,7 +406,7 @@ const Home = () => {
             />
             <StepCard
               number="II"
-              title="Create Your Inquisitors"
+              title="Join the Inquisition"
               description={
                 <p>
                   Build characters directly on the website. Choose feats, shape
