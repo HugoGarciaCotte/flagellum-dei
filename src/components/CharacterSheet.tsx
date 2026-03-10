@@ -23,6 +23,8 @@ interface CharacterSheetProps {
 const CharacterSheet = ({ characterId, mode = "player", scenarioLevel, onDone }: CharacterSheetProps) => {
   const queryClient = useQueryClient();
   const online = useNetworkStatus();
+  const { isGuest } = useAuth();
+  const effectivelyOffline = !online || isGuest;
   const [name, setName] = useState("");
   const [desc, setDesc] = useState("");
   const [dirty, setDirty] = useState(false);
