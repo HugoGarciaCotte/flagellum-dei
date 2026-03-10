@@ -275,13 +275,25 @@ const CharacterCreationWizard = ({ onCreated, onCancel, gameId }: CharacterCreat
     try {
       if (!online || isGuest) {
         queueAction({ table: "character_feat_subfeats", operation: "delete", payload: {}, filter: { character_feat_id: characterFeatId, slot: slotNum } });
+        const tempSfId = crypto.randomUUID();
         if (subfeatId) {
           queueAction({
             table: "character_feat_subfeats",
             operation: "insert",
             payload: { character_feat_id: characterFeatId, slot: slotNum, subfeat_id: subfeatId },
-            tempId: crypto.randomUUID(),
+            tempId: tempSfId,
           });
+        }
+        // Optimistic subfeat cache update
+        if (characterId) {
+          queryClient.setQueryData(["character-feat-subfeats", characterId], (old: any[] | undefined) => {
+            const filtered = (old ?? []).filter((cs: any) => !(cs.character_feat_id === characterFeatId && cs.slot === slotNum));
+            if (subfeatId) {
+              return [...filtered, { id: tempSfId, character_feat_id: characterFeatId, slot: slotNum, subfeat_id: subfeatId }];
+            }
+            return filtered;
+          });
+          setCacheData(`character-feat-subfeats-${characterId}`, queryClient.getQueryData(["character-feat-subfeats", characterId]) ?? []);
         }
       } else {
         await supabase
