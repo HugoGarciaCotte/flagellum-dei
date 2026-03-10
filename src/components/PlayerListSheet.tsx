@@ -42,7 +42,7 @@ const PlayerListSheet = ({ players, characters, gameId }: PlayerListSheetProps) 
     <Sheet>
       <SheetTrigger asChild>
         <button className="flex items-center gap-1 text-muted-foreground text-sm hover:text-foreground transition-colors cursor-pointer">
-          <Users className="h-4 w-4" /> {players.length}
+          <span className="text-base" aria-hidden="true">🜊</span> {players.length}
         </button>
       </SheetTrigger>
       <SheetContent className="overflow-y-auto">
