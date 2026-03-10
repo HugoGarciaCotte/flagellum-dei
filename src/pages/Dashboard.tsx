@@ -301,10 +301,10 @@ const Dashboard = () => {
                   actions={
                     <>
                       <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => {
-                        // Seed individual character cache for guest/offline so CharacterSheet can load it
-                        if (isGuest || !online) {
+                        if (!online) {
                           setCacheData(`character-${c.id}`, c);
                           queryClient.setQueryData(["character", c.id], c);
+                        }
                         }
                         setEditingCharId(c.id);
                       }}>
