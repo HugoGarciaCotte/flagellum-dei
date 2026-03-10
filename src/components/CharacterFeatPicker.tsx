@@ -65,6 +65,8 @@ type ValidationResult = {
 const CharacterFeatPicker = ({ characterId, mode = "player", scenarioLevel }: CharacterFeatPickerProps) => {
   const queryClient = useQueryClient();
   const online = useNetworkStatus();
+  const { isGuest } = useAuth();
+  const effectivelyOffline = !online || isGuest;
   const [pickerTarget, setPickerTarget] = useState<PickerTarget | null>(null);
   const [searchTerm, setSearchTerm] = useState("");
   // COMMENTED OUT: preprocessed fields — filterMode for archetype toggle
