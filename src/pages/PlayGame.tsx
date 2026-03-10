@@ -169,6 +169,14 @@ const PlayGame = () => {
             <ArrowLeft className="h-4 w-4" />
           </Button>
         }
+        rightActions={
+          effectiveGame?.join_code ? (
+            <Button variant="outline" size="sm" onClick={copyCode} className="font-mono text-xs gap-1.5">
+              {effectiveGame.join_code}
+              <Copy className="h-3.5 w-3.5" />
+            </Button>
+          ) : undefined
+        }
         badge={
           !online ? (
             <span className="text-xs bg-destructive/20 text-destructive px-2 py-0.5 rounded-full">Offline</span>
