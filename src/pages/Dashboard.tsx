@@ -171,8 +171,14 @@ const Dashboard = () => {
 
   const handleJoinGame = async () => {
     if (!joinCode.trim()) return;
-    if (!online) {
+    if (!online && !isGuest) {
       toast({ title: "Offline", description: "You need to be online to join a game.", variant: "destructive" });
+      return;
+    }
+    if (isGuest) {
+      // Guest mode: navigate directly, game page will handle local-only
+      toast({ title: "Guest mode", description: "Joining locally — nothing is saved online." });
+      navigate(`/game/${joinCode.toUpperCase()}/play`);
       return;
     }
     const { data: game, error } = await supabase
