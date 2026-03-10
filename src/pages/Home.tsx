@@ -343,7 +343,7 @@ const Home = () => {
 
           <div className="grid gap-16 md:grid-cols-3">
             <FeatureColumn
-              icon={<Flame className="h-6 w-6" />}
+              icon={<span className="text-4xl">🜍</span>}
               title="Historically Grounded Horror"
               description={
                 <p>
@@ -353,7 +353,7 @@ const Home = () => {
               }
             />
             <FeatureColumn
-              icon={<Cross className="h-6 w-6" />}
+              icon={<span className="text-4xl">🜪</span>}
               title="Relentless Atmosphere"
               description={
                 <p>
@@ -363,7 +363,7 @@ const Home = () => {
               }
             />
             <FeatureColumn
-              icon={<ScrollText className="h-6 w-6" />}
+              icon={<span className="text-4xl">🜩</span>}
               title="Everything in the Website"
               description={
                 <p>
