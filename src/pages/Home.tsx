@@ -515,7 +515,7 @@ const Home = () => {
                 value={`faq-${i}`}
                 className="border-border/50 px-2"
               >
-                <AccordionTrigger className="font-display text-sm tracking-wide text-foreground/90 hover:no-underline hover:text-primary">
+                <AccordionTrigger className="font-display text-sm tracking-wide text-foreground/90 hover:no-underline hover:text-primary text-left">
                   {faq.q}
                 </AccordionTrigger>
                 <AccordionContent className="text-sm leading-relaxed text-muted-foreground">
