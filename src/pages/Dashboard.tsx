@@ -189,7 +189,7 @@ const Dashboard = () => {
         {/* Section 1: Join a Game */}
         <section className="space-y-3">
           <h2 className="font-display text-2xl text-foreground flex items-center gap-2">
-            <DoorOpen className="h-6 w-6 text-primary" /> Join a Game
+            <span className="text-xl text-primary" aria-hidden="true">🜊</span> Join a Game
           </h2>
           <div className="flex gap-2">
             <Input
