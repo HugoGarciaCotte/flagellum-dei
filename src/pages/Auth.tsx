@@ -77,6 +77,9 @@ const Auth = () => {
       });
       if (error) {
         toast({ title: "Signup failed", description: error.message, variant: "destructive" });
+      } else {
+        toast({ title: "Account created!", description: "Welcome to Flagellum Dei." });
+        navigate("/");
       }
     }
     setLoading(false);
