@@ -57,8 +57,8 @@ const FeatureColumn = ({
   title: string;
   description: React.ReactNode;
 }) => (
-  <div className="space-y-5 text-center md:text-left">
-    <div className="flex justify-center md:justify-start text-primary/50">{icon}</div>
+  <div className="space-y-5 text-center">
+    <div className="flex justify-center text-primary">{icon}</div>
     <h3 className="font-display text-xl font-bold text-foreground">{title}</h3>
     <div className="text-sm leading-relaxed text-muted-foreground">
       {description}
@@ -343,7 +343,7 @@ const Home = () => {
 
           <div className="grid gap-16 md:grid-cols-3">
             <FeatureColumn
-              icon={<Flame className="h-6 w-6" />}
+              icon={<span className="text-4xl">🜍</span>}
               title="Historically Grounded Horror"
               description={
                 <p>
@@ -353,7 +353,7 @@ const Home = () => {
               }
             />
             <FeatureColumn
-              icon={<Cross className="h-6 w-6" />}
+              icon={<span className="text-4xl">🜪</span>}
               title="Relentless Atmosphere"
               description={
                 <p>
@@ -363,7 +363,7 @@ const Home = () => {
               }
             />
             <FeatureColumn
-              icon={<ScrollText className="h-6 w-6" />}
+              icon={<span className="text-4xl">🜩</span>}
               title="Everything in the Website"
               description={
                 <p>
