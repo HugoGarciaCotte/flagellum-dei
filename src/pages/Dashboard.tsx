@@ -263,7 +263,7 @@ const Dashboard = () => {
           ) : (
             <Card className="border-dashed border-muted-foreground/30">
               <CardContent className="py-8 text-center text-muted-foreground">
-                <Sword className="h-8 w-8 mx-auto mb-2 opacity-40" />
+                <span className="text-2xl mx-auto mb-2 opacity-40 block text-center" aria-hidden="true">🝖</span>
                 <p className="font-display">No characters yet</p>
                 <p className="text-sm mt-1">Create a character to get started.</p>
               </CardContent>
