@@ -52,6 +52,7 @@ const App = () => (
             <Route path="/install" element={<Install />} />
             <Route path="/admin" element={<Admin />} />
             <Route path="/admin/feats" element={<AdminFeats />} />
+            <Route path="/admin/scenarios" element={<AdminScenarios />} />
             <Route path="*" element={<NotFound />} />
           </Routes>
           <OfflineBanner />
