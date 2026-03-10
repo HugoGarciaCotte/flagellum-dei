@@ -266,7 +266,7 @@ const CharacterCreationWizard = ({ onCreated, onCancel, gameId }: CharacterCreat
     if (!characterFeatId) return;
     setSaving(true);
     try {
-      if (!online) {
+      if (!online || isGuest) {
         queueAction({ table: "character_feat_subfeats", operation: "delete", payload: {}, filter: { character_feat_id: characterFeatId, slot: slotNum } });
         if (subfeatId) {
           queueAction({
