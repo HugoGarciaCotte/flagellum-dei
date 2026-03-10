@@ -84,11 +84,11 @@ const CharacterFeatPicker = ({ characterId, mode = "player", scenarioLevel }: Ch
 
   const allFeats = useMemo(() => getAllFeats() as Feat[], []);
 
-  // Metadata map: parse all feats for embedded metadata (one-liners, subfeat slots, etc.)
+  // Metadata map: unified accessor for feat metadata
   const metaMap = useMemo(() => {
-    const map = new Map<string, ReturnType<typeof parseEmbeddedFeatMeta>>();
+    const map = new Map<string, ReturnType<typeof getFeatMeta>>();
     (allFeats ?? []).forEach((f) => {
-      map.set(f.id, parseEmbeddedFeatMeta(f.raw_content || f.content));
+      map.set(f.id, getFeatMeta(f));
     });
     return map;
   }, [allFeats]);

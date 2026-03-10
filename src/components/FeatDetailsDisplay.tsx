@@ -71,9 +71,33 @@ interface FeatDetailsDisplayProps {
 }
 
 const FeatDetailsDisplay = ({ content, rawContent, className = "" }: FeatDetailsDisplayProps) => {
-  const meta = parseEmbeddedFeatMeta(rawContent || content);
-  const contentFields = parseFeatFields(rawContent || content);
-  const prerequisites = meta.prerequisites || contentFields.prerequisites;
+  // Try to find the feat in the map to use getFeatMeta; fall back to building meta from content
+  const featsMap = getFeatsMap();
+  const featFromMap = useMemo(() => {
+    if (!content && !rawContent) return null;
+    // Try to find by iterating — not ideal but FeatDetailsDisplay receives content, not feat
+    for (const [, feat] of featsMap) {
+      if (feat.content === content || feat.raw_content === rawContent) return feat;
+    }
+    return null;
+  }, [content, rawContent, featsMap]);
+
+  const meta = useMemo(() => {
+    if (featFromMap) return getFeatMeta(featFromMap);
+    // Fallback: parse inline (for content not in the feats map)
+    const { parseEmbeddedFeatMeta } = require("@/lib/parseEmbeddedFeatMeta");
+    const { parseFeatFields } = require("@/lib/parseFeatContent");
+    const embedded = parseEmbeddedFeatMeta(rawContent || content);
+    const fields = parseFeatFields(rawContent || content);
+    return {
+      description: embedded.description ?? fields.description ?? undefined,
+      prerequisites: embedded.prerequisites ?? fields.prerequisites ?? undefined,
+      special: fields.special ?? undefined,
+      blocking: embedded.blocking ?? undefined,
+    };
+  }, [featFromMap, content, rawContent]);
+
+  const prerequisites = meta.prerequisites;
   const blocking = meta.blocking;
 
   const contentRef = useRef<HTMLDivElement>(null);

@@ -31,7 +31,7 @@ const ManageFeats = () => {
     return feats.filter(f => f.title.toLowerCase().includes(lower));
   }, [feats, searchTerm]);
 
-  const getMeta = (f: Feat) => parseEmbeddedFeatMeta(f.raw_content || f.content);
+  const getMeta = (f: Feat) => getFeatMeta(f);
 
   return (
     <div className="space-y-4">

@@ -74,9 +74,9 @@ const CharacterCreationWizard = ({ onCreated, onCancel, gameId }: CharacterCreat
   }, [allFeats]);
 
   const metaMap = useMemo(() => {
-    const map = new Map<string, ReturnType<typeof parseEmbeddedFeatMeta>>();
+    const map = new Map<string, ReturnType<typeof getFeatMeta>>();
     (allFeats ?? []).forEach((f) => {
-      map.set(f.id, parseEmbeddedFeatMeta(f.raw_content || f.content));
+      map.set(f.id, getFeatMeta(f));
     });
     return map;
   }, [allFeats]);

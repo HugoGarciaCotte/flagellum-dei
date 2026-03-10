@@ -51,10 +51,10 @@ function FeatLinkTooltip({ featName, rect, featsMap }: { featName: string; rect:
             <p className="text-xs text-muted-foreground/80">{stripLinks(prerequisites)}</p>
           </div>
         )}
-        {fields.special && (
+        {meta.special && (
           <div>
             <p className="text-xs font-medium text-muted-foreground">Special</p>
-            <p className="text-xs text-muted-foreground/80 whitespace-pre-line">{stripLinks(fields.special)}</p>
+            <p className="text-xs text-muted-foreground/80 whitespace-pre-line">{stripLinks(meta.special)}</p>
           </div>
         )}
       </div>
