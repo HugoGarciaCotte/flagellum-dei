@@ -1,6 +1,4 @@
 const GAME_SESSION_PREFIX = "qs_game_";
-const FEATS_KEY = "qs_offline_feats";
-const CHAR_FEATS_PREFIX = "qs_charfeats_";
 
 export interface CachedGameSession {
   game: {
@@ -34,45 +32,6 @@ export interface CachedGameSession {
 
 export function isOffline(): boolean {
   return !navigator.onLine;
-}
-
-
-// --- Feats caching ---
-
-export function cacheFeats(feats: any[]) {
-  try {
-    localStorage.setItem(FEATS_KEY, JSON.stringify(feats));
-  } catch (e) {
-    console.warn("Failed to cache feats:", e);
-  }
-}
-
-export function getCachedFeats(): any[] | null {
-  try {
-    const raw = localStorage.getItem(FEATS_KEY);
-    return raw ? JSON.parse(raw) : null;
-  } catch {
-    return null;
-  }
-}
-
-// --- Character feats caching ---
-
-export function cacheCharacterFeats(characterId: string, feats: any[]) {
-  try {
-    localStorage.setItem(CHAR_FEATS_PREFIX + characterId, JSON.stringify(feats));
-  } catch (e) {
-    console.warn("Failed to cache character feats:", e);
-  }
-}
-
-export function getCachedCharacterFeats(characterId: string): any[] | null {
-  try {
-    const raw = localStorage.getItem(CHAR_FEATS_PREFIX + characterId);
-    return raw ? JSON.parse(raw) : null;
-  } catch {
-    return null;
-  }
 }
 
 // --- Game session caching ---

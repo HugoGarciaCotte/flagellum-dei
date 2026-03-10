@@ -1,7 +1,6 @@
 import { useState, useRef, useEffect, useCallback, useMemo } from "react";
 import { createPortal } from "react-dom";
-import { useQuery } from "@tanstack/react-query";
-import { supabase } from "@/integrations/supabase/client";
+import { buildFeatsMap, type Feat } from "@/data/feats";
 import { convertBodyToHtml } from "@/lib/parseWikitext";
 import { parseEmbeddedFeatMeta } from "@/lib/parseEmbeddedFeatMeta";
 import { parseFeatFields } from "@/lib/parseFeatContent";
@@ -16,7 +15,15 @@ function stripLinks(text: string): string {
     .replace(/\[\[([^\]]+)\]\]/g, "$1");
 }
 
-function FeatLinkTooltip({ featName, rect, featsMap }: { featName: string; rect: DOMRect; featsMap: Map<string, any> }) {
+// Module-level singleton
+let _featsMap: Map<string, Feat> | null = null;
+function getFeatsMap(): Map<string, Feat> {
+  if (!_featsMap) _featsMap = buildFeatsMap();
+  return _featsMap;
+}
+
+function FeatLinkTooltip({ featName, rect }: { featName: string; rect: DOMRect }) {
+  const featsMap = getFeatsMap();
   const feat = featsMap.get(featName.toLowerCase());
   if (!feat) return null;
   const fields = parseFeatFields(feat.content);
@@ -82,30 +89,12 @@ const FeatDetailsDisplay = ({ content, rawContent, className = "" }: FeatDetails
     return convertBodyToHtml(cleaned.split("\n"));
   }, [content]);
 
-  // Fetch feats map for hover tooltips
-  const { data: featsMap } = useQuery({
-    queryKey: ["feats-map-for-links"],
-    queryFn: async () => {
-      const [featsRes, redirectsRes] = await Promise.all([
-        supabase.from("feats").select("title, content, raw_content"),
-        supabase.from("feat_redirects").select("from_title, to_title"),
-      ]);
-      const map = new Map<string, any>();
-      featsRes.data?.forEach((f) => map.set(f.title.toLowerCase(), f));
-      redirectsRes.data?.forEach((r) => {
-        const target = map.get(r.to_title.toLowerCase());
-        if (target) map.set(r.from_title.toLowerCase(), target);
-      });
-      return map;
-    },
-    staleTime: 5 * 60 * 1000,
-    gcTime: 10 * 60 * 1000,
-  });
+  const featsMap = getFeatsMap();
 
   // Style wiki-feat-link spans
   useEffect(() => {
     const el = contentRef.current;
-    if (!el || !featsMap) return;
+    if (!el) return;
     const links = el.querySelectorAll<HTMLSpanElement>(".wiki-feat-link");
     links.forEach((link) => {
       link.style.color = "hsl(var(--primary))";
@@ -114,7 +103,7 @@ const FeatDetailsDisplay = ({ content, rawContent, className = "" }: FeatDetails
       link.style.textUnderlineOffset = "2px";
       link.style.cursor = "help";
     });
-  }, [fullHtml, featsMap]);
+  }, [fullHtml]);
 
   const handleMouseOver = useCallback((e: React.MouseEvent) => {
     const target = (e.target as HTMLElement).closest(".wiki-feat-link") as HTMLElement | null;
@@ -165,7 +154,7 @@ const FeatDetailsDisplay = ({ content, rawContent, className = "" }: FeatDetails
         />
       )}
       {hoveredFeat && featsMap && (
-        <FeatLinkTooltip featName={hoveredFeat.name} rect={hoveredFeat.rect} featsMap={featsMap} />
+        <FeatLinkTooltip featName={hoveredFeat.name} rect={hoveredFeat.rect} />
       )}
     </div>
   );
