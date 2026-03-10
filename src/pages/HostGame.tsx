@@ -233,6 +233,14 @@ const HostGame = () => {
         )}
       </main>
 
+      {!window.matchMedia('(display-mode: standalone)').matches && (
+        <p className="text-center py-4">
+          <Link to="/install" className="text-xs text-muted-foreground/50 hover:text-primary transition-colors font-display">
+            Install as app →
+          </Link>
+        </p>
+      )}
+
       <GameTimer />
       <DiceRoller />
     </div>

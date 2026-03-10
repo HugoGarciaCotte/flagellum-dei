@@ -591,7 +591,7 @@ const Home = () => {
       </section>
 
       {/* ─── FOOTER ─── */}
-      <footer className="border-t border-primary/10 py-10 text-center">
+      <footer className="border-t border-primary/10 py-10 text-center space-y-4">
         <div className="ornamental-divider mx-auto max-w-xs mb-6" />
         <div className="flex items-center justify-center gap-2 text-muted-foreground">
           <Logo className="text-base text-primary/40" />
@@ -599,6 +599,13 @@ const Home = () => {
             Flagellum Dei TTRPG
           </span>
         </div>
+        {!window.matchMedia('(display-mode: standalone)').matches && (
+          <p>
+            <Link to="/install" className="text-xs text-muted-foreground/50 hover:text-primary transition-colors font-display">
+              Install as app →
+            </Link>
+          </p>
+        )}
       </footer>
     </div>
   );

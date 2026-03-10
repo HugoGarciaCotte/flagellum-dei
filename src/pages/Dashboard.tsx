@@ -461,6 +461,14 @@ const Dashboard = () => {
             </AlertDialogFooter>
           </AlertDialogContent>
         </AlertDialog>
+
+        {!window.matchMedia('(display-mode: standalone)').matches && (
+          <p className="text-center py-6">
+            <Link to="/install" className="text-xs text-muted-foreground/50 hover:text-primary transition-colors font-display">
+              Install as app →
+            </Link>
+          </p>
+        )}
       </main>
     </div>
   );
