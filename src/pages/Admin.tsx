@@ -113,90 +113,21 @@ const Admin = () => {
       />
 
       <main className="container py-8 max-w-5xl space-y-6">
-        {/* Scenarios Import */}
-        <Card className="border-primary/20">
+        {/* Scenarios Import — disabled (hardcoded in source) */}
+        <Card className="border-primary/20 opacity-60">
           <CardHeader>
             <CardTitle className="font-display flex items-center gap-2">
-              <Download className="h-5 w-5 text-primary" /> Import Scenarios from Wiki
+              <Download className="h-5 w-5 text-muted-foreground" /> Import Scenarios from Wiki
             </CardTitle>
             <CardDescription>
-              Fetches all pages in the Scenario category from prima.wiki and imports their MediaWiki content.
+              Scenarios are now hardcoded in the source code and ship with the app bundle.
+              Wiki import is disabled.
             </CardDescription>
           </CardHeader>
-          <CardContent className="space-y-4">
-            {!preview && !result && (
-              <Button onClick={handlePreview} disabled={checking} className="gap-2 font-display">
-                {checking ? <Loader2 className="h-4 w-4 animate-spin" /> : <Search className="h-4 w-4" />}
-                {checking ? "Checking..." : "Check for Updates"}
-              </Button>
-            )}
-
-            {preview && (
-              <div className="space-y-4">
-                <div className="flex items-center gap-3 text-sm text-muted-foreground">
-                  <span>{preview.length} scenarios found</span>
-                  <span>·</span>
-                  <span className="text-emerald-400">{newCount} new</span>
-                  <span>·</span>
-                  <span className="text-amber-400">{modifiedCount} modified</span>
-                  <span>·</span>
-                  <span>{unchangedCount} unchanged</span>
-                </div>
-
-                <div className="rounded-lg border border-border overflow-hidden max-h-96 overflow-y-auto">
-                  <Table>
-                    <TableHeader>
-                      <TableRow>
-                        <TableHead>Scenario</TableHead>
-                        <TableHead className="w-28 text-right">Status</TableHead>
-                      </TableRow>
-                    </TableHeader>
-                    <TableBody>
-                      {preview.map((item) => (
-                        <TableRow key={item.title}>
-                          <TableCell className="font-medium">{item.title}</TableCell>
-                          <TableCell className="text-right">{statusBadge(item.status)}</TableCell>
-                        </TableRow>
-                      ))}
-                    </TableBody>
-                  </Table>
-                </div>
-
-                <div className="flex gap-3">
-                  {hasChanges && (
-                    <Button onClick={handleImport} disabled={importing} className="gap-2 font-display">
-                      {importing ? <Loader2 className="h-4 w-4 animate-spin" /> : <Check className="h-4 w-4" />}
-                      {importing ? "Importing..." : `Confirm Import (${newCount + modifiedCount})`}
-                    </Button>
-                  )}
-                  {!hasChanges && (
-                    <p className="text-sm text-muted-foreground py-2">Everything is up to date.</p>
-                  )}
-                  <Button variant="outline" onClick={() => setPreview(null)} disabled={importing} className="gap-2">
-                    <X className="h-4 w-4" /> Cancel
-                  </Button>
-                </div>
-              </div>
-            )}
-
-            {result && (
-              <div className="rounded-lg border border-border p-4 space-y-2 text-sm">
-                <p className="text-foreground">
-                  Imported <strong>{result.imported}</strong> of <strong>{result.total}</strong> scenarios.
-                </p>
-                {result.errors && result.errors.length > 0 && (
-                  <div className="text-destructive space-y-1">
-                    <p className="font-semibold">Errors:</p>
-                    {result.errors.map((err, i) => (
-                      <p key={i} className="text-xs">{err}</p>
-                    ))}
-                  </div>
-                )}
-                <Button variant="outline" size="sm" onClick={() => setResult(null)} className="mt-2">
-                  Done
-                </Button>
-              </div>
-            )}
+          <CardContent>
+            <Button disabled className="gap-2 font-display">
+              <Search className="h-4 w-4" /> Check for Updates
+            </Button>
           </CardContent>
         </Card>
 
