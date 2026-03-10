@@ -835,7 +835,7 @@ const CharacterFeatPicker = ({ characterId, mode = "player", scenarioLevel }: Ch
         <p className="text-sm font-medium text-muted-foreground">Feats per Level</p>
         {!online && (
           <span className="flex items-center gap-1 text-xs text-muted-foreground">
-            <WifiOff className="h-3 w-3" /> Read-only
+            <WifiOff className="h-3 w-3" /> Offline — changes saved locally
           </span>
         )}
       </div>
