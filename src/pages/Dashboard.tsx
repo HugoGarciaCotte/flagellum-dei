@@ -274,9 +274,8 @@ const Dashboard = () => {
                   <ScrollArea className="flex-1">
                     <div className="container max-w-2xl py-6 px-4">
                       <CharacterCreationWizard
-                        onCreated={(charId) => {
+                        onCreated={() => {
                           setNewCharDialogOpen(false);
-                          setEditingCharId(charId);
                           toast({ title: "Character created!" });
                         }}
                         onCancel={() => setNewCharDialogOpen(false)}
