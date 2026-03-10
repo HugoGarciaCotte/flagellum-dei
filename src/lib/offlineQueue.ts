@@ -86,7 +86,7 @@ export async function processQueue(): Promise<{ success: number; failed: number 
     try {
       // Handle delete-before pattern (e.g., upsert = delete + insert)
       if (action.deleteBefore) {
-        let q = supabase.from(action.deleteBefore.table).delete();
+        let q: any = supabase.from(action.deleteBefore.table as any).delete();
         for (const [k, v] of Object.entries(action.deleteBefore.filter)) {
           q = q.eq(k, v);
         }
