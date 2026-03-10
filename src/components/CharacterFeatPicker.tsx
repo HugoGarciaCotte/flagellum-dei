@@ -12,6 +12,7 @@ import { Alert, AlertTitle, AlertDescription } from "@/components/ui/alert";
 import { type SubfeatSlot } from "@/lib/parseEmbeddedFeatMeta";
 
 import { useNetworkStatus } from "@/hooks/useNetworkStatus";
+import { useAuth } from "@/contexts/AuthContext";
 import { useOfflineQuery } from "@/hooks/useOfflineQuery";
 import { queueAction, setCacheData, getCacheData } from "@/lib/offlineQueue";
 import { getAllFeats, getFeatMeta } from "@/data/feats";
@@ -64,6 +65,8 @@ type ValidationResult = {
 const CharacterFeatPicker = ({ characterId, mode = "player", scenarioLevel }: CharacterFeatPickerProps) => {
   const queryClient = useQueryClient();
   const online = useNetworkStatus();
+  const { isGuest } = useAuth();
+  const effectivelyOffline = !online || isGuest;
   const [pickerTarget, setPickerTarget] = useState<PickerTarget | null>(null);
   const [searchTerm, setSearchTerm] = useState("");
   // COMMENTED OUT: preprocessed fields — filterMode for archetype toggle
@@ -177,7 +180,7 @@ const CharacterFeatPicker = ({ characterId, mode = "player", scenarioLevel }: Ch
     level?: number | null,
     parentFeatTitle?: string | null,
   ) => {
-    if (!online) {
+    if (effectivelyOffline) {
       action();
       return;
     }
@@ -212,7 +215,7 @@ const CharacterFeatPicker = ({ characterId, mode = "player", scenarioLevel }: Ch
 
   const upsertMutation = useMutation({
     mutationFn: async ({ level, featId }: { level: number; featId: string }) => {
-      if (!online) {
+      if (effectivelyOffline) {
         const tempId = crypto.randomUUID();
         // Queue delete + insert
         queueAction({
@@ -265,7 +268,7 @@ const CharacterFeatPicker = ({ characterId, mode = "player", scenarioLevel }: Ch
       }
     },
     onSuccess: () => {
-      if (online) {
+      if (!effectivelyOffline) {
         queryClient.invalidateQueries({ queryKey: ["character-feats", characterId] });
         queryClient.invalidateQueries({ queryKey: ["character-feat-subfeats", characterId] });
         queryClient.invalidateQueries({ queryKey: ["character-feats-summary", characterId] });
@@ -282,7 +285,7 @@ const CharacterFeatPicker = ({ characterId, mode = "player", scenarioLevel }: Ch
 
   const deleteMutation = useMutation({
     mutationFn: async ({ level, isFree, id }: { level: number; isFree: boolean; id?: string }) => {
-      if (!online) {
+      if (effectivelyOffline) {
         if (isFree && id) {
           queueAction({ table: "character_feats", operation: "delete", payload: {}, filter: { id } });
           queryClient.setQueryData(["character-feats", characterId], (old: CharacterFeat[] | undefined) =>
@@ -310,7 +313,7 @@ const CharacterFeatPicker = ({ characterId, mode = "player", scenarioLevel }: Ch
       }
     },
     onSuccess: () => {
-      if (online) {
+      if (!effectivelyOffline) {
         queryClient.invalidateQueries({ queryKey: ["character-feats", characterId] });
         queryClient.invalidateQueries({ queryKey: ["character-feat-subfeats", characterId] });
         queryClient.invalidateQueries({ queryKey: ["character-feats-summary", characterId] });
@@ -320,7 +323,7 @@ const CharacterFeatPicker = ({ characterId, mode = "player", scenarioLevel }: Ch
 
   const addFreeFeatMutation = useMutation({
     mutationFn: async (featId: string) => {
-      if (!online) {
+      if (effectivelyOffline) {
         const tempId = crypto.randomUUID();
         queueAction({
           table: "character_feats",
@@ -339,7 +342,7 @@ const CharacterFeatPicker = ({ characterId, mode = "player", scenarioLevel }: Ch
       if (error) throw error;
     },
     onSuccess: () => {
-      if (online) {
+      if (!effectivelyOffline) {
         queryClient.invalidateQueries({ queryKey: ["character-feats", characterId] });
         queryClient.invalidateQueries({ queryKey: ["character-feats-summary", characterId] });
       }
@@ -351,7 +354,7 @@ const CharacterFeatPicker = ({ characterId, mode = "player", scenarioLevel }: Ch
   const updateNoteMutation = useMutation({
     mutationFn: async ({ id, note }: { id: string; note: string }) => {
       const trimmed = note.trim() || null;
-      if (!online) {
+      if (effectivelyOffline) {
         queueAction({ table: "character_feats", operation: "update", payload: { note: trimmed }, filter: { id } });
         queryClient.setQueryData(["character-feats", characterId], (old: CharacterFeat[] | undefined) =>
           (old ?? []).map(cf => cf.id === id ? { ...cf, note: trimmed } : cf)
@@ -365,7 +368,7 @@ const CharacterFeatPicker = ({ characterId, mode = "player", scenarioLevel }: Ch
       if (error) throw error;
     },
     onSuccess: () => {
-      if (online) {
+      if (!effectivelyOffline) {
         queryClient.invalidateQueries({ queryKey: ["character-feats", characterId] });
         queryClient.invalidateQueries({ queryKey: ["character-feats-summary", characterId] });
       }
@@ -374,7 +377,7 @@ const CharacterFeatPicker = ({ characterId, mode = "player", scenarioLevel }: Ch
 
   const setSubfeatMutation = useMutation({
     mutationFn: async ({ characterFeatId, slot, subfeatId }: { characterFeatId: string; slot: number; subfeatId: string | null }) => {
-      if (!online) {
+      if (effectivelyOffline) {
         queueAction({ table: "character_feat_subfeats", operation: "delete", payload: {}, filter: { character_feat_id: characterFeatId, slot } });
         if (subfeatId) {
           const tempId = crypto.randomUUID();
@@ -409,7 +412,7 @@ const CharacterFeatPicker = ({ characterId, mode = "player", scenarioLevel }: Ch
       }
     },
     onSuccess: () => {
-      if (online) {
+      if (!effectivelyOffline) {
         queryClient.invalidateQueries({ queryKey: ["character-feat-subfeats", characterId] });
       }
       setPickerTarget(null);

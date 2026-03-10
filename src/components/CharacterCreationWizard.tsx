@@ -203,6 +203,13 @@ const CharacterCreationWizard = ({ onCreated, onCancel, gameId }: CharacterCreat
           const newChar = { id: tempCharId, user_id: user.id, name: "New Character", description: null, portrait_url: null, created_at: new Date().toISOString(), updated_at: new Date().toISOString() };
           setCacheData(cacheKey, [newChar, ...cached]);
           queryClient.setQueryData(["my-characters", user.id], (old: any[]) => old ? [newChar, ...old] : [newChar]);
+
+          // Seed feat caches so CharacterFeatPicker can display them
+          const newCf = { id: tempCfId, character_id: tempCharId, feat_id: featId, level: 1, is_free: false, note: null };
+          queryClient.setQueryData(["character-feats", tempCharId], [newCf]);
+          setCacheData(`character-feats-${tempCharId}`, [newCf]);
+          queryClient.setQueryData(["character-feat-subfeats", tempCharId], []);
+          setCacheData(`character-feat-subfeats-${tempCharId}`, []);
         } else {
           // Already have a character, update archetype
           queueAction({
@@ -268,13 +275,25 @@ const CharacterCreationWizard = ({ onCreated, onCancel, gameId }: CharacterCreat
     try {
       if (!online || isGuest) {
         queueAction({ table: "character_feat_subfeats", operation: "delete", payload: {}, filter: { character_feat_id: characterFeatId, slot: slotNum } });
+        const tempSfId = crypto.randomUUID();
         if (subfeatId) {
           queueAction({
             table: "character_feat_subfeats",
             operation: "insert",
             payload: { character_feat_id: characterFeatId, slot: slotNum, subfeat_id: subfeatId },
-            tempId: crypto.randomUUID(),
+            tempId: tempSfId,
           });
+        }
+        // Optimistic subfeat cache update
+        if (characterId) {
+          queryClient.setQueryData(["character-feat-subfeats", characterId], (old: any[] | undefined) => {
+            const filtered = (old ?? []).filter((cs: any) => !(cs.character_feat_id === characterFeatId && cs.slot === slotNum));
+            if (subfeatId) {
+              return [...filtered, { id: tempSfId, character_feat_id: characterFeatId, slot: slotNum, subfeat_id: subfeatId }];
+            }
+            return filtered;
+          });
+          setCacheData(`character-feat-subfeats-${characterId}`, queryClient.getQueryData(["character-feat-subfeats", characterId]) ?? []);
         }
       } else {
         await supabase
