@@ -375,12 +375,13 @@ const Home = () => {
             />
             <FeatureColumn
               icon={<span className="text-4xl">🜩</span>}
-              title="Everything in the Website"
+              title="100% Free & Open Source"
               description={
                 <p>
-                  No rulebooks to buy, no expansions to unlock. Characters,
-                  scenarios, rules, music, and visuals — everything lives here,
-                  entirely free.
+                  No rulebooks to buy, no expansions to unlock. Everything lives
+                  here, entirely free and open source. Want to build your own
+                  game from it? Fork the code, remix the system, and make it
+                  yours.
                 </p>
               }
             />
