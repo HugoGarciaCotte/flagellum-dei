@@ -11,7 +11,7 @@ import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/component
 import { toast } from "@/hooks/use-toast";
 import { useNavigate } from "react-router-dom";
 import { LogOut, Plus, DoorOpen, Scroll, Users, Settings, ChevronDown, Sword, Trash2, Pencil, ShieldCheck } from "lucide-react";
-import Logo from "@/components/Logo";
+
 import CharacterSheet from "@/components/CharacterSheet";
 import { useOfflineScenarios } from "@/hooks/useOfflineScenarios";
 import { useOfflineFeats } from "@/hooks/useOfflineFeats";
