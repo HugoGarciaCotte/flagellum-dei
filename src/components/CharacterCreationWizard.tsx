@@ -204,6 +204,10 @@ const CharacterCreationWizard = ({ onCreated, onCancel, gameId }: CharacterCreat
           setCacheData(cacheKey, [newChar, ...cached]);
           queryClient.setQueryData(["my-characters", user.id], (old: any[]) => old ? [newChar, ...old] : [newChar]);
 
+          // Seed individual character cache so CharacterSheet can load it
+          setCacheData(`character-${tempCharId}`, newChar);
+          queryClient.setQueryData(["character", tempCharId], newChar);
+
           // Seed feat caches so CharacterFeatPicker can display them
           const newCf = { id: tempCfId, character_id: tempCharId, feat_id: featId, level: 1, is_free: false, note: null };
           queryClient.setQueryData(["character-feats", tempCharId], [newCf]);
