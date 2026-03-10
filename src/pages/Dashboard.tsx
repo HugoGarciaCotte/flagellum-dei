@@ -239,7 +239,7 @@ const Dashboard = () => {
           </h2>
           <div className="flex gap-2">
             <Input
-              placeholder={!online && !isGuest ? "Offline — join unavailable" : "Enter join code"}
+              placeholder={!online ? "Offline — join unavailable" : "Enter join code"}
               value={joinCode}
               onChange={(e) => setJoinCode(e.target.value)}
               onKeyDown={(e) => e.key === "Enter" && handleJoinGame()}
