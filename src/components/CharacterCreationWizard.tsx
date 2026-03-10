@@ -12,10 +12,12 @@ import FeatListItem from "@/components/FeatListItem";
 import { sortTitlesEmojiLast } from "@/lib/utils";
 import {
   Loader2, Sparkles, Upload, Dices, ChevronRight, SkipForward,
-  Search, ArrowLeft,
+  Search, ArrowLeft, WifiOff,
 } from "lucide-react";
 import { getAllFeats, getFeatMeta } from "@/data/feats";
 import Logo from "@/components/Logo";
+import { useNetworkStatus } from "@/hooks/useNetworkStatus";
+import { queueAction, setCacheData, getCacheData } from "@/lib/offlineQueue";
 
 interface CharacterCreationWizardProps {
   onCreated: (characterId: string) => void;
