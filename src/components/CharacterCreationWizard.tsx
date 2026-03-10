@@ -34,7 +34,7 @@ type Feat = {
 };
 
 const CharacterCreationWizard = ({ onCreated, onCancel, gameId }: CharacterCreationWizardProps) => {
-  const { user } = useAuth();
+  const { user, isGuest } = useAuth();
   const queryClient = useQueryClient();
   const fileInputRef = useRef<HTMLInputElement>(null);
   const online = useNetworkStatus();
@@ -158,7 +158,7 @@ const CharacterCreationWizard = ({ onCreated, onCancel, gameId }: CharacterCreat
 
   // Generate description when reaching final step
   useEffect(() => {
-    if (step === finalStep && !description && !generatingDesc && online) {
+    if (step === finalStep && !description && !generatingDesc && online && !isGuest) {
       generateDescription();
     }
   }, [step, finalStep, online]);
@@ -170,7 +170,7 @@ const CharacterCreationWizard = ({ onCreated, onCancel, gameId }: CharacterCreat
     if (!user) return;
     setSaving(true);
     try {
-      if (!online) {
+      if (!online || isGuest) {
         // Offline: create locally with temp IDs
         if (!characterId) {
           const tempCharId = crypto.randomUUID();
@@ -266,7 +266,7 @@ const CharacterCreationWizard = ({ onCreated, onCancel, gameId }: CharacterCreat
     if (!characterFeatId) return;
     setSaving(true);
     try {
-      if (!online) {
+      if (!online || isGuest) {
         queueAction({ table: "character_feat_subfeats", operation: "delete", payload: {}, filter: { character_feat_id: characterFeatId, slot: slotNum } });
         if (subfeatId) {
           queueAction({
@@ -301,7 +301,7 @@ const CharacterCreationWizard = ({ onCreated, onCancel, gameId }: CharacterCreat
     if (!characterId || !user) return;
     setCreating(true);
     try {
-      if (!online) {
+      if (!online || isGuest) {
         queueAction({
           table: "characters",
           operation: "update",
@@ -401,7 +401,7 @@ const CharacterCreationWizard = ({ onCreated, onCancel, gameId }: CharacterCreat
     if (!user) return;
     setCreating(true);
     try {
-      if (!online) {
+      if (!online || isGuest) {
         const tempCharId = crypto.randomUUID();
         queueAction({
           table: "characters",
@@ -461,6 +461,13 @@ const CharacterCreationWizard = ({ onCreated, onCancel, gameId }: CharacterCreat
   const handleUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file || !user) return;
+
+    if (isGuest || !online) {
+      const localUrl = URL.createObjectURL(file);
+      setPortraitUrl(localUrl);
+      toast({ title: "Portrait saved locally" });
+      return;
+    }
 
     const targetId = characterId || crypto.randomUUID();
     const filePath = `${user.id}/${targetId}.png`;
