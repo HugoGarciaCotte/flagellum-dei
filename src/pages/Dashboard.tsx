@@ -246,7 +246,7 @@ const Dashboard = () => {
               className="font-display text-lg tracking-widest uppercase text-center"
               disabled={!online}
             />
-            <Button onClick={handleJoinGame} className="font-display px-6 shrink-0" disabled={!online && !isGuest}>
+            <Button onClick={handleJoinGame} className="font-display px-6 shrink-0" disabled={!online}>
               Join
             </Button>
           </div>
