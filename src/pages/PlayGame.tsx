@@ -170,7 +170,7 @@ const PlayGame = () => {
       />
 
       {/* Quest content — always visible */}
-      <main className="flex-1 container py-8 pb-24 flex items-center justify-center max-w-3xl">
+      <main className={`flex-1 container py-8 flex items-center justify-center max-w-3xl ${isGuest ? "pb-32" : "pb-24"}`}>
         {sectionTitle ? (
           <Card className="w-full aged-border">
             <CardContent className="p-8 text-center">
