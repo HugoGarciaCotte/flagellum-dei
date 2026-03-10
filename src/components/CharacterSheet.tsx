@@ -184,7 +184,7 @@ const CharacterSheet = ({ characterId, mode = "player", scenarioLevel, onDone }:
             size="sm"
             className="gap-1.5"
             onClick={() => fileInputRef.current?.click()}
-            disabled={!online}
+            disabled={effectivelyOffline}
           >
             <Upload className="h-3.5 w-3.5" /> Upload
           </Button>
@@ -193,7 +193,7 @@ const CharacterSheet = ({ characterId, mode = "player", scenarioLevel, onDone }:
             size="sm"
             className="gap-1.5"
             onClick={handleGenerate}
-            disabled={generating || !online}
+            disabled={generating || effectivelyOffline}
           >
             {generating ? (
               <Loader2 className="h-3.5 w-3.5 animate-spin" />
