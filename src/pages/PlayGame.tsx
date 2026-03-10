@@ -201,7 +201,11 @@ const PlayGame = () => {
       )}
 
       {/* Dice roller FAB */}
-      <DiceRoller />
+      <DiceRoller
+        gameId={gameId}
+        userName={selectedCharacter?.name ?? "A player"}
+        isGameMaster={false}
+      />
 
       {/* Bottom character peek bar */}
       {!sheetExpanded && (
