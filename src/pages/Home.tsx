@@ -365,9 +365,9 @@ const Home = () => {
               title="Everything in the Website"
               description={
                 <p>
-                  Character creation, rules, scenarios, music, and player
-                  visuals live in one place. Open the site and begin the
-                  investigation.
+                  No rulebooks to buy, no expansions to unlock. Characters,
+                  scenarios, rules, music, and visuals — everything lives here,
+                  entirely free.
                 </p>
               }
             />
