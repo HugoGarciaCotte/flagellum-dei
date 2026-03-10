@@ -1,6 +1,6 @@
 import { ReactNode } from "react";
-import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
+import { useOfflineQuery } from "@/hooks/useOfflineQuery";
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
 import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
 import { getFeatById } from "@/data/feats";
