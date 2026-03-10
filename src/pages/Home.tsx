@@ -16,6 +16,7 @@ import {
   Flame,
   Cross,
   ScrollText,
+  Gift,
 } from "lucide-react";
 import Logo from "@/components/Logo";
 
