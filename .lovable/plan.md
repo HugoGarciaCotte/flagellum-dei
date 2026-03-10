@@ -1,37 +1,49 @@
 
 
-## Offline Resilience Audit — Confirmed Solid
+## Guest Mode Audit — Confirmed Solid
 
-### All mutation paths verified
+### Three guest scenarios
 
-Every single `supabase.from()` **write** call across all 5 component/page files is wrapped in `resilientMutation()`. If the server is dead, the offline callback runs: it queues the action to localStorage, optimistically updates the React Query cache and the localStorage cache, and shows the user appropriate feedback.
+| Scenario | Auth state | How mutations work | How queries work |
+|----------|-----------|-------------------|-----------------|
+| **Online guest** | Real anonymous session via `signInAnonymously()` | Server-first via `resilientMutation`, uses real `auth.uid()` | Normal `useOfflineQuery` fetches from server, caches to localStorage |
+| **Offline guest (local)** | Temp UUID from `generateLocalGuestUser()`, `isLocalGuest=true` | All mutations fall to offline callback in `resilientMutation`, queued with temp UUID | `useOfflineQuery` disabled (`canFetch=false` when `isLocalGuest`), returns localStorage cache |
+| **Reconnecting guest** | `initSync` upgrades local→real anonymous, `remapUserId()` fixes queue | Queue drains with real UUID before `syncReady=true` | Queries re-enable after `syncReady=true` |
 
-### Query paths verified
+### All mutation paths verified for guest mode
 
-All data fetching uses `useOfflineQuery`, which:
-- Caches every successful response to `localStorage`
-- Returns cached data when offline, syncing, or local guest
-- Falls back to cache even when "online" but the server is unreachable (the `isError` branch)
+Every mutation uses `resilientMutation()` with an offline callback that:
+1. Generates temp UUIDs for new records
+2. Queues the action to localStorage
+3. Optimistically updates both React Query cache AND localStorage cache
 
-### Non-critical features that require the server (by design)
+This works identically whether `user.id` is a real anonymous UUID or a local temp UUID.
 
-| Feature | Behavior when server is dead |
-|---------|------------------------------|
-| Join a game | UI disabled, toast explains why |
-| End a game | Toast: "Server unreachable" |
-| Portrait upload/generate | Buttons disabled; wizard allows local blob URL fallback |
-| AI name/description generation | Fails silently, no data loss |
-| AI feat validation | Catches error, allows the action anyway |
-| Realtime subscriptions | Fail silently, no crash |
-| Dice broadcast | Fails silently, local roll still works |
+**Verified in:**
+- `CharacterCreationWizard.tsx`: `saveArchetype` (lines 169-246), `saveSubfeat` (lines 249-287), `saveFinalDetails` (lines 290-325), `handleSkipBeforeArchetype` (lines 386-429) — all create temp IDs and queue correctly
+- `CharacterSheet.tsx`: `saveMutation` (lines 56-89) — queues update with filter
+- `Dashboard.tsx`: `deleteCharMutation` (lines 60-81), `handleCreateGame` (lines 169-183) — falls back to `createLocalGame`
+- `PlayGame.tsx`: `selectCharMutation` (lines 86-107) — queues game_player update
+- `HostGame.tsx`: `activateSection` (lines 165-176) — updates local state first, queues server update
 
-### Auth when server is dead
+### Query behavior for local guests
 
-- `signInAnonymously()` fails → falls back to **local guest** with a temporary UUID
-- All mutations use that temp UUID
-- On reconnect, `remapUserId()` replaces the temp UUID with the real one across all queued actions before draining
+`useOfflineQuery` sets `canFetch = false` when `isLocalGuest` is true (line 21). This means:
+- No server requests are attempted (no auth token exists anyway)
+- Data comes from localStorage cache or from React Query cache (set by optimistic updates)
+- First-time local guests with no cache see empty arrays (characters list, games list) — correct behavior
 
-### Conclusion
+### Edge cases verified
 
-**No gaps found.** Every data-saving path goes through `resilientMutation`. Every query goes through `useOfflineQuery` with localStorage cache. Guest auth gracefully degrades. The game is fully playable offline for all core features (character creation, editing, feat management, section navigation, dice rolling). No code changes needed.
+| Edge case | Behavior |
+|-----------|----------|
+| Local guest creates character offline | Temp UUID used, queued, cache updated — character appears in UI immediately |
+| Local guest reconnects | `initSync` calls `signInAnonymously()`, `remapUserId()` fixes all queued temp UUIDs, queue drains, `syncReady` enables queries |
+| Online guest server dies mid-session | `resilientMutation` catches the error, falls back to queue — no data loss |
+| Guest converts to real account (signup) | Handled in `Auth.tsx` via `updateUser` — existing anonymous session preserved |
+| Local guest hosts a game offline | `createLocalGame` runs (Dashboard line 139-167), creates cached game session with "LOCAL" join code |
+
+### No issues found
+
+Every data-saving path works with any user ID (real, anonymous, or temp local). Every query gracefully handles the `isLocalGuest` state. The `remapUserId` bridge correctly upgrades temp IDs on reconnection. **No code changes needed.**
 
