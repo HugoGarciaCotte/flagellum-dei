@@ -203,7 +203,7 @@ const CharacterSheet = ({ characterId, mode = "player", scenarioLevel, onDone }:
             Generate
           </Button>
         </div>
-        {!online && (
+        {effectivelyOffline && (
           <p className="text-xs text-muted-foreground flex items-center gap-1">
             <WifiOff className="h-3 w-3" /> Portrait features available when online
           </p>
