@@ -26,6 +26,7 @@ import GMPlayerList from "@/components/GMPlayerList";
 import { useNetworkStatus } from "@/hooks/useNetworkStatus";
 import { useOfflineQuery } from "@/hooks/useOfflineQuery";
 import { queueAction, setCacheData, getCacheData } from "@/lib/offlineQueue";
+import { cacheGameSession } from "@/lib/offlineStorage";
 
 const Dashboard = () => {
   const { user, signOut, isGuest } = useAuth();
