@@ -36,7 +36,7 @@ export function useOfflineQuery<T>(
   }, [query.data, cacheKey]);
 
   // Return cached data when offline/syncing and no fresh data
-  if (query.data === undefined && (effectivelyOffline || !syncReady || syncing)) {
+  if (query.data === undefined && (effectivelyOffline || !syncReady || syncing || isLocalGuest)) {
     const cached = getCacheData<T>(cacheKey);
     if (cached !== null) {
       return {
