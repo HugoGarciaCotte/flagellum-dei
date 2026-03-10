@@ -151,6 +151,17 @@ const Dashboard = () => {
       const cached = getCacheData<any[]>(cacheKey) ?? [];
       setCacheData(cacheKey, [newGame, ...cached]);
       queryClient.setQueryData(["my-games", user!.id], (old: any[]) => old ? [newGame, ...old] : [newGame]);
+
+      // Seed game session cache so HostGame can load it offline/guest
+      const scenario = getScenarioById(scenarioId);
+      cacheGameSession(tempGameId, {
+        game: { id: tempGameId, status: "active", join_code: "LOCAL", current_section: null, host_user_id: user!.id, scenario_id: scenarioId },
+        scenario: { title: scenario?.title ?? "", description: scenario?.description ?? null, content: scenario?.content ?? null },
+        players: [],
+        characters: [],
+        cachedAt: Date.now(),
+      });
+
       toast({ title: "Game created", description: "Local game — no join code needed." });
       navigate(`/game/${tempGameId}/host`);
       return;
