@@ -179,7 +179,7 @@ const PlayGame = () => {
 
       {/* Expanded character overlay */}
       {sheetExpanded && (
-        <div className="fixed inset-0 z-50 bg-background flex flex-col animate-in slide-in-from-bottom duration-300">
+        <div className="fixed inset-0 z-50 bg-background flex flex-col animate-in slide-in-from-bottom duration-300 pt-[env(safe-area-inset-top)]">
           <div className="border-b border-border/50 bg-card/80 backdrop-blur">
             <div className="container max-w-2xl flex items-center justify-between py-3 px-4">
               <span className="font-display text-sm font-medium text-foreground">Your Characters</span>
