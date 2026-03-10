@@ -2,12 +2,17 @@ import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
 import { useQuery } from "@tanstack/react-query";
 
+const GUEST_GM_KEY = "guest_is_game_master";
+
 export function useIsGameMaster() {
-  const { user } = useAuth();
+  const { user, isGuest } = useAuth();
 
   const { data: isGameMaster, isLoading } = useQuery({
     queryKey: ["user-role-game-master", user?.id],
     queryFn: async () => {
+      if (isGuest) {
+        return localStorage.getItem(GUEST_GM_KEY) === "true";
+      }
       const { data } = await supabase
         .from("user_roles")
         .select("role")
@@ -19,5 +24,9 @@ export function useIsGameMaster() {
     enabled: !!user,
   });
 
-  return { isGameMaster: !!isGameMaster, isLoading };
+  const setGuestGameMaster = (value: boolean) => {
+    localStorage.setItem(GUEST_GM_KEY, String(value));
+  };
+
+  return { isGameMaster: !!isGameMaster, isLoading, setGuestGameMaster };
 }

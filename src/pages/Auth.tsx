@@ -10,12 +10,12 @@ import { toast } from "@/hooks/use-toast";
 import Logo from "@/components/Logo";
 
 const Auth = () => {
-  const { user } = useAuth();
+  const { user, isGuest, enterGuestMode } = useAuth();
   const navigate = useNavigate();
 
   useEffect(() => {
-    if (user) navigate("/", { replace: true });
-  }, [user, navigate]);
+    if (user && !isGuest) navigate("/", { replace: true });
+  }, [user, isGuest, navigate]);
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [displayName, setDisplayName] = useState("");
@@ -110,6 +110,17 @@ const Auth = () => {
                     </Button>
                     <button type="button" onClick={() => setShowForgotPassword(true)} className="text-sm text-primary hover:underline w-full text-center">
                       Forgot your password?
+                    </button>
+                    <div className="relative my-2">
+                      <div className="absolute inset-0 flex items-center"><span className="w-full border-t border-border/50" /></div>
+                      <div className="relative flex justify-center text-xs"><span className="bg-card px-2 text-muted-foreground">or</span></div>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={() => { enterGuestMode(); navigate("/"); }}
+                      className="w-full text-sm text-muted-foreground hover:text-foreground transition-colors font-display flex items-center justify-center gap-2 py-2"
+                    >
+                      Explore as Guest
                     </button>
                   </form>
                 )}

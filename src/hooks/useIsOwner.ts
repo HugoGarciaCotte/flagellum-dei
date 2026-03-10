@@ -3,7 +3,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useQuery } from "@tanstack/react-query";
 
 export function useIsOwner() {
-  const { user } = useAuth();
+  const { user, isGuest } = useAuth();
 
   const { data: isOwner, isLoading } = useQuery({
     queryKey: ["user-role-owner", user?.id],
@@ -16,8 +16,8 @@ export function useIsOwner() {
         .maybeSingle();
       return !!data;
     },
-    enabled: !!user,
+    enabled: !!user && !isGuest,
   });
 
-  return { isOwner: !!isOwner, isLoading };
+  return { isOwner: isGuest ? false : !!isOwner, isLoading };
 }

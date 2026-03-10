@@ -28,7 +28,7 @@ import { useOfflineQuery } from "@/hooks/useOfflineQuery";
 import { queueAction, setCacheData, getCacheData } from "@/lib/offlineQueue";
 
 const Dashboard = () => {
-  const { user, signOut } = useAuth();
+  const { user, signOut, isGuest } = useAuth();
   const navigate = useNavigate();
   const queryClient = useQueryClient();
   const online = useNetworkStatus();
@@ -37,7 +37,7 @@ const Dashboard = () => {
   const [newCharDialogOpen, setNewCharDialogOpen] = useState(false);
   const [editingCharId, setEditingCharId] = useState<string | null>(null);
   const { isOwner } = useIsOwner();
-  const { isGameMaster } = useIsGameMaster();
+  const { isGameMaster, setGuestGameMaster } = useIsGameMaster();
   const [gmDialogOpen, setGmDialogOpen] = useState(false);
   const [deleteCharTarget, setDeleteCharTarget] = useState<{ id: string; name: string } | null>(null);
 
@@ -53,7 +53,7 @@ const Dashboard = () => {
       if (error) throw error;
       return data;
     },
-    enabled: !!user,
+    enabled: !!user && !isGuest,
   });
 
   const deleteCharMutation = useMutation({
@@ -92,7 +92,7 @@ const Dashboard = () => {
       if (error) throw error;
       return data;
     },
-    enabled: !!user,
+    enabled: !!user && !isGuest,
   });
 
   // Active games (joined as player)
@@ -107,7 +107,7 @@ const Dashboard = () => {
       if (error) throw error;
       return data;
     },
-    enabled: !!user,
+    enabled: !!user && !isGuest,
   });
 
   // Merge hosted + joined games, deduplicated
@@ -171,8 +171,14 @@ const Dashboard = () => {
 
   const handleJoinGame = async () => {
     if (!joinCode.trim()) return;
-    if (!online) {
+    if (!online && !isGuest) {
       toast({ title: "Offline", description: "You need to be online to join a game.", variant: "destructive" });
+      return;
+    }
+    if (isGuest) {
+      // Guest mode: navigate directly, game page will handle local-only
+      toast({ title: "Guest mode", description: "Joining locally — nothing is saved online." });
+      navigate(`/game/${joinCode.toUpperCase()}/play`);
       return;
     }
     const { data: game, error } = await supabase
@@ -207,9 +213,15 @@ const Dashboard = () => {
                 <Settings className="h-4 w-4" /> Admin
               </Button>
             )}
-            <Button variant="ghost" size="sm" onClick={signOut} className="gap-2">
-              <LogOut className="h-4 w-4" /> Sign Out
-            </Button>
+            {isGuest ? (
+              <Button variant="ghost" size="sm" onClick={() => { signOut(); navigate("/auth"); }} className="gap-2">
+                Sign Up
+              </Button>
+            ) : (
+              <Button variant="ghost" size="sm" onClick={signOut} className="gap-2">
+                <LogOut className="h-4 w-4" /> Sign Out
+              </Button>
+            )}
           </>
         }
       />
@@ -222,18 +234,18 @@ const Dashboard = () => {
           </h2>
           <div className="flex gap-2">
             <Input
-              placeholder={online ? "Enter join code" : "Offline — join unavailable"}
+              placeholder={!online && !isGuest ? "Offline — join unavailable" : "Enter join code"}
               value={joinCode}
               onChange={(e) => setJoinCode(e.target.value)}
               onKeyDown={(e) => e.key === "Enter" && handleJoinGame()}
               className="font-display text-lg tracking-widest uppercase text-center"
-              disabled={!online}
+              disabled={!online && !isGuest}
             />
-            <Button onClick={handleJoinGame} className="font-display px-6 shrink-0" disabled={!online}>
+            <Button onClick={handleJoinGame} className="font-display px-6 shrink-0" disabled={!online && !isGuest}>
               Join
             </Button>
           </div>
-          {!online && (
+          {!online && !isGuest && (
             <p className="text-xs text-muted-foreground flex items-center gap-1">
               <WifiOff className="h-3 w-3" /> You need to be online to join a game
             </p>
@@ -419,6 +431,12 @@ const Dashboard = () => {
                 <AlertDialogAction
                   className="font-display gap-2"
                   onClick={async () => {
+                    if (isGuest) {
+                      setGuestGameMaster(true);
+                      queryClient.invalidateQueries({ queryKey: ["user-role-game-master"] });
+                      toast({ title: "You are now a Game Master!", description: "You can now host games." });
+                      return;
+                    }
                     const { error } = await supabase
                       .from("user_roles")
                       .insert({ user_id: user!.id, role: "game_master" as any });
