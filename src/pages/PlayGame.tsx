@@ -6,7 +6,7 @@ import { getScenarioById } from "@/data/scenarios";
 import { useQueryClient, useMutation } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
-import { ArrowLeft, Plus, Check, X, GripHorizontal, Pencil } from "lucide-react";
+import { ArrowLeft, Plus, Check, X, GripHorizontal, Pencil, Copy } from "lucide-react";
 import CharacterSheet from "@/components/CharacterSheet";
 import { useNetworkStatus } from "@/hooks/useNetworkStatus";
 import { useOfflineQuery } from "@/hooks/useOfflineQuery";
