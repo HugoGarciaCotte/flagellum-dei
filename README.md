@@ -1,73 +1,100 @@
-# Welcome to your Lovable project
+# ⚔️ Flagellum Dei
 
-## Project info
+### A Historical Horror Tabletop RPG — Free, Open Source, Built with Lovable
 
-**URL**: https://lovable.dev/projects/REPLACE_WITH_PROJECT_ID
+[![Play Now](https://img.shields.io/badge/Play_Now-flagellum--dei.lovable.app-d4a44a?style=for-the-badge)](https://flagellum-dei.lovable.app)
+[![Remix on Lovable](https://img.shields.io/badge/Remix_on-Lovable-ff69b4?style=for-the-badge)](https://lovable.dev/projects/81d72331-f39f-42a0-8104-483bc69c26ee)
 
-## How can I edit this code?
+---
 
-There are several ways of editing your application.
+## What is Flagellum Dei?
 
-**Use Lovable**
+**Flagellum Dei** is a pen-and-paper tabletop role-playing game set during the Black Death. Players take on the roles of **inquisitors** investigating heresy, dark rituals, and supernatural terrors across 14th-century Europe.
 
-Simply visit the [Lovable Project](https://lovable.dev/projects/REPLACE_WITH_PROJECT_ID) and start prompting.
+- 🎭 **3–9 players** — one Game Master, the rest are inquisitors
+- 💀 **Historical horror** — grounded in real events, places, and beliefs of the 14th century
+- 🆓 **Completely free** — no subscriptions, no paywalls, no hidden fees
+- 🌐 **Play anywhere** — designed for in-person sessions or video calls
 
-Changes made via Lovable will be committed automatically to this repo.
+> *The year is 1348. The Great Pestilence sweeps across Europe. You are an inquisitor — called by the Church to investigate whispers of heresy. What you find may test your faith, your sanity, and your very soul.*
 
-**Use your preferred IDE**
+---
 
-If you want to work locally using your own IDE, you can clone this repo and push changes. Pushed changes will also be reflected in Lovable.
+## Features
 
-The only requirement is having Node.js & npm installed - [install with nvm](https://github.com/nvm-sh/nvm#installing-and-updating)
+### 🏰 Historically Grounded Horror
+Every scenario is rooted in real medieval history — authentic locations, genuine heresies, actual inquisitorial practices. The horror emerges from the darkness that already existed.
 
-Follow these steps:
+### ⚔️ Character Creation
+Build your inquisitor with a guided wizard: choose your background, allocate skills, pick feats from a deep system of abilities, and generate an AI portrait.
+
+### 📜 Scenario Library
+Play through handcrafted investigations — from ritualistic murders in Austrian abbeys to dancing plagues in Spain. Each scenario is a self-contained mystery.
+
+### 🎲 Game Master Tools
+Host games with integrated tools: player management, dice roller, scenario navigation, and a game timer to keep sessions on track.
+
+### 📴 Offline Support
+Full PWA with offline-first architecture. Create characters, review scenarios, and prepare sessions without an internet connection.
+
+### 📖 Integrated Wiki & Rules
+All rules, feats, and lore are built directly into the app — no external rulebooks needed. Interlinked wiki pages let you explore game mechanics in context.
+
+---
+
+## How to Play
+
+| Step | What to do |
+|------|------------|
+| **1. Create** | Sign up for free and build your inquisitor using the character creation wizard. |
+| **2. Join** | The Game Master hosts a session and shares a join code. Players enter the code to connect. |
+| **3. Play** | Investigate, interrogate, and survive. The GM narrates the scenario while players use their character sheets and tools on their devices. |
+
+---
+
+## Tech Stack
+
+| Layer | Technology |
+|-------|------------|
+| Frontend | React 18, TypeScript, Vite |
+| Styling | Tailwind CSS, shadcn/ui |
+| Backend | Lovable Cloud |
+| AI | Character portrait & detail generation |
+| Offline | PWA with service workers, IndexedDB |
+| Hosting | Lovable |
+
+---
+
+## Open Source
+
+This project is **fully open source**. The entire website and game engine were built with [Lovable](https://lovable.dev) — only the game content (scenarios, feats, and lore) was handwritten by the creators.
+
+You are free to:
+- 🔀 **[Remix on Lovable](https://lovable.dev/projects/81d72331-f39f-42a0-8104-483bc69c26ee)** — fork and modify the project directly in Lovable
+- 🐙 **[Browse the source on GitHub](https://github.com/HugoGarciaCotte/flagellum-dei)** — clone, inspect, and contribute
+
+---
+
+## Local Development
 
 ```sh
-# Step 1: Clone the repository using the project's Git URL.
-git clone <YOUR_GIT_URL>
+# Clone the repository
+git clone https://github.com/HugoGarciaCotte/flagellum-dei.git
 
-# Step 2: Navigate to the project directory.
-cd <YOUR_PROJECT_NAME>
+# Navigate to the project
+cd flagellum-dei
 
-# Step 3: Install the necessary dependencies.
-npm i
+# Install dependencies
+npm install
 
-# Step 4: Start the development server with auto-reloading and an instant preview.
+# Start the dev server
 npm run dev
 ```
 
-**Edit a file directly in GitHub**
+Requires [Node.js](https://nodejs.org/) (v18+). Install with [nvm](https://github.com/nvm-sh/nvm#installing-and-updating) if needed.
 
-- Navigate to the desired file(s).
-- Click the "Edit" button (pencil icon) at the top right of the file view.
-- Make your changes and commit the changes.
+---
 
-**Use GitHub Codespaces**
-
-- Navigate to the main page of your repository.
-- Click on the "Code" button (green button) near the top right.
-- Select the "Codespaces" tab.
-- Click on "New codespace" to launch a new Codespace environment.
-- Edit files directly within the Codespace and commit and push your changes once you're done.
-
-## What technologies are used for this project?
-
-This project is built with:
-
-- Vite
-- TypeScript
-- React
-- shadcn-ui
-- Tailwind CSS
-
-## How can I deploy this project?
-
-Simply open [Lovable](https://lovable.dev/projects/REPLACE_WITH_PROJECT_ID) and click on Share -> Publish.
-
-## Can I connect a custom domain to my Lovable project?
-
-Yes, you can!
-
-To connect a domain, navigate to Project > Settings > Domains and click Connect Domain.
-
-Read more here: [Setting up a custom domain](https://docs.lovable.dev/features/custom-domain#custom-domain)
+<p align="center">
+  <em>Built with ❤️ and Lovable — by history and tabletop lovers who wanted to share their passion.</em>
+</p>
