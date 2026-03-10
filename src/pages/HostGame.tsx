@@ -61,7 +61,7 @@ const HostGame = () => {
 
   // Fetch ALL characters for all players (not just selected ones)
   const playerUserIds = useMemo(
-    () => [...new Set((players ?? []).map((p: any) => p.user_id))],
+    () => [...new Set((players ?? []).map((p: any) => p.user_id as string))],
     [players]
   );
 
