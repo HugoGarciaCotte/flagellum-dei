@@ -379,22 +379,16 @@ const CharacterFeatPicker = ({ characterId, mode = "player", scenarioLevel }: Ch
         return "queued";
       };
 
-      try {
-        await supabase.from("character_feat_subfeats")
-          .delete()
-          .eq("character_feat_id", characterFeatId)
-          .eq("slot", slot);
-        if (subfeatId) {
-          const { error } = await supabase.from("character_feat_subfeats").insert({
-            character_feat_id: characterFeatId,
-            slot,
-            subfeat_id: subfeatId,
-          });
-          if (error) throw error;
-        }
-      } catch {
-        return doOffline();
-      }
+      return resilientMutation(
+        async () => {
+          await supabase.from("character_feat_subfeats").delete().eq("character_feat_id", characterFeatId).eq("slot", slot);
+          if (subfeatId) {
+            const { error } = await supabase.from("character_feat_subfeats").insert({ character_feat_id: characterFeatId, slot, subfeat_id: subfeatId });
+            if (error) throw error;
+          }
+        },
+        doOffline,
+      );
     },
     onSuccess: (result) => {
       if (result !== "queued") {

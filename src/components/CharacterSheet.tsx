@@ -55,33 +55,23 @@ const CharacterSheet = ({ characterId, mode = "player", scenarioLevel, onDone }:
 
   const saveMutation = useMutation({
     mutationFn: async () => {
-      try {
-        const { error } = await supabase
-          .from("characters")
-          .update({ name, description: desc || null })
-          .eq("id", characterId);
-        if (error) throw error;
-      } catch {
-        // Server unreachable — fall back to offline queue
-        queueAction({
-          table: "characters",
-          operation: "update",
-          payload: { name, description: desc || null },
-          filter: { id: characterId },
-        });
-        const cacheKey = `character-${characterId}`;
-        const cached = getCacheData<any>(cacheKey);
-        if (cached) {
-          setCacheData(cacheKey, { ...cached, name, description: desc || null });
+      return resilientMutation(
+        async () => {
+          const { error } = await supabase
+            .from("characters")
+            .update({ name, description: desc || null })
+            .eq("id", characterId);
+          if (error) throw error;
+        },
+        () => {
+          queueAction({ table: "characters", operation: "update", payload: { name, description: desc || null }, filter: { id: characterId } });
+          const cacheKey = `character-${characterId}`;
+          const cached = getCacheData<any>(cacheKey);
+          if (cached) setCacheData(cacheKey, { ...cached, name, description: desc || null });
+          queryClient.setQueryData(["character", characterId], (old: any) => old ? { ...old, name, description: desc || null } : old);
+          queryClient.setQueryData(["my-characters", character?.user_id], (old: any[]) => old?.map((c: any) => c.id === characterId ? { ...c, name, description: desc || null } : c));
         }
-        queryClient.setQueryData(["character", characterId], (old: any) =>
-          old ? { ...old, name, description: desc || null } : old
-        );
-        queryClient.setQueryData(["my-characters", character?.user_id], (old: any[]) =>
-          old?.map((c: any) => c.id === characterId ? { ...c, name, description: desc || null } : c)
-        );
-        return "queued";
-      }
+      );
     },
     onSuccess: (result) => {
       setDirty(false);

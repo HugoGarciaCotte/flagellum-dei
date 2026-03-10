@@ -163,18 +163,16 @@ const HostGame = () => {
   };
 
   const activateSection = async (sectionId: string) => {
-    // Always update local state + cache immediately
     setLocalSection(sectionId);
     if (gameId) updateCachedSection(gameId, sectionId);
-
     if (!effectiveGame) return;
-
-    try {
-      const { error } = await supabase.from("games").update({ current_section: sectionId } as any).eq("id", (effectiveGame as any).id);
-      if (error) throw error;
-    } catch {
-      // Server unreachable — local state already updated, will be stale but functional
-    }
+    await resilientMutation(
+      async () => {
+        const { error } = await supabase.from("games").update({ current_section: sectionId } as any).eq("id", (effectiveGame as any).id);
+        if (error) throw error;
+      },
+      () => {} // local state already updated
+    );
   };
 
   if (!effectiveGame) {
