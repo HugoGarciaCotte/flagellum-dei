@@ -14,7 +14,6 @@ import { useNavigate } from "react-router-dom";
 import { LogOut, Plus, Settings, ChevronDown, Trash2, Pencil } from "lucide-react";
 
 import CharacterSheet from "@/components/CharacterSheet";
-import { useOfflineScenarios } from "@/hooks/useOfflineScenarios";
 import { useOfflineFeats } from "@/hooks/useOfflineFeats";
 import PageHeader from "@/components/PageHeader";
 import CharacterCreationWizard from "@/components/CharacterCreationWizard";
