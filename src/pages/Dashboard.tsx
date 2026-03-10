@@ -302,7 +302,7 @@ const Dashboard = () => {
         {allActiveGames.length > 0 && (
           <section className="space-y-4">
             <h2 className="font-display text-xl text-foreground flex items-center gap-2">
-              <Users className="h-5 w-5 text-primary" /> Your Active Games
+              <span className="text-lg text-primary" aria-hidden="true">🜊</span> Your Active Games
             </h2>
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
               {allActiveGames.map((game) => (
