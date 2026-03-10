@@ -322,6 +322,10 @@ const Home = () => {
             icon={<Gift className="h-4 w-4" />}
             label="100% Free"
           />
+          <ClarityItem
+            icon={<Smartphone className="h-4 w-4" />}
+            label="Works as an App"
+          />
         </div>
       </section>
 
