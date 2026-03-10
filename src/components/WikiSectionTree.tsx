@@ -3,8 +3,7 @@ import { createPortal } from "react-dom";
 import { ChevronRight, Play } from "lucide-react";
 import { WikiSection, resolveBackgroundImage } from "@/lib/parseWikitext";
 import { cn } from "@/lib/utils";
-import { buildFeatsMap } from "@/data/feats";
-import { parseFeatFields } from "@/lib/parseFeatContent";
+import { buildFeatsMap, getFeatMeta } from "@/data/feats";
 
 interface WikiSectionTreeProps {
   sections: WikiSection[];
@@ -29,12 +28,8 @@ function stripLinks(text: string): string {
 function FeatLinkTooltip({ featName, rect, featsMap }: { featName: string; rect: DOMRect; featsMap: Map<string, any> }) {
   const feat = featsMap.get(featName.toLowerCase());
   if (!feat) return null;
-  const fields = parseFeatFields(feat.content);
-
-  // Parse embedded meta from raw_content (preserves HTML comments)
-  const metaTagRegex = /<!--@\s*feat_prerequisites\s*:\s*(.*?)\s*@-->/;
-  const metaPrereqMatch = (feat.raw_content || feat.content || "").match(metaTagRegex);
-  const prerequisites = metaPrereqMatch?.[1] || fields.prerequisites;
+  const meta = getFeatMeta(feat);
+  const prerequisites = meta.prerequisites;
 
   return createPortal(
     <div
@@ -43,11 +38,11 @@ function FeatLinkTooltip({ featName, rect, featsMap }: { featName: string; rect:
     >
       <div className="space-y-1.5">
         <p className="text-sm font-semibold">{feat.title}</p>
-        {feat.description && <p className="text-xs text-muted-foreground">{feat.description}</p>}
-        {fields.description && (
+        {meta.description && <p className="text-xs text-muted-foreground">{meta.description}</p>}
+        {meta.description && (
           <div>
             <p className="text-xs font-medium text-muted-foreground">Description</p>
-            <p className="text-xs text-muted-foreground/80 whitespace-pre-line">{stripLinks(fields.description)}</p>
+            <p className="text-xs text-muted-foreground/80 whitespace-pre-line">{stripLinks(meta.description)}</p>
           </div>
         )}
         {prerequisites && (
@@ -56,10 +51,10 @@ function FeatLinkTooltip({ featName, rect, featsMap }: { featName: string; rect:
             <p className="text-xs text-muted-foreground/80">{stripLinks(prerequisites)}</p>
           </div>
         )}
-        {fields.special && (
+        {meta.special && (
           <div>
             <p className="text-xs font-medium text-muted-foreground">Special</p>
-            <p className="text-xs text-muted-foreground/80 whitespace-pre-line">{stripLinks(fields.special)}</p>
+            <p className="text-xs text-muted-foreground/80 whitespace-pre-line">{stripLinks(meta.special)}</p>
           </div>
         )}
       </div>

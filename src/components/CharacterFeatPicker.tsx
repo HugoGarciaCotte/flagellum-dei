@@ -9,10 +9,10 @@ import { toast } from "sonner";
 import FeatListItem from "@/components/FeatListItem";
 import { Alert, AlertTitle, AlertDescription } from "@/components/ui/alert";
 
-import { parseEmbeddedFeatMeta, type SubfeatSlot } from "@/lib/parseEmbeddedFeatMeta";
+import { type SubfeatSlot } from "@/lib/parseEmbeddedFeatMeta";
 
 import { useNetworkStatus } from "@/hooks/useNetworkStatus";
-import { getAllFeats } from "@/data/feats";
+import { getAllFeats, getFeatMeta } from "@/data/feats";
 
 interface CharacterFeatPickerProps {
   characterId: string;
@@ -84,11 +84,11 @@ const CharacterFeatPicker = ({ characterId, mode = "player", scenarioLevel }: Ch
 
   const allFeats = useMemo(() => getAllFeats() as Feat[], []);
 
-  // Metadata map: parse all feats for embedded metadata (one-liners, subfeat slots, etc.)
+  // Metadata map: unified accessor for feat metadata
   const metaMap = useMemo(() => {
-    const map = new Map<string, ReturnType<typeof parseEmbeddedFeatMeta>>();
+    const map = new Map<string, ReturnType<typeof getFeatMeta>>();
     (allFeats ?? []).forEach((f) => {
-      map.set(f.id, parseEmbeddedFeatMeta(f.raw_content || f.content));
+      map.set(f.id, getFeatMeta(f));
     });
     return map;
   }, [allFeats]);

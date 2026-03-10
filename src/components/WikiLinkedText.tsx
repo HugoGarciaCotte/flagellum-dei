@@ -1,7 +1,5 @@
 import { Fragment, useMemo } from "react";
-import { buildFeatsMap, type Feat } from "@/data/feats";
-import { parseFeatFields } from "@/lib/parseFeatContent";
-import { parseEmbeddedFeatMeta } from "@/lib/parseEmbeddedFeatMeta";
+import { buildFeatsMap, getFeatMeta, type Feat } from "@/data/feats";
 import { convertInlineMarkup } from "@/lib/parseWikitext";
 import {
   HoverCard,
@@ -71,8 +69,7 @@ function FeatHoverContent({ featTitle, featsMap }: { featTitle: string; featsMap
     return <p className="text-xs text-muted-foreground">Feat not found: {featTitle}</p>;
   }
 
-  const fields = parseFeatFields(feat.content);
-  const meta = parseEmbeddedFeatMeta(feat.raw_content || feat.content);
+  const meta = getFeatMeta(feat);
 
   return (
     <div className="space-y-1.5">
@@ -80,16 +77,10 @@ function FeatHoverContent({ featTitle, featsMap }: { featTitle: string; featsMap
       {meta.description && (
         <p className="text-xs text-muted-foreground">{meta.description}</p>
       )}
-      {fields.description && (
-        <div>
-          <p className="text-xs font-medium text-muted-foreground">Description</p>
-          <p className="text-xs text-muted-foreground/80 whitespace-pre-line">{stripLinks(fields.description)}</p>
-        </div>
-      )}
-      {(meta.prerequisites || fields.prerequisites) && (
+      {meta.prerequisites && (
         <div>
           <p className="text-xs font-medium text-muted-foreground">Prerequisites</p>
-          <p className="text-xs text-muted-foreground/80">{stripLinks(meta.prerequisites || fields.prerequisites!)}</p>
+          <p className="text-xs text-muted-foreground/80">{stripLinks(meta.prerequisites)}</p>
         </div>
       )}
       {meta.blocking && meta.blocking.length > 0 && (
@@ -98,10 +89,10 @@ function FeatHoverContent({ featTitle, featsMap }: { featTitle: string; featsMap
           <p className="text-xs text-destructive/80">{meta.blocking.join(", ")}</p>
         </div>
       )}
-      {fields.special && (
+      {meta.special && (
         <div>
           <p className="text-xs font-medium text-muted-foreground">Special</p>
-          <p className="text-xs text-muted-foreground/80 whitespace-pre-line">{stripLinks(fields.special)}</p>
+          <p className="text-xs text-muted-foreground/80 whitespace-pre-line">{stripLinks(meta.special)}</p>
         </div>
       )}
     </div>

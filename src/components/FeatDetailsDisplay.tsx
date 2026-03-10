@@ -1,9 +1,7 @@
 import { useState, useRef, useEffect, useCallback, useMemo } from "react";
 import { createPortal } from "react-dom";
-import { buildFeatsMap, type Feat } from "@/data/feats";
+import { buildFeatsMap, getFeatMeta, type Feat } from "@/data/feats";
 import { convertBodyToHtml } from "@/lib/parseWikitext";
-import { parseEmbeddedFeatMeta } from "@/lib/parseEmbeddedFeatMeta";
-import { parseFeatFields } from "@/lib/parseFeatContent";
 import WikiLinkedText from "@/components/WikiLinkedText";
 
 function stripLinks(text: string): string {
@@ -26,9 +24,8 @@ function FeatLinkTooltip({ featName, rect }: { featName: string; rect: DOMRect }
   const featsMap = getFeatsMap();
   const feat = featsMap.get(featName.toLowerCase());
   if (!feat) return null;
-  const fields = parseFeatFields(feat.content);
-  const meta = parseEmbeddedFeatMeta(feat.raw_content || feat.content);
-  const prerequisites = meta.prerequisites || fields.prerequisites;
+  const meta = getFeatMeta(feat);
+  const prerequisites = meta.prerequisites;
 
   return createPortal(
     <div
@@ -37,10 +34,10 @@ function FeatLinkTooltip({ featName, rect }: { featName: string; rect: DOMRect }
     >
       <div className="space-y-1.5">
         <p className="text-sm font-semibold">{feat.title}</p>
-        {fields.description && (
+        {meta.description && (
           <div>
             <p className="text-xs font-medium text-muted-foreground">Description</p>
-            <p className="text-xs text-muted-foreground/80 whitespace-pre-line">{stripLinks(fields.description)}</p>
+            <p className="text-xs text-muted-foreground/80 whitespace-pre-line">{stripLinks(meta.description)}</p>
           </div>
         )}
         {prerequisites && (
@@ -55,10 +52,10 @@ function FeatLinkTooltip({ featName, rect }: { featName: string; rect: DOMRect }
             <p className="text-xs text-destructive/80">{meta.blocking.join(", ")}</p>
           </div>
         )}
-        {fields.special && (
+        {meta.special && (
           <div>
             <p className="text-xs font-medium text-muted-foreground">Special</p>
-            <p className="text-xs text-muted-foreground/80 whitespace-pre-line">{stripLinks(fields.special)}</p>
+            <p className="text-xs text-muted-foreground/80 whitespace-pre-line">{stripLinks(meta.special)}</p>
           </div>
         )}
       </div>
@@ -74,9 +71,32 @@ interface FeatDetailsDisplayProps {
 }
 
 const FeatDetailsDisplay = ({ content, rawContent, className = "" }: FeatDetailsDisplayProps) => {
-  const meta = parseEmbeddedFeatMeta(rawContent || content);
-  const contentFields = parseFeatFields(rawContent || content);
-  const prerequisites = meta.prerequisites || contentFields.prerequisites;
+  const featsMap = getFeatsMap();
+
+  const featFromMap = useMemo(() => {
+    if (!content && !rawContent) return null;
+    for (const [, feat] of featsMap) {
+      if (feat.content === content || feat.raw_content === rawContent) return feat;
+    }
+    return null;
+  }, [content, rawContent, featsMap]);
+
+  const meta = useMemo(() => {
+    if (featFromMap) return getFeatMeta(featFromMap);
+    // Fallback for content not in the feats map
+    const { parseEmbeddedFeatMeta } = require("@/lib/parseEmbeddedFeatMeta");
+    const { parseFeatFields } = require("@/lib/parseFeatContent");
+    const embedded = parseEmbeddedFeatMeta(rawContent || content);
+    const fields = parseFeatFields(rawContent || content);
+    return {
+      description: embedded.description ?? fields.description ?? undefined,
+      prerequisites: embedded.prerequisites ?? fields.prerequisites ?? undefined,
+      special: fields.special ?? undefined,
+      blocking: embedded.blocking ?? undefined,
+    };
+  }, [featFromMap, content, rawContent]);
+
+  const prerequisites = meta.prerequisites;
   const blocking = meta.blocking;
 
   const contentRef = useRef<HTMLDivElement>(null);
@@ -89,7 +109,6 @@ const FeatDetailsDisplay = ({ content, rawContent, className = "" }: FeatDetails
     return convertBodyToHtml(cleaned.split("\n"));
   }, [content]);
 
-  const featsMap = getFeatsMap();
 
   // Style wiki-feat-link spans
   useEffect(() => {
