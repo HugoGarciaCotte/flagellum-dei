@@ -2,13 +2,13 @@ import { cn } from "@/lib/utils";
 
 const Logo = ({ className }: { className?: string }) => (
   <svg
-    viewBox="0 0 512 512"
+    viewBox="0 92 512 420"
     xmlns="http://www.w3.org/2000/svg"
     className={cn("inline-block", className)}
     style={{ width: "1em", height: "1em" }}
   >
     <text
-      x="256" y="240"
+      x="256" y="280"
       fontSize="420"
       fill="currentColor"
       textAnchor="middle"
