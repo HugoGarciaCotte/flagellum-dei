@@ -37,6 +37,7 @@ const CharacterCreationWizard = ({ onCreated, onCancel, gameId }: CharacterCreat
   const { user } = useAuth();
   const queryClient = useQueryClient();
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const online = useNetworkStatus();
 
   // Wizard state
   const [step, setStep] = useState(0);
