@@ -151,7 +151,7 @@ const faqs = [
   },
   {
     q: "Do I need a rulebook?",
-    a: "No books, no downloads. Everything you need — rules, character creation, scenarios, and game tools — is built directly into this website.",
+    a: "No books, no paid addons. Everything you need — rules, character creation, scenarios, and game tools — is built directly into this website.",
   },
   {
     q: "Can we play online?",
