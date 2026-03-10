@@ -158,7 +158,7 @@ const CharacterCreationWizard = ({ onCreated, onCancel, gameId }: CharacterCreat
 
   // Generate description when reaching final step
   useEffect(() => {
-    if (step === finalStep && !description && !generatingDesc && online) {
+    if (step === finalStep && !description && !generatingDesc && online && !isGuest) {
       generateDescription();
     }
   }, [step, finalStep, online]);
