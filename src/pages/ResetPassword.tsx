@@ -71,7 +71,7 @@ const ResetPassword = () => {
       <div className="w-full max-w-md space-y-8">
         <div className="text-center space-y-2">
           <div className="flex justify-center">
-            <Shield className="h-12 w-12 text-primary" />
+            <span className="text-4xl text-primary" aria-hidden="true">🝒</span>
           </div>
           <h1 className="font-display text-3xl font-bold text-foreground tracking-wide">
             Forge New Password
