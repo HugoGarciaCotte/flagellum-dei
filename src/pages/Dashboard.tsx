@@ -185,7 +185,7 @@ const Dashboard = () => {
         }
       />
 
-      <main className="container py-8 space-y-10 max-w-2xl">
+      <main className="container py-8 space-y-10 max-w-2xl" style={{ background: "radial-gradient(ellipse at center top, hsl(43 74% 49% / 0.04) 0%, transparent 50%)" }}>
         {/* Section 1: Join a Game */}
         <section className="space-y-3">
           <h2 className="font-display text-2xl text-foreground flex items-center gap-2">
@@ -204,6 +204,8 @@ const Dashboard = () => {
             </Button>
           </div>
         </section>
+
+        <div className="ornamental-divider" />
 
         {/* Section 2: My Characters */}
         <section className="space-y-4">
@@ -294,6 +296,8 @@ const Dashboard = () => {
           </Dialog>
         </section>
 
+        <div className="ornamental-divider" />
+
         {/* Active Games */}
         {allActiveGames.length > 0 && (
           <section className="space-y-4">
@@ -304,7 +308,7 @@ const Dashboard = () => {
               {allActiveGames.map((game) => (
                 <Card
                   key={game.id}
-                  className="cursor-pointer border-primary/20 hover:border-primary/50 transition-colors"
+                  className="cursor-pointer aged-border gold-glow-box hover:border-primary/50 transition-colors"
                   onClick={() => navigate(game.role === "hosting" ? `/game/${game.id}/host` : `/game/${game.id}/play`)}
                 >
                   <CardHeader className="pb-2">
@@ -338,7 +342,7 @@ const Dashboard = () => {
               {scenarios && scenarios.length > 0 ? (
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                   {scenarios.map((scenario) => (
-                    <Card key={scenario.id} className="border-border hover:border-primary/40 transition-colors">
+                    <Card key={scenario.id} className="aged-border hover:border-primary/40 transition-colors gold-glow-box">
                       <CardHeader className="pb-2">
                         <CardTitle className="font-display text-base">{scenario.title}</CardTitle>
                         {scenario.description && <CardDescription className="text-xs">{scenario.description}</CardDescription>}

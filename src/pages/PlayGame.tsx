@@ -159,7 +159,7 @@ const PlayGame = () => {
       {/* Quest content — always visible */}
       <main className="flex-1 container py-8 pb-24 flex items-center justify-center max-w-3xl">
         {sectionTitle ? (
-          <Card className="w-full border-primary/20">
+          <Card className="w-full aged-border">
             <CardContent className="p-8 text-center">
               <h2 className="font-display text-2xl font-bold text-foreground">
                 {sectionTitle}
@@ -167,13 +167,14 @@ const PlayGame = () => {
             </CardContent>
           </Card>
         ) : (
-          <div className="text-center space-y-2">
+          <div className="text-center space-y-4">
             <div className="animate-pulse-glow text-primary font-display text-xl">
               {online ? "Waiting for the Game Master..." : "Offline — showing last known state"}
             </div>
             <p className="text-muted-foreground text-sm">
               {online ? "The quest will begin shortly." : "Realtime updates will resume when back online."}
             </p>
+            <div className="ornamental-divider w-32 mx-auto" />
           </div>
         )}
       </main>
@@ -184,7 +185,7 @@ const PlayGame = () => {
       {/* Bottom character peek bar */}
       {!sheetExpanded && (
         <div
-          className="fixed bottom-0 inset-x-0 z-40 bg-card border-t border-border/50 backdrop-blur cursor-pointer"
+          className="fixed bottom-0 inset-x-0 z-40 bg-card border-t border-primary/10 backdrop-blur cursor-pointer gold-glow-box"
           onClick={() => setSheetExpanded(true)}
         >
           <div className="container max-w-3xl py-2 px-4">

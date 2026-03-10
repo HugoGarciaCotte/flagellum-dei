@@ -44,7 +44,7 @@ const CharacterListItem = ({ character, actions }: CharacterListItemProps) => {
   const initials = character.name.slice(0, 2).toUpperCase();
 
   return (
-    <Card className="border-border hover:border-primary/40 transition-colors">
+    <Card className="border-border hover:border-primary/40 transition-colors gold-glow-box">
       <CardHeader className="pb-2">
         <div className="flex items-start justify-between">
           <div className="flex items-center gap-3">

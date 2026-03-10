@@ -210,7 +210,7 @@ const HostGame = () => {
 
       <main className="flex-1 container py-6 max-w-5xl">
         {sections.length > 0 ? (
-          <Card className="w-full border-primary/20">
+          <Card className="w-full aged-border gold-glow-box">
             <CardContent className="p-4">
               <WikiSectionTree
                 sections={sections}
@@ -220,7 +220,7 @@ const HostGame = () => {
             </CardContent>
           </Card>
         ) : (
-          <Card className="w-full border-primary/20">
+          <Card className="w-full aged-border gold-glow-box">
             <CardContent className="p-8">
               <div className="text-foreground text-lg leading-relaxed whitespace-pre-wrap">
                 {scenarioContent || "No content available."}
