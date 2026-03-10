@@ -1,7 +1,8 @@
 import { useState } from "react";
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from "@/components/ui/sheet";
 import { Button } from "@/components/ui/button";
-import { Pencil, Check } from "lucide-react";
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
+import { Pencil, ChevronDown } from "lucide-react";
 import CharacterSheet from "@/components/CharacterSheet";
 import CharacterListItem from "@/components/CharacterListItem";
 
@@ -61,6 +62,9 @@ const PlayerListSheet = ({ players, characters, gameId }: PlayerListSheetProps) 
               const playerChars = charsByUser.get(player.user_id) ?? [];
               const selectedCharId = player.character_id;
 
+              const selectedChar = playerChars.find((c) => c.id === selectedCharId);
+              const otherChars = playerChars.filter((c) => c.id !== selectedCharId);
+
               return (
                 <div key={player.id} className="space-y-2">
                   <p className="text-xs font-medium text-muted-foreground px-1">{displayName}</p>
@@ -68,36 +72,55 @@ const PlayerListSheet = ({ players, characters, gameId }: PlayerListSheetProps) 
                   {playerChars.length === 0 ? (
                     <p className="text-xs text-muted-foreground italic px-1">No characters</p>
                   ) : (
-                    playerChars.map((char) => {
-                      const isSelected = char.id === selectedCharId;
-                      const isEditing = editingId === char.id;
-
-                      if (isEditing) {
-                        return (
-                          <div key={char.id} className="bg-muted/30 rounded-md p-2">
-                            <CharacterSheet characterId={char.id} mode="gm" onDone={cancelEdit} />
+                    <>
+                      {/* Selected character — full card */}
+                      {selectedChar && (
+                        editingId === selectedChar.id ? (
+                          <div className="bg-muted/30 rounded-md p-2">
+                            <CharacterSheet characterId={selectedChar.id} mode="gm" onDone={cancelEdit} />
                           </div>
-                        );
-                      }
-
-                      return (
-                        <div key={char.id} className="relative">
-                          {isSelected && (
-                            <div className="absolute top-2 right-10 z-10">
-                              <Check className="h-3.5 w-3.5 text-primary" />
-                            </div>
-                          )}
-                        <CharacterListItem
-                            character={{ id: char.id, name: char.name, description: char.description, portrait_url: (char as any).portrait_url }}
+                        ) : (
+                          <CharacterListItem
+                            character={{ id: selectedChar.id, name: selectedChar.name, description: selectedChar.description, portrait_url: (selectedChar as any).portrait_url }}
                             actions={
-                              <Button variant="ghost" size="icon" className="h-7 w-7 shrink-0" onClick={() => setEditingId(char.id)}>
+                              <Button variant="ghost" size="icon" className="h-7 w-7 shrink-0" onClick={() => setEditingId(selectedChar.id)}>
                                 <Pencil className="h-3.5 w-3.5" />
                               </Button>
                             }
                           />
-                        </div>
-                      );
-                    })
+                        )
+                      )}
+
+                      {!selectedChar && (
+                        <p className="text-xs text-muted-foreground italic px-1">No character selected</p>
+                      )}
+
+                      {/* Unselected characters — collapsed */}
+                      {otherChars.length > 0 && (
+                        <Collapsible>
+                          <CollapsibleTrigger className="flex items-center gap-1 text-xs text-muted-foreground hover:text-foreground transition-colors px-1 cursor-pointer group">
+                            <ChevronDown className="h-3 w-3 transition-transform group-data-[state=open]:rotate-180" />
+                            {otherChars.length} other character{otherChars.length > 1 ? "s" : ""}
+                          </CollapsibleTrigger>
+                          <CollapsibleContent className="mt-1 space-y-1 pl-1">
+                            {otherChars.map((char) => (
+                              editingId === char.id ? (
+                                <div key={char.id} className="bg-muted/30 rounded-md p-2">
+                                  <CharacterSheet characterId={char.id} mode="gm" onDone={cancelEdit} />
+                                </div>
+                              ) : (
+                                <div key={char.id} className="flex items-center justify-between rounded-md border border-border px-3 py-1.5 text-sm">
+                                  <span className="text-muted-foreground">{char.name}</span>
+                                  <Button variant="ghost" size="icon" className="h-6 w-6 shrink-0" onClick={() => setEditingId(char.id)}>
+                                    <Pencil className="h-3 w-3" />
+                                  </Button>
+                                </div>
+                              )
+                            ))}
+                          </CollapsibleContent>
+                        </Collapsible>
+                      )}
+                    </>
                   )}
                 </div>
               );
