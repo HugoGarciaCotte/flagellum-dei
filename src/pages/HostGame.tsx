@@ -22,10 +22,11 @@ import PageHeader from "@/components/PageHeader";
 
 const HostGame = () => {
   const { gameId } = useParams<{ gameId: string }>();
-  const { user } = useAuth();
+  const { user, isGuest } = useAuth();
   const navigate = useNavigate();
   const queryClient = useQueryClient();
   const online = useNetworkStatus();
+  const effectivelyOffline = !online || isGuest;
 
   // Local override for current_section when offline
   const [localSection, setLocalSection] = useState<string | null>(null);
@@ -41,8 +42,8 @@ const HostGame = () => {
       if (error) throw error;
       return data;
     },
-    enabled: !!gameId,
-    retry: online ? 3 : 0,
+    enabled: !!gameId && !effectivelyOffline,
+    retry: effectivelyOffline ? 0 : 3,
   });
 
   const { data: players } = useQuery({
@@ -55,8 +56,8 @@ const HostGame = () => {
       if (error) throw error;
       return data;
     },
-    enabled: !!gameId,
-    retry: online ? 3 : 0,
+    enabled: !!gameId && !effectivelyOffline,
+    retry: effectivelyOffline ? 0 : 3,
   });
 
   // Fetch ALL characters for all players (not just selected ones)
@@ -76,8 +77,8 @@ const HostGame = () => {
       if (error) throw error;
       return data;
     },
-    enabled: !!gameId && playerUserIds.length > 0,
-    retry: online ? 3 : 0,
+    enabled: !!gameId && playerUserIds.length > 0 && !effectivelyOffline,
+    retry: effectivelyOffline ? 0 : 3,
   });
 
   // Cache session for offline use
@@ -93,7 +94,9 @@ const HostGame = () => {
   const effectiveGame = game ?? cachedSession?.game;
   const effectiveScenario = game
     ? getScenarioById(game.scenario_id)
-    : cachedSession?.scenario;
+    : cachedSession?.game?.scenario_id
+      ? getScenarioById(cachedSession.game.scenario_id) ?? cachedSession?.scenario
+      : cachedSession?.scenario;
   const effectivePlayers = players ?? cachedSession?.players ?? [];
 
   // Prefetch scenario images
