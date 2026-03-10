@@ -94,7 +94,9 @@ const HostGame = () => {
   const effectiveGame = game ?? cachedSession?.game;
   const effectiveScenario = game
     ? getScenarioById(game.scenario_id)
-    : cachedSession?.scenario;
+    : cachedSession?.game?.scenario_id
+      ? getScenarioById(cachedSession.game.scenario_id) ?? cachedSession?.scenario
+      : cachedSession?.scenario;
   const effectivePlayers = players ?? cachedSession?.players ?? [];
 
   // Prefetch scenario images
