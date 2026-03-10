@@ -542,6 +542,7 @@ const Home = () => {
                       )}
                     </p>
                   )}
+                </AccordionContent>
               </AccordionItem>
             ))}
           </Accordion>
