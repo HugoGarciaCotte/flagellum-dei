@@ -320,45 +320,42 @@ const CharacterCreationWizard = ({ onCreated, onCancel, gameId }: CharacterCreat
   const saveFinalDetails = async () => {
     if (!characterId || !user) return;
     setCreating(true);
+
+    const doOffline = () => {
+      queueAction({
+        table: "characters",
+        operation: "update",
+        payload: { name: name || "Blank", description: description || null, portrait_url: portraitUrl },
+        filter: { id: characterId },
+      });
+      const cacheKey = `my-characters-${user.id}`;
+      const cached = getCacheData<any[]>(cacheKey) ?? [];
+      setCacheData(cacheKey, cached.map((c: any) => c.id === characterId ? { ...c, name: name || "Blank", description: description || null, portrait_url: portraitUrl } : c));
+      queryClient.setQueryData(["my-characters", user.id], (old: any[]) =>
+        old?.map((c: any) => c.id === characterId ? { ...c, name: name || "Blank", description: description || null, portrait_url: portraitUrl } : c)
+      );
+      const updatedChar = { id: characterId, user_id: user.id, name: name || "Blank", description: description || null, portrait_url: portraitUrl, created_at: new Date().toISOString(), updated_at: new Date().toISOString() };
+      setCacheData(`character-${characterId}`, updatedChar);
+      queryClient.setQueryData(["character", characterId], updatedChar);
+      onCreated(characterId);
+      toast({ title: "Character saved locally — will sync when online" });
+    };
+
     try {
-      if (!online) {
-        queueAction({
-          table: "characters",
-          operation: "update",
-          payload: { name: name || "Blank", description: description || null, portrait_url: portraitUrl },
-          filter: { id: characterId },
-        });
-        // Optimistic cache update
-        const cacheKey = `my-characters-${user.id}`;
-        const cached = getCacheData<any[]>(cacheKey) ?? [];
-        setCacheData(cacheKey, cached.map((c: any) => c.id === characterId ? { ...c, name: name || "Blank", description: description || null, portrait_url: portraitUrl } : c));
-        queryClient.setQueryData(["my-characters", user.id], (old: any[]) =>
-          old?.map((c: any) => c.id === characterId ? { ...c, name: name || "Blank", description: description || null, portrait_url: portraitUrl } : c)
-        );
-
-        // Update individual character cache
-        const updatedChar = { id: characterId, user_id: user.id, name: name || "Blank", description: description || null, portrait_url: portraitUrl, created_at: new Date().toISOString(), updated_at: new Date().toISOString() };
-        setCacheData(`character-${characterId}`, updatedChar);
-        queryClient.setQueryData(["character", characterId], updatedChar);
-
-        onCreated(characterId);
-        toast({ title: "Character saved locally — will sync when online" });
-      } else {
-        const { error } = await supabase
-          .from("characters")
-          .update({
-            name: name || "Blank",
-            description: description || null,
-            portrait_url: portraitUrl,
-          })
-          .eq("id", characterId);
-        if (error) throw error;
-        queryClient.invalidateQueries({ queryKey: ["my-characters"] });
-        queryClient.invalidateQueries({ queryKey: ["character-feats-summary"] });
-        onCreated(characterId);
-      }
-    } catch (e: any) {
-      toast({ title: "Error saving character", description: e.message, variant: "destructive" });
+      const { error } = await supabase
+        .from("characters")
+        .update({
+          name: name || "Blank",
+          description: description || null,
+          portrait_url: portraitUrl,
+        })
+        .eq("id", characterId);
+      if (error) throw error;
+      queryClient.invalidateQueries({ queryKey: ["my-characters"] });
+      queryClient.invalidateQueries({ queryKey: ["character-feats-summary"] });
+      onCreated(characterId);
+    } catch {
+      doOffline();
     } finally {
       setCreating(false);
     }
