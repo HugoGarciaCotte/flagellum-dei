@@ -87,7 +87,7 @@ const Dashboard = () => {
     queryFn: async () => {
       const { data, error } = await supabase
         .from("game_players")
-        .select("game_id, games!inner(id, join_code, status, host_user_id, scenarios(title))")
+        .select("game_id, games!inner(id, join_code, status, host_user_id, scenario_id)")
         .eq("user_id", user!.id)
         .eq("games.status", "active");
       if (error) throw error;
