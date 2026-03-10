@@ -215,7 +215,7 @@ const CharacterFeatPicker = ({ characterId, mode = "player", scenarioLevel }: Ch
 
   const upsertMutation = useMutation({
     mutationFn: async ({ level, featId }: { level: number; featId: string }) => {
-      if (!online) {
+      if (effectivelyOffline) {
         const tempId = crypto.randomUUID();
         // Queue delete + insert
         queueAction({
