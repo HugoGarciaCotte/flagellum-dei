@@ -281,6 +281,20 @@ const CharacterFeatPicker = ({ characterId, mode = "player", scenarioLevel }: Ch
 
   const deleteMutation = useMutation({
     mutationFn: async ({ level, isFree, id }: { level: number; isFree: boolean; id?: string }) => {
+      if (!online) {
+        if (isFree && id) {
+          queueAction({ table: "character_feats", operation: "delete", payload: {}, filter: { id } });
+          queryClient.setQueryData(["character-feats", characterId], (old: CharacterFeat[] | undefined) =>
+            (old ?? []).filter(cf => cf.id !== id)
+          );
+        } else {
+          queueAction({ table: "character_feats", operation: "delete", payload: {}, filter: { character_id: characterId, level, is_free: false } });
+          queryClient.setQueryData(["character-feats", characterId], (old: CharacterFeat[] | undefined) =>
+            (old ?? []).filter(cf => !(cf.level === level && !cf.is_free))
+          );
+        }
+        return;
+      }
       if (isFree && id) {
         const { error } = await supabase.from("character_feats").delete().eq("id", id);
         if (error) throw error;
@@ -295,26 +309,37 @@ const CharacterFeatPicker = ({ characterId, mode = "player", scenarioLevel }: Ch
       }
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["character-feats", characterId] });
-      queryClient.invalidateQueries({ queryKey: ["character-feat-subfeats", characterId] });
+      if (online) {
+        queryClient.invalidateQueries({ queryKey: ["character-feats", characterId] });
+        queryClient.invalidateQueries({ queryKey: ["character-feat-subfeats", characterId] });
+      }
     },
   });
 
   const addFreeFeatMutation = useMutation({
     mutationFn: async (featId: string) => {
+      if (!online) {
+        const tempId = crypto.randomUUID();
+        queueAction({
+          table: "character_feats",
+          operation: "insert",
+          payload: { character_id: characterId, level: 0, feat_id: featId, is_free: true },
+          tempId,
+        });
+        queryClient.setQueryData(["character-feats", characterId], (old: CharacterFeat[] | undefined) =>
+          [...(old ?? []), { id: tempId, character_id: characterId, level: 0, feat_id: featId, is_free: true, note: null }]
+        );
+        return;
+      }
       const { error } = await supabase
         .from("character_feats")
         .insert({ character_id: characterId, level: 0, feat_id: featId, is_free: true });
       if (error) throw error;
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["character-feats", characterId] });
-
-      // COMMENTED OUT: preprocessed fields — auto-prompt for non-fixed subfeat slots on free feats
-      // const meta = metaMap.get(featId);
-      // const nonFixedSlots = (meta?.subfeats ?? []).filter(s => s.kind !== "fixed");
-      // ...
-
+      if (online) {
+        queryClient.invalidateQueries({ queryKey: ["character-feats", characterId] });
+      }
       setPickerTarget(null);
       setSearchTerm("");
     },
@@ -323,6 +348,13 @@ const CharacterFeatPicker = ({ characterId, mode = "player", scenarioLevel }: Ch
   const updateNoteMutation = useMutation({
     mutationFn: async ({ id, note }: { id: string; note: string }) => {
       const trimmed = note.trim() || null;
+      if (!online) {
+        queueAction({ table: "character_feats", operation: "update", payload: { note: trimmed }, filter: { id } });
+        queryClient.setQueryData(["character-feats", characterId], (old: CharacterFeat[] | undefined) =>
+          (old ?? []).map(cf => cf.id === id ? { ...cf, note: trimmed } : cf)
+        );
+        return;
+      }
       const { error } = await supabase
         .from("character_feats")
         .update({ note: trimmed } as any)
@@ -330,12 +362,35 @@ const CharacterFeatPicker = ({ characterId, mode = "player", scenarioLevel }: Ch
       if (error) throw error;
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["character-feats", characterId] });
+      if (online) {
+        queryClient.invalidateQueries({ queryKey: ["character-feats", characterId] });
+      }
     },
   });
 
   const setSubfeatMutation = useMutation({
     mutationFn: async ({ characterFeatId, slot, subfeatId }: { characterFeatId: string; slot: number; subfeatId: string | null }) => {
+      if (!online) {
+        queueAction({ table: "character_feat_subfeats", operation: "delete", payload: {}, filter: { character_feat_id: characterFeatId, slot } });
+        if (subfeatId) {
+          const tempId = crypto.randomUUID();
+          queueAction({
+            table: "character_feat_subfeats",
+            operation: "insert",
+            payload: { character_feat_id: characterFeatId, slot, subfeat_id: subfeatId },
+            tempId,
+          });
+          queryClient.setQueryData(["character-feat-subfeats", characterId], (old: CharacterFeatSubfeat[] | undefined) => {
+            const filtered = (old ?? []).filter(cs => !(cs.character_feat_id === characterFeatId && cs.slot === slot));
+            return [...filtered, { id: tempId, character_feat_id: characterFeatId, slot, subfeat_id: subfeatId }];
+          });
+        } else {
+          queryClient.setQueryData(["character-feat-subfeats", characterId], (old: CharacterFeatSubfeat[] | undefined) =>
+            (old ?? []).filter(cs => !(cs.character_feat_id === characterFeatId && cs.slot === slot))
+          );
+        }
+        return;
+      }
       await supabase.from("character_feat_subfeats")
         .delete()
         .eq("character_feat_id", characterFeatId)
@@ -350,11 +405,9 @@ const CharacterFeatPicker = ({ characterId, mode = "player", scenarioLevel }: Ch
       }
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["character-feat-subfeats", characterId] });
-
-      // COMMENTED OUT: preprocessed fields — pending subfeat slots queue
-      // if (pendingSubfeatSlots.length > 0) { ... }
-
+      if (online) {
+        queryClient.invalidateQueries({ queryKey: ["character-feat-subfeats", characterId] });
+      }
       setPickerTarget(null);
       setSearchTerm("");
     },
