@@ -4,7 +4,7 @@ import { sortTitlesEmojiLast } from "@/lib/utils";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { X, Search, Gift, Loader2, WifiOff, Pencil, ArrowLeft, Plus, ShieldAlert } from "lucide-react";
+import { X, Search, Loader2, WifiOff, Pencil, ArrowLeft, Plus } from "lucide-react";
 import { toast } from "sonner";
 import FeatListItem from "@/components/FeatListItem";
 import { Alert, AlertTitle, AlertDescription } from "@/components/ui/alert";
@@ -747,7 +747,7 @@ const CharacterFeatPicker = ({ characterId, mode = "player", scenarioLevel }: Ch
         {/* AI validation denied alert */}
         {validationResult && !validationResult.allowed && (
           <Alert variant="destructive">
-            <ShieldAlert className="h-4 w-4" />
+            <span className="text-base" aria-hidden="true">🝍</span>
             <AlertTitle>AI says this feat may not be valid</AlertTitle>
             <AlertDescription className="space-y-2">
               <p className="text-sm">{validationResult.reason}</p>
@@ -877,7 +877,7 @@ const CharacterFeatPicker = ({ characterId, mode = "player", scenarioLevel }: Ch
       {(freeFeats.length > 0 || (mode === "gm" && online)) && (
         <div className="mt-4 space-y-2">
           <p className="text-sm font-medium text-muted-foreground flex items-center gap-1.5">
-            <Gift className="h-4 w-4" /> Free Feats
+            <span className="text-base" aria-hidden="true">🜅</span> Free Feats
           </p>
 
           {freeFeats.length === 0 && mode === "gm" && (

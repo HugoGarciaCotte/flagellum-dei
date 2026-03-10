@@ -5,7 +5,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useQuery, useQueryClient, useMutation } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
-import { ArrowLeft, Scroll, Plus, Check, X, GripHorizontal, Pencil } from "lucide-react";
+import { ArrowLeft, Plus, Check, X, GripHorizontal, Pencil } from "lucide-react";
 import CharacterSheet from "@/components/CharacterSheet";
 import { useNetworkStatus } from "@/hooks/useNetworkStatus";
 import { getCachedGameSession } from "@/lib/offlineStorage";
@@ -143,7 +143,7 @@ const PlayGame = () => {
     <div className="min-h-screen bg-background flex flex-col">
       <PageHeader
         title={effectiveScenario?.title ?? ""}
-        icon={<Scroll className="h-4 w-4 text-primary" />}
+        icon={<span className="text-base text-primary" aria-hidden="true">🜣</span>}
         leftAction={
           <Button variant="ghost" size="icon" onClick={() => navigate("/")}>
             <ArrowLeft className="h-4 w-4" />

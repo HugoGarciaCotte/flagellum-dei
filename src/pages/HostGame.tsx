@@ -6,7 +6,7 @@ import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { toast } from "@/hooks/use-toast";
-import { ArrowLeft, Copy, StopCircle } from "lucide-react";
+import { ArrowLeft, Copy } from "lucide-react";
 
 import PlayerListSheet from "@/components/PlayerListSheet";
 import { parseWikitext, extractImageUrls } from "@/lib/parseWikitext";
@@ -202,7 +202,7 @@ const HostGame = () => {
               gameId={gameId!}
             />
             <Button variant="destructive" size="sm" onClick={endGame} className="gap-1">
-              <StopCircle className="h-3 w-3" /> End
+              <span className="text-sm" aria-hidden="true">🝎</span> End
             </Button>
           </>
         }

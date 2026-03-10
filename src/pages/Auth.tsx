@@ -7,7 +7,6 @@ import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { toast } from "@/hooks/use-toast";
-import { Sword } from "lucide-react";
 import Logo from "@/components/Logo";
 
 const Auth = () => {
@@ -81,7 +80,7 @@ const Auth = () => {
             <CardHeader className="pb-2">
               <TabsList className="w-full">
                 <TabsTrigger value="login" className="flex-1 gap-2">
-                  <Sword className="h-4 w-4" /> Login
+                  <span className="text-base" aria-hidden="true">🝉</span> Login
                 </TabsTrigger>
                 <TabsTrigger value="signup" className="flex-1 gap-2">
                   <Logo className="text-sm" /> Sign Up

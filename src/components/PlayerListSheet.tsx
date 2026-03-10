@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from "@/components/ui/sheet";
 import { Button } from "@/components/ui/button";
-import { Users, Pencil, Check } from "lucide-react";
+import { Pencil, Check } from "lucide-react";
 import CharacterSheet from "@/components/CharacterSheet";
 import CharacterListItem from "@/components/CharacterListItem";
 
@@ -42,13 +42,13 @@ const PlayerListSheet = ({ players, characters, gameId }: PlayerListSheetProps) 
     <Sheet>
       <SheetTrigger asChild>
         <button className="flex items-center gap-1 text-muted-foreground text-sm hover:text-foreground transition-colors cursor-pointer">
-          <Users className="h-4 w-4" /> {players.length}
+          <span className="text-base" aria-hidden="true">🜊</span> {players.length}
         </button>
       </SheetTrigger>
       <SheetContent className="overflow-y-auto">
         <SheetHeader>
           <SheetTitle className="font-display flex items-center gap-2">
-            <Users className="h-5 w-5 text-primary" /> Players ({players.length})
+            <span className="text-lg text-primary" aria-hidden="true">🜊</span> Players ({players.length})
           </SheetTitle>
         </SheetHeader>
 

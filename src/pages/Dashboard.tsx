@@ -10,7 +10,7 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import { toast } from "@/hooks/use-toast";
 import { useNavigate } from "react-router-dom";
-import { LogOut, Plus, DoorOpen, Scroll, Users, Settings, ChevronDown, Sword, Trash2, Pencil, ShieldCheck } from "lucide-react";
+import { LogOut, Plus, Settings, ChevronDown, Trash2, Pencil } from "lucide-react";
 
 import CharacterSheet from "@/components/CharacterSheet";
 import { useOfflineScenarios } from "@/hooks/useOfflineScenarios";
@@ -189,7 +189,7 @@ const Dashboard = () => {
         {/* Section 1: Join a Game */}
         <section className="space-y-3">
           <h2 className="font-display text-2xl text-foreground flex items-center gap-2">
-            <DoorOpen className="h-6 w-6 text-primary" /> Join a Game
+            <span className="text-xl text-primary" aria-hidden="true">🜊</span> Join a Game
           </h2>
           <div className="flex gap-2">
             <Input
@@ -211,7 +211,7 @@ const Dashboard = () => {
         <section className="space-y-4">
           <div className="flex items-center justify-between">
             <h2 className="font-display text-2xl text-foreground flex items-center gap-2">
-              <Sword className="h-6 w-6 text-primary" /> My Characters
+              <span className="text-xl text-primary" aria-hidden="true">🝖</span> My Characters
             </h2>
             <Dialog open={newCharDialogOpen} onOpenChange={setNewCharDialogOpen}>
               <DialogTrigger asChild>
@@ -263,7 +263,7 @@ const Dashboard = () => {
           ) : (
             <Card className="border-dashed border-muted-foreground/30">
               <CardContent className="py-8 text-center text-muted-foreground">
-                <Sword className="h-8 w-8 mx-auto mb-2 opacity-40" />
+                <span className="text-2xl mx-auto mb-2 opacity-40 block text-center" aria-hidden="true">🝖</span>
                 <p className="font-display">No characters yet</p>
                 <p className="text-sm mt-1">Create a character to get started.</p>
               </CardContent>
@@ -302,7 +302,7 @@ const Dashboard = () => {
         {allActiveGames.length > 0 && (
           <section className="space-y-4">
             <h2 className="font-display text-xl text-foreground flex items-center gap-2">
-              <Users className="h-5 w-5 text-primary" /> Your Active Games
+              <span className="text-lg text-primary" aria-hidden="true">🜊</span> Your Active Games
             </h2>
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
               {allActiveGames.map((game) => (
@@ -333,7 +333,7 @@ const Dashboard = () => {
             <CollapsibleTrigger asChild>
               <Button variant="ghost" className="gap-2 text-muted-foreground hover:text-foreground font-display w-full justify-between">
                 <span className="flex items-center gap-2">
-                  <Scroll className="h-4 w-4" /> Host a Game
+                  <span className="text-base" aria-hidden="true">🜾</span> Host a Game
                 </span>
                 <ChevronDown className={`h-4 w-4 transition-transform ${hostOpen ? "rotate-180" : ""}`} />
               </Button>
@@ -365,13 +365,13 @@ const Dashboard = () => {
           <AlertDialog open={gmDialogOpen} onOpenChange={setGmDialogOpen}>
             <AlertDialogTrigger asChild>
               <Button variant="outline" className="gap-2 font-display w-full justify-center border-dashed border-muted-foreground/30 text-muted-foreground hover:text-foreground hover:border-primary/40">
-                <ShieldCheck className="h-4 w-4" /> Become a Game Master
+                <span className="text-base" aria-hidden="true">🜁</span> Become a Game Master
               </Button>
             </AlertDialogTrigger>
             <AlertDialogContent>
               <AlertDialogHeader>
                 <AlertDialogTitle className="font-display flex items-center gap-2">
-                  <ShieldCheck className="h-5 w-5 text-primary" /> Become a Game Master
+                  <span className="text-lg text-primary" aria-hidden="true">🜁</span> Become a Game Master
                 </AlertDialogTitle>
                 <AlertDialogDescription className="text-sm leading-relaxed">
                   You are currently a <strong>player</strong>. As a Game Master, you'll be able to host games and guide other players through scenarios.
@@ -395,7 +395,7 @@ const Dashboard = () => {
                     toast({ title: "You are now a Game Master!", description: "You can now host games." });
                   }}
                 >
-                  <ShieldCheck className="h-4 w-4" /> Become Game Master
+                  <span className="text-base" aria-hidden="true">🜁</span> Become Game Master
                 </AlertDialogAction>
               </AlertDialogFooter>
             </AlertDialogContent>

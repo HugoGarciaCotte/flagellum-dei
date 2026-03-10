@@ -4,7 +4,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { toast } from "@/hooks/use-toast";
-import { Shield, KeyRound } from "lucide-react";
+// Alchemical symbols replace Shield (🝒) and KeyRound (🜐)
 import { useNavigate } from "react-router-dom";
 
 const ResetPassword = () => {
@@ -55,7 +55,7 @@ const ResetPassword = () => {
       <div className="flex min-h-screen items-center justify-center bg-background p-4" style={{ background: "radial-gradient(ellipse at center top, hsl(43 74% 49% / 0.06) 0%, hsl(0 0% 7%) 70%)" }}>
         <Card className="w-full max-w-md aged-border bg-card/80 backdrop-blur">
           <CardContent className="p-6 text-center space-y-4">
-            <KeyRound className="h-12 w-12 text-muted-foreground mx-auto" />
+            <span className="text-4xl text-muted-foreground mx-auto block text-center" aria-hidden="true">🜐</span>
             <p className="text-muted-foreground">No recovery session found. Please use the reset link from your email.</p>
             <Button variant="outline" onClick={() => navigate("/auth")} className="font-display">
               Return to Login
@@ -71,7 +71,7 @@ const ResetPassword = () => {
       <div className="w-full max-w-md space-y-8">
         <div className="text-center space-y-2">
           <div className="flex justify-center">
-            <Shield className="h-12 w-12 text-primary" />
+            <span className="text-4xl text-primary" aria-hidden="true">🝒</span>
           </div>
           <h1 className="font-display text-3xl font-bold text-foreground tracking-wide">
             Forge New Password
@@ -84,7 +84,7 @@ const ResetPassword = () => {
         <Card className="aged-border bg-card/80 backdrop-blur">
           <CardHeader className="pb-2">
             <div className="flex items-center gap-2 text-foreground font-display text-lg">
-              <KeyRound className="h-5 w-5 text-primary" /> Set New Password
+              <span className="text-lg text-primary" aria-hidden="true">🜐</span> Set New Password
             </div>
           </CardHeader>
           <CardContent>
