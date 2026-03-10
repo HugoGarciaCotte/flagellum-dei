@@ -265,17 +265,28 @@ const CharacterCreationWizard = ({ onCreated, onCancel, gameId }: CharacterCreat
     if (!characterFeatId) return;
     setSaving(true);
     try {
-      await supabase
-        .from("character_feat_subfeats")
-        .delete()
-        .eq("character_feat_id", characterFeatId)
-        .eq("slot", slotNum);
-
-      if (subfeatId) {
-        const { error } = await supabase
+      if (!online) {
+        queueAction({ table: "character_feat_subfeats", operation: "delete", payload: {}, filter: { character_feat_id: characterFeatId, slot: slotNum } });
+        if (subfeatId) {
+          queueAction({
+            table: "character_feat_subfeats",
+            operation: "insert",
+            payload: { character_feat_id: characterFeatId, slot: slotNum, subfeat_id: subfeatId },
+            tempId: crypto.randomUUID(),
+          });
+        }
+      } else {
+        await supabase
           .from("character_feat_subfeats")
-          .insert({ character_feat_id: characterFeatId, slot: slotNum, subfeat_id: subfeatId });
-        if (error) throw error;
+          .delete()
+          .eq("character_feat_id", characterFeatId)
+          .eq("slot", slotNum);
+        if (subfeatId) {
+          const { error } = await supabase
+            .from("character_feat_subfeats")
+            .insert({ character_feat_id: characterFeatId, slot: slotNum, subfeat_id: subfeatId });
+          if (error) throw error;
+        }
       }
     } catch (e: any) {
       toast({ title: "Error saving selection", description: e.message, variant: "destructive" });
@@ -289,18 +300,35 @@ const CharacterCreationWizard = ({ onCreated, onCancel, gameId }: CharacterCreat
     if (!characterId || !user) return;
     setCreating(true);
     try {
-      const { error } = await supabase
-        .from("characters")
-        .update({
-          name: name || "Blank",
-          description: description || null,
-          portrait_url: portraitUrl,
-        })
-        .eq("id", characterId);
-      if (error) throw error;
-
-      queryClient.invalidateQueries({ queryKey: ["my-characters"] });
-      onCreated(characterId);
+      if (!online) {
+        queueAction({
+          table: "characters",
+          operation: "update",
+          payload: { name: name || "Blank", description: description || null, portrait_url: portraitUrl },
+          filter: { id: characterId },
+        });
+        // Optimistic cache update
+        const cacheKey = `my-characters-${user.id}`;
+        const cached = getCacheData<any[]>(cacheKey) ?? [];
+        setCacheData(cacheKey, cached.map((c: any) => c.id === characterId ? { ...c, name: name || "Blank", description: description || null, portrait_url: portraitUrl } : c));
+        queryClient.setQueryData(["my-characters", user.id], (old: any[]) =>
+          old?.map((c: any) => c.id === characterId ? { ...c, name: name || "Blank", description: description || null, portrait_url: portraitUrl } : c)
+        );
+        onCreated(characterId);
+        toast({ title: "Character saved locally — will sync when online" });
+      } else {
+        const { error } = await supabase
+          .from("characters")
+          .update({
+            name: name || "Blank",
+            description: description || null,
+            portrait_url: portraitUrl,
+          })
+          .eq("id", characterId);
+        if (error) throw error;
+        queryClient.invalidateQueries({ queryKey: ["my-characters"] });
+        onCreated(characterId);
+      }
     } catch (e: any) {
       toast({ title: "Error saving character", description: e.message, variant: "destructive" });
     } finally {
