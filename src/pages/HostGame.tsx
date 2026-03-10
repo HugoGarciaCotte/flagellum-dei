@@ -143,13 +143,15 @@ const HostGame = () => {
 
   const endGame = async () => {
     if (!effectiveGame) return;
-    try {
-      const { error } = await supabase.from("games").update({ status: "ended" }).eq("id", (effectiveGame as any).id);
-      if (error) throw error;
-      navigate("/");
-    } catch {
-      toast({ title: "Server unreachable", description: "Cannot end the game right now.", variant: "destructive" });
-    }
+    const result = await resilientMutation(
+      async () => {
+        const { error } = await supabase.from("games").update({ status: "ended" }).eq("id", (effectiveGame as any).id);
+        if (error) throw error;
+      },
+      () => {} // no offline fallback — ending requires server
+    );
+    if (result === "ok") navigate("/");
+    else toast({ title: "Server unreachable", description: "Cannot end the game right now.", variant: "destructive" });
   };
 
   const copyCode = () => {
