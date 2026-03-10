@@ -460,7 +460,7 @@ const Home = () => {
           </div>
 
           <p className="mt-12 text-center font-display text-sm tracking-[0.15em] uppercase text-primary/60">
-            10 chapters · Austria · Provins · Spain · Marseille · Avignon · The Hundred Years' War · Isle of Man · Arabian Deserts · Rhodes
+            10 chapters · Austria · Provins · Castille · Marseille · Avignon · The Hundred Years' War · Isle of Man · Arabian Deserts · Rhodes
           </p>
         </div>
       </section>
