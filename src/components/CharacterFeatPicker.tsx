@@ -14,7 +14,7 @@ import { type SubfeatSlot } from "@/lib/parseEmbeddedFeatMeta";
 import { useNetworkStatus } from "@/hooks/useNetworkStatus";
 
 import { useOfflineQuery } from "@/hooks/useOfflineQuery";
-import { queueAction, setCacheData, getCacheData } from "@/lib/offlineQueue";
+import { queueAction, setCacheData, getCacheData, resilientMutation } from "@/lib/offlineQueue";
 import { getAllFeats, getFeatMeta } from "@/data/feats";
 
 interface CharacterFeatPickerProps {
