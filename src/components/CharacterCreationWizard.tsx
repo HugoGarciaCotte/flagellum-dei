@@ -170,20 +170,59 @@ const CharacterCreationWizard = ({ onCreated, onCancel, gameId }: CharacterCreat
     if (!user) return;
     setSaving(true);
     try {
-      if (characterId && characterFeatId) {
+      if (!online) {
+        // Offline: create locally with temp IDs
+        if (!characterId) {
+          const tempCharId = crypto.randomUUID();
+          const tempCfId = crypto.randomUUID();
+          setCharacterId(tempCharId);
+          setCharacterFeatId(tempCfId);
+          queueAction({
+            table: "characters",
+            operation: "insert",
+            payload: { user_id: user.id, name: "New Character" },
+            tempId: tempCharId,
+          });
+          queueAction({
+            table: "character_feats",
+            operation: "insert",
+            payload: { character_id: tempCharId, feat_id: featId, level: 1 },
+            tempId: tempCfId,
+          });
+          if (gameId) {
+            queueAction({
+              table: "game_players",
+              operation: "update",
+              payload: { character_id: tempCharId },
+              filter: { game_id: gameId, user_id: user.id },
+            });
+          }
+          // Optimistic cache update
+          const cacheKey = `my-characters-${user.id}`;
+          const cached = getCacheData<any[]>(cacheKey) ?? [];
+          const newChar = { id: tempCharId, user_id: user.id, name: "New Character", description: null, portrait_url: null, created_at: new Date().toISOString(), updated_at: new Date().toISOString() };
+          setCacheData(cacheKey, [newChar, ...cached]);
+          queryClient.setQueryData(["my-characters", user.id], (old: any[]) => old ? [newChar, ...old] : [newChar]);
+        } else {
+          // Already have a character, update archetype
+          queueAction({
+            table: "character_feats",
+            operation: "update",
+            payload: { feat_id: featId },
+            filter: { id: characterFeatId },
+          });
+          setSubfeatSelections(new Map());
+        }
+      } else if (characterId && characterFeatId) {
         const { error: cfErr } = await supabase
           .from("character_feats")
           .update({ feat_id: featId })
           .eq("id", characterFeatId);
         if (cfErr) throw cfErr;
-
-        // Delete all existing subfeats since archetype changed
         await supabase
           .from("character_feat_subfeats")
           .delete()
           .eq("character_feat_id", characterFeatId);
-
-        // Reset subfeat selections
         setSubfeatSelections(new Map());
       } else {
         const { data: charData, error: charError } = await supabase
