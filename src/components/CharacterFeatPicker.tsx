@@ -377,7 +377,7 @@ const CharacterFeatPicker = ({ characterId, mode = "player", scenarioLevel }: Ch
 
   const setSubfeatMutation = useMutation({
     mutationFn: async ({ characterFeatId, slot, subfeatId }: { characterFeatId: string; slot: number; subfeatId: string | null }) => {
-      if (!online) {
+      if (effectivelyOffline) {
         queueAction({ table: "character_feat_subfeats", operation: "delete", payload: {}, filter: { character_feat_id: characterFeatId, slot } });
         if (subfeatId) {
           const tempId = crypto.randomUUID();
