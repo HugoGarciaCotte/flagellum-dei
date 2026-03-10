@@ -48,7 +48,7 @@ const PlayerListSheet = ({ players, characters, gameId }: PlayerListSheetProps) 
       <SheetContent className="overflow-y-auto">
         <SheetHeader>
           <SheetTitle className="font-display flex items-center gap-2">
-            <Users className="h-5 w-5 text-primary" /> Players ({players.length})
+            <span className="text-lg text-primary" aria-hidden="true">🜊</span> Players ({players.length})
           </SheetTitle>
         </SheetHeader>
 

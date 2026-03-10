@@ -395,7 +395,7 @@ const Dashboard = () => {
                     toast({ title: "You are now a Game Master!", description: "You can now host games." });
                   }}
                 >
-                  <ShieldCheck className="h-4 w-4" /> Become Game Master
+                  <span className="text-base" aria-hidden="true">🜁</span> Become Game Master
                 </AlertDialogAction>
               </AlertDialogFooter>
             </AlertDialogContent>

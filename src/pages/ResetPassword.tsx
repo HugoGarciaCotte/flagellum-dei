@@ -84,7 +84,7 @@ const ResetPassword = () => {
         <Card className="aged-border bg-card/80 backdrop-blur">
           <CardHeader className="pb-2">
             <div className="flex items-center gap-2 text-foreground font-display text-lg">
-              <KeyRound className="h-5 w-5 text-primary" /> Set New Password
+              <span className="text-lg text-primary" aria-hidden="true">🜐</span> Set New Password
             </div>
           </CardHeader>
           <CardContent>

@@ -202,7 +202,7 @@ const HostGame = () => {
               gameId={gameId!}
             />
             <Button variant="destructive" size="sm" onClick={endGame} className="gap-1">
-              <StopCircle className="h-3 w-3" /> End
+              <span className="text-sm" aria-hidden="true">🝎</span> End
             </Button>
           </>
         }
