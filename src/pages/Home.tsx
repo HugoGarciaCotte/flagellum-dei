@@ -495,7 +495,7 @@ const Home = () => {
           <div className="ornamental-divider mx-auto max-w-xs" />
 
           <blockquote className="font-display text-xl italic text-primary/70">
-            "9 scenarios spanning Europe — the vast majority took a full year of historical research."
+            "A decade of writing. 10 chapters across Europe and beyond — every scenario handwritten from historical research, not generated."
           </blockquote>
         </div>
       </section>
