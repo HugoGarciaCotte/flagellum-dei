@@ -368,7 +368,7 @@ const CharacterFeatPicker = ({ characterId, mode = "player", scenarioLevel }: Ch
       if (error) throw error;
     },
     onSuccess: () => {
-      if (online) {
+      if (!effectivelyOffline) {
         queryClient.invalidateQueries({ queryKey: ["character-feats", characterId] });
         queryClient.invalidateQueries({ queryKey: ["character-feats-summary", characterId] });
       }
