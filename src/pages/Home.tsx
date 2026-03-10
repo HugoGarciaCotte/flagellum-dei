@@ -306,10 +306,6 @@ const Home = () => {
             label="Tabletop RPG"
           />
           <ClarityItem
-            icon={<Users className="h-4 w-4" />}
-            label="3–9 Players"
-          />
-          <ClarityItem
             icon={<Wifi className="h-4 w-4" />}
             label="In Person or by Video Call"
           />
