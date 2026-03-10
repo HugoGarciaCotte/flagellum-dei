@@ -42,5 +42,19 @@ export function useOfflineQuery<T>(
     }
   }
 
+  // Fallback to cache when technically online but query failed (server unreachable)
+  if (query.isError && query.data === undefined && !effectivelyOffline) {
+    const cached = getCacheData<T>(cacheKey);
+    if (cached !== null) {
+      window.dispatchEvent(new Event("offline-query-degraded"));
+      return {
+        ...query,
+        data: cached,
+        isLoading: false,
+        isFetching: false,
+      };
+    }
+  }
+
   return query;
 }
