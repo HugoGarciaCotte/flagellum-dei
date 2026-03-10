@@ -205,6 +205,8 @@ const Dashboard = () => {
           </div>
         </section>
 
+        <div className="ornamental-divider" />
+
         {/* Section 2: My Characters */}
         <section className="space-y-4">
           <div className="flex items-center justify-between">
