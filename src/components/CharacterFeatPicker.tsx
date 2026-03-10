@@ -179,10 +179,6 @@ const CharacterFeatPicker = ({ characterId, mode = "player", scenarioLevel }: Ch
     level?: number | null,
     parentFeatTitle?: string | null,
   ) => {
-    if (effectivelyOffline) {
-      action();
-      return;
-    }
     setValidating(true);
     setValidationResult(null);
     try {
@@ -191,7 +187,6 @@ const CharacterFeatPicker = ({ characterId, mode = "player", scenarioLevel }: Ch
       });
       if (error) {
         console.error("AI validation error:", error);
-        // On error, allow anyway
         action();
         return;
       }
@@ -206,6 +201,7 @@ const CharacterFeatPicker = ({ characterId, mode = "player", scenarioLevel }: Ch
       }
     } catch (e) {
       console.error("AI validation exception:", e);
+      // Server unreachable or offline — allow anyway
       action();
     } finally {
       setValidating(false);
