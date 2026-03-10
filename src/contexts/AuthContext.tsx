@@ -1,7 +1,8 @@
 import React, { createContext, useContext, useEffect, useState } from "react";
 import { Session, User } from "@supabase/supabase-js";
 import { supabase } from "@/integrations/supabase/client";
-import { getQueueLength, processQueue, remapUserId } from "@/lib/offlineQueue";
+import { pullAll } from "@/lib/syncManager";
+import { clearAll } from "@/lib/localStore";
 
 const LOCAL_GUEST_KEY = "local-guest-user";
 
@@ -17,28 +18,15 @@ interface AuthContextType {
 }
 
 const AuthContext = createContext<AuthContextType>({
-  session: null,
-  user: null,
-  loading: true,
-  isGuest: false,
-  isLocalGuest: false,
-  syncReady: false,
-  signOut: async () => {},
-  enterGuestMode: async () => {},
+  session: null, user: null, loading: true, isGuest: false, isLocalGuest: false, syncReady: false,
+  signOut: async () => {}, enterGuestMode: async () => {},
 });
 
 export const useAuth = () => useContext(AuthContext);
 
 function generateLocalGuestUser(): User {
   const id = crypto.randomUUID();
-  return {
-    id,
-    app_metadata: {},
-    user_metadata: {},
-    aud: "authenticated",
-    created_at: new Date().toISOString(),
-    is_anonymous: true,
-  } as User;
+  return { id, app_metadata: {}, user_metadata: {}, aud: "authenticated", created_at: new Date().toISOString(), is_anonymous: true } as User;
 }
 
 export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
@@ -51,16 +39,13 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   useEffect(() => {
     try {
       const stored = localStorage.getItem(LOCAL_GUEST_KEY);
-      if (stored) {
-        setLocalGuestUser(JSON.parse(stored));
-      }
+      if (stored) setLocalGuestUser(JSON.parse(stored));
     } catch { /* ignore */ }
   }, []);
 
   useEffect(() => {
     const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
       setSession(session);
-      // If we got a real session, clear local guest
       if (session?.user) {
         setLocalGuestUser(null);
         localStorage.removeItem(LOCAL_GUEST_KEY);
@@ -76,41 +61,19 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     return () => subscription.unsubscribe();
   }, []);
 
-  // Two-phase sync gate: upgrade local guest → drain queue → enable queries
+  // After auth resolved, pull data from server if online
   useEffect(() => {
     if (loading) return;
 
     async function initSync() {
-      // Phase 1: If local guest and online, try to upgrade to real anonymous session
-      if (localGuestUser && !session?.user && navigator.onLine) {
-        try {
-          const { data, error } = await supabase.auth.signInAnonymously();
-          if (!error && data.user) {
-            // Remap fake UUID → real UUID in all queued actions
-            remapUserId(localGuestUser.id, data.user.id);
-            // Session will be set by onAuthStateChange, which clears local guest
-            // Wait a tick for the session to propagate
-            await new Promise(r => setTimeout(r, 100));
-          }
-        } catch {
-          // Server unreachable, stay in local guest mode
-        }
+      if (navigator.onLine && session?.user) {
+        try { await pullAll(); } catch { /* stay with local data */ }
       }
-
-      // Phase 2: Drain any pending queue before enabling queries
-      if (getQueueLength() > 0 && navigator.onLine) {
-        window.dispatchEvent(new CustomEvent("offline-queue-syncing"));
-        const result = await processQueue();
-        if (result.success > 0) {
-          window.dispatchEvent(new CustomEvent("offline-queue-synced", { detail: result }));
-        }
-      }
-
       setSyncReady(true);
     }
 
     initSync();
-  }, [loading, localGuestUser, session]);
+  }, [loading, session]);
 
   const enterGuestMode = async () => {
     setLoading(true);
@@ -122,13 +85,13 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       setLocalGuestUser(guest);
       setLoading(false);
     }
-    // If successful, session will be set by onAuthStateChange
   };
 
   const signOut = async () => {
     await supabase.auth.signOut();
     setLocalGuestUser(null);
     localStorage.removeItem(LOCAL_GUEST_KEY);
+    clearAll();
     setSyncReady(false);
   };
 
