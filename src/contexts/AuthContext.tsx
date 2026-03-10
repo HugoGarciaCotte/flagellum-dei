@@ -1,6 +1,7 @@
 import React, { createContext, useContext, useEffect, useState } from "react";
 import { Session, User } from "@supabase/supabase-js";
 import { supabase } from "@/integrations/supabase/client";
+import { getQueueLength, processQueue, remapUserId } from "@/lib/offlineQueue";
 
 const LOCAL_GUEST_KEY = "local-guest-user";
 
@@ -10,6 +11,7 @@ interface AuthContextType {
   loading: boolean;
   isGuest: boolean;
   isLocalGuest: boolean;
+  syncReady: boolean;
   signOut: () => Promise<void>;
   enterGuestMode: () => Promise<void>;
 }
@@ -20,6 +22,7 @@ const AuthContext = createContext<AuthContextType>({
   loading: true,
   isGuest: false,
   isLocalGuest: false,
+  syncReady: false,
   signOut: async () => {},
   enterGuestMode: async () => {},
 });
@@ -42,6 +45,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const [session, setSession] = useState<Session | null>(null);
   const [localGuestUser, setLocalGuestUser] = useState<User | null>(null);
   const [loading, setLoading] = useState(true);
+  const [syncReady, setSyncReady] = useState(false);
 
   // Restore local guest on mount
   useEffect(() => {
@@ -72,12 +76,47 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     return () => subscription.unsubscribe();
   }, []);
 
+  // Two-phase sync gate: upgrade local guest → drain queue → enable queries
+  useEffect(() => {
+    if (loading) return;
+
+    async function initSync() {
+      // Phase 1: If local guest and online, try to upgrade to real anonymous session
+      if (localGuestUser && !session?.user && navigator.onLine) {
+        try {
+          const { data, error } = await supabase.auth.signInAnonymously();
+          if (!error && data.user) {
+            // Remap fake UUID → real UUID in all queued actions
+            remapUserId(localGuestUser.id, data.user.id);
+            // Session will be set by onAuthStateChange, which clears local guest
+            // Wait a tick for the session to propagate
+            await new Promise(r => setTimeout(r, 100));
+          }
+        } catch {
+          // Server unreachable, stay in local guest mode
+        }
+      }
+
+      // Phase 2: Drain any pending queue before enabling queries
+      if (getQueueLength() > 0 && navigator.onLine) {
+        window.dispatchEvent(new CustomEvent("offline-queue-syncing"));
+        const result = await processQueue();
+        if (result.success > 0) {
+          window.dispatchEvent(new CustomEvent("offline-queue-synced", { detail: result }));
+        }
+      }
+
+      setSyncReady(true);
+    }
+
+    initSync();
+  }, [loading, localGuestUser, session]);
+
   const enterGuestMode = async () => {
     setLoading(true);
     const { error } = await supabase.auth.signInAnonymously();
     if (error) {
       console.warn("Anonymous sign-in failed, falling back to local guest:", error.message);
-      // Create synthetic local guest
       const guest = generateLocalGuestUser();
       localStorage.setItem(LOCAL_GUEST_KEY, JSON.stringify(guest));
       setLocalGuestUser(guest);
@@ -90,6 +129,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     await supabase.auth.signOut();
     setLocalGuestUser(null);
     localStorage.removeItem(LOCAL_GUEST_KEY);
+    setSyncReady(false);
   };
 
   const user = session?.user ?? localGuestUser ?? null;
@@ -97,7 +137,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const isLocalGuest = localGuestUser !== null && session?.user == null;
 
   return (
-    <AuthContext.Provider value={{ session, user, loading, isGuest, isLocalGuest, signOut, enterGuestMode }}>
+    <AuthContext.Provider value={{ session, user, loading, isGuest, isLocalGuest, syncReady, signOut, enterGuestMode }}>
       {children}
     </AuthContext.Provider>
   );
