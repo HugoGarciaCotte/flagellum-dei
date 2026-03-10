@@ -354,7 +354,7 @@ const CharacterFeatPicker = ({ characterId, mode = "player", scenarioLevel }: Ch
   const updateNoteMutation = useMutation({
     mutationFn: async ({ id, note }: { id: string; note: string }) => {
       const trimmed = note.trim() || null;
-      if (!online) {
+      if (effectivelyOffline) {
         queueAction({ table: "character_feats", operation: "update", payload: { note: trimmed }, filter: { id } });
         queryClient.setQueryData(["character-feats", characterId], (old: CharacterFeat[] | undefined) =>
           (old ?? []).map(cf => cf.id === id ? { ...cf, note: trimmed } : cf)
