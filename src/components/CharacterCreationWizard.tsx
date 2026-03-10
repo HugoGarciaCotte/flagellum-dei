@@ -843,7 +843,7 @@ const CharacterCreationWizard = ({ onCreated, onCancel, gameId }: CharacterCreat
               size="sm"
               className="gap-1 text-xs"
               onClick={generateDescription}
-              disabled={generatingDesc}
+              disabled={generatingDesc || !online}
             >
               {generatingDesc ? <Loader2 className="h-3 w-3 animate-spin" /> : <Sparkles className="h-3 w-3" />}
               Regenerate
