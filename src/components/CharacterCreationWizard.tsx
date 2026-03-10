@@ -17,7 +17,7 @@ import {
 import { getAllFeats, getFeatMeta } from "@/data/feats";
 import Logo from "@/components/Logo";
 import { useNetworkStatus } from "@/hooks/useNetworkStatus";
-import { queueAction, setCacheData, getCacheData } from "@/lib/offlineQueue";
+import { queueAction, setCacheData, getCacheData, resilientMutation } from "@/lib/offlineQueue";
 
 interface CharacterCreationWizardProps {
   onCreated: (characterId: string) => void;
@@ -219,54 +219,30 @@ const CharacterCreationWizard = ({ onCreated, onCancel, gameId }: CharacterCreat
       }
     };
 
-    try {
-      if (characterId && characterFeatId) {
-        const { error: cfErr } = await supabase
-          .from("character_feats")
-          .update({ feat_id: featId })
-          .eq("id", characterFeatId);
-        if (cfErr) throw cfErr;
-        await supabase
-          .from("character_feat_subfeats")
-          .delete()
-          .eq("character_feat_id", characterFeatId);
-        setSubfeatSelections(new Map());
-      } else {
-        const { data: charData, error: charError } = await supabase
-          .from("characters")
-          .insert({ user_id: user.id, name: "New Character" } as any)
-          .select()
-          .single();
-        if (charError) throw charError;
-
-        const newCharId = charData.id;
-        setCharacterId(newCharId);
-
-        const { data: cfData, error: cfError } = await supabase
-          .from("character_feats")
-          .insert({ character_id: newCharId, feat_id: featId, level: 1 })
-          .select()
-          .single();
-        if (cfError) throw cfError;
-        setCharacterFeatId(cfData.id);
-
-        if (gameId) {
-          await supabase
-            .from("game_players")
-            .update({ character_id: newCharId })
-            .eq("game_id", gameId)
-            .eq("user_id", user.id);
+    const result = await resilientMutation(
+      async () => {
+        if (characterId && characterFeatId) {
+          const { error: cfErr } = await supabase.from("character_feats").update({ feat_id: featId }).eq("id", characterFeatId);
+          if (cfErr) throw cfErr;
+          await supabase.from("character_feat_subfeats").delete().eq("character_feat_id", characterFeatId);
+          setSubfeatSelections(new Map());
+        } else {
+          const { data: charData, error: charError } = await supabase.from("characters").insert({ user_id: user.id, name: "New Character" } as any).select().single();
+          if (charError) throw charError;
+          setCharacterId(charData.id);
+          const { data: cfData, error: cfError } = await supabase.from("character_feats").insert({ character_id: charData.id, feat_id: featId, level: 1 }).select().single();
+          if (cfError) throw cfError;
+          setCharacterFeatId(cfData.id);
+          if (gameId) {
+            await supabase.from("game_players").update({ character_id: charData.id }).eq("game_id", gameId).eq("user_id", user.id);
+          }
+          queryClient.invalidateQueries({ queryKey: ["my-characters"] });
+          queryClient.invalidateQueries({ queryKey: ["character-feats-summary"] });
         }
-
-        queryClient.invalidateQueries({ queryKey: ["my-characters"] });
-        queryClient.invalidateQueries({ queryKey: ["character-feats-summary"] });
-      }
-    } catch (e: any) {
-      // Server unreachable — fall back to offline queue
-      doOfflineCreate();
-    } finally {
-      setSaving(false);
-    }
+      },
+      doOfflineCreate,
+    );
+    setSaving(false);
   };
 
   /** Save a subfeat selection for a given slot */
@@ -297,23 +273,17 @@ const CharacterCreationWizard = ({ onCreated, onCancel, gameId }: CharacterCreat
       }
     };
 
-    try {
-      await supabase
-        .from("character_feat_subfeats")
-        .delete()
-        .eq("character_feat_id", characterFeatId)
-        .eq("slot", slotNum);
-      if (subfeatId) {
-        const { error } = await supabase
-          .from("character_feat_subfeats")
-          .insert({ character_feat_id: characterFeatId, slot: slotNum, subfeat_id: subfeatId });
-        if (error) throw error;
-      }
-    } catch {
-      doOffline();
-    } finally {
-      setSaving(false);
-    }
+    await resilientMutation(
+      async () => {
+        await supabase.from("character_feat_subfeats").delete().eq("character_feat_id", characterFeatId).eq("slot", slotNum);
+        if (subfeatId) {
+          const { error } = await supabase.from("character_feat_subfeats").insert({ character_feat_id: characterFeatId, slot: slotNum, subfeat_id: subfeatId });
+          if (error) throw error;
+        }
+      },
+      doOffline,
+    );
+    setSaving(false);
   };
 
   /** Final step: update character name/description/portrait */
@@ -341,24 +311,17 @@ const CharacterCreationWizard = ({ onCreated, onCancel, gameId }: CharacterCreat
       toast({ title: "Character saved locally — will sync when online" });
     };
 
-    try {
-      const { error } = await supabase
-        .from("characters")
-        .update({
-          name: name || "Blank",
-          description: description || null,
-          portrait_url: portraitUrl,
-        })
-        .eq("id", characterId);
-      if (error) throw error;
-      queryClient.invalidateQueries({ queryKey: ["my-characters"] });
-      queryClient.invalidateQueries({ queryKey: ["character-feats-summary"] });
-      onCreated(characterId);
-    } catch {
-      doOffline();
-    } finally {
-      setCreating(false);
-    }
+    const result = await resilientMutation(
+      async () => {
+        const { error } = await supabase.from("characters").update({ name: name || "Blank", description: description || null, portrait_url: portraitUrl }).eq("id", characterId);
+        if (error) throw error;
+        queryClient.invalidateQueries({ queryKey: ["my-characters"] });
+        queryClient.invalidateQueries({ queryKey: ["character-feats-summary"] });
+        onCreated(characterId);
+      },
+      doOffline,
+    );
+    setCreating(false);
   };
 
   // --- End progressive save helpers ---
@@ -449,30 +412,20 @@ const CharacterCreationWizard = ({ onCreated, onCancel, gameId }: CharacterCreat
       toast({ title: "Character saved locally — will sync when online" });
     };
 
-    try {
-      const { data: charData, error: charError } = await supabase
-        .from("characters")
-        .insert({ user_id: user.id, name: "Blank" } as any)
-        .select()
-        .single();
-      if (charError) throw charError;
-
-      if (gameId) {
-        await supabase
-          .from("game_players")
-          .update({ character_id: charData.id })
-          .eq("game_id", gameId)
-          .eq("user_id", user.id);
-      }
-
-      queryClient.invalidateQueries({ queryKey: ["my-characters"] });
-      queryClient.invalidateQueries({ queryKey: ["character-feats-summary"] });
-      onCreated(charData.id);
-    } catch {
-      doOffline();
-    } finally {
-      setCreating(false);
-    }
+    await resilientMutation(
+      async () => {
+        const { data: charData, error: charError } = await supabase.from("characters").insert({ user_id: user.id, name: "Blank" } as any).select().single();
+        if (charError) throw charError;
+        if (gameId) {
+          await supabase.from("game_players").update({ character_id: charData.id }).eq("game_id", gameId).eq("user_id", user.id);
+        }
+        queryClient.invalidateQueries({ queryKey: ["my-characters"] });
+        queryClient.invalidateQueries({ queryKey: ["character-feats-summary"] });
+        onCreated(charData.id);
+      },
+      doOffline,
+    );
+    setCreating(false);
   };
 
   const handleSkipAfterArchetype = () => {

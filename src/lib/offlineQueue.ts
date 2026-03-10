@@ -192,6 +192,27 @@ export function getCacheData<T>(key: string): T | null {
   }
 }
 
+// --- Resilient mutation helper ---
+
+/**
+ * Centralised try/catch for every data mutation.
+ * Attempts `serverFn` first; on ANY failure falls back to `offlineFn`.
+ * Returns "ok" when server succeeded, "queued" when offline fallback ran.
+ */
+export async function resilientMutation(
+  serverFn: () => Promise<void>,
+  offlineFn: () => void,
+): Promise<"ok" | "queued"> {
+  try {
+    await serverFn();
+    return "ok";
+  } catch (error) {
+    console.warn("Server mutation failed, falling back to offline queue:", error);
+    offlineFn();
+    return "queued";
+  }
+}
+
 // --- Auto-sync on reconnect ---
 
 let listenerAttached = false;

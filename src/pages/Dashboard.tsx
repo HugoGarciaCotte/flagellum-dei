@@ -25,7 +25,7 @@ import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, 
 import GMPlayerList from "@/components/GMPlayerList";
 import { useNetworkStatus } from "@/hooks/useNetworkStatus";
 import { useOfflineQuery } from "@/hooks/useOfflineQuery";
-import { queueAction, setCacheData, getCacheData } from "@/lib/offlineQueue";
+import { queueAction, setCacheData, getCacheData, resilientMutation } from "@/lib/offlineQueue";
 import { cacheGameSession } from "@/lib/offlineStorage";
 
 const Dashboard = () => {
@@ -59,19 +59,19 @@ const Dashboard = () => {
 
   const deleteCharMutation = useMutation({
     mutationFn: async (id: string) => {
-      try {
-        const { error } = await supabase.from("characters").delete().eq("id", id);
-        if (error) throw error;
-      } catch {
-        queueAction({ table: "characters", operation: "delete", payload: {}, filter: { id } });
-        queryClient.setQueryData(["my-characters", user?.id], (old: any[]) =>
-          (old ?? []).filter((c: any) => c.id !== id)
-        );
-        const cacheKey = `my-characters-${user?.id}`;
-        const cached = getCacheData<any[]>(cacheKey) ?? [];
-        setCacheData(cacheKey, cached.filter((c: any) => c.id !== id));
-        return "queued";
-      }
+      return resilientMutation(
+        async () => {
+          const { error } = await supabase.from("characters").delete().eq("id", id);
+          if (error) throw error;
+        },
+        () => {
+          queueAction({ table: "characters", operation: "delete", payload: {}, filter: { id } });
+          queryClient.setQueryData(["my-characters", user?.id], (old: any[]) => (old ?? []).filter((c: any) => c.id !== id));
+          const cacheKey = `my-characters-${user?.id}`;
+          const cached = getCacheData<any[]>(cacheKey) ?? [];
+          setCacheData(cacheKey, cached.filter((c: any) => c.id !== id));
+        }
+      );
     },
     onSuccess: (result) => {
       if (result !== "queued") queryClient.invalidateQueries({ queryKey: ["my-characters"] });

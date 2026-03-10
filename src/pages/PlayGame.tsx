@@ -10,7 +10,7 @@ import { ArrowLeft, Plus, Check, X, GripHorizontal, Pencil, Copy } from "lucide-
 import CharacterSheet from "@/components/CharacterSheet";
 import { useNetworkStatus } from "@/hooks/useNetworkStatus";
 import { useOfflineQuery } from "@/hooks/useOfflineQuery";
-import { queueAction } from "@/lib/offlineQueue";
+import { queueAction, resilientMutation } from "@/lib/offlineQueue";
 import { getCachedGameSession } from "@/lib/offlineStorage";
 import { toast } from "@/hooks/use-toast";
 import DiceRoller from "@/components/DiceRoller";
@@ -85,25 +85,20 @@ const PlayGame = () => {
   // Select character mutation
   const selectCharMutation = useMutation({
     mutationFn: async (characterId: string) => {
-      try {
-        const { error } = await supabase
-          .from("game_players")
-          .update({ character_id: characterId })
-          .eq("game_id", gameId!)
-          .eq("user_id", user!.id);
-        if (error) throw error;
-      } catch {
-        queueAction({
-          table: "game_players",
-          operation: "update",
-          payload: { character_id: characterId },
-          filter: { game_id: gameId!, user_id: user!.id },
-        });
-        queryClient.setQueryData(["my-game-player", gameId, user?.id], (old: any) =>
-          old ? { ...old, character_id: characterId } : old
-        );
-        return "queued";
-      }
+      return resilientMutation(
+        async () => {
+          const { error } = await supabase
+            .from("game_players")
+            .update({ character_id: characterId })
+            .eq("game_id", gameId!)
+            .eq("user_id", user!.id);
+          if (error) throw error;
+        },
+        () => {
+          queueAction({ table: "game_players", operation: "update", payload: { character_id: characterId }, filter: { game_id: gameId!, user_id: user!.id } });
+          queryClient.setQueryData(["my-game-player", gameId, user?.id], (old: any) => old ? { ...old, character_id: characterId } : old);
+        }
+      );
     },
     onSuccess: (result) => {
       if (result !== "queued") queryClient.invalidateQueries({ queryKey: ["my-game-player", gameId, user?.id] });

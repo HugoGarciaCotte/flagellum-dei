@@ -18,6 +18,7 @@ import GameTimer from "@/components/GameTimer";
 import { useOfflineGameSession } from "@/hooks/useOfflineGameSession";
 import { useNetworkStatus } from "@/hooks/useNetworkStatus";
 import { getCachedGameSession, updateCachedSection, prefetchImages } from "@/lib/offlineStorage";
+import { resilientMutation } from "@/lib/offlineQueue";
 import FullPageLoader from "@/components/FullPageLoader";
 import PageHeader from "@/components/PageHeader";
 
@@ -143,13 +144,15 @@ const HostGame = () => {
 
   const endGame = async () => {
     if (!effectiveGame) return;
-    try {
-      const { error } = await supabase.from("games").update({ status: "ended" }).eq("id", (effectiveGame as any).id);
-      if (error) throw error;
-      navigate("/");
-    } catch {
-      toast({ title: "Server unreachable", description: "Cannot end the game right now.", variant: "destructive" });
-    }
+    const result = await resilientMutation(
+      async () => {
+        const { error } = await supabase.from("games").update({ status: "ended" }).eq("id", (effectiveGame as any).id);
+        if (error) throw error;
+      },
+      () => {} // no offline fallback — ending requires server
+    );
+    if (result === "ok") navigate("/");
+    else toast({ title: "Server unreachable", description: "Cannot end the game right now.", variant: "destructive" });
   };
 
   const copyCode = () => {
@@ -160,18 +163,16 @@ const HostGame = () => {
   };
 
   const activateSection = async (sectionId: string) => {
-    // Always update local state + cache immediately
     setLocalSection(sectionId);
     if (gameId) updateCachedSection(gameId, sectionId);
-
     if (!effectiveGame) return;
-
-    try {
-      const { error } = await supabase.from("games").update({ current_section: sectionId } as any).eq("id", (effectiveGame as any).id);
-      if (error) throw error;
-    } catch {
-      // Server unreachable — local state already updated, will be stale but functional
-    }
+    await resilientMutation(
+      async () => {
+        const { error } = await supabase.from("games").update({ current_section: sectionId } as any).eq("id", (effectiveGame as any).id);
+        if (error) throw error;
+      },
+      () => {} // local state already updated
+    );
   };
 
   if (!effectiveGame) {
