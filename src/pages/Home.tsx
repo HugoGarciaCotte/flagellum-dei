@@ -526,9 +526,22 @@ const Home = () => {
                 <AccordionTrigger className="font-display text-sm tracking-wide text-foreground/90 hover:no-underline hover:text-primary text-left">
                   {faq.q}
                 </AccordionTrigger>
-                <AccordionContent className="text-sm leading-relaxed text-muted-foreground">
-                  {faq.a}
-                </AccordionContent>
+                <AccordionContent className="text-sm leading-relaxed text-muted-foreground space-y-2">
+                  <p>{faq.a}</p>
+                  {faq.links && (
+                    <p className="flex gap-4">
+                      {faq.links.lovable && (
+                        <a href={faq.links.lovable} target="_blank" rel="noopener noreferrer" className="text-primary hover:underline">
+                          Remix on Lovable ↗
+                        </a>
+                      )}
+                      {faq.links.github && (
+                        <a href={faq.links.github} target="_blank" rel="noopener noreferrer" className="text-primary hover:underline">
+                          View on GitHub ↗
+                        </a>
+                      )}
+                    </p>
+                  )}
               </AccordionItem>
             ))}
           </Accordion>
