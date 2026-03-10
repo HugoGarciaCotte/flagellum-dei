@@ -9,6 +9,7 @@ import { toast } from "@/hooks/use-toast";
 import { Upload, Sparkles, Loader2, WifiOff } from "lucide-react";
 import CharacterFeatPicker from "@/components/CharacterFeatPicker";
 import { useNetworkStatus } from "@/hooks/useNetworkStatus";
+import { useAuth } from "@/contexts/AuthContext";
 import { useOfflineQuery } from "@/hooks/useOfflineQuery";
 import { queueAction, setCacheData, getCacheData } from "@/lib/offlineQueue";
 
@@ -22,6 +23,8 @@ interface CharacterSheetProps {
 const CharacterSheet = ({ characterId, mode = "player", scenarioLevel, onDone }: CharacterSheetProps) => {
   const queryClient = useQueryClient();
   const online = useNetworkStatus();
+  const { isGuest } = useAuth();
+  const effectivelyOffline = !online || isGuest;
   const [name, setName] = useState("");
   const [desc, setDesc] = useState("");
   const [dirty, setDirty] = useState(false);
@@ -52,7 +55,7 @@ const CharacterSheet = ({ characterId, mode = "player", scenarioLevel, onDone }:
 
   const saveMutation = useMutation({
     mutationFn: async () => {
-      if (!online) {
+      if (effectivelyOffline) {
         // Queue for later sync
         queueAction({
           table: "characters",
@@ -83,13 +86,13 @@ const CharacterSheet = ({ characterId, mode = "player", scenarioLevel, onDone }:
     },
     onSuccess: () => {
       setDirty(false);
-      if (online) {
+      if (!effectivelyOffline) {
         queryClient.invalidateQueries({ queryKey: ["character", characterId] });
         queryClient.invalidateQueries({ queryKey: ["my-characters"] });
         queryClient.invalidateQueries({ queryKey: ["gm-players"] });
         queryClient.invalidateQueries({ queryKey: ["game-characters"] });
       }
-      toast({ title: online ? "Character updated" : "Saved locally — will sync when online" });
+      toast({ title: !effectivelyOffline ? "Character updated" : "Saved locally — will sync when online" });
     },
     onError: (e: any) => toast({ title: "Error", description: e.message, variant: "destructive" }),
   });
@@ -181,7 +184,7 @@ const CharacterSheet = ({ characterId, mode = "player", scenarioLevel, onDone }:
             size="sm"
             className="gap-1.5"
             onClick={() => fileInputRef.current?.click()}
-            disabled={!online}
+            disabled={effectivelyOffline}
           >
             <Upload className="h-3.5 w-3.5" /> Upload
           </Button>
@@ -190,7 +193,7 @@ const CharacterSheet = ({ characterId, mode = "player", scenarioLevel, onDone }:
             size="sm"
             className="gap-1.5"
             onClick={handleGenerate}
-            disabled={generating || !online}
+            disabled={generating || effectivelyOffline}
           >
             {generating ? (
               <Loader2 className="h-3.5 w-3.5 animate-spin" />
@@ -200,7 +203,7 @@ const CharacterSheet = ({ characterId, mode = "player", scenarioLevel, onDone }:
             Generate
           </Button>
         </div>
-        {!online && (
+        {effectivelyOffline && (
           <p className="text-xs text-muted-foreground flex items-center gap-1">
             <WifiOff className="h-3 w-3" /> Portrait features available when online
           </p>

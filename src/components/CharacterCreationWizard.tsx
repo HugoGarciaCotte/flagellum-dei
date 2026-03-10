@@ -204,6 +204,10 @@ const CharacterCreationWizard = ({ onCreated, onCancel, gameId }: CharacterCreat
           setCacheData(cacheKey, [newChar, ...cached]);
           queryClient.setQueryData(["my-characters", user.id], (old: any[]) => old ? [newChar, ...old] : [newChar]);
 
+          // Seed individual character cache so CharacterSheet can load it
+          setCacheData(`character-${tempCharId}`, newChar);
+          queryClient.setQueryData(["character", tempCharId], newChar);
+
           // Seed feat caches so CharacterFeatPicker can display them
           const newCf = { id: tempCfId, character_id: tempCharId, feat_id: featId, level: 1, is_free: false, note: null };
           queryClient.setQueryData(["character-feats", tempCharId], [newCf]);
@@ -334,6 +338,12 @@ const CharacterCreationWizard = ({ onCreated, onCancel, gameId }: CharacterCreat
         queryClient.setQueryData(["my-characters", user.id], (old: any[]) =>
           old?.map((c: any) => c.id === characterId ? { ...c, name: name || "Blank", description: description || null, portrait_url: portraitUrl } : c)
         );
+
+        // Update individual character cache
+        const updatedChar = { id: characterId, user_id: user.id, name: name || "Blank", description: description || null, portrait_url: portraitUrl, created_at: new Date().toISOString(), updated_at: new Date().toISOString() };
+        setCacheData(`character-${characterId}`, updatedChar);
+        queryClient.setQueryData(["character", characterId], updatedChar);
+
         onCreated(characterId);
         toast({ title: "Character saved locally — will sync when online" });
       } else {

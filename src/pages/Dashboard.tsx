@@ -295,7 +295,14 @@ const Dashboard = () => {
                   character={c}
                   actions={
                     <>
-                      <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => setEditingCharId(c.id)}>
+                      <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => {
+                        // Seed individual character cache for guest/offline so CharacterSheet can load it
+                        if (isGuest || !online) {
+                          setCacheData(`character-${c.id}`, c);
+                          queryClient.setQueryData(["character", c.id], c);
+                        }
+                        setEditingCharId(c.id);
+                      }}>
                         <Pencil className="h-3.5 w-3.5" />
                       </Button>
                       <Button variant="ghost" size="icon" className="h-7 w-7 text-destructive" onClick={() => setDeleteCharTarget({ id: c.id, name: c.name })}>
