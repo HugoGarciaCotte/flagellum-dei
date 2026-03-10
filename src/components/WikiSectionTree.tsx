@@ -3,8 +3,7 @@ import { createPortal } from "react-dom";
 import { ChevronRight, Play } from "lucide-react";
 import { WikiSection, resolveBackgroundImage } from "@/lib/parseWikitext";
 import { cn } from "@/lib/utils";
-import { buildFeatsMap } from "@/data/feats";
-import { parseFeatFields } from "@/lib/parseFeatContent";
+import { buildFeatsMap, getFeatMeta } from "@/data/feats";
 
 interface WikiSectionTreeProps {
   sections: WikiSection[];
