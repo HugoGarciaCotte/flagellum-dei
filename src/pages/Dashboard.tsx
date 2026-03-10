@@ -31,6 +31,7 @@ const Dashboard = () => {
   const { user, signOut } = useAuth();
   const navigate = useNavigate();
   const queryClient = useQueryClient();
+  const online = useNetworkStatus();
   const [joinCode, setJoinCode] = useState("");
   const [hostOpen, setHostOpen] = useState(false);
   const [newCharDialogOpen, setNewCharDialogOpen] = useState(false);
