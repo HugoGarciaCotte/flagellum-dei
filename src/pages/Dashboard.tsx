@@ -103,7 +103,8 @@ const Dashboard = () => {
     if (myGames) {
       for (const g of myGames) {
         seen.add(g.id);
-        games.push({ id: g.id, title: (g as any).scenarios?.title || "Untitled", join_code: g.join_code, role: "hosting" });
+        const sc = getScenarioById(g.scenario_id);
+        games.push({ id: g.id, title: sc?.title || "Untitled", join_code: g.join_code, role: "hosting" });
       }
     }
     if (joinedGames) {
