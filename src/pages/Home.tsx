@@ -315,11 +315,15 @@ const Home = () => {
           />
           <ClarityItem
             icon={<Wifi className="h-4 w-4" />}
-            label="Table or Video Call"
+            label="In Person or by Video Call"
           />
           <ClarityItem
             icon={<Globe className="h-4 w-4" />}
             label="Everything on the Website"
+          />
+          <ClarityItem
+            icon={<Gift className="h-4 w-4" />}
+            label="100% Free"
           />
         </div>
       </section>
