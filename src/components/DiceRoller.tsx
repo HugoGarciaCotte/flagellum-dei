@@ -1,6 +1,8 @@
 import { useState, useCallback, useEffect, useRef } from "react";
 import { Dices } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { supabase } from "@/integrations/supabase/client";
+import { toast } from "@/hooks/use-toast";
 
 // Classic die dot patterns for faces 1-6
 const DOT_PATTERNS: Record<number, [number, number][]> = {
@@ -44,14 +46,11 @@ function playDiceSound() {
     const buffer = ctx.createBuffer(1, sampleRate * duration, sampleRate);
     const data = buffer.getChannelData(0);
 
-    // Synthesize a rattling dice sound
     for (let i = 0; i < data.length; i++) {
       const t = i / sampleRate;
       const envelope = Math.max(0, 1 - t / duration);
-      // Multiple clicking frequencies blended
       const click = Math.sin(t * 3000) * 0.3 + Math.sin(t * 1500) * 0.2;
       const noise = (Math.random() * 2 - 1) * 0.5;
-      // Rapid "bouncing" modulation
       const bounce = Math.abs(Math.sin(t * 25)) * 0.6 + 0.4;
       data[i] = (click + noise) * envelope * bounce * 0.4;
     }
@@ -62,11 +61,17 @@ function playDiceSound() {
     source.start();
     source.onended = () => ctx.close();
   } catch {
-    // Audio not available, silently ignore
+    // Audio not available
   }
 }
 
-const DiceRoller = () => {
+interface DiceRollerProps {
+  gameId?: string;
+  userName?: string;
+  isGameMaster?: boolean;
+}
+
+const DiceRoller = ({ gameId, userName, isGameMaster }: DiceRollerProps) => {
   const [rolling, setRolling] = useState(false);
   const [result, setResult] = useState<number | null>(null);
   const [displayValue, setDisplayValue] = useState(1);
@@ -75,19 +80,66 @@ const DiceRoller = () => {
   const settleTimeoutRef = useRef<ReturnType<typeof setTimeout>>();
   const dismissTimeoutRef = useRef<ReturnType<typeof setTimeout>>();
   const finalValueRef = useRef(1);
+  const rollIdRef = useRef("");
+  const channelRef = useRef<ReturnType<typeof supabase.channel> | null>(null);
 
-  const showResult = useCallback((value: number) => {
-    clearInterval(intervalRef.current);
-    clearTimeout(settleTimeoutRef.current);
-    setResult(value);
-    setDisplayValue(value);
-    setPhase("result");
+  // Subscribe to broadcast channel
+  useEffect(() => {
+    if (!gameId) return;
 
-    dismissTimeoutRef.current = setTimeout(() => {
-      setPhase("idle");
-      setRolling(false);
-    }, 1800);
-  }, []);
+    const channel = supabase.channel(`dice-${gameId}`);
+    channel
+      .on("broadcast", { event: "dice-roll" }, ({ payload }) => {
+        // Skip own rolls
+        if (payload.rollId === rollIdRef.current) return;
+
+        if (payload.isGameMaster) {
+          toast({ title: "🎲 The Game Master rolled a dice" });
+        } else {
+          toast({ title: `🎲 ${payload.userName} rolled a ${payload.result}` });
+        }
+      })
+      .subscribe();
+
+    channelRef.current = channel;
+
+    return () => {
+      supabase.removeChannel(channel);
+      channelRef.current = null;
+    };
+  }, [gameId]);
+
+  const broadcastRoll = useCallback(
+    (value: number) => {
+      if (!gameId || !channelRef.current) return;
+      const rollId = crypto.randomUUID();
+      rollIdRef.current = rollId;
+      channelRef.current.send({
+        type: "broadcast",
+        event: "dice-roll",
+        payload: { userName, result: value, isGameMaster, rollId },
+      });
+    },
+    [gameId, userName, isGameMaster]
+  );
+
+  const showResult = useCallback(
+    (value: number) => {
+      clearInterval(intervalRef.current);
+      clearTimeout(settleTimeoutRef.current);
+      setResult(value);
+      setDisplayValue(value);
+      setPhase("result");
+
+      broadcastRoll(value);
+
+      dismissTimeoutRef.current = setTimeout(() => {
+        setPhase("idle");
+        setRolling(false);
+      }, 1800);
+    },
+    [broadcastRoll]
+  );
 
   const roll = useCallback(() => {
     if (rolling) return;
@@ -97,7 +149,6 @@ const DiceRoller = () => {
     setPhase("rolling");
     setResult(null);
 
-    // Pre-compute final result
     finalValueRef.current = Math.floor(Math.random() * 6) + 1;
 
     intervalRef.current = setInterval(() => {
@@ -129,7 +180,6 @@ const DiceRoller = () => {
 
   return (
     <>
-      {/* FAB Button */}
       <div className="fixed bottom-20 right-6 z-50">
         <Button
           onClick={roll}
@@ -141,7 +191,6 @@ const DiceRoller = () => {
         </Button>
       </div>
 
-      {/* Full-screen overlay */}
       {phase !== "idle" && (
         <div
           className="fixed inset-0 z-[100] flex items-center justify-center bg-background/70 backdrop-blur-sm cursor-pointer"
@@ -166,7 +215,6 @@ const DiceRoller = () => {
         </div>
       )}
 
-      {/* Keyframes injected via style tag */}
       <style>{`
         @keyframes dice-tumble {
           0%   { transform: translate(-150px, -200px) rotate(0deg) scale(0.3); opacity: 0; }
