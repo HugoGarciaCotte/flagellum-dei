@@ -7,14 +7,14 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
 import { toast } from "@/hooks/use-toast";
-import { parseEmbeddedFeatMeta, SubfeatSlot } from "@/lib/parseEmbeddedFeatMeta";
+import { type SubfeatSlot } from "@/lib/parseEmbeddedFeatMeta";
 import FeatListItem from "@/components/FeatListItem";
 import { sortTitlesEmojiLast } from "@/lib/utils";
 import {
   Loader2, Sparkles, Upload, Dices, ChevronRight, SkipForward,
   Search, ArrowLeft,
 } from "lucide-react";
-import { getAllFeats } from "@/data/feats";
+import { getAllFeats, getFeatMeta } from "@/data/feats";
 import Logo from "@/components/Logo";
 
 interface CharacterCreationWizardProps {
