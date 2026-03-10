@@ -3,7 +3,6 @@ import {
   cacheGameSession,
   getCachedGameSession,
   CachedGameSession,
-  cacheCharacterFeats,
 } from "@/lib/offlineStorage";
 import { supabase } from "@/integrations/supabase/client";
 
