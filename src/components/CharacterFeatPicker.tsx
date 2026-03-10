@@ -104,7 +104,7 @@ const CharacterFeatPicker = ({ characterId, mode = "player", scenarioLevel }: Ch
     return map;
   }, [metaMap]);
 
-  const { data: characterFeats } = useQuery({
+  const { data: characterFeats } = useOfflineQuery<CharacterFeat[]>(`character-feats-${characterId}`, {
     queryKey: ["character-feats", characterId],
     queryFn: async () => {
       const { data, error } = await supabase
