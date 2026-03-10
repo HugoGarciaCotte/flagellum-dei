@@ -33,7 +33,7 @@ const PlayGame = () => {
   const [editingCharId, setEditingCharId] = useState<string | null>(null);
 
   // Fetch game WITHOUT scenario content — only title
-  const { data: game, error: gameError } = useQuery({
+  const { data: game, error: gameError } = useOfflineQuery<any>(`game-${gameId}`, {
     queryKey: ["game", gameId],
     queryFn: async () => {
       const { data, error } = await supabase
@@ -45,11 +45,9 @@ const PlayGame = () => {
       return data;
     },
     enabled: !!gameId,
-    retry: online ? 3 : 0,
   });
 
-  // Fetch current player's game_player row
-  const { data: myPlayer } = useQuery({
+  const { data: myPlayer } = useOfflineQuery<any>(`my-game-player-${gameId}-${user?.id}`, {
     queryKey: ["my-game-player", gameId, user?.id],
     queryFn: async () => {
       const { data, error } = await supabase
@@ -64,8 +62,7 @@ const PlayGame = () => {
     enabled: !!gameId && !!user,
   });
 
-  // Fetch user's characters
-  const { data: myCharacters } = useQuery({
+  const { data: myCharacters } = useOfflineQuery<any[]>(`my-characters-${user?.id}`, {
     queryKey: ["my-characters", user?.id],
     queryFn: async () => {
       const { data, error } = await supabase
