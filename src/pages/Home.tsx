@@ -174,6 +174,10 @@ const faqs = [
     q: "Can I install this as an app?",
     a: 'Yes! Flagellum Dei works as a Progressive Web App — you can install it on your phone or computer for quick access and offline play. Visit the <a href="/install" class="underline text-primary hover:text-primary/80">install page</a> for instructions.',
   },
+  {
+    q: "Does it work offline?",
+    a: "Yes! Once installed as a PWA, the game works fully offline — character creation, feat browsing, dice rolling, and scenario reading all function without an internet connection. The only features that require connectivity are online multiplayer gaming and background music.",
+  },
 ];
 
 /* ──────────────────────────────────────────────
