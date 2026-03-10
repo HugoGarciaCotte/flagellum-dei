@@ -35,7 +35,7 @@ const HostGame = () => {
     queryFn: async () => {
       const { data, error } = await supabase
         .from("games")
-        .select("*, scenarios(title, description, content)")
+        .select("*")
         .eq("id", gameId!)
         .single();
       if (error) throw error;
