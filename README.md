@@ -4,6 +4,7 @@
 
 [![Play Now](https://img.shields.io/badge/Play_Now-flagellum--dei.lovable.app-d4a44a?style=for-the-badge)](https://flagellum-dei.lovable.app)
 [![Remix on Lovable](https://img.shields.io/badge/Remix_on-Lovable-ff69b4?style=for-the-badge)](https://lovable.dev/projects/81d72331-f39f-42a0-8104-483bc69c26ee)
+[![License: Unlicense](https://img.shields.io/badge/License-Unlicense-blue?style=for-the-badge)](https://unlicense.org)
 
 ---
 
@@ -65,11 +66,12 @@ All rules, feats, and lore are built directly into the app — no external ruleb
 
 ---
 
-## Open Source
+## Open Source — Unlicense
 
-This project is **fully open source**. The entire website and game engine were built with [Lovable](https://lovable.dev) — only the game content (scenarios, feats, and lore) was handwritten by the creators.
+This project is released under the [Unlicense](https://unlicense.org) — it's in the **public domain**. The entire website and game engine were built with [Lovable](https://lovable.dev) — only the game content (scenarios, feats, and lore) was handwritten by the creators.
 
-You are free to:
+You are free to copy, modify, publish, sell, or distribute this software for any purpose — no permission needed, no attribution required. Want to build your own TTRPG from it? Go ahead.
+
 - 🔀 **[Remix on Lovable](https://lovable.dev/projects/81d72331-f39f-42a0-8104-483bc69c26ee)** — fork and modify the project directly in Lovable
 - 🐙 **[Browse the source on GitHub](https://github.com/HugoGarciaCotte/flagellum-dei)** — clone, inspect, and contribute
 
