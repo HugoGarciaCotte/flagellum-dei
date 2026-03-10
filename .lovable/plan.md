@@ -1,29 +1,19 @@
 
 
-## Apply Updated Logo SVG & Regenerate PWA Icons
+## Regenerate PWA Icons from Updated Logo SVG
 
-The `src/assets/logo.svg` and `public/favicon.svg` were already updated in my previous message with the user's realigned SVG. Both files are identical and current.
+The `src/assets/logo.svg` and `public/favicon.svg` are already updated with the user's realigned path-based SVG. The remaining work is regenerating the PWA PNG icons.
 
-### What needs to happen
+### Changes
 
-1. **Regenerate PWA PNG icons** — The existing `generate-pwa-icon` edge function uses AI to generate icons from a text prompt, which won't match the actual logo. Instead, we should update the function to convert the actual SVG file into PNG format, or better yet, replace the approach entirely:
+1. **Rewrite `supabase/functions/generate-pwa-icon/index.ts`**
+   - Remove the AI-based image generation approach
+   - Embed the actual logo SVG content directly in the function
+   - Use `resvg-wasm` (available via `https://esm.sh/@aspect-dev/resvg-wasm`) to rasterize the SVG to PNG at 512px
+   - Upload the 512px PNG to `app-assets/pwa-icon-512.png` and the same image to `app-assets/pwa-icon-192.png` (browsers handle scaling)
+   - Keep existing CORS headers and storage upload logic
 
-   **New approach**: Rewrite the `generate-pwa-icon` edge function to:
-   - Accept the SVG content as input (or have it hardcoded)
-   - Use an SVG-to-PNG conversion (via `resvg-wasm` or a canvas-based approach in Deno)
-   - Upload the resulting 192px and 512px PNGs to storage, overwriting the old AI-generated ones
+2. **Invoke the function** after deployment to regenerate the icons in storage
 
-   Since Deno edge functions have limited image processing, the simplest reliable approach is to:
-   - Embed the SVG as a data URI and upload it directly, OR
-   - Use `resvg` WASM for server-side SVG→PNG rasterization
-
-2. **Verify all references** — Already confirmed:
-   - `index.html` → `/favicon.svg` ✓
-   - `Logo.tsx` → `@/assets/logo.svg` ✓  
-   - `vite.config.ts` PWA manifest → `favicon.svg` + storage URLs for PNGs ✓
-
-### Implementation
-
-- **Rewrite `supabase/functions/generate-pwa-icon/index.ts`** to embed the actual logo SVG and convert it to PNG using `resvg-wasm`, then upload 192px and 512px versions to the `app-assets` storage bucket
-- After deploying, invoke the function once to regenerate the PNG icons in storage
+All other references (`index.html`, `Logo.tsx`, `vite.config.ts` manifest) are already correct and point to the right files.
 
