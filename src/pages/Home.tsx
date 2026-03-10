@@ -343,8 +343,9 @@ const Home = () => {
               title="Historically Grounded Horror"
               description={
                 <p>
-                  Built from real medieval fears, beliefs, rituals, and
-                  institutions. Investigations feel disturbingly plausible.
+                  A decade of research across historical archives and scientific
+                  publications. Every ritual, belief, and institution is rooted
+                  in documented medieval reality.
                 </p>
               }
             />
