@@ -401,7 +401,7 @@ const CharacterCreationWizard = ({ onCreated, onCancel, gameId }: CharacterCreat
     if (!user) return;
     setCreating(true);
     try {
-      if (!online) {
+      if (!online || isGuest) {
         const tempCharId = crypto.randomUUID();
         queueAction({
           table: "characters",
