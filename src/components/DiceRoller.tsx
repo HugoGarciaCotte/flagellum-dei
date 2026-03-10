@@ -3,6 +3,7 @@ import { Dices } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "@/hooks/use-toast";
+import diceRollSfx from "@/assets/dice-roll.mp3";
 
 // Classic die dot patterns for faces 1-6
 const DOT_PATTERNS: Record<number, [number, number][]> = {
@@ -40,26 +41,9 @@ function DieFace({ value, size = 96 }: { value: number; size?: number }) {
 
 function playDiceSound() {
   try {
-    const ctx = new AudioContext();
-    const duration = 0.6;
-    const sampleRate = ctx.sampleRate;
-    const buffer = ctx.createBuffer(1, sampleRate * duration, sampleRate);
-    const data = buffer.getChannelData(0);
-
-    for (let i = 0; i < data.length; i++) {
-      const t = i / sampleRate;
-      const envelope = Math.max(0, 1 - t / duration);
-      const click = Math.sin(t * 3000) * 0.3 + Math.sin(t * 1500) * 0.2;
-      const noise = (Math.random() * 2 - 1) * 0.5;
-      const bounce = Math.abs(Math.sin(t * 25)) * 0.6 + 0.4;
-      data[i] = (click + noise) * envelope * bounce * 0.4;
-    }
-
-    const source = ctx.createBufferSource();
-    source.buffer = buffer;
-    source.connect(ctx.destination);
-    source.start();
-    source.onended = () => ctx.close();
+    const audio = new Audio(diceRollSfx);
+    audio.volume = 0.5;
+    audio.play();
   } catch {
     // Audio not available
   }
