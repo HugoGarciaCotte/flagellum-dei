@@ -112,7 +112,8 @@ const Dashboard = () => {
         const g = (jp as any).games;
         if (g && !seen.has(g.id)) {
           seen.add(g.id);
-          games.push({ id: g.id, title: g.scenarios?.title || "Untitled", join_code: g.join_code, role: "playing" });
+          const sc = getScenarioById(g.scenario_id);
+          games.push({ id: g.id, title: sc?.title || "Untitled", join_code: g.join_code, role: "playing" });
         }
       }
     }

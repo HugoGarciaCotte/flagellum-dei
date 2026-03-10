@@ -107,7 +107,9 @@ const PlayGame = () => {
   }, [game, gameId, gameError]);
 
   const effectiveGame = game ?? cachedSession?.game;
-  const effectiveScenario = game ? (game as any).scenarios : cachedSession?.scenario;
+  const effectiveScenario = game
+    ? getScenarioById(game.scenario_id)
+    : cachedSession?.scenario;
 
   // Realtime: listen for game updates
   useEffect(() => {
