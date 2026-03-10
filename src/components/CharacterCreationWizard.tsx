@@ -474,7 +474,6 @@ const CharacterCreationWizard = ({ onCreated, onCancel, gameId }: CharacterCreat
       setCreating(false);
     }
   };
-  };
 
   const handleSkipAfterArchetype = () => {
     if (characterId) {
