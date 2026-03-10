@@ -5,6 +5,7 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route } from "react-router-dom";
 import { AuthProvider } from "@/contexts/AuthContext";
 import { OfflineBanner } from "@/components/OfflineBanner";
+import { attachOnlineListener } from "@/lib/offlineQueue";
 import Index from "./pages/Index";
 import Auth from "./pages/Auth";
 import HostGame from "./pages/HostGame";
@@ -26,6 +27,11 @@ const queryClient = new QueryClient({
       },
     },
   },
+});
+
+// Auto-sync offline queue when connectivity returns
+attachOnlineListener(() => {
+  queryClient.invalidateQueries();
 });
 
 const App = () => (
