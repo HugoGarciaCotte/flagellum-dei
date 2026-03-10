@@ -136,7 +136,7 @@ const Dashboard = () => {
   }, [myGames, joinedGames]);
 
   const handleCreateGame = async (scenarioId: string) => {
-    if (isGuest || !online) {
+    if (!online) {
       const tempGameId = crypto.randomUUID();
       const newGame = {
         id: tempGameId,
@@ -153,7 +153,6 @@ const Dashboard = () => {
       setCacheData(cacheKey, [newGame, ...cached]);
       queryClient.setQueryData(["my-games", user!.id], (old: any[]) => old ? [newGame, ...old] : [newGame]);
 
-      // Seed game session cache so HostGame can load it offline/guest
       const scenario = getScenarioById(scenarioId);
       cacheGameSession(tempGameId, {
         game: { id: tempGameId, status: "active", join_code: "LOCAL", current_section: null, host_user_id: user!.id, scenario_id: scenarioId },
