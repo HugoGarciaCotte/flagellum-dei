@@ -37,7 +37,7 @@ const Dashboard = () => {
   const [newCharDialogOpen, setNewCharDialogOpen] = useState(false);
   const [editingCharId, setEditingCharId] = useState<string | null>(null);
   const { isOwner } = useIsOwner();
-  const { isGameMaster } = useIsGameMaster();
+  const { isGameMaster, setGuestGameMaster } = useIsGameMaster();
   const [gmDialogOpen, setGmDialogOpen] = useState(false);
   const [deleteCharTarget, setDeleteCharTarget] = useState<{ id: string; name: string } | null>(null);
 
