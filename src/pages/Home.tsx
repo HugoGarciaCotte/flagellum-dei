@@ -257,7 +257,7 @@ const Home = () => {
               <p className="font-display text-xl text-foreground/90 md:text-2xl">
                 Judge the damned.
               </p>
-              <p className="font-display text-xl text-crimson md:text-2xl">
+              <p className="font-display text-xl text-primary font-bold md:text-2xl">
                 Fear what answers.
               </p>
             </div>
