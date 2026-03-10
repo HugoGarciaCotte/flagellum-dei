@@ -135,35 +135,39 @@ const Dashboard = () => {
     return games;
   }, [myGames, joinedGames]);
 
+  const createLocalGame = (scenarioId: string) => {
+    const tempGameId = crypto.randomUUID();
+    const newGame = {
+      id: tempGameId,
+      host_user_id: user!.id,
+      scenario_id: scenarioId,
+      join_code: null,
+      status: "active",
+      current_section: null,
+      created_at: new Date().toISOString(),
+      updated_at: new Date().toISOString(),
+    };
+    const cacheKey = `my-games-${user!.id}`;
+    const cached = getCacheData<any[]>(cacheKey) ?? [];
+    setCacheData(cacheKey, [newGame, ...cached]);
+    queryClient.setQueryData(["my-games", user!.id], (old: any[]) => old ? [newGame, ...old] : [newGame]);
+
+    const scenario = getScenarioById(scenarioId);
+    cacheGameSession(tempGameId, {
+      game: { id: tempGameId, status: "active", join_code: "LOCAL", current_section: null, host_user_id: user!.id, scenario_id: scenarioId },
+      scenario: { title: scenario?.title ?? "", description: scenario?.description ?? null, content: scenario?.content ?? null },
+      players: [],
+      characters: [],
+      cachedAt: Date.now(),
+    });
+
+    toast({ title: "Game created", description: "Local game — no join code needed." });
+    navigate(`/game/${tempGameId}/host`);
+  };
+
   const handleCreateGame = async (scenarioId: string) => {
     if (!online) {
-      const tempGameId = crypto.randomUUID();
-      const newGame = {
-        id: tempGameId,
-        host_user_id: user!.id,
-        scenario_id: scenarioId,
-        join_code: null,
-        status: "active",
-        current_section: null,
-        created_at: new Date().toISOString(),
-        updated_at: new Date().toISOString(),
-      };
-      const cacheKey = `my-games-${user!.id}`;
-      const cached = getCacheData<any[]>(cacheKey) ?? [];
-      setCacheData(cacheKey, [newGame, ...cached]);
-      queryClient.setQueryData(["my-games", user!.id], (old: any[]) => old ? [newGame, ...old] : [newGame]);
-
-      const scenario = getScenarioById(scenarioId);
-      cacheGameSession(tempGameId, {
-        game: { id: tempGameId, status: "active", join_code: "LOCAL", current_section: null, host_user_id: user!.id, scenario_id: scenarioId },
-        scenario: { title: scenario?.title ?? "", description: scenario?.description ?? null, content: scenario?.content ?? null },
-        players: [],
-        characters: [],
-        cachedAt: Date.now(),
-      });
-
-      toast({ title: "Game created", description: "Local game — no join code needed." });
-      navigate(`/game/${tempGameId}/host`);
+      createLocalGame(scenarioId);
       return;
     }
     const letters = "ABCDEFGHIJKLMNOPQRSTUVWXYZ";
@@ -174,7 +178,8 @@ const Dashboard = () => {
       .select()
       .single();
     if (error) {
-      toast({ title: "Error", description: error.message, variant: "destructive" });
+      console.warn("DB game creation failed, falling back to local:", error.message);
+      createLocalGame(scenarioId);
       return;
     }
     navigate(`/game/${data.id}/host`);
