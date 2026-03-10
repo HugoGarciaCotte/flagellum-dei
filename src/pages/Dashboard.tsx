@@ -250,7 +250,7 @@ const Dashboard = () => {
               Join
             </Button>
           </div>
-          {!online && !isGuest && (
+          {!online && (
             <p className="text-xs text-muted-foreground flex items-center gap-1">
               <WifiOff className="h-3 w-3" /> You need to be online to join a game
             </p>
