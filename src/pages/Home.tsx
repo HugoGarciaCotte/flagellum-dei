@@ -170,6 +170,10 @@ const faqs = [
       github: "https://github.com/HugoGarciaCotte/flagellum-dei",
     },
   },
+  {
+    q: "Can I install this as an app?",
+    a: 'Yes! Flagellum Dei works as a Progressive Web App — you can install it on your phone or computer for quick access and offline play. Visit the <a href="/install" class="underline text-primary hover:text-primary/80">install page</a> for instructions.',
+  },
 ];
 
 /* ──────────────────────────────────────────────
