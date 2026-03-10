@@ -425,6 +425,12 @@ const Dashboard = () => {
                 <AlertDialogAction
                   className="font-display gap-2"
                   onClick={async () => {
+                    if (isGuest) {
+                      setGuestGameMaster(true);
+                      queryClient.invalidateQueries({ queryKey: ["user-role-game-master"] });
+                      toast({ title: "You are now a Game Master!", description: "You can now host games." });
+                      return;
+                    }
                     const { error } = await supabase
                       .from("user_roles")
                       .insert({ user_id: user!.id, role: "game_master" as any });
