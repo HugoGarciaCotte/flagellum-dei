@@ -18,7 +18,7 @@ import { useOfflineFeats } from "@/hooks/useOfflineFeats";
 import PageHeader from "@/components/PageHeader";
 import CharacterCreationWizard from "@/components/CharacterCreationWizard";
 import CharacterListItem from "@/components/CharacterListItem";
-import { getCachedScenarios, isOffline } from "@/lib/offlineStorage";
+
 import { useIsOwner } from "@/hooks/useIsOwner";
 import { useIsGameMaster } from "@/hooks/useIsGameMaster";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
