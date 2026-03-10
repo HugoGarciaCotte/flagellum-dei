@@ -410,7 +410,9 @@ const Home = () => {
               description={
                 <p>
                   Build characters directly on the website. Choose feats, shape
-                  backstories. No books required.
+                  backstories. The rules are deliberately minimal — learn them in
+                  seconds, then forget them. Every session belongs to atmosphere
+                  and player choices, not rulebooks.
                 </p>
               }
             />
