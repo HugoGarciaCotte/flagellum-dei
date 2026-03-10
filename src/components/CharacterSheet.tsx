@@ -135,8 +135,17 @@ const CharacterSheet = ({ characterId, mode = "player", scenarioLevel, onDone }:
   const handleGenerate = async () => {
     setGenerating(true);
     try {
+      // Resolve feat names locally to avoid DB join on removed feats table
+      const { data: cfRows } = await supabase
+        .from("character_feats")
+        .select("feat_id")
+        .eq("character_id", characterId);
+      const featNames = (cfRows ?? [])
+        .map((cf: any) => getFeatById(cf.feat_id)?.title)
+        .filter(Boolean);
+
       const { data, error } = await supabase.functions.invoke("generate-character-portrait", {
-        body: { characterId },
+        body: { characterId, featNames },
       });
       if (error) throw error;
       if (data?.error) throw new Error(data.error);
