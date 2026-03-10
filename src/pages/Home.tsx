@@ -18,7 +18,7 @@ import {
   ScrollText,
   Gift,
 } from "lucide-react";
-import Logo from "@/components/Logo";
+import BrandTitle from "@/components/BrandTitle";
 
 import heroImg from "@/assets/landing-hero.jpg";
 import scenario1Img from "@/assets/landing-scenario-1.jpg";
