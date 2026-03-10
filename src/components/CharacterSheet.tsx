@@ -9,7 +9,7 @@ import { toast } from "@/hooks/use-toast";
 import { Upload, Sparkles, Loader2, WifiOff } from "lucide-react";
 import CharacterFeatPicker from "@/components/CharacterFeatPicker";
 import { useNetworkStatus } from "@/hooks/useNetworkStatus";
-import { useAuth } from "@/contexts/AuthContext";
+
 import { useOfflineQuery } from "@/hooks/useOfflineQuery";
 import { queueAction, setCacheData, getCacheData } from "@/lib/offlineQueue";
 
@@ -23,8 +23,7 @@ interface CharacterSheetProps {
 const CharacterSheet = ({ characterId, mode = "player", scenarioLevel, onDone }: CharacterSheetProps) => {
   const queryClient = useQueryClient();
   const online = useNetworkStatus();
-  const { isGuest } = useAuth();
-  const effectivelyOffline = !online || isGuest;
+  const effectivelyOffline = !online;
   const [name, setName] = useState("");
   const [desc, setDesc] = useState("");
   const [dirty, setDirty] = useState(false);

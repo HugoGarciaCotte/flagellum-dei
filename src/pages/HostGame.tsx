@@ -22,11 +22,11 @@ import PageHeader from "@/components/PageHeader";
 
 const HostGame = () => {
   const { gameId } = useParams<{ gameId: string }>();
-  const { user, isGuest } = useAuth();
+  const { user } = useAuth();
   const navigate = useNavigate();
   const queryClient = useQueryClient();
   const online = useNetworkStatus();
-  const effectivelyOffline = !online || isGuest;
+  const effectivelyOffline = !online;
 
   // Local override for current_section when offline
   const [localSection, setLocalSection] = useState<string | null>(null);

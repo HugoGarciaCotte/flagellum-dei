@@ -54,7 +54,7 @@ const Dashboard = () => {
       if (error) throw error;
       return data;
     },
-    enabled: !!user && !isGuest,
+    enabled: !!user,
   });
 
   const deleteCharMutation = useMutation({
@@ -93,7 +93,7 @@ const Dashboard = () => {
       if (error) throw error;
       return data;
     },
-    enabled: !!user && !isGuest,
+    enabled: !!user,
   });
 
   // Active games (joined as player)
@@ -108,7 +108,7 @@ const Dashboard = () => {
       if (error) throw error;
       return data;
     },
-    enabled: !!user && !isGuest,
+    enabled: !!user,
   });
 
   // Merge hosted + joined games, deduplicated
@@ -136,7 +136,7 @@ const Dashboard = () => {
   }, [myGames, joinedGames]);
 
   const handleCreateGame = async (scenarioId: string) => {
-    if (isGuest || !online) {
+    if (!online) {
       const tempGameId = crypto.randomUUID();
       const newGame = {
         id: tempGameId,
@@ -153,7 +153,6 @@ const Dashboard = () => {
       setCacheData(cacheKey, [newGame, ...cached]);
       queryClient.setQueryData(["my-games", user!.id], (old: any[]) => old ? [newGame, ...old] : [newGame]);
 
-      // Seed game session cache so HostGame can load it offline/guest
       const scenario = getScenarioById(scenarioId);
       cacheGameSession(tempGameId, {
         game: { id: tempGameId, status: "active", join_code: "LOCAL", current_section: null, host_user_id: user!.id, scenario_id: scenarioId },
@@ -183,14 +182,8 @@ const Dashboard = () => {
 
   const handleJoinGame = async () => {
     if (!joinCode.trim()) return;
-    if (!online && !isGuest) {
+    if (!online) {
       toast({ title: "Offline", description: "You need to be online to join a game.", variant: "destructive" });
-      return;
-    }
-    if (isGuest) {
-      // Guest mode: navigate directly, game page will handle local-only
-      toast({ title: "Guest mode", description: "Joining locally — nothing is saved online." });
-      navigate(`/game/${joinCode.toUpperCase()}/play`);
       return;
     }
     const { data: game, error } = await supabase
@@ -246,18 +239,18 @@ const Dashboard = () => {
           </h2>
           <div className="flex gap-2">
             <Input
-              placeholder={!online && !isGuest ? "Offline — join unavailable" : "Enter join code"}
+              placeholder={!online ? "Offline — join unavailable" : "Enter join code"}
               value={joinCode}
               onChange={(e) => setJoinCode(e.target.value)}
               onKeyDown={(e) => e.key === "Enter" && handleJoinGame()}
               className="font-display text-lg tracking-widest uppercase text-center"
-              disabled={!online && !isGuest}
+              disabled={!online}
             />
-            <Button onClick={handleJoinGame} className="font-display px-6 shrink-0" disabled={!online && !isGuest}>
+            <Button onClick={handleJoinGame} className="font-display px-6 shrink-0" disabled={!online}>
               Join
             </Button>
           </div>
-          {!online && !isGuest && (
+          {!online && (
             <p className="text-xs text-muted-foreground flex items-center gap-1">
               <WifiOff className="h-3 w-3" /> You need to be online to join a game
             </p>
@@ -308,8 +301,7 @@ const Dashboard = () => {
                   actions={
                     <>
                       <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => {
-                        // Seed individual character cache for guest/offline so CharacterSheet can load it
-                        if (isGuest || !online) {
+                        if (!online) {
                           setCacheData(`character-${c.id}`, c);
                           queryClient.setQueryData(["character", c.id], c);
                         }
