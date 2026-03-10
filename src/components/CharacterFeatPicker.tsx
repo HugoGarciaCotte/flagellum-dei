@@ -361,21 +361,22 @@ const CharacterFeatPicker = ({ characterId, mode = "player", scenarioLevel }: Ch
   const updateNoteMutation = useMutation({
     mutationFn: async ({ id, note }: { id: string; note: string }) => {
       const trimmed = note.trim() || null;
-      if (effectivelyOffline) {
+      try {
+        const { error } = await supabase
+          .from("character_feats")
+          .update({ note: trimmed } as any)
+          .eq("id", id);
+        if (error) throw error;
+      } catch {
         queueAction({ table: "character_feats", operation: "update", payload: { note: trimmed }, filter: { id } });
         queryClient.setQueryData(["character-feats", characterId], (old: CharacterFeat[] | undefined) =>
           (old ?? []).map(cf => cf.id === id ? { ...cf, note: trimmed } : cf)
         );
-        return;
+        return "queued";
       }
-      const { error } = await supabase
-        .from("character_feats")
-        .update({ note: trimmed } as any)
-        .eq("id", id);
-      if (error) throw error;
     },
-    onSuccess: () => {
-      if (!effectivelyOffline) {
+    onSuccess: (result) => {
+      if (result !== "queued") {
         queryClient.invalidateQueries({ queryKey: ["character-feats", characterId] });
         queryClient.invalidateQueries({ queryKey: ["character-feats-summary", characterId] });
       }
