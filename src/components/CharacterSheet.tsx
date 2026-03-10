@@ -86,13 +86,13 @@ const CharacterSheet = ({ characterId, mode = "player", scenarioLevel, onDone }:
     },
     onSuccess: () => {
       setDirty(false);
-      if (online) {
+      if (!effectivelyOffline) {
         queryClient.invalidateQueries({ queryKey: ["character", characterId] });
         queryClient.invalidateQueries({ queryKey: ["my-characters"] });
         queryClient.invalidateQueries({ queryKey: ["gm-players"] });
         queryClient.invalidateQueries({ queryKey: ["game-characters"] });
       }
-      toast({ title: online ? "Character updated" : "Saved locally — will sync when online" });
+      toast({ title: !effectivelyOffline ? "Character updated" : "Saved locally — will sync when online" });
     },
     onError: (e: any) => toast({ title: "Error", description: e.message, variant: "destructive" }),
   });
