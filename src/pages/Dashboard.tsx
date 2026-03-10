@@ -456,6 +456,17 @@ const Dashboard = () => {
                       toast({ title: "You are now a Game Master!", description: "You can now host games." });
                       return;
                     }
+                    if (!online) {
+                      queueAction({
+                        table: "user_roles",
+                        operation: "insert",
+                        payload: { user_id: user!.id, role: "game_master" },
+                      });
+                      setCacheData("qs_is_game_master", true);
+                      queryClient.invalidateQueries({ queryKey: ["user-role-game-master"] });
+                      toast({ title: "You are now a Game Master!", description: "Will sync when back online." });
+                      return;
+                    }
                     const { error } = await supabase
                       .from("user_roles")
                       .insert({ user_id: user!.id, role: "game_master" as any });
