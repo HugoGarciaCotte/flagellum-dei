@@ -397,8 +397,10 @@ const Home = () => {
               title="Choose a Scenario"
               description={
                 <p>
-                  Select a complete investigation set in plague-era Europe. Each
-                  scenario is a self-contained descent into darkness.
+                  Begin the Danse Macabre — a 10-part campaign handwritten over a
+                  decade of research. No AI, no filler. Every scenario was crafted
+                  from historical archives, scientific publications, and obsessive
+                  attention to detail.
                 </p>
               }
             />
