@@ -9,6 +9,7 @@ import { toast } from "@/hooks/use-toast";
 import { Upload, Sparkles, Loader2, WifiOff } from "lucide-react";
 import CharacterFeatPicker from "@/components/CharacterFeatPicker";
 import { useNetworkStatus } from "@/hooks/useNetworkStatus";
+import { getFeatById } from "@/data/feats";
 
 import { useOfflineQuery } from "@/hooks/useOfflineQuery";
 import { queueAction, setCacheData, getCacheData } from "@/lib/offlineQueue";
