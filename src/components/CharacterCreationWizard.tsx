@@ -412,7 +412,7 @@ const CharacterCreationWizard = ({ onCreated, onCancel, gameId }: CharacterCreat
       toast({ title: "Character saved locally — will sync when online" });
     };
 
-    const result = await resilientMutation(
+    await resilientMutation(
       async () => {
         const { data: charData, error: charError } = await supabase.from("characters").insert({ user_id: user.id, name: "Blank" } as any).select().single();
         if (charError) throw charError;
@@ -425,13 +425,7 @@ const CharacterCreationWizard = ({ onCreated, onCancel, gameId }: CharacterCreat
       },
       doOffline,
     );
-    } finally {
-      setCreating(false);
-    }
-  };
-
-  const handleSkipAfterArchetype = () => {
-    if (characterId) {
+    setCreating(false);
       onCreated(characterId);
     }
   };
