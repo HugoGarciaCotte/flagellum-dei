@@ -9,10 +9,10 @@ import { toast } from "sonner";
 import FeatListItem from "@/components/FeatListItem";
 import { Alert, AlertTitle, AlertDescription } from "@/components/ui/alert";
 
-import { parseEmbeddedFeatMeta, type SubfeatSlot } from "@/lib/parseEmbeddedFeatMeta";
+import { type SubfeatSlot } from "@/lib/parseEmbeddedFeatMeta";
 
 import { useNetworkStatus } from "@/hooks/useNetworkStatus";
-import { getAllFeats } from "@/data/feats";
+import { getAllFeats, getFeatMeta } from "@/data/feats";
 
 interface CharacterFeatPickerProps {
   characterId: string;
