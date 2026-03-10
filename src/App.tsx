@@ -53,9 +53,9 @@ const App = () => (
             <Route path="/admin/feats" element={<AdminFeats />} />
             <Route path="*" element={<NotFound />} />
           </Routes>
+          <OfflineBanner />
+          <GuestBanner />
         </BrowserRouter>
-        <OfflineBanner />
-        <GuestBanner />
       </TooltipProvider>
     </AuthProvider>
   </QueryClientProvider>
