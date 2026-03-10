@@ -16,6 +16,7 @@ import {
   Flame,
   Cross,
   ScrollText,
+  Gift,
 } from "lucide-react";
 import Logo from "@/components/Logo";
 
@@ -256,18 +257,19 @@ const Home = () => {
               <p className="font-display text-xl text-foreground/90 md:text-2xl">
                 Judge the damned.
               </p>
-              <p className="font-display text-xl text-crimson md:text-2xl">
+              <p className="font-display text-xl text-primary font-bold md:text-2xl">
                 Fear what answers.
               </p>
             </div>
             <p className="max-w-lg text-base leading-relaxed text-muted-foreground">
-              A historical horror tabletop role-playing game where players become
-              inquisitors hunting heresy during the Black Death. Gather 3–9
-              players around a table, open the website, and begin an
-              investigation.
+              A dark historical horror RPG where you become an inquisitor,
+              interrogating heretics, uncovering blasphemous rituals, and
+              confronting unspeakable dread during the Black Death. Gather 3–9
+              players around a table, open the website, and begin your
+              investigation. Entirely free.
             </p>
             <p className="max-w-lg text-sm text-muted-foreground/60">
-              No books. No downloads. Only the hunt.
+              No books. No downloads. Only the screams of the damned.
             </p>
 
             <div className="flex flex-col gap-4 sm:flex-row sm:items-center">
@@ -276,7 +278,7 @@ const Home = () => {
                   size="lg"
                   className="font-display text-sm tracking-[0.2em] uppercase px-10 py-7 gold-glow gold-glow-box"
                 >
-                  Start Your First Hunt
+                  Descend Into Darkness
                 </Button>
               </Link>
               <a href="#how-it-works">
@@ -313,11 +315,15 @@ const Home = () => {
           />
           <ClarityItem
             icon={<Wifi className="h-4 w-4" />}
-            label="Table or Video Call"
+            label="In Person or by Video Call"
           />
           <ClarityItem
             icon={<Globe className="h-4 w-4" />}
             label="Everything on the Website"
+          />
+          <ClarityItem
+            icon={<Gift className="h-4 w-4" />}
+            label="100% Free"
           />
         </div>
       </section>
