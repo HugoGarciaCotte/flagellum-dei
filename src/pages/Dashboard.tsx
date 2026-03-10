@@ -72,7 +72,7 @@ const Dashboard = () => {
     queryFn: async () => {
       const { data, error } = await supabase
         .from("games")
-        .select("*, scenarios(title)")
+        .select("*")
         .eq("host_user_id", user!.id)
         .eq("status", "active");
       if (error) throw error;
