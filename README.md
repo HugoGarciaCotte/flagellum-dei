@@ -65,6 +65,16 @@ All rules, feats, and lore are built directly into the app — no external ruleb
 
 ---
 
+## Origins — Prima RPG
+
+Flagellum Dei grew out of **[Prima](https://prima-jdr.fr/)**, a French tabletop RPG built around alchemy and the quest to incarnate a god. Prima is still available as a [free PDF](https://prima-jdr.fr/merci_davoir_telecharge_prima.html) and a [hardcover book](https://www.lulu.com/fr/shop/hugo-garcia-cotte/prima-livre-du-joueur/hardcover/product-1rgeyy6m.html).
+
+The game later shifted toward historical realism, becoming the campaign hosted at **[prima.wiki](https://prima.wiki)**. Flagellum Dei's feats and scenarios are adapted from that campaign.
+
+The same universe also spawned **[Danse Macabre](https://github.com/Taiko3615/Danse-Macabre)**, an open-source video game that adapts the first episode of Flagellum Dei into a fully playable title — and was among the first standalone games to use AI for powering every NPC.
+
+---
+
 ## Open Source
 
 This project is **fully open source**. The entire website and game engine were built with [Lovable](https://lovable.dev) — only the game content (scenarios, feats, and lore) was handwritten by the creators.
