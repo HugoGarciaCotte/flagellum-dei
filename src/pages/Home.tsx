@@ -143,6 +143,10 @@ const faqs = [
     a: "Flagellum Dei is a historical horror tabletop role-playing game set during the Black Death. Players take on the roles of inquisitors investigating heresy, dark rituals, and supernatural terrors across 14th-century Europe.",
   },
   {
+    q: "Is Flagellum Dei related to Prima RPG?",
+    a: 'Yes — Flagellum Dei was created by the same team behind <a href="https://prima-jdr.fr/" class="underline text-primary hover:text-primary/80" target="_blank">Prima</a>, a French tabletop RPG centered on alchemy and divine incarnation, available as a <a href="https://prima-jdr.fr/merci_davoir_telecharge_prima.html" class="underline text-primary hover:text-primary/80" target="_blank">free PDF</a> or a <a href="https://www.lulu.com/fr/shop/hugo-garcia-cotte/prima-livre-du-joueur/hardcover/product-1rgeyy6m.html" class="underline text-primary hover:text-primary/80" target="_blank">hardcover book</a>. Over time, Prima evolved into a historically grounded campaign hosted at <a href="https://prima.wiki" class="underline text-primary hover:text-primary/80" target="_blank">prima.wiki</a> — Flagellum Dei\'s feats and scenarios are adapted directly from that body of work. The universe also inspired <a href="https://github.com/Taiko3615/Danse-Macabre" class="underline text-primary hover:text-primary/80" target="_blank">Danse Macabre</a>, an open-source video game that adapts the first episode of Flagellum Dei into a fully playable title — and was among the first standalone games to use AI for powering every NPC.',
+  },
+  {
     q: "Is this a video game?",
     a: "No. Flagellum Dei is a pen-and-paper TTRPG designed for in-person play around a table or via video call. This website serves as your digital companion — providing character creation, scenarios, rules, and game tools.",
   },
