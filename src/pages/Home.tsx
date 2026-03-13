@@ -132,7 +132,7 @@ const showcaseScenarios = [
   {
     title: "The Societas Templois",
     description:
-      "A series of mysterious deaths shadows the Habsburg family, leading to an Austrian abbey — seat of a long-dead secret society. They tried to lock away their curse. But how long can you run from the Devil?",
+      "A string of mysterious deaths haunts the Habsburg family, their trail leading to a secluded Austrian abbey — once the seat of a long-dead secret society. They believed they had sealed away their curse. But how long can anyone run from the Devil?",
     level: 1,
   },
   {
