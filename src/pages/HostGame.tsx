@@ -20,22 +20,22 @@ import PageHeader from "@/components/PageHeader";
 import { useLocalRow, useLocalRows } from "@/hooks/useLocalData";
 import { upsertRow } from "@/lib/localStore";
 import { triggerPush, pullAll } from "@/lib/syncManager";
+import { useTranslation } from "@/i18n/useTranslation";
 
 const HostGame = () => {
   const { gameId } = useParams<{ gameId: string }>();
   const { user } = useAuth();
   const navigate = useNavigate();
   const online = useNetworkStatus();
+  const { t } = useTranslation();
 
   const [localSection, setLocalSection] = useState<string | null>(null);
 
-  // Local-first data
   const game = useLocalRow<any>("games", gameId);
   const allPlayers = useLocalRows<any>("game_players", gameId ? { game_id: gameId } : undefined);
   const allCharacters = useLocalRows<any>("characters");
   const allProfiles = useLocalRows<any>("profiles");
 
-  // Build players with profile display names
   const players = useMemo(() => {
     return allPlayers.map((p: any) => {
       const profile = allProfiles.find((pr: any) => pr.user_id === p.user_id);
@@ -43,18 +43,10 @@ const HostGame = () => {
     });
   }, [allPlayers, allProfiles]);
 
-  // Characters for players in this game
-  const playerUserIds = useMemo(
-    () => [...new Set(allPlayers.map((p: any) => p.user_id as string))],
-    [allPlayers]
-  );
-  const characters = useMemo(
-    () => allCharacters.filter((c: any) => playerUserIds.includes(c.user_id)),
-    [allCharacters, playerUserIds]
-  );
+  const playerUserIds = useMemo(() => [...new Set(allPlayers.map((p: any) => p.user_id as string))], [allPlayers]);
+  const characters = useMemo(() => allCharacters.filter((c: any) => playerUserIds.includes(c.user_id)), [allCharacters, playerUserIds]);
 
   const effectiveScenario = game ? getScenarioById(game.scenario_id) : null;
-
   const scenarioContent = effectiveScenario?.content || "";
   const parsed = useMemo(() => parseWikitext(scenarioContent), [scenarioContent]);
   const sections = parsed.sections;
@@ -62,37 +54,25 @@ const HostGame = () => {
 
   useEffect(() => {
     const urls = extractImageUrls(scenarioContent);
-    if (urls.length > 0) {
-      for (const url of urls) { const img = new Image(); img.src = url; }
-    }
+    if (urls.length > 0) { for (const url of urls) { const img = new Image(); img.src = url; } }
   }, [scenarioContent]);
 
   const activeSection = localSection ?? game?.current_section ?? null;
 
-  useEffect(() => {
-    if (game) setLocalSection(null);
-  }, [game?.current_section]);
+  useEffect(() => { if (game) setLocalSection(null); }, [game?.current_section]);
 
-  // Realtime for game updates
   useEffect(() => {
     if (!gameId) return;
-    const channel = supabase
-      .channel(`game-host-${gameId}`)
-      .on("postgres_changes", { event: "UPDATE", schema: "public", table: "games", filter: `id=eq.${gameId}` }, () => {
-        pullAll();
-      })
+    const channel = supabase.channel(`game-host-${gameId}`)
+      .on("postgres_changes", { event: "UPDATE", schema: "public", table: "games", filter: `id=eq.${gameId}` }, () => { pullAll(); })
       .subscribe();
     return () => { supabase.removeChannel(channel); };
   }, [gameId]);
 
-  // Realtime for players joining
   useEffect(() => {
     if (!gameId) return;
-    const channel = supabase
-      .channel(`game-players-${gameId}`)
-      .on("postgres_changes", { event: "*", schema: "public", table: "game_players", filter: `game_id=eq.${gameId}` }, () => {
-        pullAll();
-      })
+    const channel = supabase.channel(`game-players-${gameId}`)
+      .on("postgres_changes", { event: "*", schema: "public", table: "game_players", filter: `game_id=eq.${gameId}` }, () => { pullAll(); })
       .subscribe();
     return () => { supabase.removeChannel(channel); };
   }, [gameId]);
@@ -100,9 +80,7 @@ const HostGame = () => {
   const endGame = async () => {
     if (!game) return;
     upsertRow("games", { ...game, status: "ended", updated_at: new Date().toISOString() });
-    try {
-      await supabase.from("games").update({ status: "ended" }).eq("id", game.id);
-    } catch {}
+    try { await supabase.from("games").update({ status: "ended" }).eq("id", game.id); } catch {}
     triggerPush();
     navigate("/");
   };
@@ -110,7 +88,7 @@ const HostGame = () => {
   const copyCode = () => {
     if (game) {
       navigator.clipboard.writeText(game.join_code);
-      toast({ title: "Copied!", description: "Join code copied to clipboard." });
+      toast({ title: t("game.copied"), description: t("game.joinCodeCopied") });
     }
   };
 
@@ -118,35 +96,23 @@ const HostGame = () => {
     setLocalSection(sectionId);
     if (!game) return;
     upsertRow("games", { ...game, current_section: sectionId, updated_at: new Date().toISOString() });
-    try {
-      await supabase.from("games").update({ current_section: sectionId } as any).eq("id", game.id);
-    } catch {}
+    try { await supabase.from("games").update({ current_section: sectionId } as any).eq("id", game.id); } catch {}
     triggerPush();
   };
 
-  if (!game) {
-    return <FullPageLoader message="Loading quest..." />;
-  }
+  if (!game) return <FullPageLoader message={t("game.loadingQuest")} />;
 
   return (
     <div className="min-h-screen bg-background flex flex-col">
       <PageHeader
         title={effectiveScenario?.title ?? ""}
-        leftAction={
-          <Button variant="ghost" size="icon" onClick={() => navigate("/")}>
-            <ArrowLeft className="h-4 w-4" />
-          </Button>
-        }
+        leftAction={<Button variant="ghost" size="icon" onClick={() => navigate("/")}><ArrowLeft className="h-4 w-4" /></Button>}
         badge={
           <>
             {scenarioMeta.scenario_level && (
-              <span className="text-xs font-normal bg-primary/20 text-primary px-2 py-0.5 rounded-full">
-                Lv. {scenarioMeta.scenario_level}
-              </span>
+              <span className="text-xs font-normal bg-primary/20 text-primary px-2 py-0.5 rounded-full">Lv. {scenarioMeta.scenario_level}</span>
             )}
-            {!online && (
-              <span className="text-xs bg-destructive/20 text-destructive px-2 py-0.5 rounded-full">Offline</span>
-            )}
+            {!online && <span className="text-xs bg-destructive/20 text-destructive px-2 py-0.5 rounded-full">{t("game.offline")}</span>}
           </>
         }
         rightActions={
@@ -154,13 +120,9 @@ const HostGame = () => {
             <Button variant="outline" size="sm" onClick={copyCode} className="gap-2 border-primary/30 font-mono tracking-widest">
               <Copy className="h-3 w-3" /> {game.join_code}
             </Button>
-            <PlayerListSheet
-              players={players}
-              characters={characters}
-              gameId={gameId!}
-            />
+            <PlayerListSheet players={players} characters={characters} gameId={gameId!} />
             <Button variant="destructive" size="sm" onClick={endGame} className="gap-1">
-              <span className="text-sm" aria-hidden="true">🝎</span> End
+              <span className="text-sm" aria-hidden="true">🝎</span> {t("game.end")}
             </Button>
           </>
         }
@@ -170,18 +132,14 @@ const HostGame = () => {
         {sections.length > 0 ? (
           <Card className="w-full aged-border gold-glow-box">
             <CardContent className="p-4">
-              <WikiSectionTree
-                sections={sections}
-                activeSection={activeSection}
-                onActivateSection={activateSection}
-              />
+              <WikiSectionTree sections={sections} activeSection={activeSection} onActivateSection={activateSection} />
             </CardContent>
           </Card>
         ) : (
           <Card className="w-full aged-border gold-glow-box">
             <CardContent className="p-8">
               <div className="text-foreground text-lg leading-relaxed whitespace-pre-wrap">
-                {scenarioContent || "No content available."}
+                {scenarioContent || t("game.noContent")}
               </div>
             </CardContent>
           </Card>
@@ -191,7 +149,7 @@ const HostGame = () => {
       {!window.matchMedia('(display-mode: standalone)').matches && (
         <p className="text-center py-4">
           <Link to="/install" className="text-xs text-muted-foreground/50 hover:text-primary transition-colors font-display">
-            Install as app →
+            {t("dashboard.installApp")}
           </Link>
         </p>
       )}
