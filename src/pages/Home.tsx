@@ -28,7 +28,9 @@ import scenario2Img from "@/assets/landing-scenario-2.jpg";
 import scenario3Img from "@/assets/landing-scenario-3.jpg";
 import scriptoriumImg from "@/assets/landing-scriptorium.jpg";
 
-const scenarioImages = [scenario2Img, scenario1Img, scenario3Img];
+import scenarioWarImg from "@/assets/landing-scenario-war.jpg";
+
+const scenarioImages = [scenario2Img, scenarioWarImg, scenario3Img];
 
 const ClarityItem = ({
   icon,
@@ -134,10 +136,10 @@ const showcaseScenarios = [
     level: 1,
   },
   {
-    title: "Danse Macabre Part 2",
+    title: "The Hundred Years' War",
     description:
-      "A criminal syndicate thrives in the catacombs of Provins. The inquisitors must descend into darkness to root it out.",
-    level: 2,
+      "For three days the city has burned and bled — every rule of chivalry ground to dust. In savagery, men forget their nations and follow blindly the banner Gules, a fess Or. The banner of the Devil.",
+    level: 7,
   },
   {
     title: "Danse Macabre Part 3",
