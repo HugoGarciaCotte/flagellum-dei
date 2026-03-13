@@ -136,10 +136,10 @@ const showcaseScenarios = [
     level: 1,
   },
   {
-    title: "Hundred Years' War",
+    title: "La Dama De Blanco",
     description:
-      "For three days the city has burned and bled — every rule of chivalry ground to dust. In savagery, men forget their nations and follow blindly the banner Gules, a fess Or. The banner of the Devil.",
-    level: 7,
+      "With faded tulips in her hair she dances every week. Her soul was the prize for her immortal love. How many will be the victims of her selfish heart?",
+    level: 3,
   },
   {
     title: "The Mad King",
