@@ -142,9 +142,9 @@ const showcaseScenarios = [
     level: 7,
   },
   {
-    title: "Danse Macabre Part 3",
+    title: "The Mad King",
     description:
-      "A vengeful musician unleashes a mass dancing plague across Spain. Faith and madness blur.",
+      "A host of Knights Templar, lost in the Arabian desert, uncover an ancient evil — biblical in nature — that threatens to drown the world in endless madness.",
     level: 3,
   },
 ];
