@@ -13,7 +13,6 @@ import { useNavigate, Link } from "react-router-dom";
 import { LogOut, Plus, Settings, ChevronDown, Trash2, Pencil, WifiOff } from "lucide-react";
 
 import CharacterSheet from "@/components/CharacterSheet";
-
 import PageHeader from "@/components/PageHeader";
 import CharacterCreationWizard from "@/components/CharacterCreationWizard";
 import CharacterListItem from "@/components/CharacterListItem";
@@ -26,11 +25,13 @@ import { useNetworkStatus } from "@/hooks/useNetworkStatus";
 import { useLocalRows } from "@/hooks/useLocalData";
 import { upsertRow, deleteRow, deleteBy } from "@/lib/localStore";
 import { triggerPush } from "@/lib/syncManager";
+import { useTranslation } from "@/i18n/useTranslation";
 
 const Dashboard = () => {
   const { user, signOut, isGuest } = useAuth();
   const navigate = useNavigate();
   const online = useNetworkStatus();
+  const { t } = useTranslation();
   const [joinCode, setJoinCode] = useState("");
   const [hostOpen, setHostOpen] = useState(false);
   const [newCharDialogOpen, setNewCharDialogOpen] = useState(false);
@@ -41,7 +42,6 @@ const Dashboard = () => {
   const [deleteCharTarget, setDeleteCharTarget] = useState<{ id: string; name: string } | null>(null);
   const [deleting, setDeleting] = useState(false);
 
-  // Characters from local store
   const characters = useLocalRows<any>("characters", user ? { user_id: user.id } : undefined);
   const sortedCharacters = useMemo(() =>
     [...characters].sort((a, b) => (b.created_at || "").localeCompare(a.created_at || "")),
@@ -52,23 +52,21 @@ const Dashboard = () => {
     setDeleting(true);
     deleteRow("characters", id);
     deleteBy("character_feats", { character_id: id });
-    deleteBy("character_feat_subfeats", {}); // will be cleaned by FK logic on sync
+    deleteBy("character_feat_subfeats", {});
     triggerPush();
     setDeleteCharTarget(null);
     setDeleting(false);
-    toast({ title: "Character deleted" });
+    toast({ title: t("dashboard.characterDeleted") });
   };
 
   const scenarios = getAllScenarios();
 
-  // Active games from local store
   const allGames = useLocalRows<any>("games");
   const gamePlayers = useLocalRows<any>("game_players", user ? { user_id: user.id } : undefined);
 
   const allActiveGames = useMemo(() => {
     const games: { id: string; title: string; join_code: string; role: "hosting" | "playing" }[] = [];
     const seen = new Set<string>();
-    // Hosted games
     for (const g of allGames) {
       if (g.host_user_id === user?.id && g.status === "active") {
         seen.add(g.id);
@@ -76,7 +74,6 @@ const Dashboard = () => {
         games.push({ id: g.id, title: sc?.title || "Untitled", join_code: g.join_code, role: "hosting" });
       }
     }
-    // Joined games
     for (const gp of gamePlayers) {
       if (!seen.has(gp.game_id)) {
         const g = allGames.find((g: any) => g.id === gp.game_id && g.status === "active");
@@ -95,90 +92,52 @@ const Dashboard = () => {
     const letters = "ABCDEFGHIJKLMNOPQRSTUVWXYZ";
     const code = Array.from({ length: 6 }, () => letters[Math.floor(Math.random() * 26)]).join("");
     const now = new Date().toISOString();
-
     const newGame = {
-      id: tempGameId,
-      host_user_id: user!.id,
-      scenario_id: scenarioId,
-      join_code: code,
-      status: "active",
-      current_section: null,
-      created_at: now,
-      updated_at: now,
+      id: tempGameId, host_user_id: user!.id, scenario_id: scenarioId, join_code: code,
+      status: "active", current_section: null, created_at: now, updated_at: now,
     };
-
-    // Write locally first
     upsertRow("games", newGame);
     triggerPush();
-
-    // Also try server for a real join code
     try {
-      const { data, error } = await supabase
-        .from("games")
-        .insert({ host_user_id: user!.id, scenario_id: scenarioId, join_code: code })
-        .select()
-        .single();
-      if (!error && data) {
-        // Replace local with server version
-        deleteRow("games", tempGameId);
-        upsertRow("games", data);
-        navigate(`/game/${data.id}/host`);
-        return;
-      }
+      const { data, error } = await supabase.from("games").insert({ host_user_id: user!.id, scenario_id: scenarioId, join_code: code }).select().single();
+      if (!error && data) { deleteRow("games", tempGameId); upsertRow("games", data); navigate(`/game/${data.id}/host`); return; }
     } catch {}
-
     navigate(`/game/${tempGameId}/host`);
   };
 
   const handleJoinGame = async () => {
     if (!joinCode.trim()) return;
     try {
-      const { data: game, error } = await supabase
-        .from("games")
-        .select("*")
-        .eq("join_code", joinCode.toUpperCase())
-        .eq("status", "active")
-        .single();
-      if (error || !game) {
-        toast({ title: "Game not found", description: "Check the code and try again.", variant: "destructive" });
-        return;
-      }
-      // Insert player
-      const { error: joinError } = await supabase
-        .from("game_players")
-        .insert({ game_id: game.id, user_id: user!.id });
-      if (joinError && !joinError.message.includes("duplicate")) {
-        toast({ title: "Error joining", description: joinError.message, variant: "destructive" });
-        return;
-      }
-      // Store locally
+      const { data: game, error } = await supabase.from("games").select("*").eq("join_code", joinCode.toUpperCase()).eq("status", "active").single();
+      if (error || !game) { toast({ title: t("dashboard.gameNotFound"), description: t("dashboard.checkCode"), variant: "destructive" }); return; }
+      const { error: joinError } = await supabase.from("game_players").insert({ game_id: game.id, user_id: user!.id });
+      if (joinError && !joinError.message.includes("duplicate")) { toast({ title: t("dashboard.errorJoining"), description: joinError.message, variant: "destructive" }); return; }
       upsertRow("games", game);
       upsertRow("game_players", { id: crypto.randomUUID(), game_id: game.id, user_id: user!.id, character_id: null, joined_at: new Date().toISOString() });
       navigate(`/game/${game.id}/play`);
     } catch {
-      toast({ title: "Server unreachable", description: "You need to be online to join a game.", variant: "destructive" });
+      toast({ title: t("dashboard.serverUnreachable"), description: t("dashboard.needOnlineToJoin"), variant: "destructive" });
     }
   };
 
   return (
     <div className="min-h-screen bg-background">
-      {/* Header */}
       <PageHeader
         title="Flagellum Dei"
         rightActions={
           <>
             {isOwner && (
               <Button variant="ghost" size="sm" onClick={() => navigate("/admin")} className="gap-2">
-                <Settings className="h-4 w-4" /> Admin
+                <Settings className="h-4 w-4" /> {t("dashboard.admin")}
               </Button>
             )}
             {isGuest ? (
               <Button variant="ghost" size="sm" onClick={() => { signOut(); navigate("/auth"); }} className="gap-2">
-                Sign Up
+                {t("dashboard.signUp")}
               </Button>
             ) : (
               <Button variant="ghost" size="sm" onClick={signOut} className="gap-2">
-                <LogOut className="h-4 w-4" /> Sign Out
+                <LogOut className="h-4 w-4" /> {t("dashboard.signOut")}
               </Button>
             )}
           </>
@@ -186,14 +145,14 @@ const Dashboard = () => {
       />
 
       <main className="container py-8 space-y-10 max-w-2xl" style={{ background: "radial-gradient(ellipse at center top, hsl(43 74% 49% / 0.04) 0%, transparent 50%)" }}>
-        {/* Section 1: Join a Game */}
+        {/* Join a Game */}
         <section className="space-y-3">
           <h2 className="font-display text-2xl text-foreground flex items-center gap-2">
-            <span className="text-xl text-primary" aria-hidden="true">🜊</span> Join a Game
+            <span className="text-xl text-primary" aria-hidden="true">🜊</span> {t("dashboard.joinGame")}
           </h2>
           <div className="flex gap-2">
             <Input
-              placeholder={!online ? "Offline — join unavailable" : "Enter join code"}
+              placeholder={!online ? t("dashboard.offlineJoinUnavailable") : t("dashboard.enterCode")}
               value={joinCode}
               onChange={(e) => setJoinCode(e.target.value)}
               onKeyDown={(e) => e.key === "Enter" && handleJoinGame()}
@@ -201,42 +160,39 @@ const Dashboard = () => {
               disabled={!online}
             />
             <Button onClick={handleJoinGame} className="font-display px-6 shrink-0" disabled={!online}>
-              Join
+              {t("dashboard.join")}
             </Button>
           </div>
           {!online && (
             <p className="text-xs text-muted-foreground flex items-center gap-1">
-              <WifiOff className="h-3 w-3" /> You need to be online to join a game
+              <WifiOff className="h-3 w-3" /> {t("dashboard.needOnline")}
             </p>
           )}
         </section>
 
         <div className="ornamental-divider" />
 
-        {/* Section 2: My Characters */}
+        {/* My Characters */}
         <section className="space-y-4">
           <div className="flex items-center justify-between">
             <h2 className="font-display text-2xl text-foreground flex items-center gap-2">
-              <span className="text-xl text-primary" aria-hidden="true">🝖</span> My Characters
+              <span className="text-xl text-primary" aria-hidden="true">🝖</span> {t("dashboard.myCharacters")}
             </h2>
             <Dialog open={newCharDialogOpen} onOpenChange={setNewCharDialogOpen}>
               <DialogTrigger asChild>
                 <Button size="sm" className="gap-2 font-display">
-                  <Plus className="h-4 w-4" /> New Character
+                  <Plus className="h-4 w-4" /> {t("dashboard.newCharacter")}
                 </Button>
               </DialogTrigger>
               <DialogContent className="fixed inset-0 max-w-none w-full h-full rounded-none p-0 translate-x-0 translate-y-0 left-0 top-0 border-none overflow-hidden">
                 <div className="flex flex-col h-full min-h-0">
                   <div className="border-b border-border/50 bg-card/80 backdrop-blur px-4 py-3 flex items-center justify-between shrink-0 safe-top">
-                    <span className="font-display text-sm font-medium text-foreground">Create Character</span>
+                    <span className="font-display text-sm font-medium text-foreground">{t("dashboard.createCharacter")}</span>
                   </div>
                   <ScrollArea className="flex-1">
                     <div className="container max-w-2xl py-6 px-4">
                       <CharacterCreationWizard
-                        onCreated={() => {
-                          setNewCharDialogOpen(false);
-                          toast({ title: "Character created!" });
-                        }}
+                        onCreated={() => { setNewCharDialogOpen(false); toast({ title: t("dashboard.characterCreated") }); }}
                         onCancel={() => setNewCharDialogOpen(false)}
                       />
                     </div>
@@ -269,27 +225,22 @@ const Dashboard = () => {
             <Card className="border-dashed border-muted-foreground/30">
               <CardContent className="py-8 text-center text-muted-foreground">
                 <span className="text-2xl mx-auto mb-2 opacity-40 block text-center" aria-hidden="true">🝖</span>
-                <p className="font-display">No characters yet</p>
-                <p className="text-sm mt-1">Create a character to get started.</p>
+                <p className="font-display">{t("dashboard.noCharacters")}</p>
+                <p className="text-sm mt-1">{t("dashboard.createToStart")}</p>
               </CardContent>
             </Card>
           )}
 
-          {/* Edit Character Dialog */}
           <Dialog open={!!editingCharId} onOpenChange={(open) => { if (!open) setEditingCharId(null); }}>
-              <DialogContent className="fixed inset-0 max-w-none w-full h-full rounded-none p-0 translate-x-0 translate-y-0 left-0 top-0 border-none overflow-hidden">
+            <DialogContent className="fixed inset-0 max-w-none w-full h-full rounded-none p-0 translate-x-0 translate-y-0 left-0 top-0 border-none overflow-hidden">
               <div className="flex flex-col h-full min-h-0">
                 <div className="border-b border-border/50 bg-card/80 backdrop-blur px-4 py-3 flex items-center justify-between shrink-0 safe-top">
-                   <span className="font-display text-sm font-medium text-foreground">Edit Character</span>
+                  <span className="font-display text-sm font-medium text-foreground">{t("dashboard.editCharacter")}</span>
                 </div>
                 <ScrollArea className="flex-1">
                   <div className="container max-w-2xl py-6 px-4">
                     {editingCharId && (
-                      <CharacterSheet
-                        characterId={editingCharId}
-                        mode="player"
-                        onDone={() => setEditingCharId(null)}
-                      />
+                      <CharacterSheet characterId={editingCharId} mode="player" onDone={() => setEditingCharId(null)} />
                     )}
                   </div>
                 </ScrollArea>
@@ -304,7 +255,7 @@ const Dashboard = () => {
         {allActiveGames.length > 0 && (
           <section className="space-y-4">
             <h2 className="font-display text-xl text-foreground flex items-center gap-2">
-              <span className="text-lg text-primary" aria-hidden="true">🜊</span> Your Active Games
+              <span className="text-lg text-primary" aria-hidden="true">🜊</span> {t("dashboard.activeGames")}
             </h2>
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
               {allActiveGames.map((game) => (
@@ -317,13 +268,13 @@ const Dashboard = () => {
                     <div className="flex items-center justify-between">
                       <CardTitle className="font-display text-lg">{game.title}</CardTitle>
                       <span className={`text-xs font-display px-2 py-0.5 rounded-full ${game.role === "hosting" ? "bg-primary/15 text-primary" : "bg-accent text-accent-foreground"}`}>
-                        {game.role === "hosting" ? "Hosting" : "Playing"}
+                        {game.role === "hosting" ? t("dashboard.hosting") : t("dashboard.playing")}
                       </span>
                     </div>
                     {game.join_code ? (
                       <CardDescription>Code: <span className="font-mono text-primary tracking-widest">{game.join_code}</span></CardDescription>
                     ) : (
-                      <CardDescription className="text-muted-foreground/60">Local game</CardDescription>
+                      <CardDescription className="text-muted-foreground/60">{t("dashboard.localGame")}</CardDescription>
                     )}
                   </CardHeader>
                 </Card>
@@ -332,14 +283,13 @@ const Dashboard = () => {
           </section>
         )}
 
-        {/* Section 3: Host a Game (collapsible) */}
+        {/* Host a Game */}
         {isGameMaster ? (
-          /* Game Master: show Host a Game */
           <Collapsible open={hostOpen} onOpenChange={setHostOpen}>
             <CollapsibleTrigger asChild>
               <Button variant="ghost" className="gap-2 text-muted-foreground hover:text-foreground font-display w-full justify-between">
                 <span className="flex items-center gap-2">
-                  <span className="text-base" aria-hidden="true">🜾</span> Host a Game
+                  <span className="text-base" aria-hidden="true">🜾</span> {t("dashboard.hostGame")}
                 </span>
                 <ChevronDown className={`h-4 w-4 transition-transform ${hostOpen ? "rotate-180" : ""}`} />
               </Button>
@@ -355,79 +305,77 @@ const Dashboard = () => {
                       </CardHeader>
                       <CardContent>
                         <Button onClick={() => handleCreateGame(scenario.id)} variant="outline" className="w-full gap-2 font-display" size="sm">
-                          <Plus className="h-3.5 w-3.5" /> Host
+                          <Plus className="h-3.5 w-3.5" /> {t("dashboard.host")}
                         </Button>
                       </CardContent>
                     </Card>
                   ))}
                 </div>
               ) : (
-                <p className="text-sm text-muted-foreground text-center py-4">No scenarios available yet.</p>
+                <p className="text-sm text-muted-foreground text-center py-4">{t("dashboard.noScenarios")}</p>
               )}
             </CollapsibleContent>
           </Collapsible>
         ) : (
-          /* Player: show Become a Game Master */
           <AlertDialog open={gmDialogOpen} onOpenChange={setGmDialogOpen}>
             <AlertDialogTrigger asChild>
               <Button variant="outline" className="gap-2 font-display w-full justify-center border-dashed border-muted-foreground/30 text-muted-foreground hover:text-foreground hover:border-primary/40">
-                <span className="text-base" aria-hidden="true">🜁</span> Become a Game Master
+                <span className="text-base" aria-hidden="true">🜁</span> {t("dashboard.becomeGM")}
               </Button>
             </AlertDialogTrigger>
             <AlertDialogContent>
               <AlertDialogHeader>
                 <AlertDialogTitle className="font-display flex items-center gap-2">
-                  <span className="text-lg text-primary" aria-hidden="true">🜁</span> Become a Game Master
+                  <span className="text-lg text-primary" aria-hidden="true">🜁</span> {t("dashboard.becomeGMTitle")}
                 </AlertDialogTitle>
                 <AlertDialogDescription className="text-sm leading-relaxed">
-                  You are currently a <strong>player</strong>. As a Game Master, you'll be able to host games and guide other players through scenarios.
+                  <span dangerouslySetInnerHTML={{ __html: t("dashboard.becomeGMDesc") }} />
                   <br /><br />
-                  Would you like to become a Game Master?
+                  {t("dashboard.becomeGMConfirm")}
                 </AlertDialogDescription>
               </AlertDialogHeader>
               <AlertDialogFooter>
-                <AlertDialogCancel className="font-display">Stay as Player</AlertDialogCancel>
+                <AlertDialogCancel className="font-display">{t("dashboard.stayPlayer")}</AlertDialogCancel>
                 <AlertDialogAction
                   className="font-display gap-2"
                   onClick={async () => {
                     if (isGuest) {
                       setGuestGameMaster(true);
-                      toast({ title: "You are now a Game Master!", description: "You can now host games." });
+                      toast({ title: t("dashboard.gmToast"), description: t("dashboard.gmToastDesc") });
                       return;
                     }
                     const roleRow = { id: crypto.randomUUID(), user_id: user!.id, role: "game_master" };
                     upsertRow("user_roles", roleRow);
                     triggerPush();
-                    toast({ title: "You are now a Game Master!", description: "You can now host games." });
+                    toast({ title: t("dashboard.gmToast"), description: t("dashboard.gmToastDesc") });
                   }}
                 >
-                  <span className="text-base" aria-hidden="true">🜁</span> Become Game Master
+                  <span className="text-base" aria-hidden="true">🜁</span> {t("dashboard.becomeGMButton")}
                 </AlertDialogAction>
               </AlertDialogFooter>
             </AlertDialogContent>
           </AlertDialog>
         )}
 
-        {/* My Players (GM only) */}
         {isGameMaster && <GMPlayerList />}
 
         {/* Delete Character Confirmation */}
         <AlertDialog open={!!deleteCharTarget} onOpenChange={(open) => { if (!open) setDeleteCharTarget(null); }}>
           <AlertDialogContent>
             <AlertDialogHeader>
-              <AlertDialogTitle>Delete "{deleteCharTarget?.name}"?</AlertDialogTitle>
+              <AlertDialogTitle>{t("dashboard.deleteTitle")} "{deleteCharTarget?.name}"?</AlertDialogTitle>
               <AlertDialogDescription>
-                This will permanently remove this character and all their feats.
+                {t("dashboard.deleteDesc")}
               </AlertDialogDescription>
             </AlertDialogHeader>
             <AlertDialogFooter>
-              <AlertDialogCancel disabled={deleting}>Cancel</AlertDialogCancel>
+              <AlertDialogCancel disabled={deleting}>{t("dashboard.cancel")}</AlertDialogCancel>
               <AlertDialogAction
                 onClick={() => deleteCharTarget && handleDeleteChar(deleteCharTarget.id)}
                 disabled={deleting}
                 className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
               >
-                {deleting ? "Deleting..." : "Delete"}
+                {deleting ? t("dashboard.deleting") : t("dashboard.delete")}
               </AlertDialogAction>
             </AlertDialogFooter>
           </AlertDialogContent>
@@ -436,7 +384,7 @@ const Dashboard = () => {
         {!window.matchMedia('(display-mode: standalone)').matches && (
           <p className="text-center py-6">
             <Link to="/install" className="text-xs text-muted-foreground/50 hover:text-primary transition-colors font-display">
-              Install as app →
+              {t("dashboard.installApp")}
             </Link>
           </p>
         )}

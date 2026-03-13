@@ -8,10 +8,12 @@ import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { toast } from "@/hooks/use-toast";
 import Logo from "@/components/Logo";
+import { useTranslation } from "@/i18n/useTranslation";
 
 const Auth = () => {
   const { user, isGuest, isLocalGuest, enterGuestMode } = useAuth();
   const navigate = useNavigate();
+  const { t } = useTranslation();
 
   useEffect(() => {
     if (user && !isGuest) navigate("/", { replace: true });
@@ -30,9 +32,9 @@ const Auth = () => {
       redirectTo: `${window.location.origin}/reset-password`,
     });
     if (error) {
-      toast({ title: "Reset failed", description: error.message, variant: "destructive" });
+      toast({ title: t("auth.resetFailed"), description: error.message, variant: "destructive" });
     } else {
-      toast({ title: "Check your email", description: "A password reset link has been sent to your inbox." });
+      toast({ title: t("auth.checkEmail"), description: t("auth.resetLinkSent") });
       setShowForgotPassword(false);
     }
     setLoading(false);
@@ -42,7 +44,7 @@ const Auth = () => {
     e.preventDefault();
     setLoading(true);
     const { error } = await supabase.auth.signInWithPassword({ email, password });
-    if (error) toast({ title: "Login failed", description: error.message, variant: "destructive" });
+    if (error) toast({ title: t("auth.loginFailed"), description: error.message, variant: "destructive" });
     setLoading(false);
   };
 
@@ -51,34 +53,30 @@ const Auth = () => {
     setLoading(true);
 
     if (isGuest && !isLocalGuest) {
-      // Convert real anonymous account to permanent
       const { error } = await supabase.auth.updateUser({
         email,
         password,
         data: { display_name: displayName },
       });
       if (error) {
-        toast({ title: "Conversion failed", description: error.message, variant: "destructive" });
+        toast({ title: t("auth.conversionFailed"), description: error.message, variant: "destructive" });
       } else {
-        // Update profile display name
         await supabase
           .from("profiles")
           .update({ display_name: displayName })
           .eq("user_id", user!.id);
-        toast({ title: "Welcome aboard!", description: "Your guest data has been preserved." });
+        toast({ title: t("auth.welcomeAboard"), description: t("auth.guestDataPreserved") });
       }
     } else {
-      // Standard signup (also handles local guests — their offline data used a fake UUID
-      // and won't carry over, but the sync gate will have already attempted to upgrade them)
       const { error } = await supabase.auth.signUp({
         email,
         password,
         options: { data: { display_name: displayName } },
       });
       if (error) {
-        toast({ title: "Signup failed", description: error.message, variant: "destructive" });
+        toast({ title: t("auth.signupFailed"), description: error.message, variant: "destructive" });
       } else {
-        toast({ title: "Account created!", description: "Welcome to Flagellum Dei." });
+        toast({ title: t("auth.accountCreated"), description: t("auth.welcomeFlagellum") });
         navigate("/");
       }
     }
@@ -93,9 +91,9 @@ const Auth = () => {
             <Logo className="text-5xl" />
           </div>
           <h1 className="font-display text-3xl font-bold text-foreground tracking-wide">
-            Flagellum Dei TTRPG
+            {t("auth.title")}
           </h1>
-          <p className="text-muted-foreground text-lg">The Inquisition awaits</p>
+          <p className="text-muted-foreground text-lg">{t("auth.subtitle")}</p>
         </div>
 
         <div className="ornamental-divider w-48 mx-auto" />
@@ -105,10 +103,10 @@ const Auth = () => {
             <CardHeader className="pb-2">
               <TabsList className="w-full">
                 <TabsTrigger value="login" className="flex-1 gap-2">
-                  <span className="text-base" aria-hidden="true">🝉</span> Login
+                  <span className="text-base" aria-hidden="true">🝉</span> {t("auth.login")}
                 </TabsTrigger>
                 <TabsTrigger value="signup" className="flex-1 gap-2">
-                  <Logo className="text-sm" /> Sign Up
+                  <Logo className="text-sm" /> {t("auth.signup")}
                 </TabsTrigger>
               </TabsList>
             </CardHeader>
@@ -117,37 +115,37 @@ const Auth = () => {
               <TabsContent value="login">
                 {showForgotPassword ? (
                   <form onSubmit={handleForgotPassword} className="space-y-4">
-                    <p className="text-sm text-muted-foreground">Enter your email and we'll send you a link to reset your password.</p>
-                    <Input placeholder="Email" type="email" value={resetEmail} onChange={(e) => setResetEmail(e.target.value)} required />
+                    <p className="text-sm text-muted-foreground">{t("auth.resetDesc")}</p>
+                    <Input placeholder={t("auth.email")} type="email" value={resetEmail} onChange={(e) => setResetEmail(e.target.value)} required />
                     <Button type="submit" className="w-full font-display" disabled={loading}>
-                      {loading ? "Sending..." : "Send Reset Link"}
+                      {loading ? t("auth.sending") : t("auth.resetTitle")}
                     </Button>
                     <button type="button" onClick={() => setShowForgotPassword(false)} className="text-sm text-primary hover:underline w-full text-center">
-                      Back to Login
+                      {t("auth.backToLogin")}
                     </button>
                   </form>
                 ) : (
                   <form onSubmit={handleLogin} className="space-y-4">
-                    <Input placeholder="Email" type="email" value={email} onChange={(e) => setEmail(e.target.value)} required />
-                    <Input placeholder="Password" type="password" value={password} onChange={(e) => setPassword(e.target.value)} required />
+                    <Input placeholder={t("auth.email")} type="email" value={email} onChange={(e) => setEmail(e.target.value)} required />
+                    <Input placeholder={t("auth.password")} type="password" value={password} onChange={(e) => setPassword(e.target.value)} required />
                     <Button type="submit" className="w-full font-display" disabled={loading}>
-                      {loading ? "Entering..." : "Enter the Realm"}
+                      {loading ? t("auth.entering") : t("auth.enterRealm")}
                     </Button>
                     <button type="button" onClick={() => setShowForgotPassword(true)} className="text-sm text-primary hover:underline w-full text-center">
-                      Forgot your password?
+                      {t("auth.forgotPassword")}
                     </button>
                     {!isGuest && (
                       <>
                         <div className="relative my-2">
                           <div className="absolute inset-0 flex items-center"><span className="w-full border-t border-border/50" /></div>
-                          <div className="relative flex justify-center text-xs"><span className="bg-card px-2 text-muted-foreground">or</span></div>
+                          <div className="relative flex justify-center text-xs"><span className="bg-card px-2 text-muted-foreground">{t("auth.or")}</span></div>
                         </div>
                         <button
                           type="button"
                           onClick={() => { enterGuestMode(); navigate("/"); }}
                           className="w-full text-sm text-muted-foreground hover:text-foreground transition-colors font-display flex items-center justify-center gap-2 py-2"
                         >
-                          Explore as Guest
+                          {t("auth.exploreGuest")}
                         </button>
                       </>
                     )}
@@ -159,14 +157,14 @@ const Auth = () => {
                 <form onSubmit={handleSignup} className="space-y-4">
                   {isGuest && (
                     <p className="text-sm text-muted-foreground bg-primary/10 rounded p-2">
-                      Converting your guest account — all your characters and progress will be kept!
+                      {t("auth.guestConvert")}
                     </p>
                   )}
-                  <Input placeholder="Display Name" value={displayName} onChange={(e) => setDisplayName(e.target.value)} required />
-                  <Input placeholder="Email" type="email" value={email} onChange={(e) => setEmail(e.target.value)} required />
-                  <Input placeholder="Password" type="password" value={password} onChange={(e) => setPassword(e.target.value)} required />
+                  <Input placeholder={t("auth.displayName")} value={displayName} onChange={(e) => setDisplayName(e.target.value)} required />
+                  <Input placeholder={t("auth.email")} type="email" value={email} onChange={(e) => setEmail(e.target.value)} required />
+                  <Input placeholder={t("auth.password")} type="password" value={password} onChange={(e) => setPassword(e.target.value)} required />
                   <Button type="submit" className="w-full font-display" disabled={loading}>
-                    {loading ? "Forging..." : isGuest ? "Convert to Full Account" : "Forge Your Legend"}
+                    {loading ? t("auth.forging") : isGuest ? t("auth.convertFull") : t("auth.forgeLegend")}
                   </Button>
                 </form>
               </TabsContent>
