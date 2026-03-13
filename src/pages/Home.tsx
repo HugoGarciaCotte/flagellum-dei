@@ -158,9 +158,7 @@ const faqLinks: Record<number, { lovable?: string; github?: string }> = {
 
 const Home = () => {
   const { t } = useTranslation();
-  const allScenarios = getAllScenarios();
-  const displayScenarios =
-    allScenarios.length > 0 ? allScenarios : showcaseScenarios;
+  const displayScenarios = showcaseScenarios;
 
   const faqCount = 11; // q0..q10
 
