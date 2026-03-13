@@ -28,7 +28,7 @@ import scenario2Img from "@/assets/landing-scenario-2.jpg";
 import scenario3Img from "@/assets/landing-scenario-3.jpg";
 import scriptoriumImg from "@/assets/landing-scriptorium.jpg";
 
-const scenarioImages = [scenario1Img, scenario2Img, scenario3Img];
+const scenarioImages = [scenario2Img, scenario1Img, scenario3Img];
 
 const ClarityItem = ({
   icon,
@@ -128,9 +128,9 @@ const ScenarioCard = ({
 
 const showcaseScenarios = [
   {
-    title: "Danse Macabre Part 1",
+    title: "The Societas Templois",
     description:
-      "An Austrian abbey hides ritualistic murders and the echo of a pagan curse buried beneath its foundations.",
+      "A curse shadows the Habsburg family, leading to an Austrian abbey — seat of a long-dead secret society. They tried to lock their damnation away. But how long can you run from the Devil?",
     level: 1,
   },
   {
