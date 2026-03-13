@@ -144,7 +144,7 @@ const showcaseScenarios = [
   {
     title: "The Mad King",
     description:
-      "Lost in the wastes of the Arabian desert, a company of Knights Templar uncovers a secret both ancient and biblical — one that will plunge the world into endless madness.",
+      "Lost in the wastes of the Arabian desert, a company of Knights Templar uncovers a primordial, biblical secret—a horror that will plunge the world into endless madness.",
     level: 9,
   },
 ];
