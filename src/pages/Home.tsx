@@ -145,7 +145,7 @@ const showcaseScenarios = [
     title: "The Mad King",
     description:
       "A host of Knights Templar, lost in the Arabian desert, uncover an ancient evil — biblical in nature — that threatens to drown the world in endless madness.",
-    level: 3,
+    level: 9,
   },
 ];
 
