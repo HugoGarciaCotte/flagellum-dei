@@ -136,7 +136,7 @@ const showcaseScenarios = [
     level: 1,
   },
   {
-    title: "The Hundred Years' War",
+    title: "Hundred Years' War",
     description:
       "For three days the city has burned and bled — every rule of chivalry ground to dust. In savagery, men forget their nations and follow blindly the banner Gules, a fess Or. The banner of the Devil.",
     level: 7,
