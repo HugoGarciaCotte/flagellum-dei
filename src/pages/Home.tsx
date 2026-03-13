@@ -130,19 +130,19 @@ const ScenarioCard = ({
 
 const showcaseScenarios = [
   {
-    title: "The Societas Templois",
+    title: "Societas Templois",
     description:
       "A string of mysterious deaths haunts the Habsburg family, their trail leading to a secluded Austrian abbey — once the seat of a long-dead secret society. They believed they had sealed away their curse. But how long can anyone run from the Devil?",
     level: 1,
   },
   {
-    title: "The Hundred Years' War",
+    title: "Hundred Years' War",
     description:
       "For three days the city has burned and bled — every rule of chivalry ground to dust. In savagery, men forget their nations and follow blindly the banner Gules, a fess Or. The banner of the Devil.",
     level: 7,
   },
   {
-    title: "The Mad King",
+    title: "Mad King",
     description:
       "Lost in the wastes of the Arabian desert, a company of Knights Templar uncovers a secret both ancient and biblical — one that will plunge the world into endless madness.",
     level: 9,
