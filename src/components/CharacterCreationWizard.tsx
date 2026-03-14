@@ -743,7 +743,7 @@ const CharacterCreationWizard = ({ onCreated, onCancel, gameId }: CharacterCreat
           className="w-full font-display gap-2"
         >
           {creating ? <Loader2 className="h-4 w-4 animate-spin" /> : <Sparkles className="h-4 w-4" />}
-          Finish Character
+          {t("wizard.finish")}
         </Button>
       </div>
     );

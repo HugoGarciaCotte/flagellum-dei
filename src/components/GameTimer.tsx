@@ -1,12 +1,14 @@
 import { useState, useEffect, useRef, useCallback } from "react";
 import { Timer, Play, Pause, RotateCcw } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { useTranslation } from "@/i18n/useTranslation";
 
 const GameTimer = () => {
   const [open, setOpen] = useState(false);
   const [running, setRunning] = useState(false);
   const [elapsed, setElapsed] = useState(0); // seconds
   const intervalRef = useRef<ReturnType<typeof setInterval>>();
+  const { t } = useTranslation();
 
   useEffect(() => {
     if (running) {
@@ -63,7 +65,7 @@ const GameTimer = () => {
             ✕
           </button>
           <p className="text-3xl font-display font-bold text-foreground tabular-nums">
-            {minutes}:{seconds.toString().padStart(2, "0")} <span className="text-base font-normal text-muted-foreground">min</span>
+            {minutes}:{seconds.toString().padStart(2, "0")} <span className="text-base font-normal text-muted-foreground">{t("timer.min")}</span>
           </p>
           <div className="flex items-center gap-2">
             {running ? (

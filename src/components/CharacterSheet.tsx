@@ -14,6 +14,7 @@ import { useLocalRow } from "@/hooks/useLocalData";
 import { useLocalRows } from "@/hooks/useLocalData";
 import { upsertRow } from "@/lib/localStore";
 import { triggerPush } from "@/lib/syncManager";
+import { useTranslation } from "@/i18n/useTranslation";
 
 interface CharacterSheetProps {
   characterId: string;
@@ -30,6 +31,7 @@ const CharacterSheet = ({ characterId, mode = "player", scenarioLevel, onDone }:
   const [dirty, setDirty] = useState(false);
   const [generating, setGenerating] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const { t } = useTranslation();
 
   const character = useLocalRow<any>("characters", characterId);
 
@@ -46,7 +48,7 @@ const CharacterSheet = ({ characterId, mode = "player", scenarioLevel, onDone }:
     upsertRow("characters", { ...character, name, description: desc || null, updated_at: new Date().toISOString() });
     triggerPush();
     setDirty(false);
-    toast({ title: "Character updated" });
+    toast({ title: t("character.toast.updated") });
   };
 
   const handleUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -59,7 +61,7 @@ const CharacterSheet = ({ characterId, mode = "player", scenarioLevel, onDone }:
       .upload(filePath, file, { contentType: file.type, upsert: true });
 
     if (uploadError) {
-      toast({ title: "Upload failed", description: uploadError.message, variant: "destructive" });
+      toast({ title: t("character.toast.uploadFailed"), description: uploadError.message, variant: "destructive" });
       return;
     }
 
@@ -70,7 +72,7 @@ const CharacterSheet = ({ characterId, mode = "player", scenarioLevel, onDone }:
 
     upsertRow("characters", { ...character, portrait_url: portraitUrl, updated_at: new Date().toISOString() });
     triggerPush();
-    toast({ title: "Portrait uploaded!" });
+    toast({ title: t("character.toast.portraitUploaded") });
   };
 
   const handleGenerate = async () => {
@@ -88,14 +90,13 @@ const CharacterSheet = ({ characterId, mode = "player", scenarioLevel, onDone }:
       if (error) throw error;
       if (data?.error) throw new Error(data.error);
 
-      // Update local store with new portrait URL
       if (data?.portrait_url) {
         upsertRow("characters", { ...character, portrait_url: data.portrait_url, updated_at: new Date().toISOString() });
         triggerPush();
       }
-      toast({ title: "Portrait generated!" });
+      toast({ title: t("character.toast.portraitGenerated") });
     } catch (e: any) {
-      toast({ title: "Generation failed", description: e.message, variant: "destructive" });
+      toast({ title: t("character.toast.generationFailed"), description: e.message, variant: "destructive" });
     } finally {
       setGenerating(false);
     }
@@ -105,7 +106,7 @@ const CharacterSheet = ({ characterId, mode = "player", scenarioLevel, onDone }:
   const handleDescChange = (val: string) => { setDesc(val); setDirty(true); };
 
   if (!character) {
-    return <div className="text-sm text-muted-foreground py-4 text-center">Loading character...</div>;
+    return <div className="text-sm text-muted-foreground py-4 text-center">{t("character.loading")}</div>;
   }
 
   const initials = character.name.slice(0, 2).toUpperCase();
@@ -136,7 +137,7 @@ const CharacterSheet = ({ characterId, mode = "player", scenarioLevel, onDone }:
             onClick={() => fileInputRef.current?.click()}
             disabled={effectivelyOffline}
           >
-            <Upload className="h-3.5 w-3.5" /> Upload
+            <Upload className="h-3.5 w-3.5" /> {t("wizard.portrait.upload")}
           </Button>
           <Button
             variant="outline"
@@ -150,23 +151,23 @@ const CharacterSheet = ({ characterId, mode = "player", scenarioLevel, onDone }:
             ) : (
               <Sparkles className="h-3.5 w-3.5" />
             )}
-            Generate
+            {t("wizard.portrait.generate")}
           </Button>
         </div>
         {effectivelyOffline && (
           <p className="text-xs text-muted-foreground flex items-center gap-1">
-            <WifiOff className="h-3 w-3" /> Portrait features available when online
+            <WifiOff className="h-3 w-3" /> {t("wizard.portrait.offlineNote")}
           </p>
         )}
       </div>
 
       <Input
-        placeholder="Character name"
+        placeholder={t("wizard.namePlaceholder")}
         value={name}
         onChange={(e) => handleNameChange(e.target.value)}
       />
       <Textarea
-        placeholder="Description (optional)"
+        placeholder={t("character.descPlaceholder")}
         value={desc}
         onChange={(e) => handleDescChange(e.target.value)}
         rows={3}
@@ -177,7 +178,7 @@ const CharacterSheet = ({ characterId, mode = "player", scenarioLevel, onDone }:
           disabled={!name.trim()}
           className="w-full font-display"
         >
-          Save Changes
+          {t("character.saveChanges")}
         </Button>
       )}
 
@@ -193,7 +194,7 @@ const CharacterSheet = ({ characterId, mode = "player", scenarioLevel, onDone }:
           className="w-full font-display"
           onClick={onDone}
         >
-          Done
+          {t("character.done")}
         </Button>
       )}
     </div>
