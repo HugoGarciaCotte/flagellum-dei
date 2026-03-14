@@ -19,7 +19,7 @@ import CharacterListItem from "@/components/CharacterListItem";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { useLocalRow, useLocalRows } from "@/hooks/useLocalData";
 import { upsertRow } from "@/lib/localStore";
-import { triggerPush, pullAll } from "@/lib/syncManager";
+import { triggerPush, pullTable } from "@/lib/syncManager";
 import { useTranslation } from "@/i18n/useTranslation";
 
 const PlayGame = () => {
