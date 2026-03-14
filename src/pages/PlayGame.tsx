@@ -3,6 +3,7 @@ import { useParams, useNavigate, Link } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
 import { getScenarioById } from "@/data/scenarios";
+import { loadScenarioOverrides } from "@/lib/scenarioOverrides";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { parseWikitext, findSection, resolveBackgroundImage, extractImageUrls, WikiSection } from "@/lib/parseWikitext";
@@ -31,6 +32,11 @@ const PlayGame = () => {
   const [sheetExpanded, setSheetExpanded] = useState(false);
   const [creatingChar, setCreatingChar] = useState(false);
   const [editingCharId, setEditingCharId] = useState<string | null>(null);
+  const [scenarioReady, setScenarioReady] = useState(false);
+
+  useEffect(() => {
+    loadScenarioOverrides().then(() => setScenarioReady(true)).catch(() => setScenarioReady(true));
+  }, []);
 
   const game = useLocalRow<any>("games", gameId);
   const allMyPlayers = useLocalRows<any>("game_players", gameId && user ? { game_id: gameId, user_id: user.id } : undefined);
@@ -54,7 +60,8 @@ const PlayGame = () => {
   };
   const currentSectionId = game?.current_section ?? null;
 
-  const effectiveScenario = game ? getScenarioById(game.scenario_id) : null;
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  const effectiveScenario = useMemo(() => game ? getScenarioById(game.scenario_id) : null, [game?.scenario_id, scenarioReady]);
 
   useEffect(() => {
     if (!gameId) return;
