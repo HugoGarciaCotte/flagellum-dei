@@ -172,8 +172,38 @@ function isMetaOnlyLine(line: string): boolean {
   return stripped === "" && META_RE.test(line);
 }
 
+/** Parse an {{Ambiance Track ... }} block into AmbianceEntry[] */
+function parseAmbianceBlock(block: string): AmbianceEntry[] {
+  const entries: AmbianceEntry[] = [];
+  // Match | Xmin = text  (captures digits before "min" and everything after "=")
+  const entryRe = /\|\s*(\d+)\s*min\s*=\s*([\s\S]*?)(?=\|\s*\d+\s*min\s*=|\}\}|$)/g;
+  let m;
+  while ((m = entryRe.exec(block)) !== null) {
+    const text = m[2].trim();
+    if (text) {
+      entries.push({ minutes: parseInt(m[1], 10), text });
+    }
+  }
+  entries.sort((a, b) => a.minutes - b.minutes);
+  return entries;
+}
+
 export function parseWikitext(wikitext: string): ParsedScenario {
-  const lines = wikitext.split("\n");
+  // Extract and strip {{Ambiance Track ... }} blocks before line-by-line parsing
+  const ambianceBlockRe = /\{\{Ambiance\s+Track\s*([\s\S]*?)\}\}/gi;
+  let scenarioAmbianceTrack: AmbianceEntry[] | undefined;
+  // We'll track which blocks belong to which section after heading detection
+  // Strategy: replace blocks with a special marker, then assign during parse
+  const ambianceBlocks: AmbianceEntry[][] = [];
+  const ambianceMarker = "<!--@@AMBIANCE_BLOCK_";
+  const strippedWikitext = wikitext.replace(ambianceBlockRe, (match) => {
+    const entries = parseAmbianceBlock(match);
+    const idx = ambianceBlocks.length;
+    ambianceBlocks.push(entries);
+    return `${ambianceMarker}${idx}@@-->`;
+  });
+
+  const lines = strippedWikitext.split("\n");
   const root: WikiSection[] = [];
   const stack: { level: number; section: WikiSection; children: WikiSection[] }[] = [];
   let currentBodyLines: string[] = [];
