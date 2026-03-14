@@ -81,9 +81,11 @@ const PlayGame = () => {
 
   /** Walk the tree to find a section and collect ancestor background along the way. */
   const findSectionWithBg = useMemo(() => {
+    let lastSeenBg: string | null = parsed.metadata.background_image || null;
     function walk(sections: WikiSection[], id: string, parentBg: string | null): { section: WikiSection; bg: string | null } | null {
       for (const s of sections) {
-        const effectiveBg = resolveBackgroundImage(s, parentBg);
+        const effectiveBg = resolveBackgroundImage(s, parentBg) || lastSeenBg;
+        if (effectiveBg) lastSeenBg = effectiveBg;
         if (s.id === id) return { section: s, bg: effectiveBg };
         const found = walk(s.children, id, effectiveBg);
         if (found) return found;

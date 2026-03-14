@@ -237,6 +237,7 @@ export default function WikiSectionTree({ sections, activeSection, onActivateSec
           parentBackground={parentBackground}
           featsMap={featsMap}
           tooltipLabels={tooltipLabels}
+          lastBgRef={lastBgRef}
         />
       ))}
     </div>
