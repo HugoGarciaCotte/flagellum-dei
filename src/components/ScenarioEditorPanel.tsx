@@ -268,8 +268,79 @@ Upload the images from the scenario-backgrounds/ folder in the attached ZIP into
     }
   };
 
+  const editingScenario = expandedId ? mergedScenarios.find(s => s.id === expandedId) : null;
+  const editingHardcoded = expandedId ? hardcodedScenarios.find(s => s.id === expandedId) : null;
+
   return (
     <div className="space-y-4 flex-1 overflow-hidden flex flex-col">
+      {/* Full-screen editor overlay */}
+      {editingScenario && editingHardcoded && (
+        <div className="fixed inset-0 z-50 bg-background flex flex-col">
+          {/* Row 1: Back + Title + Level */}
+          <div className="flex items-start gap-3 px-4 pt-4 pb-2">
+            <Button variant="ghost" size="sm" className="shrink-0 mt-0.5" onClick={() => setExpandedId(null)}>
+              ← {t("adminScenarios.back") || "Back"}
+            </Button>
+            <div className="flex-1">
+              <OverrideField
+                label={t("adminScenarios.fieldTitle")}
+                value={getEffective(editingHardcoded, "title") ?? ""}
+                isOverridden={isOverridden(editingScenario.id, "title")}
+                saving={savingFields.has(`${editingScenario.id}:title`)}
+                onSave={(v) => saveField(editingScenario.id, "title", v)}
+                onRevert={() => revertField(editingScenario.id, "title")}
+                inline
+                t={t}
+              />
+            </div>
+            <div className="w-24 shrink-0">
+              <OverrideField
+                label={t("adminScenarios.fieldLevel")}
+                value={getEffective(editingHardcoded, "level") ?? ""}
+                isOverridden={isOverridden(editingScenario.id, "level")}
+                saving={savingFields.has(`${editingScenario.id}:level`)}
+                onSave={(v) => saveField(editingScenario.id, "level", v === "" ? null : parseInt(v))}
+                onRevert={() => revertField(editingScenario.id, "level")}
+                type="number"
+                inline
+                t={t}
+              />
+            </div>
+          </div>
+
+          {/* Row 2: Description */}
+          <div className="px-4 pb-2">
+            <OverrideField
+              label={t("adminScenarios.fieldDescription")}
+              value={getEffective(editingHardcoded, "description") ?? ""}
+              isOverridden={isOverridden(editingScenario.id, "description")}
+              saving={savingFields.has(`${editingScenario.id}:description`)}
+              onSave={(v) => saveField(editingScenario.id, "description", v || null)}
+              onRevert={() => revertField(editingScenario.id, "description")}
+              multiline
+              inline
+              t={t}
+            />
+          </div>
+
+          {/* Row 3+: Content editor fills remaining space */}
+          <div className="flex-1 px-4 pb-4 overflow-hidden flex flex-col min-h-0">
+            <ContentEditor
+              scenarioId={editingScenario.id}
+              scenarioTitle={editingScenario.title}
+              scenarioDescription={editingScenario.description}
+              value={getEffective(editingHardcoded, "content") ?? ""}
+              isOverridden={isOverridden(editingScenario.id, "content")}
+              saving={savingFields.has(`${editingScenario.id}:content`)}
+              onSave={(v) => saveField(editingScenario.id, "content", v || null)}
+              onRevert={() => revertField(editingScenario.id, "content")}
+              fullScreen
+              t={t}
+            />
+          </div>
+        </div>
+      )}
+
       {/* Header */}
       <div className="flex items-center justify-between flex-wrap gap-2">
         <div className="flex items-center gap-2">
@@ -302,75 +373,21 @@ Upload the images from the scenario-backgrounds/ folder in the attached ZIP into
       ) : (
         <div className="space-y-1 overflow-y-auto flex-1">
           {mergedScenarios.map((scenario) => {
-            const hardcoded = hardcodedScenarios.find(s => s.id === scenario.id)!;
             const scenarioHasOverrides = overrides.has(scenario.id) && (overrides.get(scenario.id)?.size ?? 0) > 0;
 
             return (
-              <Collapsible
+              <button
                 key={scenario.id}
-                open={expandedId === scenario.id}
-                onOpenChange={(open) => setExpandedId(open ? scenario.id : null)}
+                className="w-full text-left px-3 py-2 rounded-md hover:bg-muted/50 flex items-center gap-2 text-sm"
+                onClick={() => setExpandedId(scenario.id)}
               >
-                <CollapsibleTrigger className="w-full text-left px-3 py-2 rounded-md hover:bg-muted/50 flex items-center gap-2 text-sm">
-                  <ChevronDown className={`h-3.5 w-3.5 transition-transform ${expandedId === scenario.id ? "rotate-0" : "-rotate-90"}`} />
-                  <span className="font-medium flex-1">{scenario.title}</span>
-                  {scenarioHasOverrides && <Badge variant="secondary" className="text-[10px]">{t("adminScenarios.modified")}</Badge>}
-                  {scenario.level != null && (
-                    <Badge variant="secondary" className="text-xs">{t("adminScenarios.lvl").replace("{level}", String(scenario.level))}</Badge>
-                  )}
-                </CollapsibleTrigger>
-                <CollapsibleContent className="px-3 pb-3 pt-1">
-                  <div className="space-y-3 border border-border rounded-md p-3 bg-muted/20">
-                    {/* Title */}
-                    <OverrideField
-                      label={t("adminScenarios.fieldTitle")}
-                      value={getEffective(hardcoded, "title") ?? ""}
-                      isOverridden={isOverridden(scenario.id, "title")}
-                      saving={savingFields.has(`${scenario.id}:title`)}
-                      onSave={(v) => saveField(scenario.id, "title", v)}
-                      onRevert={() => revertField(scenario.id, "title")}
-                      t={t}
-                    />
-
-                    {/* Level */}
-                    <OverrideField
-                      label={t("adminScenarios.fieldLevel")}
-                      value={getEffective(hardcoded, "level") ?? ""}
-                      isOverridden={isOverridden(scenario.id, "level")}
-                      saving={savingFields.has(`${scenario.id}:level`)}
-                      onSave={(v) => saveField(scenario.id, "level", v === "" ? null : parseInt(v))}
-                      onRevert={() => revertField(scenario.id, "level")}
-                      type="number"
-                      t={t}
-                    />
-
-                    {/* Description */}
-                    <OverrideField
-                      label={t("adminScenarios.fieldDescription")}
-                      value={getEffective(hardcoded, "description") ?? ""}
-                      isOverridden={isOverridden(scenario.id, "description")}
-                      saving={savingFields.has(`${scenario.id}:description`)}
-                      onSave={(v) => saveField(scenario.id, "description", v || null)}
-                      onRevert={() => revertField(scenario.id, "description")}
-                      multiline
-                      t={t}
-                    />
-
-                    {/* Content — full editor with integrated toolbar */}
-                    <ContentEditor
-                      scenarioId={scenario.id}
-                      scenarioTitle={scenario.title}
-                      scenarioDescription={scenario.description}
-                      value={getEffective(hardcoded, "content") ?? ""}
-                      isOverridden={isOverridden(scenario.id, "content")}
-                      saving={savingFields.has(`${scenario.id}:content`)}
-                      onSave={(v) => saveField(scenario.id, "content", v || null)}
-                      onRevert={() => revertField(scenario.id, "content")}
-                      t={t}
-                    />
-                  </div>
-                </CollapsibleContent>
-              </Collapsible>
+                <ChevronDown className="h-3.5 w-3.5 -rotate-90" />
+                <span className="font-medium flex-1">{scenario.title}</span>
+                {scenarioHasOverrides && <Badge variant="secondary" className="text-[10px]">{t("adminScenarios.modified")}</Badge>}
+                {scenario.level != null && (
+                  <Badge variant="secondary" className="text-xs">{t("adminScenarios.lvl").replace("{level}", String(scenario.level))}</Badge>
+                )}
+              </button>
             );
           })}
         </div>
@@ -382,7 +399,7 @@ Upload the images from the scenario-backgrounds/ folder in the attached ZIP into
 /** Full content editor with integrated insert toolbar and cursor-aware insertion */
 const ContentEditor = ({
   scenarioId, scenarioTitle, scenarioDescription,
-  value, isOverridden, saving, onSave, onRevert, t
+  value, isOverridden, saving, onSave, onRevert, fullScreen, t
 }: {
   scenarioId: string;
   scenarioTitle: string;
@@ -392,6 +409,7 @@ const ContentEditor = ({
   saving: boolean;
   onSave: (v: string) => void;
   onRevert: () => void;
+  fullScreen?: boolean;
   t: (k: string) => string;
 }) => {
   const [local, setLocal] = useState(value);
@@ -432,7 +450,7 @@ const ContentEditor = ({
   }, [insertAtCursor]);
 
   return (
-    <div className="space-y-1.5">
+    <div className={`space-y-1.5 ${fullScreen ? "flex-1 flex flex-col min-h-0" : ""}`}>
       <div className="flex items-center justify-between">
         <Label className="text-xs flex items-center gap-1.5">
           {t("adminScenarios.fieldContent")}
@@ -486,7 +504,7 @@ const ContentEditor = ({
       </div>
 
       {/* Textarea + save button */}
-      <div className="flex gap-1.5">
+      <div className={`flex gap-1.5 ${fullScreen ? "flex-1 min-h-0" : ""}`}>
         <Textarea
           ref={textareaRef}
           value={local}
@@ -497,7 +515,7 @@ const ContentEditor = ({
           onSelect={handleSelect}
           onClick={handleSelect}
           onKeyUp={handleSelect}
-          className="text-sm min-h-[200px] font-mono text-xs flex-1"
+          className={`text-sm font-mono text-xs flex-1 ${fullScreen ? "h-full resize-none" : "min-h-[200px]"}`}
         />
         {dirty && (
           <Button
@@ -526,7 +544,7 @@ const ContentEditor = ({
 
 /** Reusable field with override indicator and save/revert */
 const OverrideField = ({
-  label, value, isOverridden, saving, onSave, onRevert, type, multiline, t
+  label, value, isOverridden, saving, onSave, onRevert, type, multiline, inline, t
 }: {
   label: string;
   value: any;
@@ -536,6 +554,7 @@ const OverrideField = ({
   onRevert: () => void;
   type?: string;
   multiline?: boolean;
+  inline?: boolean;
   t: (k: string) => string;
 }) => {
   const [local, setLocal] = useState(String(value ?? ""));
@@ -544,19 +563,21 @@ const OverrideField = ({
   useEffect(() => { setLocal(String(value ?? "")); }, [value]);
 
   return (
-    <div className="space-y-1">
-      <Label className="text-xs flex items-center gap-1.5">
-        {label}
-        {isOverridden && (
-          <button
-            onClick={onRevert}
-            className="text-amber-600 dark:text-amber-400 hover:underline text-[10px]"
-            title={t("adminScenarios.dbOverrideRevert")}
-          >
-            ● {t("adminScenarios.revert")}
-          </button>
-        )}
-      </Label>
+    <div className={inline ? "flex items-center gap-1.5" : "space-y-1"}>
+      {!inline && (
+        <Label className="text-xs flex items-center gap-1.5">
+          {label}
+          {isOverridden && (
+            <button
+              onClick={onRevert}
+              className="text-amber-600 dark:text-amber-400 hover:underline text-[10px]"
+              title={t("adminScenarios.dbOverrideRevert")}
+            >
+              ● {t("adminScenarios.revert")}
+            </button>
+          )}
+        </Label>
+      )}
       <div className="flex gap-1.5">
         {multiline ? (
           <Textarea
