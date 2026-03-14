@@ -176,7 +176,7 @@ export function parseWikitext(wikitext: string): ParsedScenario {
   let seenHeading = false;
 
   // Buffer for meta tags that appear between sections
-  let pendingMeta: Record<string, string> = {};
+  
 
   function flushBody() {
     if (currentTarget && currentBodyLines.length > 0) {
@@ -195,8 +195,8 @@ export function parseWikitext(wikitext: string): ParsedScenario {
     if (hasMetaTags && isMetaOnlyLine(line)) {
       if (!seenHeading) {
         Object.assign(scenarioMeta, lineMeta);
-      } else {
-        Object.assign(pendingMeta, lineMeta);
+      } else if (currentTarget) {
+        Object.assign(currentTarget.metadata, lineMeta);
       }
       continue; // Don't add to body
     }
@@ -225,10 +225,9 @@ export function parseWikitext(wikitext: string): ParsedScenario {
         title,
         level,
         content: "",
-        metadata: { ...pendingMeta },
+        metadata: {},
         children: [],
       };
-      pendingMeta = {};
 
       while (stack.length > 0 && stack[stack.length - 1].level >= level) {
         stack.pop();
