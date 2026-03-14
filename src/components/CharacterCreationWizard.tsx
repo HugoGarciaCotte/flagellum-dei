@@ -682,7 +682,7 @@ const CharacterCreationWizard = ({ onCreated, onCancel, gameId }: CharacterCreat
           </div>
           {!online && (
             <p className="text-xs text-muted-foreground flex items-center gap-1">
-              <WifiOff className="h-3 w-3" /> Portrait features available when online
+              <WifiOff className="h-3 w-3" /> {t("wizard.portrait.offlineNote")}
             </p>
           )}
         </div>
