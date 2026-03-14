@@ -718,7 +718,7 @@ const CharacterCreationWizard = ({ onCreated, onCancel, gameId }: CharacterCreat
 
         <div className="space-y-2">
           <div className="flex items-center justify-between">
-            <label className="text-sm font-medium text-foreground">Name</label>
+            <label className="text-sm font-medium text-foreground">{t("wizard.name")}</label>
             <Button
               variant="ghost"
               size="sm"
