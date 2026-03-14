@@ -399,7 +399,7 @@ Upload the images from the scenario-backgrounds/ folder in the attached ZIP into
 /** Full content editor with integrated insert toolbar and cursor-aware insertion */
 const ContentEditor = ({
   scenarioId, scenarioTitle, scenarioDescription,
-  value, isOverridden, saving, onSave, onRevert, t
+  value, isOverridden, saving, onSave, onRevert, fullScreen, t
 }: {
   scenarioId: string;
   scenarioTitle: string;
@@ -409,6 +409,7 @@ const ContentEditor = ({
   saving: boolean;
   onSave: (v: string) => void;
   onRevert: () => void;
+  fullScreen?: boolean;
   t: (k: string) => string;
 }) => {
   const [local, setLocal] = useState(value);
