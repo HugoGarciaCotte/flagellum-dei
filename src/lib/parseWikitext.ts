@@ -206,10 +206,11 @@ export function parseWikitext(wikitext: string): ParsedScenario {
     if (closeMatch) {
       flushBody();
       const closeLevel = closeMatch[1].length / 2;
+      let lastPopped: WikiSection | null = null;
       while (stack.length > 0 && stack[stack.length - 1].level >= closeLevel) {
-        stack.pop();
+        lastPopped = stack.pop()!.section;
       }
-      currentTarget = stack.length > 0 ? stack[stack.length - 1].section : null;
+      currentTarget = stack.length > 0 ? stack[stack.length - 1].section : lastPopped;
       continue;
     }
 
