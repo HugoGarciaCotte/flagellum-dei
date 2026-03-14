@@ -225,10 +225,9 @@ export function parseWikitext(wikitext: string): ParsedScenario {
         title,
         level,
         content: "",
-        metadata: { ...pendingMeta },
+        metadata: {},
         children: [],
       };
-      pendingMeta = {};
 
       while (stack.length > 0 && stack[stack.length - 1].level >= level) {
         stack.pop();
