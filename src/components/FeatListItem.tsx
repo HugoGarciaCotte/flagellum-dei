@@ -9,6 +9,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { useTranslation } from "@/i18n/useTranslation";
 
 interface FeatListItemFeat {
   id: string;
@@ -55,10 +56,12 @@ const FeatListItem = ({
   compact,
   titlePrefix,
   onQuickAction,
-  quickActionLabel = "Select",
+  quickActionLabel,
 }: FeatListItemProps) => {
+  const { t } = useTranslation();
   const hasSpecialities = specialities && specialities.length > 0;
   const hasPicker = !!onQuickAction;
+  const resolvedQuickActionLabel = quickActionLabel ?? t("feats.select");
 
   return (
     <div
@@ -73,12 +76,12 @@ const FeatListItem = ({
             <div className="ml-auto flex gap-1 shrink-0" onClick={(e) => e.stopPropagation()}>
               {hasPicker && (
                 <Button size="sm" variant="default" className="h-6 text-xs px-2" onClick={onQuickAction}>
-                  {quickActionLabel}
+                  {resolvedQuickActionLabel}
                 </Button>
               )}
               {actions}
               <Button size="sm" variant="outline" className="h-6 text-xs px-2" onClick={onToggleExpand}>
-                {expanded ? "Hide" : "Info"}
+                {expanded ? t("feats.hide") : t("feats.info")}
               </Button>
             </div>
           </div>
@@ -86,7 +89,6 @@ const FeatListItem = ({
             <p className="text-xs text-muted-foreground/70 mt-0.5">{feat.description}</p>
           )}
         </div>
-        {/* Speciality dropdown (editable) */}
         {hasSpecialities && onSpecialityChange && (
           <div className={compact ? "mt-1" : "px-3 pb-1"} onClick={(e) => e.stopPropagation()}>
             <Select
@@ -94,10 +96,10 @@ const FeatListItem = ({
               onValueChange={(val) => onSpecialityChange(val === "__none__" ? "" : val)}
             >
               <SelectTrigger className="h-6 text-xs w-32">
-                <SelectValue placeholder="Speciality..." />
+                <SelectValue placeholder={t("feats.speciality")} />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="__none__">— Pick —</SelectItem>
+                <SelectItem value="__none__">{t("feats.pick")}</SelectItem>
                 {specialities!.map((s) => (
                   <SelectItem key={s} value={s}>{s}</SelectItem>
                 ))}
@@ -105,7 +107,6 @@ const FeatListItem = ({
             </Select>
           </div>
         )}
-        {/* Speciality read-only display */}
         {hasSpecialities && !onSpecialityChange && specialityValue && (
           <p className={`text-xs text-muted-foreground italic ${compact ? "mt-1" : "px-3 pb-1"}`}>({specialityValue})</p>
         )}

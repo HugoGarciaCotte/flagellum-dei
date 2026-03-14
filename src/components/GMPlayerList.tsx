@@ -7,6 +7,7 @@ import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/component
 import { Users, ChevronDown, Pencil } from "lucide-react";
 import CharacterSheet from "@/components/CharacterSheet";
 import CharacterListItem from "@/components/CharacterListItem";
+import { useTranslation } from "@/i18n/useTranslation";
 
 interface PlayerRow {
   user_id: string;
@@ -18,6 +19,7 @@ interface PlayerRow {
 
 const GMPlayerList = () => {
   const { user } = useAuth();
+  const { t } = useTranslation();
   const [open, setOpen] = useState(false);
   const [editPlayer, setEditPlayer] = useState<PlayerRow | null>(null);
 
@@ -62,7 +64,7 @@ const GMPlayerList = () => {
         <CollapsibleTrigger asChild>
           <Button variant="ghost" className="gap-2 text-muted-foreground hover:text-foreground font-display w-full justify-between">
             <span className="flex items-center gap-2">
-              <Users className="h-4 w-4" /> My Players
+              <Users className="h-4 w-4" /> {t("gm.myPlayers")}
             </span>
             <ChevronDown className={`h-4 w-4 transition-transform ${open ? "rotate-180" : ""}`} />
           </Button>
@@ -71,7 +73,7 @@ const GMPlayerList = () => {
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
             {players.map((p) => (
               <div key={p.user_id} className="space-y-1">
-                <p className="text-xs font-medium text-muted-foreground px-1">{p.display_name || "Unknown"}</p>
+                <p className="text-xs font-medium text-muted-foreground px-1">{p.display_name || t("gm.unknown")}</p>
                 {p.character_id ? (
                   <CharacterListItem
                     character={{ id: p.character_id, name: p.character_name || "Unnamed", description: p.character_description }}
@@ -82,7 +84,7 @@ const GMPlayerList = () => {
                     }
                   />
                 ) : (
-                  <p className="text-xs text-muted-foreground italic px-1">No character selected</p>
+                  <p className="text-xs text-muted-foreground italic px-1">{t("gm.noCharacterSelected")}</p>
                 )}
               </div>
             ))}
@@ -94,7 +96,7 @@ const GMPlayerList = () => {
         <DialogContent className="max-h-[85vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle className="font-display">
-              Edit {editPlayer?.display_name}'s Character
+              {t("gm.editCharacter").replace("{name}", editPlayer?.display_name || t("gm.unknown"))}
             </DialogTitle>
           </DialogHeader>
           {editPlayer?.character_id && (

@@ -272,7 +272,7 @@ const Dashboard = () => {
                       </span>
                     </div>
                     {game.join_code ? (
-                      <CardDescription>Code: <span className="font-mono text-primary tracking-widest">{game.join_code}</span></CardDescription>
+                      <CardDescription>{t("dashboard.code")} <span className="font-mono text-primary tracking-widest">{game.join_code}</span></CardDescription>
                     ) : (
                       <CardDescription className="text-muted-foreground/60">{t("dashboard.localGame")}</CardDescription>
                     )}

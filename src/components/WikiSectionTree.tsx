@@ -188,8 +188,8 @@ function SectionNode({
               dangerouslySetInnerHTML={{ __html: section.content }}
             />
           )}
-          {hoveredFeat && featsMap && (
-            <FeatLinkTooltip featName={hoveredFeat.name} rect={hoveredFeat.rect} featsMap={featsMap} />
+          {hoveredFeat && featsMap && tooltipLabels && (
+            <FeatLinkTooltip featName={hoveredFeat.name} rect={hoveredFeat.rect} featsMap={featsMap} labels={tooltipLabels} />
           )}
           {section.children.map((child) => (
             <SectionNode
