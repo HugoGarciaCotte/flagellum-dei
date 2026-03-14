@@ -36,15 +36,17 @@ OTHER DEALINGS IN THE SOFTWARE.
 For more information, please refer to <https://unlicense.org>
 
 
-2. GAME CONTENT (All Rights Reserved)
---------------------------------------
+2. GAME CONTENT & ARTWORK (All Rights Reserved)
+-------------------------------------------------
 
 All game content — including but not limited to scenarios, feats,
 character descriptions, lore, narrative text, and world-building
 (primarily found in src/data/scenarios.ts, src/data/feats.ts,
 src/data/feats-data.json, and associated scenario/feat prose) —
-is © the original authors. All rights reserved.
+as well as all original artwork and illustrations
+(primarily found in src/assets/) —
+is © Hugo Garcia-Cotte. All rights reserved.
 
 You may NOT copy, redistribute, modify, or create derivative works
-from the game content without explicit written permission from the
-authors.
+from the game content or artwork without explicit written permission
+from the author.

@@ -80,7 +80,7 @@ The same universe also spawned **[Danse Macabre](https://github.com/Taiko3615/Da
 This project uses a **dual license**:
 
 - **Software** (source code, UI, tooling) → [Unlicense](https://unlicense.org) (public domain). Do whatever you want with it.
-- **Game content** (scenarios, feats, lore, narrative text) → **© the original authors. All rights reserved.** Do not redistribute or adapt without permission.
+- **Game content & artwork** (scenarios, feats, lore, narrative text, illustrations) → **© Hugo Garcia-Cotte. All rights reserved.** Do not redistribute or adapt without permission.
 
 The website and game engine were built with [Lovable](https://lovable.dev) — the game content was handwritten by the creators.
 
