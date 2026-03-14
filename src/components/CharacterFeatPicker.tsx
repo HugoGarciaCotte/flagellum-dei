@@ -62,6 +62,7 @@ type ValidationResult = {
 } | null;
 
 const CharacterFeatPicker = ({ characterId, mode = "player", scenarioLevel }: CharacterFeatPickerProps) => {
+  const { t } = useTranslation();
   const [pickerTarget, setPickerTarget] = useState<PickerTarget | null>(null);
   const [searchTerm, setSearchTerm] = useState("");
   const [expandedFeatId, setExpandedFeatId] = useState<string | null>(null);
