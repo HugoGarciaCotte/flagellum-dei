@@ -594,7 +594,7 @@ const CharacterFeatPicker = ({ characterId, mode = "player", scenarioLevel }: Ch
           </p>
 
           {freeFeats.length === 0 && mode === "gm" && (
-            <p className="text-xs text-muted-foreground italic">No free feats granted yet.</p>
+            <p className="text-xs text-muted-foreground italic">{t("feats.noFreeFeats")}</p>
           )}
 
           {freeFeats.map((cf) => {
