@@ -16,6 +16,7 @@ export interface WikiSection {
 
 export interface ParsedScenario {
   metadata: Record<string, string>;
+  ambianceTrack?: AmbianceEntry[];
   sections: WikiSection[];
 }
 
