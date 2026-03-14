@@ -19,7 +19,7 @@ import PageHeader from "@/components/PageHeader";
 
 import { useLocalRow, useLocalRows } from "@/hooks/useLocalData";
 import { upsertRow } from "@/lib/localStore";
-import { triggerPush, pullAll } from "@/lib/syncManager";
+import { triggerPush, pullTable } from "@/lib/syncManager";
 import { useTranslation } from "@/i18n/useTranslation";
 
 const HostGame = () => {
