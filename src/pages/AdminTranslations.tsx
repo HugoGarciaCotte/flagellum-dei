@@ -194,7 +194,7 @@ const AdminTranslations = () => {
   return (
     <div className="min-h-screen bg-background">
       <PageHeader
-        title="Translations"
+        title={t("admin.translations")}
         leftAction={
           <Button variant="ghost" size="icon" onClick={() => navigate("/admin")}>
             <ArrowLeft className="h-4 w-4" />

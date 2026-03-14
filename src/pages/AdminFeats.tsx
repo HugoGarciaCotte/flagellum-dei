@@ -5,18 +5,20 @@ import { ArrowLeft, Swords } from "lucide-react";
 import FeatEditorPanel from "@/components/FeatEditorPanel";
 import FullPageLoader from "@/components/FullPageLoader";
 import PageHeader from "@/components/PageHeader";
+import { useTranslation } from "@/i18n/useTranslation";
 
 const AdminFeats = () => {
   const navigate = useNavigate();
   const { isOwner, isLoading } = useIsOwner();
+  const { t } = useTranslation();
 
   if (isLoading) return <FullPageLoader />;
 
   if (!isOwner) {
     return (
       <div className="flex min-h-screen items-center justify-center bg-background flex-col gap-4">
-        <p className="font-display text-xl text-muted-foreground">Access denied.</p>
-        <Button onClick={() => navigate("/")} variant="outline">Return Home</Button>
+        <p className="font-display text-xl text-muted-foreground">{t("admin.accessDenied")}</p>
+        <Button onClick={() => navigate("/")} variant="outline">{t("admin.returnHome")}</Button>
       </div>
     );
   }
@@ -24,7 +26,7 @@ const AdminFeats = () => {
   return (
     <div className="flex flex-col h-screen bg-background">
       <PageHeader
-        title="Feat Editor"
+        title={t("admin.feats")}
         icon={<Swords className="h-5 w-5 text-primary" />}
         leftAction={
           <Button variant="ghost" size="icon" onClick={() => navigate("/admin")}>
