@@ -2,6 +2,7 @@ import { Globe } from "lucide-react";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Button } from "@/components/ui/button";
 import { useTranslation } from "@/i18n/useTranslation";
+import { useLocation } from "react-router-dom";
 
 const locales = [
   { code: "en" as const, label: "English", flag: "🇬🇧" },
