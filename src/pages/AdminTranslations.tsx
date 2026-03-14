@@ -68,13 +68,16 @@ const AdminTranslations = () => {
     return () => { cancelled = true; };
   }, [activeLocale]);
 
+  const isTrulyMissing = (k: string) =>
+    (!editValues[k] || editValues[k] === en[k]) && (!staticFr[k] || staticFr[k] === en[k]);
+
   const missingCount = useMemo(
-    () => allKeys.filter((k) => !editValues[k] || editValues[k] === en[k]).length,
+    () => allKeys.filter(isTrulyMissing).length,
     [allKeys, editValues],
   );
 
   const pendingExportCount = useMemo(
-    () => allKeys.filter((k) => dbTranslations[k] && dbTranslations[k] !== en[k] && (!fr[k] || fr[k] === en[k])).length,
+    () => allKeys.filter((k) => dbTranslations[k] && dbTranslations[k] !== en[k] && (!staticFr[k] || staticFr[k] === en[k])).length,
     [allKeys, dbTranslations],
   );
 
