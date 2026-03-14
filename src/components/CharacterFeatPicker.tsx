@@ -536,7 +536,7 @@ const CharacterFeatPicker = ({ characterId, mode = "player", scenarioLevel }: Ch
   return (
     <div className="space-y-2">
       <div className="flex items-center gap-2">
-        <p className="text-sm font-medium text-muted-foreground">Feats per Level</p>
+        <p className="text-sm font-medium text-muted-foreground">{t("feats.perLevel")}</p>
       </div>
       {Array.from({ length: levelsToShow }, (_, i) => i + 1).map((level) => {
         const assigned = levelFeats.find((cf) => cf.level === level);
