@@ -531,11 +531,11 @@ const CharacterCreationWizard = ({ onCreated, onCancel, gameId }: CharacterCreat
               className="w-full text-left p-3 rounded border border-border hover:border-primary/50 transition-colors"
             >
               <div className="flex flex-col gap-0.5">
-                <span className="text-sm font-medium text-foreground">{slotIndex === 0 ? "No Faith" : "None"}</span>
+                <span className="text-sm font-medium text-foreground">{slotIndex === 0 ? t("wizard.step.noFaith") : t("wizard.step.none")}</span>
                 <span className="text-xs text-muted-foreground">
                   {slotIndex === 0
-                    ? "Your character has no religious devotion — easier to roleplay, but no divine protection."
-                    : "Skip this slot"}
+                    ? t("wizard.step.noFaithDesc")
+                    : t("wizard.step.skipSlot")}
                 </span>
               </div>
             </button>
