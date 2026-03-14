@@ -623,10 +623,10 @@ const CharacterCreationWizard = ({ onCreated, onCancel, gameId }: CharacterCreat
         if (!feat) return null;
         const slotIndex = subfeatSlots.indexOf(slot);
         const label = [
-          "Faith",
-          "Main Feat",
-          "Sub-Specialty",
-        ][slotIndex] ?? "Feat";
+          t("wizard.summary.faith"),
+          t("wizard.summary.mainFeat"),
+          t("wizard.summary.subSpecialty"),
+        ][slotIndex] ?? t("wizard.summary.feat");
         return { label, title: feat.title };
       })
       .filter(Boolean) as { label: string; title: string }[];
