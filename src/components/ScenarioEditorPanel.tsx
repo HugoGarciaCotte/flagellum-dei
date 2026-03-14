@@ -561,19 +561,21 @@ const OverrideField = ({
   useEffect(() => { setLocal(String(value ?? "")); }, [value]);
 
   return (
-    <div className="space-y-1">
-      <Label className="text-xs flex items-center gap-1.5">
-        {label}
-        {isOverridden && (
-          <button
-            onClick={onRevert}
-            className="text-amber-600 dark:text-amber-400 hover:underline text-[10px]"
-            title={t("adminScenarios.dbOverrideRevert")}
-          >
-            ● {t("adminScenarios.revert")}
-          </button>
-        )}
-      </Label>
+    <div className={inline ? "flex items-center gap-1.5" : "space-y-1"}>
+      {!inline && (
+        <Label className="text-xs flex items-center gap-1.5">
+          {label}
+          {isOverridden && (
+            <button
+              onClick={onRevert}
+              className="text-amber-600 dark:text-amber-400 hover:underline text-[10px]"
+              title={t("adminScenarios.dbOverrideRevert")}
+            >
+              ● {t("adminScenarios.revert")}
+            </button>
+          )}
+        </Label>
+      )}
       <div className="flex gap-1.5">
         {multiline ? (
           <Textarea
