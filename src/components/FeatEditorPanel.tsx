@@ -14,6 +14,7 @@ import { downloadFile } from "@/lib/downloadFile";
 import { toast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 import { invalidateOverrides, type FeatOverrideMap } from "@/lib/featOverrides";
+import { useTranslation } from "@/i18n/useTranslation";
 
 /** Fields that live inside meta */
 const META_FIELDS = ["description", "prerequisites", "special", "specialities", "subfeats", "unlocks_categories", "blocking", "synonyms"] as const;
@@ -22,14 +23,14 @@ type MetaField = (typeof META_FIELDS)[number];
 const GENERATABLE_FIELDS = ["description", "prerequisites", "specialities", "blocking", "unlocks_categories", "subfeats"] as const;
 type GeneratableField = (typeof GENERATABLE_FIELDS)[number];
 
-const FIELD_LABELS: Record<GeneratableField, string> = {
-  description: "Description",
-  prerequisites: "Prerequisites",
-  specialities: "Specialities",
-  blocking: "Blocking",
-  unlocks_categories: "Unlocks categories",
-  subfeats: "Subfeat slots",
-};
+const getFieldLabels = (t: (k: string) => string): Record<GeneratableField, string> => ({
+  description: t("adminFeats.fieldDescription"),
+  prerequisites: t("adminFeats.fieldPrerequisites"),
+  specialities: t("adminFeats.fieldSpecialities"),
+  blocking: t("adminFeats.fieldBlocking"),
+  unlocks_categories: t("adminFeats.fieldUnlocksCategories"),
+  subfeats: t("adminFeats.fieldSubfeatSlots"),
+});
 
 interface EditableFeat {
   id: string;
@@ -41,6 +42,9 @@ interface EditableFeat {
 }
 
 const FeatEditorPanel = () => {
+  const { t } = useTranslation();
+  const FIELD_LABELS = getFieldLabels(t);
+
   const [hardcodedFeats] = useState<EditableFeat[]>(() =>
     getHardcodedFeats().map(f => ({ ...f, meta: getFeatMeta(f) }))
   );
@@ -77,7 +81,6 @@ const FeatEditorPanel = () => {
     return () => { cancelled = true; };
   }, []);
 
-  /** Get the effective value of a field, DB override winning over hardcoded. */
   const getEffective = useCallback((feat: EditableFeat, field: string): any => {
     const dbVal = overrides.get(feat.id)?.get(field);
     if (dbVal !== undefined) return dbVal;
@@ -86,12 +89,10 @@ const FeatEditorPanel = () => {
     return (feat.meta as any)?.[field];
   }, [overrides]);
 
-  /** Is a specific field overridden in DB? */
   const isOverridden = useCallback((featId: string, field: string): boolean => {
     return overrides.get(featId)?.has(field) ?? false;
   }, [overrides]);
 
-  /** Count of feats with at least one override */
   const overriddenCount = useMemo(() => {
     let count = 0;
     for (const [, fields] of overrides) {
@@ -120,7 +121,6 @@ const FeatEditorPanel = () => {
     return mergedFeats.filter(f => f.title.toLowerCase().includes(lower));
   }, [mergedFeats, searchTerm]);
 
-  /** Upsert a single field override to DB */
   const saveField = async (featId: string, field: string, value: any) => {
     const key = `${featId}:${field}`;
     setSavingFields(prev => new Set(prev).add(key));
@@ -138,12 +138,11 @@ const FeatEditorPanel = () => {
       });
       invalidateOverrides();
     } catch (e: any) {
-      toast({ title: "Save failed", description: e.message, variant: "destructive" });
+      toast({ title: t("adminFeats.saveFailed"), description: e.message, variant: "destructive" });
     }
     setSavingFields(prev => { const s = new Set(prev); s.delete(key); return s; });
   };
 
-  /** Remove a single field override (revert to hardcoded) */
   const revertField = async (featId: string, field: string) => {
     const key = `${featId}:${field}`;
     setSavingFields(prev => new Set(prev).add(key));
@@ -164,12 +163,11 @@ const FeatEditorPanel = () => {
       });
       invalidateOverrides();
     } catch (e: any) {
-      toast({ title: "Revert failed", description: e.message, variant: "destructive" });
+      toast({ title: t("adminFeats.revertFailed"), description: e.message, variant: "destructive" });
     }
     setSavingFields(prev => { const s = new Set(prev); s.delete(key); return s; });
   };
 
-  /** Call AI to generate metadata for a feat */
   const generateForFeat = async (feat: EditableFeat, fields: GeneratableField[]): Promise<Record<string, any> | null> => {
     try {
       const { data, error } = await supabase.functions.invoke("generate-feat-metadata", {
@@ -185,19 +183,17 @@ const FeatEditorPanel = () => {
       if (data?.error) throw new Error(data.error);
       return data;
     } catch (e: any) {
-      toast({ title: `Generation failed for "${feat.title}"`, description: e.message, variant: "destructive" });
+      toast({ title: t("adminFeats.generationFailed").replace("{title}", feat.title), description: e.message, variant: "destructive" });
       return null;
     }
   };
 
-  /** Generate a single field for a single feat and auto-save */
   const handleGenerateField = async (feat: EditableFeat, field: GeneratableField) => {
     const key = `${feat.id}:${field}`;
     setGeneratingFields(prev => new Set(prev).add(key));
     const result = await generateForFeat(feat, [field]);
     if (result && field in result) {
       const value = result[field];
-      // For array fields, save empty arrays as null
       const saveValue = Array.isArray(value) && value.length === 0 ? null : value;
       if (saveValue != null) {
         await saveField(feat.id, field, saveValue);
@@ -206,14 +202,13 @@ const FeatEditorPanel = () => {
     setGeneratingFields(prev => { const s = new Set(prev); s.delete(key); return s; });
   };
 
-  /** Generate all empty fields for a single feat */
   const handleGenerateAllForFeat = async (feat: EditableFeat) => {
     const emptyFields = GENERATABLE_FIELDS.filter(f => {
       const val = getEffective(feat, f);
       return val == null || val === "" || (Array.isArray(val) && val.length === 0);
     });
     if (emptyFields.length === 0) {
-      toast({ title: "Nothing to generate", description: "All fields already have values." });
+      toast({ title: t("adminFeats.nothingToGenerate"), description: t("adminFeats.allFieldsHaveValues") });
       return;
     }
     for (const f of emptyFields) {
@@ -236,13 +231,11 @@ const FeatEditorPanel = () => {
     }
   };
 
-  /** Bulk generate a field (or all) for all feats missing it */
   const handleBulkGenerate = async () => {
     const fieldsToGenerate: GeneratableField[] = bulkField === "all"
       ? [...GENERATABLE_FIELDS]
       : [bulkField];
 
-    // Find feats that are missing at least one of the requested fields
     const featsToProcess = mergedFeats.filter(feat => {
       return fieldsToGenerate.some(f => {
         const val = getEffective(feat, f);
@@ -251,7 +244,7 @@ const FeatEditorPanel = () => {
     });
 
     if (featsToProcess.length === 0) {
-      toast({ title: "Nothing to generate", description: `All feats already have ${bulkField === "all" ? "all fields" : FIELD_LABELS[bulkField]}.` });
+      toast({ title: t("adminFeats.nothingToGenerate"), description: t("adminFeats.allFeatsHaveField").replace("{field}", bulkField === "all" ? t("adminFeats.allFields") : FIELD_LABELS[bulkField]) });
       return;
     }
 
@@ -263,7 +256,6 @@ const FeatEditorPanel = () => {
       if (bulkAbortRef.current) break;
       const feat = featsToProcess[i];
 
-      // Determine which of the requested fields are actually empty for this feat
       const emptyFields = fieldsToGenerate.filter(f => {
         const val = getEffective(feat, f);
         return val == null || val === "" || (Array.isArray(val) && val.length === 0);
@@ -285,7 +277,6 @@ const FeatEditorPanel = () => {
       }
 
       setBulkProgress({ done: i + 1, total: featsToProcess.length });
-      // Rate limit delay
       if (i < featsToProcess.length - 1) {
         await new Promise(r => setTimeout(r, 500));
       }
@@ -293,7 +284,7 @@ const FeatEditorPanel = () => {
 
     setBulkGenerating(false);
     if (!bulkAbortRef.current) {
-      toast({ title: "Bulk generation complete", description: `Processed ${featsToProcess.length} feats.` });
+      toast({ title: t("adminFeats.bulkComplete"), description: t("adminFeats.processedFeats").replace("{count}", String(featsToProcess.length)) });
     }
   };
 
@@ -325,11 +316,11 @@ const FeatEditorPanel = () => {
       .delete()
       .neq("id", "00000000-0000-0000-0000-000000000000");
     if (error) {
-      toast({ title: "Downloaded but DB clear failed", description: error.message, variant: "destructive" });
+      toast({ title: t("adminFeats.downloadClearFailed"), description: error.message, variant: "destructive" });
     } else {
       setOverrides(new Map());
       invalidateOverrides();
-      toast({ title: "Downloaded & DB cleared", description: "Replace src/data/feats-data.json with the downloaded file." });
+      toast({ title: t("adminFeats.downloadedCleared"), description: t("adminFeats.downloadedClearedDesc") });
     }
   };
 
@@ -338,12 +329,12 @@ const FeatEditorPanel = () => {
       {/* Header */}
       <div className="flex items-center justify-between flex-wrap gap-2">
         <div className="flex items-center gap-2">
-          <h2 className="font-display text-lg">Feats</h2>
-          <Badge variant="outline" className="text-xs">{hardcodedFeats.length} feats</Badge>
+          <h2 className="font-display text-lg">{t("adminFeats.title")}</h2>
+          <Badge variant="outline" className="text-xs">{t("adminFeats.featsCount").replace("{count}", String(hardcodedFeats.length))}</Badge>
         </div>
         <div className="flex gap-2">
           <Button variant="outline" size="sm" onClick={handleDownloadAndClear} className="gap-1">
-            <Download className="h-3.5 w-3.5" /> Download JSON & Clear DB
+            <Download className="h-3.5 w-3.5" /> {t("adminFeats.downloadJsonClearDb")}
           </Button>
         </div>
       </div>
@@ -352,22 +343,20 @@ const FeatEditorPanel = () => {
       {overriddenCount > 0 && (
         <div className="flex items-center gap-3 rounded-lg bg-amber-500/10 border border-amber-500/30 p-3">
           <AlertTriangle className="h-4 w-4 text-amber-600 dark:text-amber-400 shrink-0" />
-          <p className="text-sm text-amber-700 dark:text-amber-300">
-            <strong>{overriddenCount}</strong> feat{overriddenCount > 1 ? "s" : ""} modified in DB — download & export to persist changes in the static file.
-          </p>
+          <p className="text-sm text-amber-700 dark:text-amber-300" dangerouslySetInnerHTML={{ __html: t("adminFeats.overrideBanner").replace("{count}", String(overriddenCount)) }} />
         </div>
       )}
 
       {/* Bulk AI generation toolbar */}
       <div className="flex items-center gap-2 flex-wrap rounded-lg border border-border p-3 bg-muted/30">
         <Sparkles className="h-4 w-4 text-primary shrink-0" />
-        <span className="text-sm font-medium">Generate with AI:</span>
+        <span className="text-sm font-medium">{t("adminFeats.generateWithAi")}</span>
         <Select value={bulkField} onValueChange={(v) => setBulkField(v as any)}>
           <SelectTrigger className="h-8 w-[180px] text-sm">
             <SelectValue />
           </SelectTrigger>
           <SelectContent>
-            <SelectItem value="all">All fields</SelectItem>
+            <SelectItem value="all">{t("adminFeats.allFields")}</SelectItem>
             {GENERATABLE_FIELDS.map(f => (
               <SelectItem key={f} value={f}>{FIELD_LABELS[f]}</SelectItem>
             ))}
@@ -387,13 +376,13 @@ const FeatEditorPanel = () => {
             </>
           ) : (
             <>
-              <Sparkles className="h-3.5 w-3.5" /> Generate All Missing
+              <Sparkles className="h-3.5 w-3.5" /> {t("adminFeats.generateAllMissing")}
             </>
           )}
         </Button>
         {bulkGenerating && (
           <Button size="sm" variant="outline" onClick={() => { bulkAbortRef.current = true; }}>
-            Stop
+            {t("adminFeats.stop")}
           </Button>
         )}
       </div>
@@ -402,7 +391,7 @@ const FeatEditorPanel = () => {
       <div className="relative">
         <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
         <Input
-          placeholder="Search feats..."
+          placeholder={t("adminFeats.searchFeats")}
           value={searchTerm}
           onChange={(e) => setSearchTerm(e.target.value)}
           className="pl-9"
@@ -427,7 +416,7 @@ const FeatEditorPanel = () => {
                 <CollapsibleTrigger className="w-full text-left px-3 py-2 rounded-md hover:bg-muted/50 flex items-center gap-2 text-sm">
                   <ChevronDown className={`h-3.5 w-3.5 transition-transform shrink-0 ${expandedId === feat.id ? "rotate-0" : "-rotate-90"}`} />
                   <span className="font-medium flex-1 truncate">{feat.title}</span>
-                  {featHasOverrides && <Badge variant="secondary" className="text-[10px]">Modified</Badge>}
+                  {featHasOverrides && <Badge variant="secondary" className="text-[10px]">{t("adminFeats.modified")}</Badge>}
                   <FeatCategoryBadges categories={feat.categories} />
                 </CollapsibleTrigger>
                 <CollapsibleContent className="px-3 pb-3 pt-1">
@@ -441,37 +430,40 @@ const FeatEditorPanel = () => {
                         disabled={generatingFields.size > 0}
                         onClick={() => handleGenerateAllForFeat(feat)}
                       >
-                        <Sparkles className="h-3 w-3" /> Generate All Empty
+                        <Sparkles className="h-3 w-3" /> {t("adminFeats.generateAllEmpty")}
                       </Button>
                     </div>
 
                     {/* Title */}
                     <OverrideField
-                      label="Title"
+                      label={t("adminFeats.fieldTitle")}
                       value={getEffective(feat, "title") ?? ""}
                       isOverridden={isOverridden(feat.id, "title")}
                       saving={savingFields.has(`${feat.id}:title`)}
                       onSave={(v) => saveField(feat.id, "title", v)}
                       onRevert={() => revertField(feat.id, "title")}
+                      revertLabel={t("adminFeats.dbOverrideRevert")}
                     />
 
                     {/* Categories */}
                     <OverrideField
-                      label="Categories (comma-separated)"
+                      label={t("adminFeats.fieldCategories")}
                       value={(getEffective(feat, "categories") ?? []).join(", ")}
                       isOverridden={isOverridden(feat.id, "categories")}
                       saving={savingFields.has(`${feat.id}:categories`)}
                       onSave={(v) => saveField(feat.id, "categories", v.split(",").map(s => s.trim()).filter(Boolean))}
                       onRevert={() => revertField(feat.id, "categories")}
+                      revertLabel={t("adminFeats.dbOverrideRevert")}
                     />
 
                     {/* Meta string fields with AI generation */}
                     {(["description", "prerequisites", "special", "synonyms"] as const).map(field => {
                       const isGeneratable = GENERATABLE_FIELDS.includes(field as any);
+                      const labelKey = `adminFeats.field${field.charAt(0).toUpperCase() + field.slice(1)}` as string;
                       return (
                         <OverrideField
                           key={field}
-                          label={field.charAt(0).toUpperCase() + field.slice(1)}
+                          label={t(labelKey)}
                           value={getEffective(feat, field) ?? ""}
                           isOverridden={isOverridden(feat.id, field)}
                           saving={savingFields.has(`${feat.id}:${field}`)}
@@ -479,30 +471,35 @@ const FeatEditorPanel = () => {
                           onSave={(v) => saveField(feat.id, field, v || null)}
                           onRevert={() => revertField(feat.id, field)}
                           onGenerate={isGeneratable ? () => handleGenerateField(feat, field as GeneratableField) : undefined}
+                          revertLabel={t("adminFeats.dbOverrideRevert")}
                         />
                       );
                     })}
 
                     {/* Meta array fields with AI generation */}
-                    {(["specialities", "blocking", "unlocks_categories"] as const).map(field => (
-                      <OverrideField
-                        key={field}
-                        label={`${field.charAt(0).toUpperCase() + field.slice(1).replace(/_/g, " ")} (comma-separated)`}
-                        value={(getEffective(feat, field) ?? []).join(", ")}
-                        isOverridden={isOverridden(feat.id, field)}
-                        saving={savingFields.has(`${feat.id}:${field}`)}
-                        generating={generatingFields.has(`${feat.id}:${field}`)}
-                        onSave={(v) => saveField(feat.id, field, v.split(",").map(s => s.trim()).filter(Boolean))}
-                        onRevert={() => revertField(feat.id, field)}
-                        onGenerate={() => handleGenerateField(feat, field)}
-                      />
-                    ))}
+                    {(["specialities", "blocking", "unlocks_categories"] as const).map(field => {
+                      const labelKey = `adminFeats.field${field.charAt(0).toUpperCase() + field.slice(1).replace(/_([a-z])/g, (_, c) => c.toUpperCase())}` as string;
+                      return (
+                        <OverrideField
+                          key={field}
+                          label={t("adminFeats.commaSeparated").replace("{field}", t(labelKey))}
+                          value={(getEffective(feat, field) ?? []).join(", ")}
+                          isOverridden={isOverridden(feat.id, field)}
+                          saving={savingFields.has(`${feat.id}:${field}`)}
+                          generating={generatingFields.has(`${feat.id}:${field}`)}
+                          onSave={(v) => saveField(feat.id, field, v.split(",").map(s => s.trim()).filter(Boolean))}
+                          onRevert={() => revertField(feat.id, field)}
+                          onGenerate={() => handleGenerateField(feat, field)}
+                          revertLabel={t("adminFeats.dbOverrideRevert")}
+                        />
+                      );
+                    })}
 
                     {/* Subfeats */}
                     <div className="space-y-2">
                       <div className="flex items-center justify-between">
                         <div className="flex items-center gap-1.5">
-                          <Label className="text-xs font-medium">Subfeat Slots</Label>
+                          <Label className="text-xs font-medium">{t("adminFeats.fieldSubfeatSlots")}</Label>
                           <Button
                             variant="ghost"
                             size="icon"
@@ -519,7 +516,7 @@ const FeatEditorPanel = () => {
                         <div className="flex gap-1 items-center">
                           {isOverridden(feat.id, "subfeats") && (
                             <Badge variant="secondary" className="text-[10px] cursor-pointer" onClick={() => revertField(feat.id, "subfeats")}>
-                              Revert
+                              {t("adminFeats.revert")}
                             </Badge>
                           )}
                           <Button variant="outline" size="sm" className="h-6 text-xs gap-1" onClick={() => {
@@ -527,7 +524,7 @@ const FeatEditorPanel = () => {
                             const nextSlot = existing.length > 0 ? Math.max(...existing.map((s: SubfeatSlot) => s.slot)) + 1 : 1;
                             saveField(feat.id, "subfeats", [...existing, { slot: nextSlot, kind: "fixed" }]);
                           }}>
-                            <Plus className="h-3 w-3" /> Add Slot
+                            <Plus className="h-3 w-3" /> {t("adminFeats.addSlot")}
                           </Button>
                         </div>
                       </div>
@@ -568,6 +565,7 @@ function OverrideField({
   onSave,
   onRevert,
   onGenerate,
+  revertLabel,
 }: {
   label: string;
   value: string;
@@ -577,6 +575,7 @@ function OverrideField({
   onSave: (v: string) => void;
   onRevert: () => void;
   onGenerate?: () => void;
+  revertLabel?: string;
 }) {
   const [local, setLocal] = useState(value);
   const dirty = local !== value;
@@ -595,7 +594,6 @@ function OverrideField({
             className="h-5 w-5"
             disabled={generating}
             onClick={onGenerate}
-            title={`Generate ${label} with AI`}
           >
             {generating
               ? <Loader2 className="h-3 w-3 animate-spin" />
@@ -605,7 +603,7 @@ function OverrideField({
         )}
         {isOverridden && (
           <Badge variant="secondary" className="text-[10px] cursor-pointer hover:bg-destructive/20" onClick={onRevert}>
-            DB override — click to revert
+            {revertLabel ?? "DB override — click to revert"}
           </Badge>
         )}
       </div>

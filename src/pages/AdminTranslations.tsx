@@ -21,7 +21,6 @@ const SUPPORTED_LOCALES = ["fr"] as const;
 type TargetLocale = (typeof SUPPORTED_LOCALES)[number];
 const LOCALE_LABELS: Record<string, string> = { fr: "Français" };
 
-/** Group keys by screen (first segment before the dot) */
 const groupByScreen = (keys: string[]) => {
   const map: Record<string, string[]> = {};
   for (const key of keys) {
@@ -47,7 +46,6 @@ const AdminTranslations = () => {
   const grouped = useMemo(() => groupByScreen(allKeys), [allKeys]);
   const screens = useMemo(() => Object.keys(grouped).sort(), [grouped]);
 
-  // Load DB translations
   useEffect(() => {
     let cancelled = false;
     const load = async () => {
@@ -95,9 +93,9 @@ const AdminTranslations = () => {
       );
       if (error) throw error;
       setDbTranslations((prev) => ({ ...prev, [key]: value }));
-      toast({ title: "Saved", description: key });
+      toast({ title: t("adminTranslations.saved"), description: key });
     } catch (e: any) {
-      toast({ title: "Save failed", description: e.message, variant: "destructive" });
+      toast({ title: t("adminTranslations.saveFailed"), description: e.message, variant: "destructive" });
     }
     setSavingKeys((prev) => { const s = new Set(prev); s.delete(key); return s; });
   };
@@ -106,7 +104,6 @@ const AdminTranslations = () => {
     setGeneratingKeys((prev) => new Set(prev).add(key));
     try {
       const screen = key.split(".")[0];
-      // Build HTML context from surrounding keys on the same screen
       const siblings = grouped[screen] || [];
       const htmlContext = siblings
         .map((k) => `<div data-key="${k}">${en[k]}</div>`)
@@ -119,7 +116,6 @@ const AdminTranslations = () => {
       const translated = data?.translated_text;
       if (translated) {
         setEditValues((prev) => ({ ...prev, [key]: translated }));
-        // Auto-save
         const screenName = key.split(".")[0];
         await supabase.from("translations").upsert(
           { key, locale: activeLocale, value: translated, screen: screenName, updated_at: new Date().toISOString() },
@@ -128,7 +124,7 @@ const AdminTranslations = () => {
         setDbTranslations((prev) => ({ ...prev, [key]: translated }));
       }
     } catch (e: any) {
-      toast({ title: "AI generation failed", description: e.message, variant: "destructive" });
+      toast({ title: t("adminTranslations.aiGenerationFailed"), description: e.message, variant: "destructive" });
     }
     setGeneratingKeys((prev) => { const s = new Set(prev); s.delete(key); return s; });
   };
@@ -136,7 +132,7 @@ const AdminTranslations = () => {
   const handleGenerateAll = async () => {
     const missing = allKeys.filter((k) => !editValues[k] || editValues[k] === en[k]);
     if (missing.length === 0) {
-      toast({ title: "All translations are complete!" });
+      toast({ title: t("adminTranslations.allComplete") });
       return;
     }
     setGeneratingAll(true);
@@ -145,23 +141,19 @@ const AdminTranslations = () => {
       try {
         await handleGenerate(key);
         done++;
-      } catch {
-        // continue with next
-      }
-      // Small delay to avoid rate limits
+      } catch {}
       await new Promise((r) => setTimeout(r, 500));
     }
     setGeneratingAll(false);
-    toast({ title: `Generated ${done}/${missing.length} translations` });
+    toast({ title: t("adminTranslations.generatedCount").replace("{done}", String(done)).replace("{total}", String(missing.length)) });
   };
 
   const handleDownloadAndClear = async () => {
-    // Build JSON from DB translations
     const { data } = await supabase
       .from("translations")
       .select("key, value, locale");
     if (!data || data.length === 0) {
-      toast({ title: "No translations to download", variant: "destructive" });
+      toast({ title: t("adminTranslations.noTranslations"), variant: "destructive" });
       return;
     }
     const output: Record<string, Record<string, string>> = {};
@@ -170,14 +162,13 @@ const AdminTranslations = () => {
     }
     downloadFile("translations.json", JSON.stringify(output, null, 2), "application/json");
 
-    // Clear DB
     const { error } = await supabase.from("translations").delete().neq("id", "00000000-0000-0000-0000-000000000000");
     if (error) {
-      toast({ title: "Download succeeded but DB clear failed", description: error.message, variant: "destructive" });
+      toast({ title: t("adminTranslations.downloadClearFailed"), description: error.message, variant: "destructive" });
     } else {
       setDbTranslations({});
       setEditValues({});
-      toast({ title: "Translations downloaded & DB cleared" });
+      toast({ title: t("adminTranslations.downloadedCleared") });
     }
   };
 
@@ -203,27 +194,20 @@ const AdminTranslations = () => {
       />
 
       <main className="container py-8 max-w-5xl space-y-6">
-        {/* Missing banner */}
         {missingCount > 0 && (
           <div className="flex items-center gap-3 rounded-lg bg-destructive/10 border border-destructive/30 p-4">
             <AlertTriangle className="h-5 w-5 text-destructive shrink-0" />
-            <p className="font-display text-sm text-destructive">
-              <strong>{missingCount}</strong> translation{missingCount > 1 ? "s" : ""} missing or identical to English in{" "}
-              <strong>{LOCALE_LABELS[activeLocale]}</strong>
-            </p>
+            <p className="font-display text-sm text-destructive" dangerouslySetInnerHTML={{ __html: t("adminTranslations.missingCount").replace("{count}", String(missingCount)).replace("{locale}", LOCALE_LABELS[activeLocale]) }} />
           </div>
         )}
 
         {pendingExportCount > 0 && (
           <div className="flex items-center gap-3 rounded-lg bg-amber-500/10 border border-amber-500/30 p-4">
             <AlertTriangle className="h-5 w-5 text-amber-600 dark:text-amber-400 shrink-0" />
-            <p className="font-display text-sm text-amber-700 dark:text-amber-300">
-              <strong>{pendingExportCount}</strong> translation{pendingExportCount > 1 ? "s" : ""} exist only in the database — download &amp; export to preserve them in the static language file.
-            </p>
+            <p className="font-display text-sm text-amber-700 dark:text-amber-300" dangerouslySetInnerHTML={{ __html: t("adminTranslations.pendingExport").replace("{count}", String(pendingExportCount)) }} />
           </div>
         )}
 
-        {/* Action bar */}
         <div className="flex flex-wrap items-center gap-3">
           <Button
             onClick={handleGenerateAll}
@@ -231,34 +215,33 @@ const AdminTranslations = () => {
             className="gap-2 font-display"
           >
             {generatingAll ? <Loader2 className="h-4 w-4 animate-spin" /> : <Sparkles className="h-4 w-4" />}
-            {generatingAll ? "Generating..." : "Generate All Missing"}
+            {generatingAll ? t("adminTranslations.generating") : t("adminTranslations.generateAllMissing")}
           </Button>
           <Button
             variant="outline"
             onClick={handleDownloadAndClear}
             className="gap-2 font-display"
           >
-            <Download className="h-4 w-4" /> Download JSON & Clear DB
+            <Download className="h-4 w-4" /> {t("adminTranslations.downloadJsonClearDb")}
           </Button>
           <div className="ml-auto text-sm text-muted-foreground font-display">
-            {allKeys.length} keys · {allKeys.length - missingCount} translated (static + DB)
+            {t("adminTranslations.keysCount").replace("{total}", String(allKeys.length)).replace("{translated}", String(allKeys.length - missingCount))}
           </div>
         </div>
 
-        {/* Copyable audit prompt */}
         <Collapsible>
           <Card className="border-border">
             <CollapsibleTrigger asChild>
               <CardHeader className="cursor-pointer py-3 px-4">
                 <div className="flex items-center justify-between">
-                  <CardTitle className="text-sm font-display">🔍 Hardcoded String Audit Prompt</CardTitle>
+                  <CardTitle className="text-sm font-display">{t("adminTranslations.auditPromptTitle")}</CardTitle>
                   <ChevronDown className="h-4 w-4 text-muted-foreground" />
                 </div>
               </CardHeader>
             </CollapsibleTrigger>
             <CollapsibleContent>
               <CardContent className="pt-0 space-y-3">
-                <p className="text-xs text-muted-foreground">Copy this prompt and paste it into the Lovable chat to scan for untranslated hardcoded strings:</p>
+                <p className="text-xs text-muted-foreground">{t("adminTranslations.auditPromptDesc")}</p>
                 <pre className="text-xs bg-muted rounded-md p-3 whitespace-pre-wrap leading-relaxed border border-border">
 {`Scan all .tsx files in src/pages/ and src/components/ (excluding src/components/ui/) for hardcoded user-facing text in JSX that is not wrapped in the t() translation function. Use search_files to find patterns like >Some English text< in JSX and string props like title=, description=, placeholder=, label= with literal values. For each hardcoded string found: 1) Add a new key to src/i18n/en.ts following the existing naming convention (screen.section.purpose), 2) Replace the hardcoded string with t('new.key') in the component. Skip className, variant, size, type, key, data-*, src, href attributes. Skip strings that are purely technical (e.g. channel names, event types).`}
                 </pre>
@@ -270,10 +253,10 @@ const AdminTranslations = () => {
                     navigator.clipboard.writeText(
                       `Scan all .tsx files in src/pages/ and src/components/ (excluding src/components/ui/) for hardcoded user-facing text in JSX that is not wrapped in the t() translation function. Use search_files to find patterns like >Some English text< in JSX and string props like title=, description=, placeholder=, label= with literal values. For each hardcoded string found: 1) Add a new key to src/i18n/en.ts following the existing naming convention (screen.section.purpose), 2) Replace the hardcoded string with t('new.key') in the component. Skip className, variant, size, type, key, data-*, src, href attributes. Skip strings that are purely technical (e.g. channel names, event types).`
                     );
-                    toast({ title: "Copied to clipboard" });
+                    toast({ title: t("adminTranslations.copiedClipboard") });
                   }}
                 >
-                  <Copy className="h-3.5 w-3.5" /> Copy Prompt
+                  <Copy className="h-3.5 w-3.5" /> {t("adminTranslations.copyPrompt")}
                 </Button>
               </CardContent>
             </CollapsibleContent>
@@ -294,9 +277,9 @@ const AdminTranslations = () => {
                   <AccordionTrigger className="hover:no-underline">
                     <div className="flex items-center gap-3">
                       <span className="font-display text-sm font-bold uppercase tracking-wider">{screen}</span>
-                      <Badge variant="secondary" className="text-xs">{keys.length} keys</Badge>
+                      <Badge variant="secondary" className="text-xs">{keys.length} {t("adminTranslations.keysLabel")}</Badge>
                       {screenMissing > 0 && (
-                        <Badge variant="destructive" className="text-xs">{screenMissing} missing</Badge>
+                        <Badge variant="destructive" className="text-xs">{screenMissing} {t("adminTranslations.missing").toLowerCase()}</Badge>
                       )}
                     </div>
                   </AccordionTrigger>
@@ -313,7 +296,7 @@ const AdminTranslations = () => {
                             <div className="flex items-start justify-between gap-2">
                               <code className="text-xs text-muted-foreground break-all">{key}</code>
                               {isMissing && (
-                                <Badge variant="destructive" className="text-[10px] shrink-0">MISSING</Badge>
+                                <Badge variant="destructive" className="text-[10px] shrink-0">{t("adminTranslations.missing")}</Badge>
                               )}
                             </div>
                             <p className="text-sm text-foreground/80 leading-relaxed break-words" dangerouslySetInnerHTML={{ __html: en[key] }} />
@@ -330,7 +313,6 @@ const AdminTranslations = () => {
                                 className="shrink-0"
                                 disabled={generatingKeys.has(key)}
                                 onClick={() => handleGenerate(key)}
-                                title="Generate with AI"
                               >
                                 {generatingKeys.has(key) ? (
                                   <Loader2 className="h-3.5 w-3.5 animate-spin" />
@@ -345,7 +327,6 @@ const AdminTranslations = () => {
                                   className="shrink-0"
                                   disabled={savingKeys.has(key)}
                                   onClick={() => handleSave(key)}
-                                  title="Save"
                                 >
                                   {savingKeys.has(key) ? (
                                     <Loader2 className="h-3.5 w-3.5 animate-spin" />
