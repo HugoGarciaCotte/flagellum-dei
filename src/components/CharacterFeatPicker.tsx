@@ -590,7 +590,7 @@ const CharacterFeatPicker = ({ characterId, mode = "player", scenarioLevel }: Ch
       {(freeFeats.length > 0 || mode === "gm") && (
         <div className="mt-4 space-y-2">
           <p className="text-sm font-medium text-muted-foreground flex items-center gap-1.5">
-            <span className="text-base" aria-hidden="true">🜅</span> Free Feats
+            <span className="text-base" aria-hidden="true">🜅</span> {t("feats.freeFeats")}
           </p>
 
           {freeFeats.length === 0 && mode === "gm" && (
