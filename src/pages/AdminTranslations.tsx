@@ -239,7 +239,7 @@ const AdminTranslations = () => {
             <Download className="h-4 w-4" /> Download JSON & Clear DB
           </Button>
           <div className="ml-auto text-sm text-muted-foreground font-display">
-            {allKeys.length} keys · {allKeys.length - missingCount} translated
+            {allKeys.length} keys · {allKeys.length - missingCount} translated (static + DB)
           </div>
         </div>
 
