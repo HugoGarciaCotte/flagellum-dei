@@ -25,7 +25,7 @@ function stripLinks(text: string): string {
   return text.replace(/\[\[([^|\]]+)\|([^\]]+)\]\]/g, "$2").replace(/\[\[([^\]]+)\]\]/g, "$1");
 }
 
-function FeatLinkTooltip({ featName, rect, featsMap }: { featName: string; rect: DOMRect; featsMap: Map<string, any> }) {
+function FeatLinkTooltip({ featName, rect, featsMap, labels }: { featName: string; rect: DOMRect; featsMap: Map<string, any>; labels: { description: string; prerequisites: string; special: string } }) {
   const feat = featsMap.get(featName.toLowerCase());
   if (!feat) return null;
   const meta = getFeatMeta(feat);
