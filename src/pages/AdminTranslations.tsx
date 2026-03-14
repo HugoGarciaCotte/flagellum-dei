@@ -66,6 +66,11 @@ const AdminTranslations = () => {
     return () => { cancelled = true; };
   }, [activeLocale]);
 
+  const orphanKeys = useMemo(
+    () => Object.keys(dbTranslations).filter((k) => !(k in en)),
+    [dbTranslations],
+  );
+
   const missingCount = useMemo(
     () => allKeys.filter((k) => !editValues[k] || editValues[k] === en[k]).length,
     [allKeys, editValues],
@@ -199,6 +204,18 @@ const AdminTranslations = () => {
               <strong>{missingCount}</strong> translation{missingCount > 1 ? "s" : ""} missing or identical to English in{" "}
               <strong>{LOCALE_LABELS[activeLocale]}</strong>
             </p>
+          </div>
+        )}
+
+        {orphanKeys.length > 0 && (
+          <div className="flex items-center gap-3 rounded-lg bg-amber-500/10 border border-amber-500/30 p-4">
+            <AlertTriangle className="h-5 w-5 text-amber-500 shrink-0" />
+            <div>
+              <p className="font-display text-sm text-amber-600 dark:text-amber-400">
+                <strong>{orphanKeys.length}</strong> key{orphanKeys.length > 1 ? "s" : ""} stored in the DB but not found in the hardcoded JSON:{" "}
+                <code className="text-xs">{orphanKeys.slice(0, 5).join(", ")}{orphanKeys.length > 5 ? `, … +${orphanKeys.length - 5} more` : ""}</code>
+              </p>
+            </div>
           </div>
         )}
 
