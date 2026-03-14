@@ -1,4 +1,5 @@
 import { useState, useMemo } from "react";
+import { useTranslation } from "@/i18n/useTranslation";
 import { supabase } from "@/integrations/supabase/client";
 import { sortTitlesEmojiLast } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
@@ -61,6 +62,7 @@ type ValidationResult = {
 } | null;
 
 const CharacterFeatPicker = ({ characterId, mode = "player", scenarioLevel }: CharacterFeatPickerProps) => {
+  const { t } = useTranslation();
   const [pickerTarget, setPickerTarget] = useState<PickerTarget | null>(null);
   const [searchTerm, setSearchTerm] = useState("");
   const [expandedFeatId, setExpandedFeatId] = useState<string | null>(null);
@@ -340,10 +342,10 @@ const CharacterFeatPicker = ({ characterId, mode = "player", scenarioLevel }: Ch
   };
 
   const dialogTitle = pickerTarget?.type === "level"
-    ? `Choose Feat — Level ${pickerTarget.level}`
+    ? `${t("feats.chooseFeatLevel")} ${pickerTarget.level}`
     : pickerTarget?.type === "subfeat"
-    ? `Choose Subfeat`
-    : "Add Free Feat";
+    ? t("feats.chooseSubfeat")
+    : t("feats.addFreeFeat");
 
   const renderSubfeats = (cf: CharacterFeat, feat: Feat) => {
     const subs = subfeatMap.get(cf.id) || [];
@@ -427,7 +429,7 @@ const CharacterFeatPicker = ({ characterId, mode = "player", scenarioLevel }: Ch
                 className="h-5 px-1 text-xs text-muted-foreground"
                 onClick={() => openPicker({ type: "subfeat", characterFeatId: cf.id, slot: slotNum, slotMeta: slotMetaByNum.get(slotNum) })}
               >
-                + Choose subfeat
+                + {t("feats.chooseSubfeatShort")}
               </Button>
             </div>
           );
@@ -472,7 +474,7 @@ const CharacterFeatPicker = ({ characterId, mode = "player", scenarioLevel }: Ch
         {validationResult && !validationResult.allowed && (
           <Alert variant="destructive">
             <span className="text-base" aria-hidden="true">🝍</span>
-            <AlertTitle>AI says this feat may not be valid</AlertTitle>
+            <AlertTitle>{t("feats.aiInvalid")}</AlertTitle>
             <AlertDescription className="space-y-2">
               <p className="text-sm">{validationResult.reason}</p>
               <Button
@@ -484,7 +486,7 @@ const CharacterFeatPicker = ({ characterId, mode = "player", scenarioLevel }: Ch
                   action();
                 }}
               >
-                Do it anyway
+                {t("feats.doItAnyway")}
               </Button>
             </AlertDescription>
           </Alert>
@@ -493,7 +495,7 @@ const CharacterFeatPicker = ({ characterId, mode = "player", scenarioLevel }: Ch
         <div className="relative">
           <Search className="absolute left-2 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
           <Input
-            placeholder="Search feats..."
+            placeholder={t("feats.search")}
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
             className="pl-8"
@@ -505,11 +507,11 @@ const CharacterFeatPicker = ({ characterId, mode = "player", scenarioLevel }: Ch
           {validating && (
             <div className="flex items-center justify-center gap-2 py-8">
               <Loader2 className="h-5 w-5 animate-spin text-primary" />
-              <span className="text-sm text-muted-foreground">Validating with AI...</span>
+              <span className="text-sm text-muted-foreground">{t("feats.validating")}</span>
             </div>
           )}
           {!validating && filteredFeats.length === 0 ? (
-            <p className="text-sm text-muted-foreground text-center py-8">No feats found</p>
+            <p className="text-sm text-muted-foreground text-center py-8">{t("feats.noFeatsFound")}</p>
           ) : !validating && (
             filteredFeats.map((feat) => {
               const isExpanded = expandedFeatId === feat.id;
@@ -534,7 +536,7 @@ const CharacterFeatPicker = ({ characterId, mode = "player", scenarioLevel }: Ch
   return (
     <div className="space-y-2">
       <div className="flex items-center gap-2">
-        <p className="text-sm font-medium text-muted-foreground">Feats per Level</p>
+        <p className="text-sm font-medium text-muted-foreground">{t("feats.perLevel")}</p>
       </div>
       {Array.from({ length: levelsToShow }, (_, i) => i + 1).map((level) => {
         const assigned = levelFeats.find((cf) => cf.level === level);
@@ -558,7 +560,7 @@ const CharacterFeatPicker = ({ characterId, mode = "player", scenarioLevel }: Ch
                     actions={
                       <>
                         <Button variant="ghost" size="sm" className="h-6 px-2 text-xs" onClick={() => openPicker({ type: "level", level })}>
-                          Edit
+                          {t("feats.edit")}
                         </Button>
                         <Button
                           variant="ghost"
@@ -576,7 +578,7 @@ const CharacterFeatPicker = ({ characterId, mode = "player", scenarioLevel }: Ch
                 </div>
               ) : (
                 <Button variant="ghost" size="sm" className="text-xs text-muted-foreground" onClick={() => openPicker({ type: "level", level })}>
-                  + Choose feat
+                  {t("feats.chooseFeat")}
                 </Button>
               )}
             </div>
@@ -588,11 +590,11 @@ const CharacterFeatPicker = ({ characterId, mode = "player", scenarioLevel }: Ch
       {(freeFeats.length > 0 || mode === "gm") && (
         <div className="mt-4 space-y-2">
           <p className="text-sm font-medium text-muted-foreground flex items-center gap-1.5">
-            <span className="text-base" aria-hidden="true">🜅</span> Free Feats
+            <span className="text-base" aria-hidden="true">🜅</span> {t("feats.freeFeats")}
           </p>
 
           {freeFeats.length === 0 && mode === "gm" && (
-            <p className="text-xs text-muted-foreground italic">No free feats granted yet.</p>
+            <p className="text-xs text-muted-foreground italic">{t("feats.noFreeFeats")}</p>
           )}
 
           {freeFeats.map((cf) => {
@@ -622,7 +624,7 @@ const CharacterFeatPicker = ({ characterId, mode = "player", scenarioLevel }: Ch
 
           {mode === "gm" && (
             <Button variant="ghost" size="sm" className="text-xs text-muted-foreground" onClick={() => openPicker({ type: "free" })}>
-              + Add free feat
+              {t("feats.addFree")}
             </Button>
           )}
         </div>

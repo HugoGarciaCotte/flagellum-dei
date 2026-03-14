@@ -4,6 +4,7 @@ import { Button } from "@/components/ui/button";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "@/hooks/use-toast";
 import diceRollSfx from "@/assets/dice-roll.mp3";
+import { useTranslation } from "@/i18n/useTranslation";
 
 // Classic die dot patterns for faces 1-6
 const DOT_PATTERNS: Record<number, [number, number][]> = {
@@ -66,6 +67,7 @@ const DiceRoller = ({ gameId, userName, isGameMaster }: DiceRollerProps) => {
   const finalValueRef = useRef(1);
   const rollIdRef = useRef("");
   const channelRef = useRef<ReturnType<typeof supabase.channel> | null>(null);
+  const { t } = useTranslation();
 
   // Subscribe to broadcast channel
   useEffect(() => {
@@ -78,9 +80,9 @@ const DiceRoller = ({ gameId, userName, isGameMaster }: DiceRollerProps) => {
         if (payload.rollId === rollIdRef.current) return;
 
         if (payload.isGameMaster) {
-          toast({ title: "🎲 The Game Master rolled a dice" });
+          toast({ title: t("dice.gmRolled") });
         } else {
-          toast({ title: `🎲 ${payload.userName} rolled a ${payload.result}` });
+          toast({ title: t("dice.playerRolled").replace("{name}", payload.userName).replace("{result}", payload.result) });
         }
       })
       .subscribe();
@@ -91,7 +93,7 @@ const DiceRoller = ({ gameId, userName, isGameMaster }: DiceRollerProps) => {
       supabase.removeChannel(channel);
       channelRef.current = null;
     };
-  }, [gameId]);
+  }, [gameId, t]);
 
   const broadcastRoll = useCallback(
     (value: number) => {
@@ -192,7 +194,7 @@ const DiceRoller = ({ gameId, userName, isGameMaster }: DiceRollerProps) => {
             <DieFace value={displayValue} size={120} />
             {phase === "result" && (
               <p className="text-2xl font-display font-bold text-primary animate-scale-in">
-                You rolled a {result}!
+                {t("dice.youRolled").replace("{result}", String(result))}
               </p>
             )}
           </div>

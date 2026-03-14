@@ -18,6 +18,7 @@ import Logo from "@/components/Logo";
 import { useNetworkStatus } from "@/hooks/useNetworkStatus";
 import { upsertRow, deleteBy } from "@/lib/localStore";
 import { triggerPush } from "@/lib/syncManager";
+import { useTranslation } from "@/i18n/useTranslation";
 
 interface CharacterCreationWizardProps {
   onCreated: (characterId: string) => void;
@@ -37,6 +38,7 @@ const CharacterCreationWizard = ({ onCreated, onCancel, gameId }: CharacterCreat
   const { user } = useAuth();
   const fileInputRef = useRef<HTMLInputElement>(null);
   const online = useNetworkStatus();
+  const { t } = useTranslation();
 
   // Wizard state
   const [step, setStep] = useState(0);
@@ -281,7 +283,7 @@ const CharacterCreationWizard = ({ onCreated, onCancel, gameId }: CharacterCreat
       if (data?.error) throw new Error(data.error);
       if (data?.result) setName(data.result);
     } catch (e: any) {
-      toast({ title: "Name generation failed", description: e.message, variant: "destructive" });
+      toast({ title: t("wizard.toast.nameFailed"), description: e.message, variant: "destructive" });
     } finally {
       setGeneratingName(false);
     }
@@ -322,7 +324,7 @@ const CharacterCreationWizard = ({ onCreated, onCancel, gameId }: CharacterCreat
     if (!online) {
       const localUrl = URL.createObjectURL(file);
       setPortraitUrl(localUrl);
-      toast({ title: "Portrait saved locally" });
+      toast({ title: t("wizard.toast.portraitSavedLocally") });
       return;
     }
 
@@ -333,7 +335,7 @@ const CharacterCreationWizard = ({ onCreated, onCancel, gameId }: CharacterCreat
       .upload(filePath, file, { contentType: file.type, upsert: true });
 
     if (uploadError) {
-      toast({ title: "Upload failed", description: uploadError.message, variant: "destructive" });
+      toast({ title: t("wizard.toast.uploadFailed"), description: uploadError.message, variant: "destructive" });
       return;
     }
 
@@ -341,7 +343,7 @@ const CharacterCreationWizard = ({ onCreated, onCancel, gameId }: CharacterCreat
       .from("character-portraits")
       .getPublicUrl(filePath);
     setPortraitUrl(`${publicUrlData.publicUrl}?t=${Date.now()}`);
-    toast({ title: "Portrait uploaded!" });
+    toast({ title: t("wizard.toast.portraitUploaded") });
   };
 
   const handleGeneratePortrait = async () => {
@@ -357,9 +359,9 @@ const CharacterCreationWizard = ({ onCreated, onCancel, gameId }: CharacterCreat
       if (!data?.image_data_url) throw new Error("No image returned");
 
       setPortraitUrl(data.image_data_url);
-      toast({ title: "Portrait generated!" });
+      toast({ title: t("wizard.toast.portraitGenerated") });
     } catch (e: any) {
-      toast({ title: "Portrait generation failed", description: e.message, variant: "destructive" });
+      toast({ title: t("wizard.toast.portraitFailed"), description: e.message, variant: "destructive" });
     } finally {
       setGeneratingPortrait(false);
     }
@@ -393,7 +395,7 @@ const CharacterCreationWizard = ({ onCreated, onCancel, gameId }: CharacterCreat
     <div className="relative">
       <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-muted-foreground" />
       <Input
-        placeholder="Search..."
+        placeholder={t("wizard.search")}
         value={searchTerm}
         onChange={e => setSearchTerm(e.target.value)}
         className="pl-8 h-8 text-sm"
@@ -474,21 +476,21 @@ const CharacterCreationWizard = ({ onCreated, onCancel, gameId }: CharacterCreat
     const slotIndex = stepNum - 2;
     const stepConfig = [
       {
-        title: "Choose Your Faith",
-        subtitleChoice: "Having faith is a major decision. It constrains your roleplay — your character must act according to their beliefs. Playing without faith is easier and more flexible. But faith has a powerful advantage: it can save your character's life once. Choose wisely.",
-        subtitleFixed: "Your archetype grants you this faith by default:",
+        title: t("wizard.step.faith.title"),
+        subtitleChoice: t("wizard.step.faith.choiceDesc"),
+        subtitleFixed: t("wizard.step.faith.fixedDesc"),
       },
       {
-        title: "Archetype Ability",
-        subtitleChoice: "This is the main ability granted by your archetype:",
-        subtitleFixed: "Your archetype grants you this ability by default:",
+        title: t("wizard.step.mainFeat.title"),
+        subtitleChoice: t("wizard.step.mainFeat.choiceDesc"),
+        subtitleFixed: t("wizard.step.mainFeat.fixedDesc"),
       },
       {
-        title: "Sub-Specialty",
-        subtitleChoice: "Pick a sub-specialty to further define your character:",
-        subtitleFixed: "Your archetype grants you this sub-specialty by default:",
+        title: t("wizard.step.subSpecialty.title"),
+        subtitleChoice: t("wizard.step.subSpecialty.choiceDesc"),
+        subtitleFixed: t("wizard.step.subSpecialty.fixedDesc"),
       },
-    ][slotIndex] ?? { title: "Choose an Ability", subtitleChoice: "Choose one:", subtitleFixed: "Granted by default:" };
+    ][slotIndex] ?? { title: t("wizard.step.default.title"), subtitleChoice: t("wizard.step.default.choiceDesc"), subtitleFixed: t("wizard.step.default.fixedDesc") };
 
     return (
       <div className="space-y-4">
@@ -516,7 +518,7 @@ const CharacterCreationWizard = ({ onCreated, onCancel, gameId }: CharacterCreat
               />
             </div>
             <Button onClick={() => handleSubfeatSelect(options.feat.id)} className="w-full font-display gap-2" disabled={saving}>
-              {saving ? <Loader2 className="h-4 w-4 animate-spin" /> : <ChevronRight className="h-4 w-4" />} Continue
+              {saving ? <Loader2 className="h-4 w-4 animate-spin" /> : <ChevronRight className="h-4 w-4" />} {t("wizard.continue")}
             </Button>
           </div>
         ) : options?.type === "list" ? (
@@ -529,11 +531,11 @@ const CharacterCreationWizard = ({ onCreated, onCancel, gameId }: CharacterCreat
               className="w-full text-left p-3 rounded border border-border hover:border-primary/50 transition-colors"
             >
               <div className="flex flex-col gap-0.5">
-                <span className="text-sm font-medium text-foreground">{slotIndex === 0 ? "No Faith" : "None"}</span>
+                <span className="text-sm font-medium text-foreground">{slotIndex === 0 ? t("wizard.step.noFaith") : t("wizard.step.none")}</span>
                 <span className="text-xs text-muted-foreground">
                   {slotIndex === 0
-                    ? "Your character has no religious devotion — easier to roleplay, but no divine protection."
-                    : "Skip this slot"}
+                    ? t("wizard.step.noFaithDesc")
+                    : t("wizard.step.skipSlot")}
                 </span>
               </div>
             </button>
@@ -544,9 +546,9 @@ const CharacterCreationWizard = ({ onCreated, onCancel, gameId }: CharacterCreat
           </div>
         ) : (
           <div className="space-y-3">
-            <p className="text-sm text-muted-foreground">No special choices for your archetype.</p>
+            <p className="text-sm text-muted-foreground">{t("wizard.step.noChoices")}</p>
             <Button onClick={() => goToNextStep(stepNum)} className="w-full font-display gap-2">
-              <ChevronRight className="h-4 w-4" /> Continue
+              <ChevronRight className="h-4 w-4" /> {t("wizard.continue")}
             </Button>
           </div>
         )}
@@ -560,14 +562,14 @@ const CharacterCreationWizard = ({ onCreated, onCancel, gameId }: CharacterCreat
       <div className="space-y-6 text-center py-4">
         <div className="space-y-2">
           <Logo className="text-5xl mx-auto" />
-          <h2 className="font-display text-2xl text-foreground">Create Your Character</h2>
+          <h2 className="font-display text-2xl text-foreground">{t("wizard.welcome.title")}</h2>
           <p className="text-muted-foreground text-sm max-w-sm mx-auto">
-            Every hero begins with a calling. Let's forge yours step by step — choose your path, your beliefs, and your skills.
+            {t("wizard.welcome.desc")}
           </p>
         </div>
         <div className="flex flex-col gap-2">
           <Button onClick={() => setStep(1)} className="font-display gap-2">
-            <ChevronRight className="h-4 w-4" /> Begin
+            <ChevronRight className="h-4 w-4" /> {t("wizard.welcome.begin")}
           </Button>
           {skipButton}
         </div>
@@ -589,11 +591,11 @@ const CharacterCreationWizard = ({ onCreated, onCancel, gameId }: CharacterCreat
       <div className="space-y-4">
         {renderStepIndicator()}
         <div className="flex items-center justify-between">
-          <h3 className="font-display text-lg text-foreground">Choose Your Archetype</h3>
+          <h3 className="font-display text-lg text-foreground">{t("wizard.archetype.title")}</h3>
           {skipButton}
         </div>
         <p className="text-sm text-muted-foreground">
-          Your archetype defines who you are — your core abilities and role in the world.
+          {t("wizard.archetype.desc")}
         </p>
         {renderSearchBar()}
         {renderFeatList(filterBySearch(archetypes), handleArchetypeSelect)}
@@ -621,10 +623,10 @@ const CharacterCreationWizard = ({ onCreated, onCancel, gameId }: CharacterCreat
         if (!feat) return null;
         const slotIndex = subfeatSlots.indexOf(slot);
         const label = [
-          "Faith",
-          "Main Feat",
-          "Sub-Specialty",
-        ][slotIndex] ?? "Feat";
+          t("wizard.summary.faith"),
+          t("wizard.summary.mainFeat"),
+          t("wizard.summary.subSpecialty"),
+        ][slotIndex] ?? t("wizard.summary.feat");
         return { label, title: feat.title };
       })
       .filter(Boolean) as { label: string; title: string }[];
@@ -637,7 +639,7 @@ const CharacterCreationWizard = ({ onCreated, onCancel, gameId }: CharacterCreat
             <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => goToPrevStep(step)}>
               <ArrowLeft className="h-4 w-4" />
             </Button>
-            <h3 className="font-display text-lg text-foreground">Your Character</h3>
+            <h3 className="font-display text-lg text-foreground">{t("wizard.summary.title")}</h3>
           </div>
           {skipButton}
         </div>
@@ -645,7 +647,7 @@ const CharacterCreationWizard = ({ onCreated, onCancel, gameId }: CharacterCreat
         <div className="space-y-1 text-sm">
           {archetypeFeat && (
             <p className="text-muted-foreground">
-              <span className="text-foreground font-medium">Archetype:</span> {archetypeFeat.title}
+              <span className="text-foreground font-medium">{t("wizard.summary.archetype")}</span> {archetypeFeat.title}
             </p>
           )}
           {selectedSubfeats.map((s, i) => (
@@ -665,7 +667,7 @@ const CharacterCreationWizard = ({ onCreated, onCancel, gameId }: CharacterCreat
           <div className="flex gap-2">
             <input ref={fileInputRef} type="file" accept="image/*" className="hidden" onChange={handleUpload} />
             <Button variant="outline" size="sm" className="gap-1.5" onClick={() => fileInputRef.current?.click()} disabled={generatingPortrait || !online}>
-              <Upload className="h-3.5 w-3.5" /> Upload
+              <Upload className="h-3.5 w-3.5" /> {t("wizard.portrait.upload")}
             </Button>
             <Button
               variant="outline"
@@ -675,19 +677,19 @@ const CharacterCreationWizard = ({ onCreated, onCancel, gameId }: CharacterCreat
               disabled={generatingPortrait || !online || (!description && !archetypeFeatId)}
             >
               {generatingPortrait ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Sparkles className="h-3.5 w-3.5" />}
-              Generate
+              {t("wizard.portrait.generate")}
             </Button>
           </div>
           {!online && (
             <p className="text-xs text-muted-foreground flex items-center gap-1">
-              <WifiOff className="h-3 w-3" /> Portrait features available when online
+              <WifiOff className="h-3 w-3" /> {t("wizard.portrait.offlineNote")}
             </p>
           )}
         </div>
 
         <div className="space-y-2">
           <div className="flex items-center justify-between">
-            <label className="text-sm font-medium text-foreground">Description</label>
+            <label className="text-sm font-medium text-foreground">{t("wizard.description")}</label>
             <Button
               variant="ghost"
               size="sm"
@@ -696,19 +698,19 @@ const CharacterCreationWizard = ({ onCreated, onCancel, gameId }: CharacterCreat
               disabled={generatingDesc || !online}
             >
               {generatingDesc ? <Loader2 className="h-3 w-3 animate-spin" /> : <Sparkles className="h-3 w-3" />}
-              Regenerate
+              {t("wizard.regenerate")}
             </Button>
           </div>
           {generatingDesc ? (
             <div className="flex items-center gap-2 py-3 justify-center text-muted-foreground">
               <Loader2 className="h-4 w-4 animate-spin" />
-              <span className="text-sm">Crafting your legend...</span>
+              <span className="text-sm">{t("wizard.craftingLegend")}</span>
             </div>
           ) : (
             <Textarea
               value={description}
               onChange={e => setDescription(e.target.value)}
-              placeholder="An epic description of your character..."
+              placeholder={t("wizard.descPlaceholder")}
               rows={2}
             />
           )}
@@ -716,7 +718,7 @@ const CharacterCreationWizard = ({ onCreated, onCancel, gameId }: CharacterCreat
 
         <div className="space-y-2">
           <div className="flex items-center justify-between">
-            <label className="text-sm font-medium text-foreground">Name</label>
+            <label className="text-sm font-medium text-foreground">{t("wizard.name")}</label>
             <Button
               variant="ghost"
               size="sm"
@@ -725,11 +727,11 @@ const CharacterCreationWizard = ({ onCreated, onCancel, gameId }: CharacterCreat
               disabled={generatingName || !online}
             >
               {generatingName ? <Loader2 className="h-3 w-3 animate-spin" /> : <Dices className="h-3 w-3" />}
-              Random Name
+              {t("wizard.randomName")}
             </Button>
           </div>
           <Input
-            placeholder="Character name"
+            placeholder={t("wizard.namePlaceholder")}
             value={name}
             onChange={e => setName(e.target.value)}
           />
@@ -741,7 +743,7 @@ const CharacterCreationWizard = ({ onCreated, onCancel, gameId }: CharacterCreat
           className="w-full font-display gap-2"
         >
           {creating ? <Loader2 className="h-4 w-4 animate-spin" /> : <Sparkles className="h-4 w-4" />}
-          Finish Character
+          {t("wizard.finish")}
         </Button>
       </div>
     );
