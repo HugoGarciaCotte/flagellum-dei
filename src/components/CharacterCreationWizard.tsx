@@ -476,21 +476,21 @@ const CharacterCreationWizard = ({ onCreated, onCancel, gameId }: CharacterCreat
     const slotIndex = stepNum - 2;
     const stepConfig = [
       {
-        title: "Choose Your Faith",
-        subtitleChoice: "Having faith is a major decision. It constrains your roleplay — your character must act according to their beliefs. Playing without faith is easier and more flexible. But faith has a powerful advantage: it can save your character's life once. Choose wisely.",
-        subtitleFixed: "Your archetype grants you this faith by default:",
+        title: t("wizard.step.faith.title"),
+        subtitleChoice: t("wizard.step.faith.choiceDesc"),
+        subtitleFixed: t("wizard.step.faith.fixedDesc"),
       },
       {
-        title: "Archetype Ability",
-        subtitleChoice: "This is the main ability granted by your archetype:",
-        subtitleFixed: "Your archetype grants you this ability by default:",
+        title: t("wizard.step.mainFeat.title"),
+        subtitleChoice: t("wizard.step.mainFeat.choiceDesc"),
+        subtitleFixed: t("wizard.step.mainFeat.fixedDesc"),
       },
       {
-        title: "Sub-Specialty",
-        subtitleChoice: "Pick a sub-specialty to further define your character:",
-        subtitleFixed: "Your archetype grants you this sub-specialty by default:",
+        title: t("wizard.step.subSpecialty.title"),
+        subtitleChoice: t("wizard.step.subSpecialty.choiceDesc"),
+        subtitleFixed: t("wizard.step.subSpecialty.fixedDesc"),
       },
-    ][slotIndex] ?? { title: "Choose an Ability", subtitleChoice: "Choose one:", subtitleFixed: "Granted by default:" };
+    ][slotIndex] ?? { title: t("wizard.step.default.title"), subtitleChoice: t("wizard.step.default.choiceDesc"), subtitleFixed: t("wizard.step.default.fixedDesc") };
 
     return (
       <div className="space-y-4">
