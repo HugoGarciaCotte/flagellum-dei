@@ -78,6 +78,7 @@ function SectionNode({
   depth = 0,
   parentBackground = null,
   featsMap,
+  tooltipLabels,
 }: {
   section: WikiSection;
   activeSection: string | null;
@@ -85,6 +86,7 @@ function SectionNode({
   depth?: number;
   parentBackground?: string | null;
   featsMap: Map<string, any> | undefined;
+  tooltipLabels: TooltipLabels;
 }) {
   const [open, setOpen] = useState(true);
   const [hoveredFeat, setHoveredFeat] = useState<{ name: string; rect: DOMRect } | null>(null);
