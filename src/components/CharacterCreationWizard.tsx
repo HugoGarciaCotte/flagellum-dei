@@ -518,7 +518,7 @@ const CharacterCreationWizard = ({ onCreated, onCancel, gameId }: CharacterCreat
               />
             </div>
             <Button onClick={() => handleSubfeatSelect(options.feat.id)} className="w-full font-display gap-2" disabled={saving}>
-              {saving ? <Loader2 className="h-4 w-4 animate-spin" /> : <ChevronRight className="h-4 w-4" />} Continue
+              {saving ? <Loader2 className="h-4 w-4 animate-spin" /> : <ChevronRight className="h-4 w-4" />} {t("wizard.continue")}
             </Button>
           </div>
         ) : options?.type === "list" ? (
