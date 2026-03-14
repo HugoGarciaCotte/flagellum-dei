@@ -10,7 +10,9 @@ import { Download, ChevronDown, AlertTriangle, Check, Image, Loader2, Link, Uplo
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { getHardcodedScenarios, type Scenario } from "@/data/scenarios";
 import { downloadFile } from "@/lib/downloadFile";
+import { extractImageUrls } from "@/lib/parseWikitext";
 import { toast } from "@/hooks/use-toast";
+import JSZip from "jszip";
 import { useTranslation } from "@/i18n/useTranslation";
 import { supabase } from "@/integrations/supabase/client";
 import { invalidateScenarioOverrides, type ScenarioOverrideMap } from "@/lib/scenarioOverrides";
