@@ -147,15 +147,16 @@ const showcaseScenarios = [
     date: "11th of December, 1344",
   },
   {
-    title: "La Dama De Blanco",
+    title: "Flagellum Dei",
     description:
-      "With faded tulips in her hair she dances every week. Her soul was the prize for her immortal love. How many will be the victims of her selfish heart?",
-    level: 3,
+      "The streets of Marseille lie dead silent — even the stray dogs have perished. What remains of the population hides behind barred doors, lost in terror and prayer. Young Lord Hugues des Baux, the city's last hope, now burns with fever. Who will stand against the destroyer angel?",
+    level: 5,
+    date: "Christmas Eve, 1347",
   },
   {
     title: "The Mad King",
     description:
-      "Lost in the wastes of the Arabian desert, a company of Knights Templar uncovers a primordial, biblical secret—a horror that will plunge the world into endless madness.",
+      "Lost in the wastes of the Arabian desert, a company of Knights Templar uncovers a primordial, biblical secret — a horror that will plunge the world into endless madness.",
     level: 9,
     date: "6th of October, 1241",
   },
