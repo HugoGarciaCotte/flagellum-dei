@@ -544,7 +544,7 @@ const ContentEditor = ({
 
 /** Reusable field with override indicator and save/revert */
 const OverrideField = ({
-  label, value, isOverridden, saving, onSave, onRevert, type, multiline, t
+  label, value, isOverridden, saving, onSave, onRevert, type, multiline, inline, t
 }: {
   label: string;
   value: any;
@@ -554,6 +554,7 @@ const OverrideField = ({
   onRevert: () => void;
   type?: string;
   multiline?: boolean;
+  inline?: boolean;
   t: (k: string) => string;
 }) => {
   const [local, setLocal] = useState(String(value ?? ""));
