@@ -136,29 +136,7 @@ const ScenarioCard = ({
   </div>
 );
 
-const showcaseScenarios = [
-  {
-    title: "Societas Templois",
-    description:
-      "A string of mysterious deaths haunts the Habsburg family, their trail leading to a secluded Austrian abbey — once the seat of a long-dead secret society. They believed they had sealed away their curse. But how long can anyone run from the Devil?",
-    level: 1,
-    date: "11th of December, 1344",
-  },
-  {
-    title: "Flagellum Dei",
-    description:
-      "The streets of Marseille lie silent, for even the stray dogs have died. What little remains of the population hides in terror, lost in hunger and prayer. With young Lord Hugues des Baux now burning with fever—who can stand against the scourge of God?",
-    level: 5,
-    date: "Christmas Eve, 1347",
-  },
-  {
-    title: "The Mad King",
-    description:
-      "Lost in the wastes of the Arabian desert, a company of Knights Templar uncovers a forgotten biblical secret — a primordial horror that will plunge the world into endless madness.",
-    level: 9,
-    date: "6th of October, 1241",
-  },
-];
+// showcaseScenarios moved inside component to use t()
 
 const faqLinks: Record<number, { lovable?: string; github?: string }> = {
   8: {
@@ -169,7 +147,11 @@ const faqLinks: Record<number, { lovable?: string; github?: string }> = {
 
 const Home = () => {
   const { t } = useTranslation();
-  const displayScenarios = showcaseScenarios;
+  const displayScenarios = [
+    { title: t("home.scenarios.s1.title"), description: t("home.scenarios.s1.desc"), level: 1, date: t("home.scenarios.s1.date") },
+    { title: t("home.scenarios.s2.title"), description: t("home.scenarios.s2.desc"), level: 5, date: t("home.scenarios.s2.date") },
+    { title: t("home.scenarios.s3.title"), description: t("home.scenarios.s3.desc"), level: 9, date: t("home.scenarios.s3.date") },
+  ];
 
   const faqCount = 12; // q0..q11
 
