@@ -235,6 +235,30 @@ export type Database = {
         }
         Relationships: []
       }
+      scenario_overrides: {
+        Row: {
+          field: string
+          id: string
+          scenario_id: string
+          updated_at: string
+          value: Json
+        }
+        Insert: {
+          field: string
+          id?: string
+          scenario_id: string
+          updated_at?: string
+          value: Json
+        }
+        Update: {
+          field?: string
+          id?: string
+          scenario_id?: string
+          updated_at?: string
+          value?: Json
+        }
+        Relationships: []
+      }
       translations: {
         Row: {
           id: string
