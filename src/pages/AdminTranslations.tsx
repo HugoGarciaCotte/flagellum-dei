@@ -12,6 +12,7 @@ import { toast } from "@/hooks/use-toast";
 import FullPageLoader from "@/components/FullPageLoader";
 import PageHeader from "@/components/PageHeader";
 import en from "@/i18n/en";
+import fr from "@/i18n/fr";
 import { downloadFile } from "@/lib/downloadFile";
 
 const SUPPORTED_LOCALES = ["fr"] as const;
@@ -69,6 +70,11 @@ const AdminTranslations = () => {
   const missingCount = useMemo(
     () => allKeys.filter((k) => !editValues[k] || editValues[k] === en[k]).length,
     [allKeys, editValues],
+  );
+
+  const pendingExportCount = useMemo(
+    () => allKeys.filter((k) => dbTranslations[k] && dbTranslations[k] !== en[k] && (!fr[k] || fr[k] === en[k])).length,
+    [allKeys, dbTranslations],
   );
 
   const handleSave = async (key: string) => {
@@ -198,6 +204,15 @@ const AdminTranslations = () => {
             <p className="font-display text-sm text-destructive">
               <strong>{missingCount}</strong> translation{missingCount > 1 ? "s" : ""} missing or identical to English in{" "}
               <strong>{LOCALE_LABELS[activeLocale]}</strong>
+            </p>
+          </div>
+        )}
+
+        {pendingExportCount > 0 && (
+          <div className="flex items-center gap-3 rounded-lg bg-amber-500/10 border border-amber-500/30 p-4">
+            <AlertTriangle className="h-5 w-5 text-amber-600 dark:text-amber-400 shrink-0" />
+            <p className="font-display text-sm text-amber-700 dark:text-amber-300">
+              <strong>{pendingExportCount}</strong> translation{pendingExportCount > 1 ? "s" : ""} exist only in the database — download &amp; export to preserve them in the static language file.
             </p>
           </div>
         )}
