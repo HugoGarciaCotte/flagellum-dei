@@ -361,7 +361,7 @@ const CharacterCreationWizard = ({ onCreated, onCancel, gameId }: CharacterCreat
       setPortraitUrl(data.image_data_url);
       toast({ title: t("wizard.toast.portraitGenerated") });
     } catch (e: any) {
-      toast({ title: "Portrait generation failed", description: e.message, variant: "destructive" });
+      toast({ title: t("wizard.toast.portraitFailed"), description: e.message, variant: "destructive" });
     } finally {
       setGeneratingPortrait(false);
     }
