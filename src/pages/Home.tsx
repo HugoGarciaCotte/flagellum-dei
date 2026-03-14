@@ -152,7 +152,7 @@ const showcaseScenarios = [
     date: "Christmas Eve, 1347",
   },
   {
-    title: "Chapter 9 — The Mad King",
+    title: "The Mad King",
     description:
       "Lost in the wastes of the Arabian desert, a company of Knights Templar uncovers a primordial, biblical secret — a horror that will plunge the world into endless madness.",
     level: 9,
