@@ -504,7 +504,7 @@ const ContentEditor = ({
       </div>
 
       {/* Textarea + save button */}
-      <div className="flex gap-1.5">
+      <div className={`flex gap-1.5 ${fullScreen ? "flex-1 min-h-0" : ""}`}>
         <Textarea
           ref={textareaRef}
           value={local}
@@ -515,7 +515,7 @@ const ContentEditor = ({
           onSelect={handleSelect}
           onClick={handleSelect}
           onKeyUp={handleSelect}
-          className="text-sm min-h-[200px] font-mono text-xs flex-1"
+          className={`text-sm font-mono text-xs flex-1 ${fullScreen ? "h-full resize-none" : "min-h-[200px]"}`}
         />
         {dirty && (
           <Button
