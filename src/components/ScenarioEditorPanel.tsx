@@ -28,7 +28,8 @@ const ScenarioEditorPanel = () => {
   const [savingFields, setSavingFields] = useState<Set<string>>(new Set());
   const contentRefs = useRef<Record<string, HTMLTextAreaElement | null>>({});
 
-  // Background inserter state
+  // Tag inserter state
+  const [insertMode, setInsertMode] = useState<"background" | null>(null);
   const [bgMode, setBgMode] = useState<BgMode>("link");
   const [bgUrl, setBgUrl] = useState("");
   const [bgPrompt, setBgPrompt] = useState("");
@@ -37,6 +38,7 @@ const ScenarioEditorPanel = () => {
   const fileInputRef = useRef<HTMLInputElement | null>(null);
   const refImageInputRef = useRef<HTMLInputElement | null>(null);
   const [bgRefFile, setBgRefFile] = useState<File | null>(null);
+  const [bgRefPreview, setBgRefPreview] = useState<string>("");
   const [bgRefPreview, setBgRefPreview] = useState<string>("");
 
   // Load overrides from DB
