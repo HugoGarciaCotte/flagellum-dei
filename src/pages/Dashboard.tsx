@@ -80,7 +80,7 @@ const Dashboard = () => {
         if (g) {
           seen.add(g.id);
           const sc = getScenarioById(g.scenario_id);
-          games.push({ id: g.id, title: sc?.title || "Untitled", join_code: g.join_code, role: "playing" });
+          games.push({ id: g.id, title: sc?.title || t("dashboard.untitled"), join_code: g.join_code, role: "playing" });
         }
       }
     }
