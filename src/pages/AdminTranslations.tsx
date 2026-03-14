@@ -301,7 +301,7 @@ const AdminTranslations = () => {
                   <AccordionContent>
                     <div className="space-y-3">
                       {keys.map((key) => {
-                        const isMissing = !editValues[key] || editValues[key] === en[key];
+                        const isMissing = isTrulyMissing(key);
                         const isChanged = editValues[key] !== dbTranslations[key] && editValues[key] !== en[key];
                         return (
                           <div
