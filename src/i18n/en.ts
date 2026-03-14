@@ -41,9 +41,9 @@ const en: Record<string, string> = {
 
   // ─── HOME: SCENARIO SHOWCASE ───
   "home.scenarios.title": "Open a Case. Enter a Nightmare.",
-  "home.scenarios.subtitle": "80+ hours of gameplay. A decade of writing. Every word handwritten without AI — from Austrian abbeys to the shores of Rhodes.",
+  "home.scenarios.subtitle": "A century of darkness. 80+ hours of gameplay. A decade of writing. Every word handwritten without AI — from Austrian abbeys to the shores of Rhodes.",
   "home.scenarios.chapter": "Chapter",
-  "home.scenarios.locations": "10 chapters · Austria · Provins · Castille · Marseille · Avignon · The Hundred Years' War · Isle of Man · Arabian Deserts · Rhodes",
+  "home.scenarios.locations": "1241 – 1361 · 10 chapters · Austria · Provins · Castille · Marseille · Avignon · The Hundred Years' War · Isle of Man · Arabian Deserts · Rhodes",
 
   // ─── HOME: WRITING DEPTH ───
   "home.depth.title1": "Written like a campaign book.",
