@@ -248,8 +248,22 @@ const ScenarioEditorPanel = () => {
   const handleAiGenerate = async (scenarioId: string) => {
     setGenerating(true);
     try {
-      const hardcoded = hardcodedScenarios.find(s => s.id === scenarioId)!;
       const scenario = mergedScenarios.find(s => s.id === scenarioId)!;
+
+      // Upload reference image first if provided
+      let referenceImageUrl: string | undefined;
+      if (bgRefFile) {
+        const ext = bgRefFile.name.split(".").pop() || "png";
+        const refPath = `scenario-backgrounds/ref-${Date.now()}.${ext}`;
+        const { error: refUploadError } = await supabase.storage
+          .from("app-assets")
+          .upload(refPath, bgRefFile, { contentType: bgRefFile.type, upsert: false });
+        if (refUploadError) throw refUploadError;
+        const { data: refUrlData } = supabase.storage
+          .from("app-assets")
+          .getPublicUrl(refPath);
+        referenceImageUrl = refUrlData.publicUrl;
+      }
 
       const { data, error } = await supabase.functions.invoke("generate-scenario-background", {
         body: {
@@ -257,6 +271,7 @@ const ScenarioEditorPanel = () => {
           scenarioTitle: scenario.title,
           scenarioDescription: scenario.description,
           prompt: bgPrompt.trim() || undefined,
+          referenceImageUrl,
         },
       });
       if (error) throw error;
@@ -265,6 +280,9 @@ const ScenarioEditorPanel = () => {
 
       insertBackgroundTagWithUrl(scenarioId, data.url);
       setBgPrompt("");
+      setBgRefFile(null);
+      setBgRefPreview("");
+      if (refImageInputRef.current) refImageInputRef.current.value = "";
       toast({ title: "✓", description: "Background generated" });
     } catch (e: any) {
       toast({ title: t("adminScenarios.generateFailed"), description: e.message, variant: "destructive" });
