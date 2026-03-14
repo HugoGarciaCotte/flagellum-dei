@@ -141,9 +141,8 @@ const CharacterFeatPicker = ({ characterId, mode = "player", scenarioLevel }: Ch
     // Delete existing feat at this level
     const existing = characterFeats.filter(cf => cf.level === level && !cf.is_free);
     for (const cf of existing) {
-      deleteRow("character_feats", cf.id);
-      // Also delete subfeats for old feat
-      deleteBy("character_feat_subfeats", { character_feat_id: cf.id });
+      softDeleteRow("character_feats", cf.id);
+      softDeleteBy("character_feat_subfeats", { character_feat_id: cf.id });
     }
     // Insert new
     const newId = crypto.randomUUID();
