@@ -205,6 +205,7 @@ function SectionNode({
               depth={depth + 1}
               parentBackground={effectiveBg}
               featsMap={featsMap}
+              tooltipLabels={tooltipLabels}
             />
           ))}
         </>
