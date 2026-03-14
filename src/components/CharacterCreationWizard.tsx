@@ -710,7 +710,7 @@ const CharacterCreationWizard = ({ onCreated, onCancel, gameId }: CharacterCreat
             <Textarea
               value={description}
               onChange={e => setDescription(e.target.value)}
-              placeholder="An epic description of your character..."
+              placeholder={t("wizard.descPlaceholder")}
               rows={2}
             />
           )}
