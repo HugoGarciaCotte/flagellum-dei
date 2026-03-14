@@ -198,7 +198,7 @@ export async function pullAll(userId?: string): Promise<void> {
   _syncing = true;
   notify("syncing");
   try {
-    await doPull(userId);
+    await doPull(userId ?? _currentUserId);
   } catch (e) {
     console.warn("Pull failed:", e);
   } finally {
