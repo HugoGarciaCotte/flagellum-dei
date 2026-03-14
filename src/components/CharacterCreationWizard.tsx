@@ -16,7 +16,7 @@ import {
 import { getAllFeats, getFeatMeta } from "@/data/feats";
 import Logo from "@/components/Logo";
 import { useNetworkStatus } from "@/hooks/useNetworkStatus";
-import { upsertRow, deleteBy } from "@/lib/localStore";
+import { upsertRow, softDeleteBy } from "@/lib/localStore";
 import { triggerPush } from "@/lib/syncManager";
 import { useTranslation } from "@/i18n/useTranslation";
 
@@ -165,7 +165,7 @@ const CharacterCreationWizard = ({ onCreated, onCancel, gameId }: CharacterCreat
     if (characterId && characterFeatId) {
       // Update existing
       upsertRow("character_feats", { id: characterFeatId, character_id: characterId, feat_id: featId, level: 1, is_free: false, note: null });
-      deleteBy("character_feat_subfeats", { character_feat_id: characterFeatId });
+      softDeleteBy("character_feat_subfeats", { character_feat_id: characterFeatId });
       setSubfeatSelections(new Map());
     } else {
       const tempCharId = crypto.randomUUID();
@@ -200,8 +200,8 @@ const CharacterCreationWizard = ({ onCreated, onCancel, gameId }: CharacterCreat
       const { getBy } = await import("@/lib/localStore");
       const existing = getBy("character_feat_subfeats", { character_feat_id: characterFeatId, slot: slotNum });
       for (const row of existing) {
-        const { deleteRow } = await import("@/lib/localStore");
-        deleteRow("character_feat_subfeats", row.id);
+        const { softDeleteRow } = await import("@/lib/localStore");
+        softDeleteRow("character_feat_subfeats", row.id);
       }
     }
 

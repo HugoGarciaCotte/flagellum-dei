@@ -40,18 +40,63 @@ function persist(table: TableName) {
   window.dispatchEvent(new CustomEvent("localstore-change", { detail: { table } }));
 }
 
-// --- Read ---
+// --- Dirty-row tracking ---
+
+const _dirtyRows = new Set<string>();
+
+function markDirty(table: TableName, id: string) {
+  _dirtyRows.add(`${table}:${id}`);
+}
+
+export function getDirtyRows(): { table: TableName; id: string }[] {
+  return [..._dirtyRows].map((key) => {
+    const [table, id] = key.split(":", 2);
+    return { table: table as TableName, id };
+  });
+}
+
+export function clearDirty() {
+  _dirtyRows.clear();
+}
+
+// --- Last-sync timestamp ---
+
+const LAST_SYNC_KEY = "ls_last_sync";
+
+export function getLastSync(): string | null {
+  try {
+    return localStorage.getItem(LAST_SYNC_KEY);
+  } catch {
+    return null;
+  }
+}
+
+export function setLastSync(ts: string) {
+  try {
+    localStorage.setItem(LAST_SYNC_KEY, ts);
+  } catch {}
+}
+
+// --- Read (auto-filters soft-deleted rows) ---
 
 export function getTable<T = Row>(table: TableName): T[] {
+  return ((cache.get(table) ?? []) as T[]).filter((r: any) => !r.deleted_at);
+}
+
+/** Get ALL rows including soft-deleted (for sync push) */
+export function getTableRaw<T = Row>(table: TableName): T[] {
   return (cache.get(table) ?? []) as T[];
 }
 
 export function getRow<T = Row>(table: TableName, id: string): T | undefined {
-  return (cache.get(table) ?? []).find((r) => r.id === id) as T | undefined;
+  const row = (cache.get(table) ?? []).find((r) => r.id === id) as T | undefined;
+  if (row && (row as any).deleted_at) return undefined;
+  return row;
 }
 
 export function getBy<T = Row>(table: TableName, filter: Record<string, any>): T[] {
   return ((cache.get(table) ?? []) as T[]).filter((row: any) => {
+    if (row.deleted_at) return false;
     for (const [key, val] of Object.entries(filter)) {
       if (row[key] !== val) return false;
     }
@@ -66,6 +111,17 @@ export function setTable(table: TableName, rows: Row[]) {
   persist(table);
 }
 
+/** Merge incoming rows into existing cache by id (upsert, no replace) */
+export function mergeTable(table: TableName, rows: Row[]) {
+  const existing = cache.get(table) ?? [];
+  const map = new Map(existing.map((r) => [r.id, r]));
+  for (const row of rows) {
+    map.set(row.id, row);
+  }
+  cache.set(table, [...map.values()]);
+  persist(table);
+}
+
 export function upsertRow(table: TableName, row: Row) {
   const rows = cache.get(table) ?? [];
   const idx = rows.findIndex((r) => r.id === row.id);
@@ -76,60 +132,57 @@ export function upsertRow(table: TableName, row: Row) {
   }
   cache.set(table, rows);
   persist(table);
-  removeDeletion(table, row.id);
+  markDirty(table, row.id);
 }
 
-export function deleteRow(table: TableName, id: string) {
+/** Soft-delete a row by setting deleted_at */
+export function softDeleteRow(table: TableName, id: string) {
   const rows = cache.get(table) ?? [];
-  cache.set(table, rows.filter((r) => r.id !== id));
-  persist(table);
-  trackDeletion(table, id);
+  const idx = rows.findIndex((r) => r.id === id);
+  if (idx >= 0) {
+    rows[idx] = { ...rows[idx], deleted_at: new Date().toISOString(), updated_at: new Date().toISOString() };
+    cache.set(table, rows);
+    persist(table);
+    markDirty(table, id);
+  }
 }
 
-export function deleteBy(table: TableName, filter: Record<string, any>) {
+/** Soft-delete rows matching a filter */
+export function softDeleteBy(table: TableName, filter: Record<string, any>) {
   const rows = cache.get(table) ?? [];
-  const toKeep: Row[] = [];
+  const now = new Date().toISOString();
   for (const row of rows) {
+    if (row.deleted_at) continue;
     let match = true;
     for (const [key, val] of Object.entries(filter)) {
       if (row[key] !== val) { match = false; break; }
     }
-    if (match) trackDeletion(table, row.id);
-    else toKeep.push(row);
+    if (match) {
+      row.deleted_at = now;
+      row.updated_at = now;
+      markDirty(table, row.id);
+    }
   }
-  cache.set(table, toKeep);
+  cache.set(table, rows);
   persist(table);
 }
 
-// --- Deletion tracking ---
-
-const DELETIONS_KEY = "ls_deletions";
-type Deletion = { table: string; id: string };
-
-export function getDeletions(): Deletion[] {
-  try {
-    const raw = localStorage.getItem(DELETIONS_KEY);
-    return raw ? JSON.parse(raw) : [];
-  } catch { return []; }
+// Keep hard-delete for local cache eviction only (not synced)
+export function deleteRow(table: TableName, id: string) {
+  const rows = cache.get(table) ?? [];
+  cache.set(table, rows.filter((r) => r.id !== id));
+  persist(table);
 }
 
-function trackDeletion(table: TableName, id: string) {
-  const dels = getDeletions();
-  if (!dels.some((d) => d.table === table && d.id === id)) {
-    dels.push({ table, id });
-    localStorage.setItem(DELETIONS_KEY, JSON.stringify(dels));
-  }
-}
-
-function removeDeletion(table: TableName, id: string) {
-  localStorage.setItem(
-    DELETIONS_KEY,
-    JSON.stringify(getDeletions().filter((d) => !(d.table === table && d.id === id))),
-  );
-}
-
-export function clearDeletions() {
-  localStorage.removeItem(DELETIONS_KEY);
+export function deleteBy(table: TableName, filter: Record<string, any>) {
+  const rows = cache.get(table) ?? [];
+  cache.set(table, rows.filter((row) => {
+    for (const [key, val] of Object.entries(filter)) {
+      if (row[key] !== val) return true;
+    }
+    return false;
+  }));
+  persist(table);
 }
 
 export function clearAll() {
@@ -137,18 +190,19 @@ export function clearAll() {
     cache.set(table, []);
     localStorage.removeItem(LS_PREFIX + table);
   }
-  clearDeletions();
+  clearDirty();
+  try { localStorage.removeItem(LAST_SYNC_KEY); } catch {}
   window.dispatchEvent(new CustomEvent("localstore-change", { detail: { table: "*" } }));
 }
 
-/** Remove ended games older than 24h and their associated game_players */
+/** Remove ended/deleted games older than 24h from local cache to reclaim space */
 export function evictStaleGames() {
   const games = cache.get("games") ?? [];
   const cutoff = Date.now() - 24 * 60 * 60 * 1000;
   const staleIds = new Set<string>();
 
   const freshGames = games.filter((g) => {
-    if (g.status === "ended") {
+    if (g.status === "ended" || g.deleted_at) {
       const updatedAt = new Date(g.updated_at).getTime();
       if (updatedAt < cutoff) {
         staleIds.add(g.id);

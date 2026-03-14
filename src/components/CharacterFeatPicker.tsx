@@ -12,7 +12,7 @@ import { Alert, AlertTitle, AlertDescription } from "@/components/ui/alert";
 import { type SubfeatSlot } from "@/lib/parseEmbeddedFeatMeta";
 
 import { useLocalRows } from "@/hooks/useLocalData";
-import { upsertRow, deleteRow, deleteBy, getBy } from "@/lib/localStore";
+import { upsertRow, softDeleteRow, softDeleteBy, getBy } from "@/lib/localStore";
 import { triggerPush } from "@/lib/syncManager";
 import { getAllFeats, getFeatMeta } from "@/data/feats";
 
@@ -141,9 +141,8 @@ const CharacterFeatPicker = ({ characterId, mode = "player", scenarioLevel }: Ch
     // Delete existing feat at this level
     const existing = characterFeats.filter(cf => cf.level === level && !cf.is_free);
     for (const cf of existing) {
-      deleteRow("character_feats", cf.id);
-      // Also delete subfeats for old feat
-      deleteBy("character_feat_subfeats", { character_feat_id: cf.id });
+      softDeleteRow("character_feats", cf.id);
+      softDeleteBy("character_feat_subfeats", { character_feat_id: cf.id });
     }
     // Insert new
     const newId = crypto.randomUUID();
@@ -168,12 +167,12 @@ const CharacterFeatPicker = ({ characterId, mode = "player", scenarioLevel }: Ch
 
   const deleteFeat = (level: number, isFree: boolean, id?: string) => {
     if (isFree && id) {
-      deleteRow("character_feats", id);
+      softDeleteRow("character_feats", id);
     } else {
       const existing = characterFeats.filter(cf => cf.level === level && !cf.is_free);
       for (const cf of existing) {
-        deleteRow("character_feats", cf.id);
-        deleteBy("character_feat_subfeats", { character_feat_id: cf.id });
+        softDeleteRow("character_feats", cf.id);
+        softDeleteBy("character_feat_subfeats", { character_feat_id: cf.id });
       }
     }
     triggerPush();
@@ -190,7 +189,7 @@ const CharacterFeatPicker = ({ characterId, mode = "player", scenarioLevel }: Ch
     // Delete existing at this slot
     const existing = characterSubfeats.filter(cs => cs.character_feat_id === characterFeatId && cs.slot === slot);
     for (const cs of existing) {
-      deleteRow("character_feat_subfeats", cs.id);
+      softDeleteRow("character_feat_subfeats", cs.id);
     }
     if (subfeatId) {
       upsertRow("character_feat_subfeats", { id: crypto.randomUUID(), character_feat_id: characterFeatId, slot, subfeat_id: subfeatId });

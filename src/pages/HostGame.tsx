@@ -19,7 +19,7 @@ import PageHeader from "@/components/PageHeader";
 
 import { useLocalRow, useLocalRows } from "@/hooks/useLocalData";
 import { upsertRow } from "@/lib/localStore";
-import { triggerPush, pullAll } from "@/lib/syncManager";
+import { triggerPush, pullTable } from "@/lib/syncManager";
 import { useTranslation } from "@/i18n/useTranslation";
 
 const HostGame = () => {
@@ -64,7 +64,7 @@ const HostGame = () => {
   useEffect(() => {
     if (!gameId) return;
     const channel = supabase.channel(`game-host-${gameId}`)
-      .on("postgres_changes", { event: "UPDATE", schema: "public", table: "games", filter: `id=eq.${gameId}` }, () => { pullAll(); })
+      .on("postgres_changes", { event: "UPDATE", schema: "public", table: "games", filter: `id=eq.${gameId}` }, () => { pullTable("games", { id: gameId }); })
       .subscribe();
     return () => { supabase.removeChannel(channel); };
   }, [gameId]);
@@ -72,7 +72,7 @@ const HostGame = () => {
   useEffect(() => {
     if (!gameId) return;
     const channel = supabase.channel(`game-players-${gameId}`)
-      .on("postgres_changes", { event: "*", schema: "public", table: "game_players", filter: `game_id=eq.${gameId}` }, () => { pullAll(); })
+      .on("postgres_changes", { event: "*", schema: "public", table: "game_players", filter: `game_id=eq.${gameId}` }, () => { pullTable("game_players", { game_id: gameId }); })
       .subscribe();
     return () => { supabase.removeChannel(channel); };
   }, [gameId]);

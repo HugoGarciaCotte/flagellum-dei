@@ -19,7 +19,7 @@ import CharacterListItem from "@/components/CharacterListItem";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { useLocalRow, useLocalRows } from "@/hooks/useLocalData";
 import { upsertRow } from "@/lib/localStore";
-import { triggerPush, pullAll } from "@/lib/syncManager";
+import { triggerPush, pullTable } from "@/lib/syncManager";
 import { useTranslation } from "@/i18n/useTranslation";
 
 const PlayGame = () => {
@@ -67,7 +67,7 @@ const PlayGame = () => {
     if (!gameId) return;
     const channel = supabase
       .channel(`game-${gameId}`)
-      .on("postgres_changes", { event: "UPDATE", schema: "public", table: "games", filter: `id=eq.${gameId}` }, () => { pullAll(); })
+      .on("postgres_changes", { event: "UPDATE", schema: "public", table: "games", filter: `id=eq.${gameId}` }, () => { pullTable("games", { id: gameId }); })
       .subscribe();
     return () => { supabase.removeChannel(channel); };
   }, [gameId]);
