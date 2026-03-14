@@ -6,13 +6,14 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import { Badge } from "@/components/ui/badge";
-import { ArrowLeft, Download, Sparkles, AlertTriangle, Loader2, Check } from "lucide-react";
+import { ArrowLeft, Download, Sparkles, AlertTriangle, Loader2, Check, Copy, ChevronDown } from "lucide-react";
 import { toast } from "@/hooks/use-toast";
 import FullPageLoader from "@/components/FullPageLoader";
 import PageHeader from "@/components/PageHeader";
 import en from "@/i18n/en";
-import fr from "@/i18n/fr";
+import staticFr from "@/i18n/fr";
 import { downloadFile } from "@/lib/downloadFile";
 
 const SUPPORTED_LOCALES = ["fr"] as const;
