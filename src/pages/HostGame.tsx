@@ -9,7 +9,7 @@ import { toast } from "@/hooks/use-toast";
 import { ArrowLeft, Copy } from "lucide-react";
 
 import PlayerListSheet from "@/components/PlayerListSheet";
-import { parseWikitext, extractImageUrls } from "@/lib/parseWikitext";
+import { parseWikitext, extractImageUrls, findSection, resolveAmbianceTrack } from "@/lib/parseWikitext";
 import WikiSectionTree from "@/components/WikiSectionTree";
 import DiceRoller from "@/components/DiceRoller";
 import GameTimer from "@/components/GameTimer";
@@ -58,6 +58,24 @@ const HostGame = () => {
   }, [scenarioContent]);
 
   const activeSection = localSection ?? game?.current_section ?? null;
+
+  // Resolve ambiance track for the active section (inherits downward)
+  const resolvedAmbianceTrack = useMemo(() => {
+    if (!activeSection) return parsed.ambianceTrack;
+    function walkAndResolve(
+      secs: typeof sections,
+      parentTrack: typeof parsed.ambianceTrack
+    ): typeof parsed.ambianceTrack {
+      for (const s of secs) {
+        const track = s.ambianceTrack || parentTrack;
+        if (s.id === activeSection) return track;
+        const found = walkAndResolve(s.children, track);
+        if (found !== undefined) return found;
+      }
+      return undefined;
+    }
+    return walkAndResolve(sections, parsed.ambianceTrack) ?? parsed.ambianceTrack;
+  }, [activeSection, sections, parsed.ambianceTrack]);
 
   useEffect(() => { if (game) setLocalSection(null); }, [game?.current_section]);
 
@@ -154,7 +172,7 @@ const HostGame = () => {
         </p>
       )}
 
-      <GameTimer />
+      <GameTimer ambianceTrack={resolvedAmbianceTrack} />
       <DiceRoller gameId={gameId} userName={t("game.gameMaster")} isGameMaster={true} />
     </div>
   );

@@ -83,6 +83,9 @@ const fr: Record<string, string> = {
   "home.cta.subtext": "Gratuit à jamais. Aucun livre requis.",
   "home.footer.brand": "Flagellum Dei Jeu de Rôle",
   "home.footer.install": "Installer l'application →",
+  "timer.timer": "Minuteur",
+  "timer.ambiance": "Ambiance",
+  "adminScenarios.insertTagAmbiance": "Piste d'ambiance",
 };
 
 export default fr;

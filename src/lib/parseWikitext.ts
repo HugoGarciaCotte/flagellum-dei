@@ -1,3 +1,8 @@
+export interface AmbianceEntry {
+  minutes: number;
+  text: string;
+}
+
 export interface WikiSection {
   id: string;
   title: string;
@@ -5,11 +10,13 @@ export interface WikiSection {
   content: string;
   contentSegments: string[];
   metadata: Record<string, string>;
+  ambianceTrack?: AmbianceEntry[];
   children: WikiSection[];
 }
 
 export interface ParsedScenario {
   metadata: Record<string, string>;
+  ambianceTrack?: AmbianceEntry[];
   sections: WikiSection[];
 }
 
@@ -165,8 +172,38 @@ function isMetaOnlyLine(line: string): boolean {
   return stripped === "" && META_RE.test(line);
 }
 
+/** Parse an {{Ambiance Track ... }} block into AmbianceEntry[] */
+function parseAmbianceBlock(block: string): AmbianceEntry[] {
+  const entries: AmbianceEntry[] = [];
+  // Match | Xmin = text  (captures digits before "min" and everything after "=")
+  const entryRe = /\|\s*(\d+)\s*min\s*=\s*([\s\S]*?)(?=\|\s*\d+\s*min\s*=|\}\}|$)/g;
+  let m;
+  while ((m = entryRe.exec(block)) !== null) {
+    const text = m[2].trim();
+    if (text) {
+      entries.push({ minutes: parseInt(m[1], 10), text });
+    }
+  }
+  entries.sort((a, b) => a.minutes - b.minutes);
+  return entries;
+}
+
 export function parseWikitext(wikitext: string): ParsedScenario {
-  const lines = wikitext.split("\n");
+  // Extract and strip {{Ambiance Track ... }} blocks before line-by-line parsing
+  const ambianceBlockRe = /\{\{Ambiance\s+Track\s*([\s\S]*?)\}\}/gi;
+  let scenarioAmbianceTrack: AmbianceEntry[] | undefined;
+  // We'll track which blocks belong to which section after heading detection
+  // Strategy: replace blocks with a special marker, then assign during parse
+  const ambianceBlocks: AmbianceEntry[][] = [];
+  const ambianceMarker = "<!--@@AMBIANCE_BLOCK_";
+  const strippedWikitext = wikitext.replace(ambianceBlockRe, (match) => {
+    const entries = parseAmbianceBlock(match);
+    const idx = ambianceBlocks.length;
+    ambianceBlocks.push(entries);
+    return `${ambianceMarker}${idx}@@-->`;
+  });
+
+  const lines = strippedWikitext.split("\n");
   const root: WikiSection[] = [];
   const stack: { level: number; section: WikiSection; children: WikiSection[] }[] = [];
   let currentBodyLines: string[] = [];
@@ -194,6 +231,22 @@ export function parseWikitext(wikitext: string): ParsedScenario {
     // Check for meta tags
     const lineMeta = extractMetaTags(line);
     const hasMetaTags = Object.keys(lineMeta).length > 0;
+
+    // Check for ambiance block markers
+    const ambianceMarkerRe = /<!--@@AMBIANCE_BLOCK_(\d+)@@-->/;
+    const ambianceMatch = line.match(ambianceMarkerRe);
+    if (ambianceMatch) {
+      const idx = parseInt(ambianceMatch[1], 10);
+      const entries = ambianceBlocks[idx];
+      if (entries.length > 0) {
+        if (!seenHeading) {
+          scenarioAmbianceTrack = entries;
+        } else if (currentTarget) {
+          currentTarget.ambianceTrack = entries;
+        }
+      }
+      continue;
+    }
 
     if (hasMetaTags && isMetaOnlyLine(line)) {
       if (!seenHeading) {
@@ -254,7 +307,18 @@ export function parseWikitext(wikitext: string): ParsedScenario {
   }
   flushBody();
 
-  return { metadata: scenarioMeta, sections: root };
+  return { metadata: scenarioMeta, ambianceTrack: scenarioAmbianceTrack, sections: root };
+}
+
+/**
+ * Resolve the effective ambiance track for a section,
+ * falling back to the ancestor's track if the section has none.
+ */
+export function resolveAmbianceTrack(
+  section: WikiSection,
+  ancestorTrack: AmbianceEntry[] | undefined
+): AmbianceEntry[] | undefined {
+  return section.ambianceTrack || ancestorTrack || undefined;
 }
 
 export function findSection(sections: WikiSection[], id: string): WikiSection | null {
