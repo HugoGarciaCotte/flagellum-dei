@@ -34,6 +34,9 @@ const ScenarioEditorPanel = () => {
   const [generating, setGenerating] = useState(false);
   const [uploading, setUploading] = useState(false);
   const fileInputRef = useRef<HTMLInputElement | null>(null);
+  const refImageInputRef = useRef<HTMLInputElement | null>(null);
+  const [bgRefFile, setBgRefFile] = useState<File | null>(null);
+  const [bgRefPreview, setBgRefPreview] = useState<string>("");
 
   // Load overrides from DB
   useEffect(() => {
