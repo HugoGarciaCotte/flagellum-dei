@@ -507,7 +507,7 @@ const CharacterFeatPicker = ({ characterId, mode = "player", scenarioLevel }: Ch
           {validating && (
             <div className="flex items-center justify-center gap-2 py-8">
               <Loader2 className="h-5 w-5 animate-spin text-primary" />
-              <span className="text-sm text-muted-foreground">Validating with AI...</span>
+              <span className="text-sm text-muted-foreground">{t("feats.validating")}</span>
             </div>
           )}
           {!validating && filteredFeats.length === 0 ? (
