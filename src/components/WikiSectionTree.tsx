@@ -95,7 +95,8 @@ function SectionNode({
   const hasChildren = section.children.length > 0;
   const hasContent = section.content.trim().length > 0;
 
-  const effectiveBg = resolveBackgroundImage(section, parentBackground);
+  const effectiveBg = resolveBackgroundImage(section, parentBackground) || lastBgRef.current;
+  if (effectiveBg) lastBgRef.current = effectiveBg;
 
   const bgStyle: React.CSSProperties = isActive && effectiveBg
     ? {
