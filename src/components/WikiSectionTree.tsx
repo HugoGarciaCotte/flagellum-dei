@@ -79,7 +79,6 @@ function SectionNode({
   parentBackground = null,
   featsMap,
   tooltipLabels,
-  lastBgRef,
 }: {
   section: WikiSection;
   activeSection: string | null;
@@ -88,7 +87,6 @@ function SectionNode({
   parentBackground?: string | null;
   featsMap: Map<string, any> | undefined;
   tooltipLabels: TooltipLabels;
-  lastBgRef: React.MutableRefObject<string | null>;
 }) {
   const [open, setOpen] = useState(true);
   const [hoveredFeat, setHoveredFeat] = useState<{ name: string; rect: DOMRect } | null>(null);
