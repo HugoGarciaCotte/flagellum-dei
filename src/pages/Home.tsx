@@ -145,7 +145,7 @@ const showcaseScenarios = [
     date: "11th of December, 1344",
   },
   {
-    title: "Chapter 5 — Flagellum Dei",
+    title: "Flagellum Dei",
     description:
       "The streets of Marseille lie dead silent, for even the stray dogs have perished. What little remains of the population hides behind barred doors, lost in hunger, terror and prayer. With young Lord Hugues des Baux now burning with fever — who can stand against the scourge of God?",
     level: 5,
