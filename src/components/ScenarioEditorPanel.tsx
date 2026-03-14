@@ -450,7 +450,7 @@ const ContentEditor = ({
   }, [insertAtCursor]);
 
   return (
-    <div className="space-y-1.5">
+    <div className={`space-y-1.5 ${fullScreen ? "flex-1 flex flex-col min-h-0" : ""}`}>
       <div className="flex items-center justify-between">
         <Label className="text-xs flex items-center gap-1.5">
           {t("adminScenarios.fieldContent")}
