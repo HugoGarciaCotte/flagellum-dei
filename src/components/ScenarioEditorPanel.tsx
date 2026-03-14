@@ -488,9 +488,12 @@ const ContentEditor = ({
               <Image className="h-4 w-4 mr-2" />
               {t("adminScenarios.insertTagBg")}
             </DropdownMenuItem>
-            <DropdownMenuItem disabled>
+            <DropdownMenuItem
+              onMouseDown={(e) => e.preventDefault()}
+              onClick={() => insertAtCursor("\n{{Ambiance Track\n| 5min = \n| 15min = \n| 30min = \n}}\n")}
+            >
               <Music className="h-4 w-4 mr-2" />
-              {t("adminScenarios.insertTagMusic")}
+              {t("adminScenarios.insertTagAmbiance")}
             </DropdownMenuItem>
             <DropdownMenuItem
               onMouseDown={(e) => e.preventDefault()}
