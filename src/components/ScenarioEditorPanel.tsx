@@ -10,7 +10,9 @@ import { Download, ChevronDown, AlertTriangle, Check, Image, Loader2, Link, Uplo
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { getHardcodedScenarios, type Scenario } from "@/data/scenarios";
 import { downloadFile } from "@/lib/downloadFile";
+import { extractImageUrls } from "@/lib/parseWikitext";
 import { toast } from "@/hooks/use-toast";
+import JSZip from "jszip";
 import { useTranslation } from "@/i18n/useTranslation";
 import { supabase } from "@/integrations/supabase/client";
 import { invalidateScenarioOverrides, type ScenarioOverrideMap } from "@/lib/scenarioOverrides";
@@ -127,6 +129,52 @@ const ScenarioEditorPanel = () => {
 
   const handleDownloadAndClear = async () => {
     const scenarios = mergedScenarios;
+
+    // 1. Collect all image URLs from scenario contents
+    const allUrls = new Set<string>();
+    for (const s of scenarios) {
+      if (s.content) {
+        for (const url of extractImageUrls(s.content)) {
+          allUrls.add(url);
+        }
+      }
+    }
+
+    // 2. Fetch images in parallel and build URL→local path map
+    const urlMap = new Map<string, string>();
+    const imageBlobs = new Map<string, Blob>();
+
+    await Promise.all(
+      Array.from(allUrls).map(async (url) => {
+        try {
+          const res = await fetch(url);
+          if (!res.ok) throw new Error(`HTTP ${res.status}`);
+          const blob = await res.blob();
+          // Derive a clean filename from the URL path
+          const urlPath = new URL(url).pathname;
+          const segments = urlPath.split("/");
+          // Keep last 2 segments for uniqueness (e.g. scenarioId/filename.png)
+          const localPath = `scenario-backgrounds/${segments.slice(-2).join("/")}`;
+          urlMap.set(url, `/${localPath}`);
+          imageBlobs.set(localPath, blob);
+        } catch (e) {
+          console.warn(`Failed to download image: ${url}`, e);
+          // Leave URL as-is if download fails
+        }
+      })
+    );
+
+    // 3. Rewrite content URLs to local paths
+    const rewrittenScenarios = scenarios.map(s => {
+      if (!s.content) return s;
+      let content = s.content;
+      for (const [originalUrl, localPath] of urlMap) {
+        content = content.split(originalUrl).join(localPath);
+      }
+      return { ...s, content };
+    });
+
+    // 4. Generate scenarios.ts
     const lines: string[] = [
       "// Auto-generated from admin editor",
       `// Generated on ${new Date().toISOString()}`,
@@ -143,7 +191,7 @@ const ScenarioEditorPanel = () => {
       "",
     ];
 
-    scenarios.forEach((s, i) => {
+    rewrittenScenarios.forEach((s, i) => {
       const varName = `scenario${i + 1}`;
       lines.push(`export const ${varName}: Scenario = {`);
       lines.push(`  id: ${JSON.stringify(s.id)},`);
@@ -155,7 +203,7 @@ const ScenarioEditorPanel = () => {
       lines.push("");
     });
 
-    const varNames = scenarios.map((_, i) => `scenario${i + 1}`);
+    const varNames = rewrittenScenarios.map((_, i) => `scenario${i + 1}`);
     lines.push(`const hardcodedScenarios: Scenario[] = [${varNames.join(", ")}];`);
     lines.push("");
     lines.push("/** Returns all scenarios, with DB overrides applied if loaded. */");
@@ -177,8 +225,39 @@ const ScenarioEditorPanel = () => {
     lines.push("  return overrides ? applyScenarioOverrides(scenario, overrides) : scenario;");
     lines.push("}");
 
-    downloadFile("scenarios.ts", lines.join("\n"), "text/typescript");
+    // 5. Build ZIP if there are images, otherwise just download .ts
+    if (imageBlobs.size > 0) {
+      const zip = new JSZip();
+      zip.file("scenarios.ts", lines.join("\n"));
 
+      for (const [path, blob] of imageBlobs) {
+        zip.file(path, blob);
+      }
+
+      // 6. Add README with Lovable prompt
+      const readme = `## How to apply this export
+
+Copy-paste this prompt into Lovable:
+
+---
+
+Upload the images from the scenario-backgrounds/ folder in the attached ZIP into public/scenario-backgrounds/ (preserving subfolder structure), and replace the contents of src/data/scenarios.ts with the scenarios.ts file from the ZIP.
+
+---
+`;
+      zip.file("README.txt", readme);
+
+      const zipBlob = await zip.generateAsync({ type: "blob" });
+      const a = document.createElement("a");
+      a.href = URL.createObjectURL(zipBlob);
+      a.download = "scenarios-export.zip";
+      a.click();
+      URL.revokeObjectURL(a.href);
+    } else {
+      downloadFile("scenarios.ts", lines.join("\n"), "text/typescript");
+    }
+
+    // 7. Clear DB overrides
     const { error } = await supabase.from("scenario_overrides" as any)
       .delete()
       .neq("id", "00000000-0000-0000-0000-000000000000");
