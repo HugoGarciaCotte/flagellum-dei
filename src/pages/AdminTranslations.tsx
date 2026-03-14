@@ -243,6 +243,41 @@ const AdminTranslations = () => {
           </div>
         </div>
 
+        {/* Copyable audit prompt */}
+        <Collapsible>
+          <Card className="border-border">
+            <CollapsibleTrigger asChild>
+              <CardHeader className="cursor-pointer py-3 px-4">
+                <div className="flex items-center justify-between">
+                  <CardTitle className="text-sm font-display">🔍 Hardcoded String Audit Prompt</CardTitle>
+                  <ChevronDown className="h-4 w-4 text-muted-foreground" />
+                </div>
+              </CardHeader>
+            </CollapsibleTrigger>
+            <CollapsibleContent>
+              <CardContent className="pt-0 space-y-3">
+                <p className="text-xs text-muted-foreground">Copy this prompt and paste it into the Lovable chat to scan for untranslated hardcoded strings:</p>
+                <pre className="text-xs bg-muted rounded-md p-3 whitespace-pre-wrap leading-relaxed border border-border">
+{`Scan all .tsx files in src/pages/ and src/components/ (excluding src/components/ui/) for hardcoded user-facing text in JSX that is not wrapped in the t() translation function. Use search_files to find patterns like >Some English text< in JSX and string props like title=, description=, placeholder=, label= with literal values. For each hardcoded string found: 1) Add a new key to src/i18n/en.ts following the existing naming convention (screen.section.purpose), 2) Replace the hardcoded string with t('new.key') in the component. Skip className, variant, size, type, key, data-*, src, href attributes. Skip strings that are purely technical (e.g. channel names, event types).`}
+                </pre>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  className="gap-2 font-display"
+                  onClick={() => {
+                    navigator.clipboard.writeText(
+                      `Scan all .tsx files in src/pages/ and src/components/ (excluding src/components/ui/) for hardcoded user-facing text in JSX that is not wrapped in the t() translation function. Use search_files to find patterns like >Some English text< in JSX and string props like title=, description=, placeholder=, label= with literal values. For each hardcoded string found: 1) Add a new key to src/i18n/en.ts following the existing naming convention (screen.section.purpose), 2) Replace the hardcoded string with t('new.key') in the component. Skip className, variant, size, type, key, data-*, src, href attributes. Skip strings that are purely technical (e.g. channel names, event types).`
+                    );
+                    toast({ title: "Copied to clipboard" });
+                  }}
+                >
+                  <Copy className="h-3.5 w-3.5" /> Copy Prompt
+                </Button>
+              </CardContent>
+            </CollapsibleContent>
+          </Card>
+        </Collapsible>
+
         {loading ? (
           <div className="flex justify-center py-12">
             <Loader2 className="h-6 w-6 animate-spin text-primary" />
@@ -251,7 +286,7 @@ const AdminTranslations = () => {
           <Accordion type="multiple" className="space-y-2">
             {screens.map((screen) => {
               const keys = grouped[screen];
-              const screenMissing = keys.filter((k) => !editValues[k] || editValues[k] === en[k]).length;
+              const screenMissing = keys.filter(isTrulyMissing).length;
               return (
                 <AccordionItem key={screen} value={screen} className="border border-border rounded-lg px-4">
                   <AccordionTrigger className="hover:no-underline">
