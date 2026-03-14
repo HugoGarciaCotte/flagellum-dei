@@ -343,7 +343,7 @@ const CharacterCreationWizard = ({ onCreated, onCancel, gameId }: CharacterCreat
       .from("character-portraits")
       .getPublicUrl(filePath);
     setPortraitUrl(`${publicUrlData.publicUrl}?t=${Date.now()}`);
-    toast({ title: "Portrait uploaded!" });
+    toast({ title: t("wizard.toast.portraitUploaded") });
   };
 
   const handleGeneratePortrait = async () => {
