@@ -167,12 +167,12 @@ const CharacterFeatPicker = ({ characterId, mode = "player", scenarioLevel }: Ch
 
   const deleteFeat = (level: number, isFree: boolean, id?: string) => {
     if (isFree && id) {
-      deleteRow("character_feats", id);
+      softDeleteRow("character_feats", id);
     } else {
       const existing = characterFeats.filter(cf => cf.level === level && !cf.is_free);
       for (const cf of existing) {
-        deleteRow("character_feats", cf.id);
-        deleteBy("character_feat_subfeats", { character_feat_id: cf.id });
+        softDeleteRow("character_feats", cf.id);
+        softDeleteBy("character_feat_subfeats", { character_feat_id: cf.id });
       }
     }
     triggerPush();
