@@ -38,7 +38,7 @@ serve(async (req) => {
       .maybeSingle();
     if (!roleData) throw new Error("Unauthorized");
 
-    const { scenarioId, scenarioTitle, scenarioDescription, prompt: userPrompt } = await req.json();
+    const { scenarioId, scenarioTitle, scenarioDescription, prompt: userPrompt, referenceImageUrl } = await req.json();
     if (!scenarioId) throw new Error("Missing scenarioId");
 
     // Step 1: Generate image prompt from scenario context
