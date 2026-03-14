@@ -13,6 +13,7 @@ import { toast } from "@/hooks/use-toast";
 import FullPageLoader from "@/components/FullPageLoader";
 import PageHeader from "@/components/PageHeader";
 import en from "@/i18n/en";
+import { useTranslation } from "@/i18n/useTranslation";
 import staticFr from "@/i18n/fr";
 import { downloadFile } from "@/lib/downloadFile";
 
