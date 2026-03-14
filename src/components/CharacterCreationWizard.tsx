@@ -639,7 +639,7 @@ const CharacterCreationWizard = ({ onCreated, onCancel, gameId }: CharacterCreat
             <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => goToPrevStep(step)}>
               <ArrowLeft className="h-4 w-4" />
             </Button>
-            <h3 className="font-display text-lg text-foreground">Your Character</h3>
+            <h3 className="font-display text-lg text-foreground">{t("wizard.summary.title")}</h3>
           </div>
           {skipButton}
         </div>
