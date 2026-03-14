@@ -52,8 +52,18 @@ const PlayGame = () => {
     triggerPush();
     toast({ title: t("game.characterSelected") });
   };
+  const currentSectionId = game?.current_section ?? null;
 
   const effectiveScenario = game ? getScenarioById(game.scenario_id) : null;
+
+  useEffect(() => {
+    if (!gameId) return;
+    const channel = supabase
+      .channel(`game-${gameId}`)
+      .on("postgres_changes", { event: "UPDATE", schema: "public", table: "games", filter: `id=eq.${gameId}` }, () => { pullAll(); })
+      .subscribe();
+    return () => { supabase.removeChannel(channel); };
+  }, [gameId]);
   const scenarioContent = effectiveScenario?.content || "";
   const parsed = useMemo(() => parseWikitext(scenarioContent), [scenarioContent]);
 
