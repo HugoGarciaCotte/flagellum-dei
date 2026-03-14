@@ -1,10 +1,11 @@
-import { useState, useEffect, useMemo, useCallback } from "react";
+import { useState, useEffect, useMemo, useCallback, useRef } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
-import { Download, Plus, Trash2, ChevronDown, Search, Loader2, AlertTriangle, Check } from "lucide-react";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Download, Plus, Trash2, ChevronDown, Search, Loader2, AlertTriangle, Check, Sparkles } from "lucide-react";
 import { getHardcodedFeats, getFeatMeta, getAllFeatRedirects, type Feat, type FeatMeta, type FeatRedirect } from "@/data/feats";
 import type { SubfeatSlot } from "@/lib/parseEmbeddedFeatMeta";
 import SubfeatSlotEditor from "@/components/SubfeatSlotEditor";
@@ -17,6 +18,18 @@ import { invalidateOverrides, type FeatOverrideMap } from "@/lib/featOverrides";
 /** Fields that live inside meta */
 const META_FIELDS = ["description", "prerequisites", "special", "specialities", "subfeats", "unlocks_categories", "blocking", "synonyms"] as const;
 type MetaField = (typeof META_FIELDS)[number];
+
+const GENERATABLE_FIELDS = ["description", "prerequisites", "specialities", "blocking", "unlocks_categories", "subfeats"] as const;
+type GeneratableField = (typeof GENERATABLE_FIELDS)[number];
+
+const FIELD_LABELS: Record<GeneratableField, string> = {
+  description: "Description",
+  prerequisites: "Prerequisites",
+  specialities: "Specialities",
+  blocking: "Blocking",
+  unlocks_categories: "Unlocks categories",
+  subfeats: "Subfeat slots",
+};
 
 interface EditableFeat {
   id: string;
@@ -37,6 +50,13 @@ const FeatEditorPanel = () => {
   const [searchTerm, setSearchTerm] = useState("");
   const [loading, setLoading] = useState(true);
   const [savingFields, setSavingFields] = useState<Set<string>>(new Set());
+  const [generatingFields, setGeneratingFields] = useState<Set<string>>(new Set());
+
+  // Bulk generation state
+  const [bulkField, setBulkField] = useState<GeneratableField | "all">("description");
+  const [bulkGenerating, setBulkGenerating] = useState(false);
+  const [bulkProgress, setBulkProgress] = useState({ done: 0, total: 0 });
+  const bulkAbortRef = useRef(false);
 
   // Load overrides from DB
   useEffect(() => {
@@ -149,8 +169,135 @@ const FeatEditorPanel = () => {
     setSavingFields(prev => { const s = new Set(prev); s.delete(key); return s; });
   };
 
+  /** Call AI to generate metadata for a feat */
+  const generateForFeat = async (feat: EditableFeat, fields: GeneratableField[]): Promise<Record<string, any> | null> => {
+    try {
+      const { data, error } = await supabase.functions.invoke("generate-feat-metadata", {
+        body: {
+          feat_title: feat.title,
+          feat_categories: feat.categories,
+          feat_content: feat.content,
+          feat_raw_content: feat.raw_content,
+          fields,
+        },
+      });
+      if (error) throw error;
+      if (data?.error) throw new Error(data.error);
+      return data;
+    } catch (e: any) {
+      toast({ title: `Generation failed for "${feat.title}"`, description: e.message, variant: "destructive" });
+      return null;
+    }
+  };
+
+  /** Generate a single field for a single feat and auto-save */
+  const handleGenerateField = async (feat: EditableFeat, field: GeneratableField) => {
+    const key = `${feat.id}:${field}`;
+    setGeneratingFields(prev => new Set(prev).add(key));
+    const result = await generateForFeat(feat, [field]);
+    if (result && field in result) {
+      const value = result[field];
+      // For array fields, save empty arrays as null
+      const saveValue = Array.isArray(value) && value.length === 0 ? null : value;
+      if (saveValue != null) {
+        await saveField(feat.id, field, saveValue);
+      }
+    }
+    setGeneratingFields(prev => { const s = new Set(prev); s.delete(key); return s; });
+  };
+
+  /** Generate all empty fields for a single feat */
+  const handleGenerateAllForFeat = async (feat: EditableFeat) => {
+    const emptyFields = GENERATABLE_FIELDS.filter(f => {
+      const val = getEffective(feat, f);
+      return val == null || val === "" || (Array.isArray(val) && val.length === 0);
+    });
+    if (emptyFields.length === 0) {
+      toast({ title: "Nothing to generate", description: "All fields already have values." });
+      return;
+    }
+    for (const f of emptyFields) {
+      setGeneratingFields(prev => new Set(prev).add(`${feat.id}:${f}`));
+    }
+    const result = await generateForFeat(feat, [...emptyFields]);
+    if (result) {
+      for (const field of emptyFields) {
+        if (field in result) {
+          const value = result[field];
+          const saveValue = Array.isArray(value) && value.length === 0 ? null : value;
+          if (saveValue != null) {
+            await saveField(feat.id, field, saveValue);
+          }
+        }
+      }
+    }
+    for (const f of emptyFields) {
+      setGeneratingFields(prev => { const s = new Set(prev); s.delete(`${feat.id}:${f}`); return s; });
+    }
+  };
+
+  /** Bulk generate a field (or all) for all feats missing it */
+  const handleBulkGenerate = async () => {
+    const fieldsToGenerate: GeneratableField[] = bulkField === "all"
+      ? [...GENERATABLE_FIELDS]
+      : [bulkField];
+
+    // Find feats that are missing at least one of the requested fields
+    const featsToProcess = mergedFeats.filter(feat => {
+      return fieldsToGenerate.some(f => {
+        const val = getEffective(feat, f);
+        return val == null || val === "" || (Array.isArray(val) && val.length === 0);
+      });
+    });
+
+    if (featsToProcess.length === 0) {
+      toast({ title: "Nothing to generate", description: `All feats already have ${bulkField === "all" ? "all fields" : FIELD_LABELS[bulkField]}.` });
+      return;
+    }
+
+    setBulkGenerating(true);
+    bulkAbortRef.current = false;
+    setBulkProgress({ done: 0, total: featsToProcess.length });
+
+    for (let i = 0; i < featsToProcess.length; i++) {
+      if (bulkAbortRef.current) break;
+      const feat = featsToProcess[i];
+
+      // Determine which of the requested fields are actually empty for this feat
+      const emptyFields = fieldsToGenerate.filter(f => {
+        const val = getEffective(feat, f);
+        return val == null || val === "" || (Array.isArray(val) && val.length === 0);
+      });
+
+      if (emptyFields.length > 0) {
+        const result = await generateForFeat(feat, emptyFields);
+        if (result) {
+          for (const field of emptyFields) {
+            if (field in result) {
+              const value = result[field];
+              const saveValue = Array.isArray(value) && value.length === 0 ? null : value;
+              if (saveValue != null) {
+                await saveField(feat.id, field, saveValue);
+              }
+            }
+          }
+        }
+      }
+
+      setBulkProgress({ done: i + 1, total: featsToProcess.length });
+      // Rate limit delay
+      if (i < featsToProcess.length - 1) {
+        await new Promise(r => setTimeout(r, 500));
+      }
+    }
+
+    setBulkGenerating(false);
+    if (!bulkAbortRef.current) {
+      toast({ title: "Bulk generation complete", description: `Processed ${featsToProcess.length} feats.` });
+    }
+  };
+
   const handleDownloadAndClear = async () => {
-    // Build merged export
     const exportFeats = mergedFeats.map(f => ({
       id: f.id,
       title: f.title,
@@ -174,7 +321,6 @@ const FeatEditorPanel = () => {
     const json = JSON.stringify({ feats: exportFeats, redirects }, null, 2);
     downloadFile("feats-data.json", json, "application/json");
 
-    // Clear DB
     const { error } = await supabase.from("feat_overrides")
       .delete()
       .neq("id", "00000000-0000-0000-0000-000000000000");
@@ -212,6 +358,46 @@ const FeatEditorPanel = () => {
         </div>
       )}
 
+      {/* Bulk AI generation toolbar */}
+      <div className="flex items-center gap-2 flex-wrap rounded-lg border border-border p-3 bg-muted/30">
+        <Sparkles className="h-4 w-4 text-primary shrink-0" />
+        <span className="text-sm font-medium">Generate with AI:</span>
+        <Select value={bulkField} onValueChange={(v) => setBulkField(v as any)}>
+          <SelectTrigger className="h-8 w-[180px] text-sm">
+            <SelectValue />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="all">All fields</SelectItem>
+            {GENERATABLE_FIELDS.map(f => (
+              <SelectItem key={f} value={f}>{FIELD_LABELS[f]}</SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+        <Button
+          size="sm"
+          variant="default"
+          className="gap-1"
+          disabled={bulkGenerating || loading}
+          onClick={handleBulkGenerate}
+        >
+          {bulkGenerating ? (
+            <>
+              <Loader2 className="h-3.5 w-3.5 animate-spin" />
+              {bulkProgress.done}/{bulkProgress.total}
+            </>
+          ) : (
+            <>
+              <Sparkles className="h-3.5 w-3.5" /> Generate All Missing
+            </>
+          )}
+        </Button>
+        {bulkGenerating && (
+          <Button size="sm" variant="outline" onClick={() => { bulkAbortRef.current = true; }}>
+            Stop
+          </Button>
+        )}
+      </div>
+
       {/* Search */}
       <div className="relative">
         <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
@@ -230,7 +416,6 @@ const FeatEditorPanel = () => {
       ) : (
         <div className="space-y-1 overflow-y-auto flex-1">
           {filteredFeats.map((feat) => {
-            const hcFeat = hardcodedFeats.find(f => f.id === feat.id);
             const featHasOverrides = overrides.has(feat.id) && (overrides.get(feat.id)?.size ?? 0) > 0;
 
             return (
@@ -247,6 +432,19 @@ const FeatEditorPanel = () => {
                 </CollapsibleTrigger>
                 <CollapsibleContent className="px-3 pb-3 pt-1">
                   <div className="space-y-3 border border-border rounded-md p-3 bg-muted/20">
+                    {/* Generate All for this feat */}
+                    <div className="flex justify-end">
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        className="gap-1 text-xs"
+                        disabled={generatingFields.size > 0}
+                        onClick={() => handleGenerateAllForFeat(feat)}
+                      >
+                        <Sparkles className="h-3 w-3" /> Generate All Empty
+                      </Button>
+                    </div>
+
                     {/* Title */}
                     <OverrideField
                       label="Title"
@@ -267,20 +465,25 @@ const FeatEditorPanel = () => {
                       onRevert={() => revertField(feat.id, "categories")}
                     />
 
-                    {/* Meta string fields */}
-                    {(["description", "prerequisites", "special", "synonyms"] as const).map(field => (
-                      <OverrideField
-                        key={field}
-                        label={field.charAt(0).toUpperCase() + field.slice(1)}
-                        value={getEffective(feat, field) ?? ""}
-                        isOverridden={isOverridden(feat.id, field)}
-                        saving={savingFields.has(`${feat.id}:${field}`)}
-                        onSave={(v) => saveField(feat.id, field, v || null)}
-                        onRevert={() => revertField(feat.id, field)}
-                      />
-                    ))}
+                    {/* Meta string fields with AI generation */}
+                    {(["description", "prerequisites", "special", "synonyms"] as const).map(field => {
+                      const isGeneratable = GENERATABLE_FIELDS.includes(field as any);
+                      return (
+                        <OverrideField
+                          key={field}
+                          label={field.charAt(0).toUpperCase() + field.slice(1)}
+                          value={getEffective(feat, field) ?? ""}
+                          isOverridden={isOverridden(feat.id, field)}
+                          saving={savingFields.has(`${feat.id}:${field}`)}
+                          generating={generatingFields.has(`${feat.id}:${field}`)}
+                          onSave={(v) => saveField(feat.id, field, v || null)}
+                          onRevert={() => revertField(feat.id, field)}
+                          onGenerate={isGeneratable ? () => handleGenerateField(feat, field as GeneratableField) : undefined}
+                        />
+                      );
+                    })}
 
-                    {/* Meta array fields */}
+                    {/* Meta array fields with AI generation */}
                     {(["specialities", "blocking", "unlocks_categories"] as const).map(field => (
                       <OverrideField
                         key={field}
@@ -288,15 +491,31 @@ const FeatEditorPanel = () => {
                         value={(getEffective(feat, field) ?? []).join(", ")}
                         isOverridden={isOverridden(feat.id, field)}
                         saving={savingFields.has(`${feat.id}:${field}`)}
+                        generating={generatingFields.has(`${feat.id}:${field}`)}
                         onSave={(v) => saveField(feat.id, field, v.split(",").map(s => s.trim()).filter(Boolean))}
                         onRevert={() => revertField(feat.id, field)}
+                        onGenerate={() => handleGenerateField(feat, field)}
                       />
                     ))}
 
                     {/* Subfeats */}
                     <div className="space-y-2">
                       <div className="flex items-center justify-between">
-                        <Label className="text-xs font-medium">Subfeat Slots</Label>
+                        <div className="flex items-center gap-1.5">
+                          <Label className="text-xs font-medium">Subfeat Slots</Label>
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            className="h-5 w-5"
+                            disabled={generatingFields.has(`${feat.id}:subfeats`)}
+                            onClick={() => handleGenerateField(feat, "subfeats")}
+                          >
+                            {generatingFields.has(`${feat.id}:subfeats`)
+                              ? <Loader2 className="h-3 w-3 animate-spin" />
+                              : <Sparkles className="h-3 w-3 text-primary" />
+                            }
+                          </Button>
+                        </div>
                         <div className="flex gap-1 items-center">
                           {isOverridden(feat.id, "subfeats") && (
                             <Badge variant="secondary" className="text-[10px] cursor-pointer" onClick={() => revertField(feat.id, "subfeats")}>
@@ -339,21 +558,25 @@ const FeatEditorPanel = () => {
   );
 };
 
-/** Reusable inline field editor with override indicator */
+/** Reusable inline field editor with override indicator and AI generation */
 function OverrideField({
   label,
   value,
   isOverridden,
   saving,
+  generating,
   onSave,
   onRevert,
+  onGenerate,
 }: {
   label: string;
   value: string;
   isOverridden: boolean;
   saving: boolean;
+  generating?: boolean;
   onSave: (v: string) => void;
   onRevert: () => void;
+  onGenerate?: () => void;
 }) {
   const [local, setLocal] = useState(value);
   const dirty = local !== value;
@@ -365,6 +588,21 @@ function OverrideField({
     <div>
       <div className="flex items-center gap-2 mb-0.5">
         <Label className="text-xs">{label}</Label>
+        {onGenerate && (
+          <Button
+            variant="ghost"
+            size="icon"
+            className="h-5 w-5"
+            disabled={generating}
+            onClick={onGenerate}
+            title={`Generate ${label} with AI`}
+          >
+            {generating
+              ? <Loader2 className="h-3 w-3 animate-spin" />
+              : <Sparkles className="h-3 w-3 text-primary" />
+            }
+          </Button>
+        )}
         {isOverridden && (
           <Badge variant="secondary" className="text-[10px] cursor-pointer hover:bg-destructive/20" onClick={onRevert}>
             DB override — click to revert
