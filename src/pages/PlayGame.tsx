@@ -123,7 +123,14 @@ const PlayGame = () => {
   }
 
   return (
-    <div className="min-h-screen bg-background flex flex-col">
+    <div
+      className="min-h-screen bg-background flex flex-col transition-[background-image] duration-700"
+      style={activeBg ? {
+        backgroundImage: `linear-gradient(to bottom, hsl(var(--background) / 0.3), hsl(var(--background) / 0.5)), url(${activeBg})`,
+        backgroundSize: "cover",
+        backgroundPosition: "center",
+      } : undefined}
+    >
       <PageHeader
         title={effectiveScenario?.title ?? ""}
         leftAction={<Button variant="ghost" size="icon" onClick={() => navigate("/")}><ArrowLeft className="h-4 w-4" /></Button>}
@@ -138,20 +145,7 @@ const PlayGame = () => {
       />
 
       <main className={`flex-1 container py-8 flex items-center justify-center max-w-3xl ${isGuest ? "pb-32" : "pb-24"}`}>
-        {sectionTitle ? (
-          <Card
-            className="w-full aged-border relative overflow-hidden"
-            style={activeBg ? {
-              backgroundImage: `linear-gradient(to bottom, hsl(var(--background) / 0.55), hsl(var(--background) / 0.75)), url(${activeBg})`,
-              backgroundSize: "cover",
-              backgroundPosition: "center",
-            } : undefined}
-          >
-            <CardContent className="p-8 text-center relative z-10">
-              <h2 className="font-display text-2xl font-bold text-foreground">{sectionTitle}</h2>
-            </CardContent>
-          </Card>
-        ) : (
+        {!currentSectionId && (
           <div className="text-center space-y-4">
             <div className="animate-pulse-glow text-primary font-display text-xl">
               {online ? t("game.waitingGM") : t("game.offlineLastState")}
