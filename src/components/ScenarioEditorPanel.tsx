@@ -6,7 +6,8 @@ import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
-import { Download, ChevronDown, AlertTriangle, Check, Image, Loader2, Link, Upload, Sparkles } from "lucide-react";
+import { Download, ChevronDown, AlertTriangle, Check, Image, Loader2, Link, Upload, Sparkles, Plus, X, Music } from "lucide-react";
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { getHardcodedScenarios, type Scenario } from "@/data/scenarios";
 import { downloadFile } from "@/lib/downloadFile";
 import { toast } from "@/hooks/use-toast";
@@ -27,7 +28,8 @@ const ScenarioEditorPanel = () => {
   const [savingFields, setSavingFields] = useState<Set<string>>(new Set());
   const contentRefs = useRef<Record<string, HTMLTextAreaElement | null>>({});
 
-  // Background inserter state
+  // Tag inserter state
+  const [insertMode, setInsertMode] = useState<"background" | null>(null);
   const [bgMode, setBgMode] = useState<BgMode>("link");
   const [bgUrl, setBgUrl] = useState("");
   const [bgPrompt, setBgPrompt] = useState("");
@@ -395,144 +397,175 @@ const ScenarioEditorPanel = () => {
                         </Label>
                       </div>
 
-                      {/* Background inserter toolbar */}
-                      <div className="rounded-md border border-border bg-muted/30 p-2 space-y-2">
+                      {/* Insert Tag dropdown */}
+                      <div className="space-y-2">
                         <div className="flex items-center gap-2">
-                          <Image className="h-3.5 w-3.5 text-muted-foreground shrink-0" />
-                          <ToggleGroup
-                            type="single"
-                            value={bgMode}
-                            onValueChange={(v) => v && setBgMode(v as BgMode)}
-                            size="sm"
-                            className="gap-0.5"
-                          >
-                            <ToggleGroupItem value="link" className="h-6 text-[11px] px-2 gap-1">
-                              <Link className="h-3 w-3" /> {t("adminScenarios.bgModeLink")}
-                            </ToggleGroupItem>
-                            <ToggleGroupItem value="upload" className="h-6 text-[11px] px-2 gap-1">
-                              <Upload className="h-3 w-3" /> {t("adminScenarios.bgModeUpload")}
-                            </ToggleGroupItem>
-                            <ToggleGroupItem value="ai" className="h-6 text-[11px] px-2 gap-1">
-                              <Sparkles className="h-3 w-3" /> {t("adminScenarios.bgModeAi")}
-                            </ToggleGroupItem>
-                          </ToggleGroup>
+                          <DropdownMenu>
+                            <DropdownMenuTrigger asChild>
+                              <Button variant="outline" size="sm" className="h-7 text-xs gap-1">
+                                <Plus className="h-3 w-3" />
+                                {t("adminScenarios.insertTag")}
+                              </Button>
+                            </DropdownMenuTrigger>
+                            <DropdownMenuContent align="start">
+                              <DropdownMenuItem onClick={() => setInsertMode(insertMode === "background" ? null : "background")}>
+                                <Image className="h-4 w-4 mr-2" />
+                                {t("adminScenarios.insertTagBg")}
+                              </DropdownMenuItem>
+                              <DropdownMenuItem disabled>
+                                <Music className="h-4 w-4 mr-2" />
+                                {t("adminScenarios.insertTagMusic")}
+                              </DropdownMenuItem>
+                            </DropdownMenuContent>
+                          </DropdownMenu>
+                          {insertMode === "background" && (
+                            <button
+                              onClick={() => setInsertMode(null)}
+                              className="text-xs text-muted-foreground hover:text-foreground"
+                            >
+                              <X className="h-3.5 w-3.5" />
+                            </button>
+                          )}
                         </div>
 
-                        {/* Link mode */}
-                        {bgMode === "link" && (
-                          <div className="flex items-center gap-1.5">
-                            <Input
-                              value={bgUrl}
-                              onChange={(e) => setBgUrl(e.target.value)}
-                              placeholder={t("adminScenarios.backgroundUrl")}
-                              className="h-7 text-xs flex-1"
-                            />
-                            <Button
-                              variant="outline"
-                              size="sm"
-                              className="h-7 text-xs gap-1 shrink-0"
-                              disabled={!bgUrl.trim()}
-                              onClick={() => handleLinkInsert(scenario.id)}
-                            >
-                              <Image className="h-3 w-3" />
-                              {t("adminScenarios.insertBackground")}
-                            </Button>
-                          </div>
-                        )}
-
-                        {/* Upload mode */}
-                        {bgMode === "upload" && (
-                          <div className="flex items-center gap-1.5">
-                            <input
-                              ref={fileInputRef}
-                              type="file"
-                              accept="image/*"
-                              className="text-xs file:mr-2 file:py-1 file:px-2 file:rounded file:border-0 file:text-xs file:bg-primary/10 file:text-primary hover:file:bg-primary/20 flex-1"
-                              disabled={uploading}
-                              onChange={(e) => {
-                                const file = e.target.files?.[0];
-                                if (file) handleFileUpload(scenario.id, file);
-                              }}
-                            />
-                            {uploading && (
-                              <span className="flex items-center gap-1 text-xs text-muted-foreground">
-                                <Loader2 className="h-3 w-3 animate-spin" />
-                                {t("adminScenarios.uploading")}
-                              </span>
-                            )}
-                          </div>
-                        )}
-
-                        {/* AI Generate mode */}
-                        {bgMode === "ai" && (
-                          <div className="space-y-1.5">
-                            <div className="flex items-center gap-1.5">
-                              <Input
-                                value={bgPrompt}
-                                onChange={(e) => setBgPrompt(e.target.value)}
-                                placeholder={t("adminScenarios.bgPromptPlaceholder")}
-                                className="h-7 text-xs flex-1"
-                                disabled={generating}
-                              />
-                              <Button
-                                variant="outline"
-                                size="sm"
-                                className="h-7 text-xs gap-1 shrink-0"
-                                disabled={generating}
-                                onClick={() => handleAiGenerate(scenario.id)}
-                              >
-                                {generating ? (
-                                  <>
-                                    <Loader2 className="h-3 w-3 animate-spin" />
-                                    {t("adminScenarios.generating")}
-                                  </>
-                                ) : (
-                                  <>
-                                    <Sparkles className="h-3 w-3" />
-                                    {t("adminScenarios.bgModeAi")}
-                                  </>
-                                )}
-                              </Button>
-                            </div>
+                        {/* Background image panel */}
+                        {insertMode === "background" && (
+                          <div className="rounded-md border border-border bg-muted/30 p-2 space-y-2">
                             <div className="flex items-center gap-2">
-                              <label className="flex items-center gap-1.5 text-[11px] text-muted-foreground cursor-pointer hover:text-foreground transition-colors">
-                                <Upload className="h-3 w-3" />
-                                {t("adminScenarios.bgRefImage")}
+                              <Image className="h-3.5 w-3.5 text-muted-foreground shrink-0" />
+                              <ToggleGroup
+                                type="single"
+                                value={bgMode}
+                                onValueChange={(v) => v && setBgMode(v as BgMode)}
+                                size="sm"
+                                className="gap-0.5"
+                              >
+                                <ToggleGroupItem value="link" className="h-6 text-[11px] px-2 gap-1">
+                                  <Link className="h-3 w-3" /> {t("adminScenarios.bgModeLink")}
+                                </ToggleGroupItem>
+                                <ToggleGroupItem value="upload" className="h-6 text-[11px] px-2 gap-1">
+                                  <Upload className="h-3 w-3" /> {t("adminScenarios.bgModeUpload")}
+                                </ToggleGroupItem>
+                                <ToggleGroupItem value="ai" className="h-6 text-[11px] px-2 gap-1">
+                                  <Sparkles className="h-3 w-3" /> {t("adminScenarios.bgModeAi")}
+                                </ToggleGroupItem>
+                              </ToggleGroup>
+                            </div>
+
+                            {bgMode === "link" && (
+                              <div className="flex items-center gap-1.5">
+                                <Input
+                                  value={bgUrl}
+                                  onChange={(e) => setBgUrl(e.target.value)}
+                                  placeholder={t("adminScenarios.backgroundUrl")}
+                                  className="h-7 text-xs flex-1"
+                                />
+                                <Button
+                                  variant="outline"
+                                  size="sm"
+                                  className="h-7 text-xs gap-1 shrink-0"
+                                  disabled={!bgUrl.trim()}
+                                  onClick={() => handleLinkInsert(scenario.id)}
+                                >
+                                  <Image className="h-3 w-3" />
+                                  {t("adminScenarios.insertBackground")}
+                                </Button>
+                              </div>
+                            )}
+
+                            {bgMode === "upload" && (
+                              <div className="flex items-center gap-1.5">
                                 <input
-                                  ref={refImageInputRef}
+                                  ref={fileInputRef}
                                   type="file"
                                   accept="image/*"
-                                  className="hidden"
-                                  disabled={generating}
+                                  className="text-xs file:mr-2 file:py-1 file:px-2 file:rounded file:border-0 file:text-xs file:bg-primary/10 file:text-primary hover:file:bg-primary/20 flex-1"
+                                  disabled={uploading}
                                   onChange={(e) => {
                                     const file = e.target.files?.[0];
-                                    if (file) {
-                                      setBgRefFile(file);
-                                      setBgRefPreview(URL.createObjectURL(file));
-                                    }
+                                    if (file) handleFileUpload(scenario.id, file);
                                   }}
                                 />
-                              </label>
-                              {bgRefPreview && (
+                                {uploading && (
+                                  <span className="flex items-center gap-1 text-xs text-muted-foreground">
+                                    <Loader2 className="h-3 w-3 animate-spin" />
+                                    {t("adminScenarios.uploading")}
+                                  </span>
+                                )}
+                              </div>
+                            )}
+
+                            {bgMode === "ai" && (
+                              <div className="space-y-1.5">
                                 <div className="flex items-center gap-1.5">
-                                  <img
-                                    src={bgRefPreview}
-                                    alt="Reference"
-                                    className="h-6 w-6 rounded object-cover border border-border"
+                                  <Input
+                                    value={bgPrompt}
+                                    onChange={(e) => setBgPrompt(e.target.value)}
+                                    placeholder={t("adminScenarios.bgPromptPlaceholder")}
+                                    className="h-7 text-xs flex-1"
+                                    disabled={generating}
                                   />
-                                  <button
-                                    className="text-[10px] text-destructive hover:underline"
-                                    onClick={() => {
-                                      setBgRefFile(null);
-                                      setBgRefPreview("");
-                                      if (refImageInputRef.current) refImageInputRef.current.value = "";
-                                    }}
+                                  <Button
+                                    variant="outline"
+                                    size="sm"
+                                    className="h-7 text-xs gap-1 shrink-0"
+                                    disabled={generating}
+                                    onClick={() => handleAiGenerate(scenario.id)}
                                   >
-                                    ✕
-                                  </button>
+                                    {generating ? (
+                                      <>
+                                        <Loader2 className="h-3 w-3 animate-spin" />
+                                        {t("adminScenarios.generating")}
+                                      </>
+                                    ) : (
+                                      <>
+                                        <Sparkles className="h-3 w-3" />
+                                        {t("adminScenarios.bgModeAi")}
+                                      </>
+                                    )}
+                                  </Button>
                                 </div>
-                              )}
-                            </div>
+                                <div className="flex items-center gap-2">
+                                  <label className="flex items-center gap-1.5 text-[11px] text-muted-foreground cursor-pointer hover:text-foreground transition-colors">
+                                    <Upload className="h-3 w-3" />
+                                    {t("adminScenarios.bgRefImage")}
+                                    <input
+                                      ref={refImageInputRef}
+                                      type="file"
+                                      accept="image/*"
+                                      className="hidden"
+                                      disabled={generating}
+                                      onChange={(e) => {
+                                        const file = e.target.files?.[0];
+                                        if (file) {
+                                          setBgRefFile(file);
+                                          setBgRefPreview(URL.createObjectURL(file));
+                                        }
+                                      }}
+                                    />
+                                  </label>
+                                  {bgRefPreview && (
+                                    <div className="flex items-center gap-1.5">
+                                      <img
+                                        src={bgRefPreview}
+                                        alt="Reference"
+                                        className="h-6 w-6 rounded object-cover border border-border"
+                                      />
+                                      <button
+                                        className="text-[10px] text-destructive hover:underline"
+                                        onClick={() => {
+                                          setBgRefFile(null);
+                                          setBgRefPreview("");
+                                          if (refImageInputRef.current) refImageInputRef.current.value = "";
+                                        }}
+                                      >
+                                        ✕
+                                      </button>
+                                    </div>
+                                  )}
+                                </div>
+                              </div>
+                            )}
                           </div>
                         )}
                       </div>
