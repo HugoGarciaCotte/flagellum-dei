@@ -89,6 +89,13 @@ serve(async (req) => {
     console.log("Generated prompt:", imagePrompt);
 
     // Step 2: Generate image
+    const imageContent = referenceImageUrl
+      ? [
+          { type: "text", text: `Use this reference image as inspiration and transform it: ${imagePrompt}` },
+          { type: "image_url", image_url: { url: referenceImageUrl } },
+        ]
+      : imagePrompt;
+
     const imageResponse = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
       method: "POST",
       headers: {
@@ -97,7 +104,7 @@ serve(async (req) => {
       },
       body: JSON.stringify({
         model: "google/gemini-2.5-flash-image",
-        messages: [{ role: "user", content: imagePrompt }],
+        messages: [{ role: "user", content: imageContent }],
         modalities: ["image", "text"],
       }),
     });

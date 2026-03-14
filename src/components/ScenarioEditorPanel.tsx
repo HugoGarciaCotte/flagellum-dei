@@ -465,33 +465,74 @@ const ScenarioEditorPanel = () => {
 
                         {/* AI Generate mode */}
                         {bgMode === "ai" && (
-                          <div className="flex items-center gap-1.5">
-                            <Input
-                              value={bgPrompt}
-                              onChange={(e) => setBgPrompt(e.target.value)}
-                              placeholder={t("adminScenarios.bgPromptPlaceholder")}
-                              className="h-7 text-xs flex-1"
-                              disabled={generating}
-                            />
-                            <Button
-                              variant="outline"
-                              size="sm"
-                              className="h-7 text-xs gap-1 shrink-0"
-                              disabled={generating}
-                              onClick={() => handleAiGenerate(scenario.id)}
-                            >
-                              {generating ? (
-                                <>
-                                  <Loader2 className="h-3 w-3 animate-spin" />
-                                  {t("adminScenarios.generating")}
-                                </>
-                              ) : (
-                                <>
-                                  <Sparkles className="h-3 w-3" />
-                                  {t("adminScenarios.bgModeAi")}
-                                </>
+                          <div className="space-y-1.5">
+                            <div className="flex items-center gap-1.5">
+                              <Input
+                                value={bgPrompt}
+                                onChange={(e) => setBgPrompt(e.target.value)}
+                                placeholder={t("adminScenarios.bgPromptPlaceholder")}
+                                className="h-7 text-xs flex-1"
+                                disabled={generating}
+                              />
+                              <Button
+                                variant="outline"
+                                size="sm"
+                                className="h-7 text-xs gap-1 shrink-0"
+                                disabled={generating}
+                                onClick={() => handleAiGenerate(scenario.id)}
+                              >
+                                {generating ? (
+                                  <>
+                                    <Loader2 className="h-3 w-3 animate-spin" />
+                                    {t("adminScenarios.generating")}
+                                  </>
+                                ) : (
+                                  <>
+                                    <Sparkles className="h-3 w-3" />
+                                    {t("adminScenarios.bgModeAi")}
+                                  </>
+                                )}
+                              </Button>
+                            </div>
+                            <div className="flex items-center gap-2">
+                              <label className="flex items-center gap-1.5 text-[11px] text-muted-foreground cursor-pointer hover:text-foreground transition-colors">
+                                <Upload className="h-3 w-3" />
+                                {t("adminScenarios.bgRefImage")}
+                                <input
+                                  ref={refImageInputRef}
+                                  type="file"
+                                  accept="image/*"
+                                  className="hidden"
+                                  disabled={generating}
+                                  onChange={(e) => {
+                                    const file = e.target.files?.[0];
+                                    if (file) {
+                                      setBgRefFile(file);
+                                      setBgRefPreview(URL.createObjectURL(file));
+                                    }
+                                  }}
+                                />
+                              </label>
+                              {bgRefPreview && (
+                                <div className="flex items-center gap-1.5">
+                                  <img
+                                    src={bgRefPreview}
+                                    alt="Reference"
+                                    className="h-6 w-6 rounded object-cover border border-border"
+                                  />
+                                  <button
+                                    className="text-[10px] text-destructive hover:underline"
+                                    onClick={() => {
+                                      setBgRefFile(null);
+                                      setBgRefPreview("");
+                                      if (refImageInputRef.current) refImageInputRef.current.value = "";
+                                    }}
+                                  >
+                                    ✕
+                                  </button>
+                                </div>
                               )}
-                            </Button>
+                            </div>
                           </div>
                         )}
                       </div>
