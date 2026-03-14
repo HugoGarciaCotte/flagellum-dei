@@ -474,6 +474,13 @@ const ContentEditor = ({
               <Music className="h-4 w-4 mr-2" />
               {t("adminScenarios.insertTagMusic")}
             </DropdownMenuItem>
+            <DropdownMenuItem
+              onMouseDown={(e) => e.preventDefault()}
+              onClick={() => insertAtCursor("\n====\n")}
+            >
+              <SeparatorHorizontal className="h-4 w-4 mr-2" />
+              {t("adminScenarios.insertSectionBreak") || "Section Break"}
+            </DropdownMenuItem>
           </DropdownMenuContent>
         </DropdownMenu>
       </div>
