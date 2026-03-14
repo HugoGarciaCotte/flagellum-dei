@@ -72,6 +72,11 @@ const AdminTranslations = () => {
     [allKeys, editValues],
   );
 
+  const pendingExportCount = useMemo(
+    () => allKeys.filter((k) => dbTranslations[k] && dbTranslations[k] !== en[k] && (!fr[k] || fr[k] === en[k])).length,
+    [allKeys, dbTranslations],
+  );
+
   const handleSave = async (key: string) => {
     const value = editValues[key];
     if (!value) return;
