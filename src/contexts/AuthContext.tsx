@@ -1,7 +1,7 @@
 import React, { createContext, useContext, useEffect, useState } from "react";
 import { Session, User } from "@supabase/supabase-js";
 import { supabase } from "@/integrations/supabase/client";
-import { pullAll } from "@/lib/syncManager";
+import { pullAll, setCurrentUserId } from "@/lib/syncManager";
 import { clearAll } from "@/lib/localStore";
 
 const LOCAL_GUEST_KEY = "local-guest-user";
@@ -65,9 +65,12 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   useEffect(() => {
     if (loading) return;
 
+    const userId = session?.user?.id;
+    setCurrentUserId(userId);
+
     async function initSync() {
-      if (navigator.onLine && session?.user) {
-        try { await pullAll(); } catch { /* stay with local data */ }
+      if (navigator.onLine && userId) {
+        try { await pullAll(userId); } catch { /* stay with local data */ }
       }
       setSyncReady(true);
     }
