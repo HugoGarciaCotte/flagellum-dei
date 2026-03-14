@@ -34,6 +34,7 @@ Rules:
 - Preserve any HTML tags, links, CSS classes, and formatting exactly as they are
 - Do NOT translate proper nouns like "Flagellum Dei", "Danse Macabre", "Prima", "Lovable", "GitHub"
 - Match the tone: dark, atmospheric, medieval when it's game content; clear and functional when it's UI text
+- Do not translate too literally — feel free to deviate from the English phrasing if it produces a more natural, elegant result in the target language
 - Return ONLY the translated text, nothing else — no quotes, no explanations`;
 
     const userPrompt = html_context
