@@ -29,7 +29,7 @@ import scenario9Img from "@/assets/landing-scenario-9.jpg";
 import scenario5Img from "@/assets/landing-scenario-5.jpg";
 import scriptoriumImg from "@/assets/landing-scriptorium.jpg";
 
-const scenarioImages = [scenario1Img, scenarioMarseilleImg, scenario3Img];
+const scenarioImages = [scenario1Img, scenario5Img, scenario9Img];
 
 const ClarityItem = ({
   icon,
