@@ -116,9 +116,16 @@ const ScenarioCard = ({
     </div>
     <div className="space-y-3 p-6">
       {level != null && (
-        <span className="font-display text-[10px] tracking-[0.3em] uppercase text-primary/50">
-          {chapterLabel} {level}
-        </span>
+        <div className="flex items-baseline justify-between">
+          <span className="font-display text-[10px] tracking-[0.3em] uppercase text-primary/50">
+            {chapterLabel} {level}
+          </span>
+          {date && (
+            <span className="font-display text-[10px] tracking-wide text-muted-foreground/50 italic">
+              {date}
+            </span>
+          )}
+        </div>
       )}
       <h3 className="font-display text-base font-bold text-foreground">
         {title}
