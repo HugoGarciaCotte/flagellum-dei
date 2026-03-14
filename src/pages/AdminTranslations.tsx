@@ -34,6 +34,7 @@ const groupByScreen = (keys: string[]) => {
 const AdminTranslations = () => {
   const navigate = useNavigate();
   const { isOwner, isLoading: roleLoading } = useIsOwner();
+  const { t } = useTranslation();
   const [activeLocale, setActiveLocale] = useState<TargetLocale>("fr");
   const [dbTranslations, setDbTranslations] = useState<Record<string, string>>({});
   const [editValues, setEditValues] = useState<Record<string, string>>({});
