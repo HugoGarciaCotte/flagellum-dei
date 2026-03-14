@@ -34,6 +34,9 @@ const ScenarioEditorPanel = () => {
   const [generating, setGenerating] = useState(false);
   const [uploading, setUploading] = useState(false);
   const fileInputRef = useRef<HTMLInputElement | null>(null);
+  const refImageInputRef = useRef<HTMLInputElement | null>(null);
+  const [bgRefFile, setBgRefFile] = useState<File | null>(null);
+  const [bgRefPreview, setBgRefPreview] = useState<string>("");
 
   // Load overrides from DB
   useEffect(() => {
@@ -245,8 +248,22 @@ const ScenarioEditorPanel = () => {
   const handleAiGenerate = async (scenarioId: string) => {
     setGenerating(true);
     try {
-      const hardcoded = hardcodedScenarios.find(s => s.id === scenarioId)!;
       const scenario = mergedScenarios.find(s => s.id === scenarioId)!;
+
+      // Upload reference image first if provided
+      let referenceImageUrl: string | undefined;
+      if (bgRefFile) {
+        const ext = bgRefFile.name.split(".").pop() || "png";
+        const refPath = `scenario-backgrounds/ref-${Date.now()}.${ext}`;
+        const { error: refUploadError } = await supabase.storage
+          .from("app-assets")
+          .upload(refPath, bgRefFile, { contentType: bgRefFile.type, upsert: false });
+        if (refUploadError) throw refUploadError;
+        const { data: refUrlData } = supabase.storage
+          .from("app-assets")
+          .getPublicUrl(refPath);
+        referenceImageUrl = refUrlData.publicUrl;
+      }
 
       const { data, error } = await supabase.functions.invoke("generate-scenario-background", {
         body: {
@@ -254,6 +271,7 @@ const ScenarioEditorPanel = () => {
           scenarioTitle: scenario.title,
           scenarioDescription: scenario.description,
           prompt: bgPrompt.trim() || undefined,
+          referenceImageUrl,
         },
       });
       if (error) throw error;
@@ -262,6 +280,9 @@ const ScenarioEditorPanel = () => {
 
       insertBackgroundTagWithUrl(scenarioId, data.url);
       setBgPrompt("");
+      setBgRefFile(null);
+      setBgRefPreview("");
+      if (refImageInputRef.current) refImageInputRef.current.value = "";
       toast({ title: "✓", description: "Background generated" });
     } catch (e: any) {
       toast({ title: t("adminScenarios.generateFailed"), description: e.message, variant: "destructive" });
@@ -444,33 +465,74 @@ const ScenarioEditorPanel = () => {
 
                         {/* AI Generate mode */}
                         {bgMode === "ai" && (
-                          <div className="flex items-center gap-1.5">
-                            <Input
-                              value={bgPrompt}
-                              onChange={(e) => setBgPrompt(e.target.value)}
-                              placeholder={t("adminScenarios.bgPromptPlaceholder")}
-                              className="h-7 text-xs flex-1"
-                              disabled={generating}
-                            />
-                            <Button
-                              variant="outline"
-                              size="sm"
-                              className="h-7 text-xs gap-1 shrink-0"
-                              disabled={generating}
-                              onClick={() => handleAiGenerate(scenario.id)}
-                            >
-                              {generating ? (
-                                <>
-                                  <Loader2 className="h-3 w-3 animate-spin" />
-                                  {t("adminScenarios.generating")}
-                                </>
-                              ) : (
-                                <>
-                                  <Sparkles className="h-3 w-3" />
-                                  {t("adminScenarios.bgModeAi")}
-                                </>
+                          <div className="space-y-1.5">
+                            <div className="flex items-center gap-1.5">
+                              <Input
+                                value={bgPrompt}
+                                onChange={(e) => setBgPrompt(e.target.value)}
+                                placeholder={t("adminScenarios.bgPromptPlaceholder")}
+                                className="h-7 text-xs flex-1"
+                                disabled={generating}
+                              />
+                              <Button
+                                variant="outline"
+                                size="sm"
+                                className="h-7 text-xs gap-1 shrink-0"
+                                disabled={generating}
+                                onClick={() => handleAiGenerate(scenario.id)}
+                              >
+                                {generating ? (
+                                  <>
+                                    <Loader2 className="h-3 w-3 animate-spin" />
+                                    {t("adminScenarios.generating")}
+                                  </>
+                                ) : (
+                                  <>
+                                    <Sparkles className="h-3 w-3" />
+                                    {t("adminScenarios.bgModeAi")}
+                                  </>
+                                )}
+                              </Button>
+                            </div>
+                            <div className="flex items-center gap-2">
+                              <label className="flex items-center gap-1.5 text-[11px] text-muted-foreground cursor-pointer hover:text-foreground transition-colors">
+                                <Upload className="h-3 w-3" />
+                                {t("adminScenarios.bgRefImage")}
+                                <input
+                                  ref={refImageInputRef}
+                                  type="file"
+                                  accept="image/*"
+                                  className="hidden"
+                                  disabled={generating}
+                                  onChange={(e) => {
+                                    const file = e.target.files?.[0];
+                                    if (file) {
+                                      setBgRefFile(file);
+                                      setBgRefPreview(URL.createObjectURL(file));
+                                    }
+                                  }}
+                                />
+                              </label>
+                              {bgRefPreview && (
+                                <div className="flex items-center gap-1.5">
+                                  <img
+                                    src={bgRefPreview}
+                                    alt="Reference"
+                                    className="h-6 w-6 rounded object-cover border border-border"
+                                  />
+                                  <button
+                                    className="text-[10px] text-destructive hover:underline"
+                                    onClick={() => {
+                                      setBgRefFile(null);
+                                      setBgRefPreview("");
+                                      if (refImageInputRef.current) refImageInputRef.current.value = "";
+                                    }}
+                                  >
+                                    ✕
+                                  </button>
+                                </div>
                               )}
-                            </Button>
+                            </div>
                           </div>
                         )}
                       </div>

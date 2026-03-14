@@ -485,6 +485,7 @@ const en: Record<string, string> = {
   "adminScenarios.bgModeUpload": "Upload",
   "adminScenarios.bgModeAi": "AI Generate",
   "adminScenarios.bgPromptPlaceholder": "Describe the scene (optional)",
+  "adminScenarios.bgRefImage": "Reference image (optional)",
   "adminScenarios.generating": "Generating…",
   "adminScenarios.uploading": "Uploading…",
   "adminScenarios.generateFailed": "AI generation failed",
