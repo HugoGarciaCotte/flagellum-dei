@@ -31,7 +31,7 @@ import scriptoriumImg from "@/assets/landing-scriptorium.jpg";
 
 import scenarioWarImg from "@/assets/landing-scenario-war.jpg";
 
-const scenarioImages = [scenario2Img, scenarioMarseilleImg, scenarioWarImg];
+const scenarioImages = [scenario1Img, scenarioMarseilleImg, scenarioWarImg];
 
 const ClarityItem = ({
   icon,
@@ -140,21 +140,21 @@ const ScenarioCard = ({
 
 const showcaseScenarios = [
   {
-    title: "Societas Templois",
+    title: "Chapter 1 — Societas Templois",
     description:
       "A string of mysterious deaths haunts the Habsburg family, their trail leading to a secluded Austrian abbey — once the seat of a long-dead secret society. They believed they had sealed away their curse. But how long can anyone run from the Devil?",
     level: 1,
     date: "11th of December, 1344",
   },
   {
-    title: "Flagellum Dei",
+    title: "Chapter 5 — Flagellum Dei",
     description:
       "The streets of Marseille lie dead silent — even the stray dogs have perished. What remains of the population hides behind barred doors, lost in terror and prayer. Young Lord Hugues des Baux, the city's last hope, now burns with fever. Who will stand against the destroyer angel?",
     level: 5,
     date: "Christmas Eve, 1347",
   },
   {
-    title: "The Mad King",
+    title: "Chapter 9 — The Mad King",
     description:
       "Lost in the wastes of the Arabian desert, a company of Knights Templar uncovers a primordial, biblical secret — a horror that will plunge the world into endless madness.",
     level: 9,
