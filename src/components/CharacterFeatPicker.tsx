@@ -429,7 +429,7 @@ const CharacterFeatPicker = ({ characterId, mode = "player", scenarioLevel }: Ch
                 className="h-5 px-1 text-xs text-muted-foreground"
                 onClick={() => openPicker({ type: "subfeat", characterFeatId: cf.id, slot: slotNum, slotMeta: slotMetaByNum.get(slotNum) })}
               >
-                + Choose subfeat
+                + {t("feats.chooseSubfeatShort")}
               </Button>
             </div>
           );
