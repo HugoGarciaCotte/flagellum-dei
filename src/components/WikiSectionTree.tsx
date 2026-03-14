@@ -1,4 +1,4 @@
-import { useState, useRef, useEffect, useCallback, useMemo } from "react";
+import React, { useState, useRef, useEffect, useCallback, useMemo } from "react";
 import { createPortal } from "react-dom";
 import { ChevronRight, Play } from "lucide-react";
 import { WikiSection, resolveBackgroundImage } from "@/lib/parseWikitext";
