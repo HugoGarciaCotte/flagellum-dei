@@ -283,7 +283,7 @@ const CharacterCreationWizard = ({ onCreated, onCancel, gameId }: CharacterCreat
       if (data?.error) throw new Error(data.error);
       if (data?.result) setName(data.result);
     } catch (e: any) {
-      toast({ title: "Name generation failed", description: e.message, variant: "destructive" });
+      toast({ title: t("wizard.toast.nameFailed"), description: e.message, variant: "destructive" });
     } finally {
       setGeneratingName(false);
     }
