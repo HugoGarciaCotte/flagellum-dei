@@ -9,6 +9,7 @@ import { GuestBanner } from "@/components/GuestBanner";
 import LanguagePicker from "@/components/LanguagePicker";
 import { attachOnlineListener } from "@/lib/syncManager";
 import { loadFeatOverrides } from "@/lib/featOverrides";
+import { loadScenarioOverrides } from "@/lib/scenarioOverrides";
 import Index from "./pages/Index";
 import Auth from "./pages/Auth";
 import HostGame from "./pages/HostGame";
