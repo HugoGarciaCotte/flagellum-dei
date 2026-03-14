@@ -324,7 +324,7 @@ const CharacterCreationWizard = ({ onCreated, onCancel, gameId }: CharacterCreat
     if (!online) {
       const localUrl = URL.createObjectURL(file);
       setPortraitUrl(localUrl);
-      toast({ title: "Portrait saved locally" });
+      toast({ title: t("wizard.toast.portraitSavedLocally") });
       return;
     }
 
