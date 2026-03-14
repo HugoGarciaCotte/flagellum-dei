@@ -173,7 +173,7 @@ const Home = () => {
   const { t } = useTranslation();
   const displayScenarios = showcaseScenarios;
 
-  const faqCount = 11; // q0..q10
+  const faqCount = 12; // q0..q11
 
   return (
     <div className="min-h-screen bg-background text-foreground">
