@@ -24,8 +24,9 @@ import NotFound from "./pages/NotFound";
 
 // Auto-sync when connectivity returns
 attachOnlineListener();
-// Pre-load feat overrides (non-blocking)
+// Pre-load overrides (non-blocking)
 loadFeatOverrides().catch(() => {});
+loadScenarioOverrides().catch(() => {});
 
 const App = () => (
   <AuthProvider>

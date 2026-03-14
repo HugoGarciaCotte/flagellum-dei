@@ -14,10 +14,10 @@ export async function loadScenarioOverrides(): Promise<ScenarioOverrideMap> {
   _loading = (async () => {
     const map: ScenarioOverrideMap = new Map();
     const { data } = await supabase
-      .from("scenario_overrides")
+      .from("scenario_overrides" as any)
       .select("scenario_id, field, value");
     if (data) {
-      for (const row of data) {
+      for (const row of data as any[]) {
         if (!map.has(row.scenario_id)) map.set(row.scenario_id, new Map());
         map.get(row.scenario_id)!.set(row.field, row.value);
       }
