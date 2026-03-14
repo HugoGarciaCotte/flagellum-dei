@@ -60,7 +60,8 @@ const PlayGame = () => {
   };
   const currentSectionId = game?.current_section ?? null;
 
-  const effectiveScenario = game ? getScenarioById(game.scenario_id) : null;
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  const effectiveScenario = useMemo(() => game ? getScenarioById(game.scenario_id) : null, [game?.scenario_id, scenarioReady]);
 
   useEffect(() => {
     if (!gameId) return;
