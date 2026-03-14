@@ -147,7 +147,11 @@ const faqLinks: Record<number, { lovable?: string; github?: string }> = {
 
 const Home = () => {
   const { t } = useTranslation();
-  const displayScenarios = showcaseScenarios;
+  const displayScenarios = [
+    { title: t("home.scenarios.s1.title"), description: t("home.scenarios.s1.desc"), level: 1, date: t("home.scenarios.s1.date") },
+    { title: t("home.scenarios.s2.title"), description: t("home.scenarios.s2.desc"), level: 5, date: t("home.scenarios.s2.date") },
+    { title: t("home.scenarios.s3.title"), description: t("home.scenarios.s3.desc"), level: 9, date: t("home.scenarios.s3.date") },
+  ];
 
   const faqCount = 12; // q0..q11
 

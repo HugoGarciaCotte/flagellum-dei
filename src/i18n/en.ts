@@ -44,6 +44,15 @@ const en: Record<string, string> = {
   "home.scenarios.subtitle": "A century of darkness. 80+ hours of gameplay. A decade of writing. Every word handwritten without AI — from Austrian abbeys to the shores of Rhodes.",
   "home.scenarios.chapter": "Chapter",
   "home.scenarios.locations": "1241 – 1361 · 10 chapters · Austria · Provins · Castille · Marseille · Avignon · The Hundred Years' War · Isle of Man · Arabian Deserts · Rhodes",
+  "home.scenarios.s1.title": "Societas Templois",
+  "home.scenarios.s1.desc": "A string of mysterious deaths haunts the Habsburg family, their trail leading to a secluded Austrian abbey — once the seat of a long-dead secret society. They believed they had sealed away their curse. But how long can anyone run from the Devil?",
+  "home.scenarios.s1.date": "11th of December, 1344",
+  "home.scenarios.s2.title": "Flagellum Dei",
+  "home.scenarios.s2.desc": "The streets of Marseille lie silent, for even the stray dogs have died. What little remains of the population hides in terror, lost in hunger and prayer. With young Lord Hugues des Baux now burning with fever—who can stand against the scourge of God?",
+  "home.scenarios.s2.date": "Christmas Eve, 1347",
+  "home.scenarios.s3.title": "The Mad King",
+  "home.scenarios.s3.desc": "Lost in the wastes of the Arabian desert, a company of Knights Templar uncovers a forgotten biblical secret — a primordial horror that will plunge the world into endless madness.",
+  "home.scenarios.s3.date": "6th of October, 1241",
 
   // ─── HOME: WRITING DEPTH ───
   "home.depth.title1": "Written like a campaign book.",
