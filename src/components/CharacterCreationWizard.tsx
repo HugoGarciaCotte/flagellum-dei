@@ -731,7 +731,7 @@ const CharacterCreationWizard = ({ onCreated, onCancel, gameId }: CharacterCreat
             </Button>
           </div>
           <Input
-            placeholder="Character name"
+            placeholder={t("wizard.namePlaceholder")}
             value={name}
             onChange={e => setName(e.target.value)}
           />
