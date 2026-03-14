@@ -195,8 +195,8 @@ export function parseWikitext(wikitext: string): ParsedScenario {
     if (hasMetaTags && isMetaOnlyLine(line)) {
       if (!seenHeading) {
         Object.assign(scenarioMeta, lineMeta);
-      } else {
-        Object.assign(pendingMeta, lineMeta);
+      } else if (currentTarget) {
+        Object.assign(currentTarget.metadata, lineMeta);
       }
       continue; // Don't add to body
     }
