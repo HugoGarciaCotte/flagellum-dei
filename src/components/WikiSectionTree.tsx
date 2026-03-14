@@ -79,6 +79,7 @@ function SectionNode({
   parentBackground = null,
   featsMap,
   tooltipLabels,
+  lastBgRef,
 }: {
   section: WikiSection;
   activeSection: string | null;
@@ -87,6 +88,7 @@ function SectionNode({
   parentBackground?: string | null;
   featsMap: Map<string, any> | undefined;
   tooltipLabels: TooltipLabels;
+  lastBgRef: React.MutableRefObject<string | null>;
 }) {
   const [open, setOpen] = useState(true);
   const [hoveredFeat, setHoveredFeat] = useState<{ name: string; rect: DOMRect } | null>(null);
@@ -95,7 +97,8 @@ function SectionNode({
   const hasChildren = section.children.length > 0;
   const hasContent = section.content.trim().length > 0;
 
-  const effectiveBg = resolveBackgroundImage(section, parentBackground);
+  const effectiveBg = resolveBackgroundImage(section, parentBackground) || lastBgRef.current;
+  if (effectiveBg) lastBgRef.current = effectiveBg;
 
   const bgStyle: React.CSSProperties = isActive && effectiveBg
     ? {
@@ -113,7 +116,6 @@ function SectionNode({
 
   const hasBgImage = !!effectiveBg;
 
-  // Style and attach hover events to .wiki-feat-link spans
   useEffect(() => {
     const el = contentRef.current;
     if (!el || !featsMap) return;
@@ -149,9 +151,7 @@ function SectionNode({
       )}
       style={{ marginLeft: depth > 0 ? 16 : 0, ...bgStyle }}
     >
-      {/* Header row */}
       <div className="flex items-center gap-1 py-1.5 px-2 group">
-        {/* Chevron toggle */}
         <button
           onClick={() => setOpen(!open)}
           className={cn(
@@ -163,7 +163,6 @@ function SectionNode({
           <ChevronRight className={cn("h-4 w-4", isActive ? "text-primary-foreground/70" : "text-muted-foreground")} />
         </button>
 
-        {/* Play button */}
         <button
           onClick={() => onActivateSection(section.id)}
           className={cn(
@@ -174,13 +173,11 @@ function SectionNode({
           <Play className="h-3.5 w-3.5 fill-current" />
         </button>
 
-        {/* Title */}
         <span className={cn("flex-1", isActive ? "text-primary-foreground" : "text-foreground", TITLE_SIZES[section.level] || "text-sm")}>
           {section.title}
         </span>
       </div>
 
-      {/* Content + children */}
       {open && (
         <>
           {hasContent && (
@@ -206,6 +203,7 @@ function SectionNode({
               parentBackground={effectiveBg}
               featsMap={featsMap}
               tooltipLabels={tooltipLabels}
+              lastBgRef={lastBgRef}
             />
           ))}
         </>
@@ -217,6 +215,7 @@ function SectionNode({
 export default function WikiSectionTree({ sections, activeSection, onActivateSection, parentBackground = null }: WikiSectionTreeProps) {
   const { data: featsMap } = useFeatsMap();
   const { t } = useTranslation();
+  const lastBgRef = useRef<string | null>(parentBackground);
   const tooltipLabels = useMemo(() => ({
     description: t("wiki.description"),
     prerequisites: t("wiki.prerequisites"),
@@ -234,6 +233,7 @@ export default function WikiSectionTree({ sections, activeSection, onActivateSec
           parentBackground={parentBackground}
           featsMap={featsMap}
           tooltipLabels={tooltipLabels}
+          lastBgRef={lastBgRef}
         />
       ))}
     </div>
