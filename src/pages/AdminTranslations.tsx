@@ -185,8 +185,8 @@ const AdminTranslations = () => {
   if (!isOwner) {
     return (
       <div className="flex min-h-screen items-center justify-center bg-background flex-col gap-4">
-        <p className="font-display text-xl text-muted-foreground">Access denied.</p>
-        <Button onClick={() => navigate("/")} variant="outline">Return Home</Button>
+        <p className="font-display text-xl text-muted-foreground">{t("admin.accessDenied")}</p>
+        <Button onClick={() => navigate("/")} variant="outline">{t("admin.returnHome")}</Button>
       </div>
     );
   }
