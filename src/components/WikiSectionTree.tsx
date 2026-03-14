@@ -41,19 +41,19 @@ function FeatLinkTooltip({ featName, rect, featsMap }: { featName: string; rect:
         {meta.description && <p className="text-xs text-muted-foreground">{meta.description}</p>}
         {meta.description && (
           <div>
-            <p className="text-xs font-medium text-muted-foreground">Description</p>
+            <p className="text-xs font-medium text-muted-foreground">{labels.description}</p>
             <p className="text-xs text-muted-foreground/80 whitespace-pre-line">{stripLinks(meta.description)}</p>
           </div>
         )}
         {prerequisites && (
           <div>
-            <p className="text-xs font-medium text-muted-foreground">Prerequisites</p>
+            <p className="text-xs font-medium text-muted-foreground">{labels.prerequisites}</p>
             <p className="text-xs text-muted-foreground/80">{stripLinks(prerequisites)}</p>
           </div>
         )}
         {meta.special && (
           <div>
-            <p className="text-xs font-medium text-muted-foreground">Special</p>
+            <p className="text-xs font-medium text-muted-foreground">{labels.special}</p>
             <p className="text-xs text-muted-foreground/80 whitespace-pre-line">{stripLinks(meta.special)}</p>
           </div>
         )}
