@@ -19,8 +19,6 @@ import { invalidateScenarioOverrides, type ScenarioOverrideMap } from "@/lib/sce
 
 const SCENARIO_FIELDS = ["title", "description", "level", "content"] as const;
 
-type BgMode = "link" | "upload" | "ai";
-
 const ScenarioEditorPanel = () => {
   const { t } = useTranslation();
   const [hardcodedScenarios] = useState<Scenario[]>(() => getHardcodedScenarios().map(s => ({ ...s })));
