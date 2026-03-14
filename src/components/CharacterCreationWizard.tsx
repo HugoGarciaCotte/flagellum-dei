@@ -200,8 +200,8 @@ const CharacterCreationWizard = ({ onCreated, onCancel, gameId }: CharacterCreat
       const { getBy } = await import("@/lib/localStore");
       const existing = getBy("character_feat_subfeats", { character_feat_id: characterFeatId, slot: slotNum });
       for (const row of existing) {
-        const { deleteRow } = await import("@/lib/localStore");
-        deleteRow("character_feat_subfeats", row.id);
+        const { softDeleteRow } = await import("@/lib/localStore");
+        softDeleteRow("character_feat_subfeats", row.id);
       }
     }
 
