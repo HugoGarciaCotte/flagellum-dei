@@ -108,6 +108,30 @@ export type Database = {
         }
         Relationships: []
       }
+      feat_overrides: {
+        Row: {
+          feat_id: string
+          field: string
+          id: string
+          updated_at: string
+          value: Json
+        }
+        Insert: {
+          feat_id: string
+          field: string
+          id?: string
+          updated_at?: string
+          value: Json
+        }
+        Update: {
+          feat_id?: string
+          field?: string
+          id?: string
+          updated_at?: string
+          value?: Json
+        }
+        Relationships: []
+      }
       game_players: {
         Row: {
           character_id: string | null
