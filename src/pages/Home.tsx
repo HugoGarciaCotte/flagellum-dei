@@ -338,6 +338,7 @@ const Home = () => {
                 level={s.level}
                 image={scenarioImages[i]}
                 chapterLabel={t("home.scenarios.chapter")}
+                date={(s as any).date}
               />
             ))}
           </div>
