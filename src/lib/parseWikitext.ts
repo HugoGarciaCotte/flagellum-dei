@@ -201,6 +201,18 @@ export function parseWikitext(wikitext: string): ParsedScenario {
       continue; // Don't add to body
     }
 
+    // Section break: bare `====` (even count, 2-6) closes a section
+    const closeMatch = line.match(/^(={2,6})$/);
+    if (closeMatch) {
+      flushBody();
+      const closeLevel = closeMatch[1].length / 2;
+      while (stack.length > 0 && stack[stack.length - 1].level >= closeLevel) {
+        stack.pop();
+      }
+      currentTarget = stack.length > 0 ? stack[stack.length - 1].section : null;
+      continue;
+    }
+
     const match = line.match(HEADING_RE);
     if (match) {
       flushBody();

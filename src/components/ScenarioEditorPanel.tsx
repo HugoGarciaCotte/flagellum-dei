@@ -5,7 +5,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
-import { Download, ChevronDown, AlertTriangle, Check, Image, Loader2, Plus, Music } from "lucide-react";
+import { Download, ChevronDown, AlertTriangle, Check, Image, Loader2, Plus, Music, SeparatorHorizontal } from "lucide-react";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import BackgroundInsertDialog from "@/components/BackgroundInsertDialog";
 import { getHardcodedScenarios, type Scenario } from "@/data/scenarios";
@@ -473,6 +473,13 @@ const ContentEditor = ({
             <DropdownMenuItem disabled>
               <Music className="h-4 w-4 mr-2" />
               {t("adminScenarios.insertTagMusic")}
+            </DropdownMenuItem>
+            <DropdownMenuItem
+              onMouseDown={(e) => e.preventDefault()}
+              onClick={() => insertAtCursor("\n====\n")}
+            >
+              <SeparatorHorizontal className="h-4 w-4 mr-2" />
+              {t("adminScenarios.insertSectionBreak") || "Section Break"}
             </DropdownMenuItem>
           </DropdownMenuContent>
         </DropdownMenu>
