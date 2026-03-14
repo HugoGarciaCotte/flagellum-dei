@@ -228,6 +228,7 @@ export function parseWikitext(wikitext: string): ParsedScenario {
         title,
         level,
         content: "",
+        contentSegments: [""],
         metadata: {},
         children: [],
       };
