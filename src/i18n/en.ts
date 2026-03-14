@@ -492,7 +492,7 @@ const en: Record<string, string> = {
   "adminScenarios.uploading": "Uploading…",
   "adminScenarios.insertTag": "Insert Tag",
   "adminScenarios.insertTagBg": "Background Image",
-  "adminScenarios.insertTagMusic": "Music (coming soon)",
+  "adminScenarios.insertTagAmbiance": "Ambiance Track",
   "adminScenarios.generateFailed": "AI generation failed",
   "adminScenarios.uploadFailed": "Upload failed",
 

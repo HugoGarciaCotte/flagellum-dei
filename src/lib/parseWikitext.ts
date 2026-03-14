@@ -307,7 +307,18 @@ export function parseWikitext(wikitext: string): ParsedScenario {
   }
   flushBody();
 
-  return { metadata: scenarioMeta, sections: root };
+  return { metadata: scenarioMeta, ambianceTrack: scenarioAmbianceTrack, sections: root };
+}
+
+/**
+ * Resolve the effective ambiance track for a section,
+ * falling back to the ancestor's track if the section has none.
+ */
+export function resolveAmbianceTrack(
+  section: WikiSection,
+  ancestorTrack: AmbianceEntry[] | undefined
+): AmbianceEntry[] | undefined {
+  return section.ambianceTrack || ancestorTrack || undefined;
 }
 
 export function findSection(sections: WikiSection[], id: string): WikiSection | null {
