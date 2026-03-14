@@ -59,6 +59,24 @@ const HostGame = () => {
 
   const activeSection = localSection ?? game?.current_section ?? null;
 
+  // Resolve ambiance track for the active section (inherits downward)
+  const resolvedAmbianceTrack = useMemo(() => {
+    if (!activeSection) return parsed.ambianceTrack;
+    function walkAndResolve(
+      secs: typeof sections,
+      parentTrack: typeof parsed.ambianceTrack
+    ): typeof parsed.ambianceTrack {
+      for (const s of secs) {
+        const track = s.ambianceTrack || parentTrack;
+        if (s.id === activeSection) return track;
+        const found = walkAndResolve(s.children, track);
+        if (found !== undefined) return found;
+      }
+      return undefined;
+    }
+    return walkAndResolve(sections, parsed.ambianceTrack) ?? parsed.ambianceTrack;
+  }, [activeSection, sections, parsed.ambianceTrack]);
+
   useEffect(() => { if (game) setLocalSection(null); }, [game?.current_section]);
 
   useEffect(() => {
