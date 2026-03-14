@@ -698,7 +698,7 @@ const CharacterCreationWizard = ({ onCreated, onCancel, gameId }: CharacterCreat
               disabled={generatingDesc || !online}
             >
               {generatingDesc ? <Loader2 className="h-3 w-3 animate-spin" /> : <Sparkles className="h-3 w-3" />}
-              Regenerate
+              {t("wizard.regenerate")}
             </Button>
           </div>
           {generatingDesc ? (
