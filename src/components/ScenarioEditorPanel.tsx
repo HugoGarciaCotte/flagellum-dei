@@ -398,30 +398,16 @@ const ContentEditor = ({
   const dirty = local !== value;
   const textareaRef = useRef<HTMLTextAreaElement | null>(null);
   const cursorPosRef = useRef<number>(0);
+  const [bgDialogOpen, setBgDialogOpen] = useState(false);
 
-  // Insert toolbar state — scoped to this editor instance
-  const [insertMode, setInsertMode] = useState<"background" | null>(null);
-  const [bgMode, setBgMode] = useState<BgMode>("link");
-  const [bgUrl, setBgUrl] = useState("");
-  const [bgPrompt, setBgPrompt] = useState("");
-  const [generating, setGenerating] = useState(false);
-  const [uploading, setUploading] = useState(false);
-  const fileInputRef = useRef<HTMLInputElement | null>(null);
-  const refImageInputRef = useRef<HTMLInputElement | null>(null);
-  const [bgRefFile, setBgRefFile] = useState<File | null>(null);
-  const [bgRefPreview, setBgRefPreview] = useState<string>("");
-
-  // Sync from parent when DB value changes (but not when user is typing)
   useEffect(() => { setLocal(value); }, [value]);
 
-  // Track cursor position on every select/click
   const handleSelect = () => {
     if (textareaRef.current) {
       cursorPosRef.current = textareaRef.current.selectionStart;
     }
   };
 
-  /** Insert text at the current cursor position in the textarea */
   const insertAtCursor = useCallback((text: string) => {
     const pos = textareaRef.current?.selectionStart ?? cursorPosRef.current;
     setLocal(prev => {
@@ -429,7 +415,6 @@ const ContentEditor = ({
       const after = prev.slice(pos);
       return before + text + after;
     });
-    // Restore cursor after the inserted text
     const newPos = pos + text.length;
     cursorPosRef.current = newPos;
     requestAnimationFrame(() => {
@@ -441,81 +426,10 @@ const ContentEditor = ({
     });
   }, []);
 
-  const insertBackgroundTag = useCallback((url: string) => {
+  const handleBgInsert = useCallback((url: string) => {
     const tag = `<!--@ background_image: ${url.trim()} @-->\n`;
     insertAtCursor(tag);
-    setInsertMode(null);
   }, [insertAtCursor]);
-
-  const handleLinkInsert = () => {
-    if (!bgUrl.trim()) return;
-    insertBackgroundTag(bgUrl.trim());
-    setBgUrl("");
-  };
-
-  const handleFileUpload = async (file: File) => {
-    setUploading(true);
-    try {
-      const ext = file.name.split(".").pop() || "png";
-      const filePath = `scenario-backgrounds/${scenarioId}/${Date.now()}.${ext}`;
-      const { error: uploadError } = await supabase.storage
-        .from("app-assets")
-        .upload(filePath, file, { contentType: file.type, upsert: false });
-      if (uploadError) throw uploadError;
-
-      const { data: publicUrlData } = supabase.storage
-        .from("app-assets")
-        .getPublicUrl(filePath);
-      insertBackgroundTag(publicUrlData.publicUrl);
-      toast({ title: "✓", description: "Image uploaded" });
-    } catch (e: any) {
-      toast({ title: t("adminScenarios.uploadFailed"), description: e.message, variant: "destructive" });
-    }
-    setUploading(false);
-    if (fileInputRef.current) fileInputRef.current.value = "";
-  };
-
-  const handleAiGenerate = async () => {
-    setGenerating(true);
-    try {
-      let referenceImageUrl: string | undefined;
-      if (bgRefFile) {
-        const ext = bgRefFile.name.split(".").pop() || "png";
-        const refPath = `scenario-backgrounds/ref-${Date.now()}.${ext}`;
-        const { error: refUploadError } = await supabase.storage
-          .from("app-assets")
-          .upload(refPath, bgRefFile, { contentType: bgRefFile.type, upsert: false });
-        if (refUploadError) throw refUploadError;
-        const { data: refUrlData } = supabase.storage
-          .from("app-assets")
-          .getPublicUrl(refPath);
-        referenceImageUrl = refUrlData.publicUrl;
-      }
-
-      const { data, error } = await supabase.functions.invoke("generate-scenario-background", {
-        body: {
-          scenarioId,
-          scenarioTitle,
-          scenarioDescription,
-          prompt: bgPrompt.trim() || undefined,
-          referenceImageUrl,
-        },
-      });
-      if (error) throw error;
-      if (data?.error) throw new Error(data.error);
-      if (!data?.url) throw new Error("No URL returned");
-
-      insertBackgroundTag(data.url);
-      setBgPrompt("");
-      setBgRefFile(null);
-      setBgRefPreview("");
-      if (refImageInputRef.current) refImageInputRef.current.value = "";
-      toast({ title: "✓", description: "Background generated" });
-    } catch (e: any) {
-      toast({ title: t("adminScenarios.generateFailed"), description: e.message, variant: "destructive" });
-    }
-    setGenerating(false);
-  };
 
   return (
     <div className="space-y-1.5">
@@ -535,187 +449,33 @@ const ContentEditor = ({
       </div>
 
       {/* Insert Tag toolbar */}
-      <div className="space-y-2">
-        <div className="flex items-center gap-2">
-          <DropdownMenu>
-            <DropdownMenuTrigger asChild>
-              <Button
-                variant="outline"
-                size="sm"
-                className="h-7 text-xs gap-1"
-                onMouseDown={(e) => e.preventDefault()}
-              >
-                <Plus className="h-3 w-3" />
-                {t("adminScenarios.insertTag")}
-              </Button>
-            </DropdownMenuTrigger>
-            <DropdownMenuContent align="start">
-              <DropdownMenuItem
-                onMouseDown={(e) => e.preventDefault()}
-                onClick={() => setInsertMode(insertMode === "background" ? null : "background")}
-              >
-                <Image className="h-4 w-4 mr-2" />
-                {t("adminScenarios.insertTagBg")}
-              </DropdownMenuItem>
-              <DropdownMenuItem disabled>
-                <Music className="h-4 w-4 mr-2" />
-                {t("adminScenarios.insertTagMusic")}
-              </DropdownMenuItem>
-            </DropdownMenuContent>
-          </DropdownMenu>
-          {insertMode === "background" && (
-            <button
+      <div className="flex items-center gap-2">
+        <DropdownMenu>
+          <DropdownMenuTrigger asChild>
+            <Button
+              variant="outline"
+              size="sm"
+              className="h-7 text-xs gap-1"
               onMouseDown={(e) => e.preventDefault()}
-              onClick={() => setInsertMode(null)}
-              className="text-xs text-muted-foreground hover:text-foreground"
             >
-              <X className="h-3.5 w-3.5" />
-            </button>
-          )}
-        </div>
-
-        {/* Background image panel */}
-        {insertMode === "background" && (
-          <div className="rounded-md border border-border bg-muted/30 p-2 space-y-2">
-            <div className="flex items-center gap-2">
-              <Image className="h-3.5 w-3.5 text-muted-foreground shrink-0" />
-              <ToggleGroup
-                type="single"
-                value={bgMode}
-                onValueChange={(v) => v && setBgMode(v as BgMode)}
-                size="sm"
-                className="gap-0.5"
-              >
-                <ToggleGroupItem value="link" className="h-6 text-[11px] px-2 gap-1" onMouseDown={(e) => e.preventDefault()}>
-                  <Link className="h-3 w-3" /> {t("adminScenarios.bgModeLink")}
-                </ToggleGroupItem>
-                <ToggleGroupItem value="upload" className="h-6 text-[11px] px-2 gap-1" onMouseDown={(e) => e.preventDefault()}>
-                  <Upload className="h-3 w-3" /> {t("adminScenarios.bgModeUpload")}
-                </ToggleGroupItem>
-                <ToggleGroupItem value="ai" className="h-6 text-[11px] px-2 gap-1" onMouseDown={(e) => e.preventDefault()}>
-                  <Sparkles className="h-3 w-3" /> {t("adminScenarios.bgModeAi")}
-                </ToggleGroupItem>
-              </ToggleGroup>
-            </div>
-
-            {bgMode === "link" && (
-              <div className="flex items-center gap-1.5">
-                <Input
-                  value={bgUrl}
-                  onChange={(e) => setBgUrl(e.target.value)}
-                  placeholder={t("adminScenarios.backgroundUrl")}
-                  className="h-7 text-xs flex-1"
-                />
-                <Button
-                  variant="outline"
-                  size="sm"
-                  className="h-7 text-xs gap-1 shrink-0"
-                  disabled={!bgUrl.trim()}
-                  onMouseDown={(e) => e.preventDefault()}
-                  onClick={handleLinkInsert}
-                >
-                  <Image className="h-3 w-3" />
-                  {t("adminScenarios.insertBackground")}
-                </Button>
-              </div>
-            )}
-
-            {bgMode === "upload" && (
-              <div className="flex items-center gap-1.5">
-                <input
-                  ref={fileInputRef}
-                  type="file"
-                  accept="image/*"
-                  className="text-xs file:mr-2 file:py-1 file:px-2 file:rounded file:border-0 file:text-xs file:bg-primary/10 file:text-primary hover:file:bg-primary/20 flex-1"
-                  disabled={uploading}
-                  onChange={(e) => {
-                    const file = e.target.files?.[0];
-                    if (file) handleFileUpload(file);
-                  }}
-                />
-                {uploading && (
-                  <span className="flex items-center gap-1 text-xs text-muted-foreground">
-                    <Loader2 className="h-3 w-3 animate-spin" />
-                    {t("adminScenarios.uploading")}
-                  </span>
-                )}
-              </div>
-            )}
-
-            {bgMode === "ai" && (
-              <div className="space-y-1.5">
-                <div className="flex items-center gap-1.5">
-                  <Input
-                    value={bgPrompt}
-                    onChange={(e) => setBgPrompt(e.target.value)}
-                    placeholder={t("adminScenarios.bgPromptPlaceholder")}
-                    className="h-7 text-xs flex-1"
-                    disabled={generating}
-                  />
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    className="h-7 text-xs gap-1 shrink-0"
-                    disabled={generating}
-                    onMouseDown={(e) => e.preventDefault()}
-                    onClick={handleAiGenerate}
-                  >
-                    {generating ? (
-                      <>
-                        <Loader2 className="h-3 w-3 animate-spin" />
-                        {t("adminScenarios.generating")}
-                      </>
-                    ) : (
-                      <>
-                        <Sparkles className="h-3 w-3" />
-                        {t("adminScenarios.bgModeAi")}
-                      </>
-                    )}
-                  </Button>
-                </div>
-                <div className="flex items-center gap-2">
-                  <label className="flex items-center gap-1.5 text-[11px] text-muted-foreground cursor-pointer hover:text-foreground transition-colors">
-                    <Upload className="h-3 w-3" />
-                    {t("adminScenarios.bgRefImage")}
-                    <input
-                      ref={refImageInputRef}
-                      type="file"
-                      accept="image/*"
-                      className="hidden"
-                      disabled={generating}
-                      onChange={(e) => {
-                        const file = e.target.files?.[0];
-                        if (file) {
-                          setBgRefFile(file);
-                          setBgRefPreview(URL.createObjectURL(file));
-                        }
-                      }}
-                    />
-                  </label>
-                  {bgRefPreview && (
-                    <div className="flex items-center gap-1.5">
-                      <img
-                        src={bgRefPreview}
-                        alt="Reference"
-                        className="h-6 w-6 rounded object-cover border border-border"
-                      />
-                      <button
-                        className="text-[10px] text-destructive hover:underline"
-                        onClick={() => {
-                          setBgRefFile(null);
-                          setBgRefPreview("");
-                          if (refImageInputRef.current) refImageInputRef.current.value = "";
-                        }}
-                      >
-                        ✕
-                      </button>
-                    </div>
-                  )}
-                </div>
-              </div>
-            )}
-          </div>
-        )}
+              <Plus className="h-3 w-3" />
+              {t("adminScenarios.insertTag")}
+            </Button>
+          </DropdownMenuTrigger>
+          <DropdownMenuContent align="start">
+            <DropdownMenuItem
+              onMouseDown={(e) => e.preventDefault()}
+              onClick={() => setBgDialogOpen(true)}
+            >
+              <Image className="h-4 w-4 mr-2" />
+              {t("adminScenarios.insertTagBg")}
+            </DropdownMenuItem>
+            <DropdownMenuItem disabled>
+              <Music className="h-4 w-4 mr-2" />
+              {t("adminScenarios.insertTagMusic")}
+            </DropdownMenuItem>
+          </DropdownMenuContent>
+        </DropdownMenu>
       </div>
 
       {/* Textarea + save button */}
@@ -744,6 +504,15 @@ const ContentEditor = ({
           </Button>
         )}
       </div>
+
+      <BackgroundInsertDialog
+        open={bgDialogOpen}
+        onOpenChange={setBgDialogOpen}
+        onInsert={handleBgInsert}
+        scenarioId={scenarioId}
+        scenarioTitle={scenarioTitle}
+        scenarioDescription={scenarioDescription}
+      />
     </div>
   );
 };
