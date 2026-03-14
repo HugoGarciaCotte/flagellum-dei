@@ -727,7 +727,7 @@ const CharacterCreationWizard = ({ onCreated, onCancel, gameId }: CharacterCreat
               disabled={generatingName || !online}
             >
               {generatingName ? <Loader2 className="h-3 w-3 animate-spin" /> : <Dices className="h-3 w-3" />}
-              Random Name
+              {t("wizard.randomName")}
             </Button>
           </div>
           <Input
