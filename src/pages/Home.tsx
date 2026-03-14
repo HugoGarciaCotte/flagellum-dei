@@ -138,21 +138,21 @@ const ScenarioCard = ({
 
 const showcaseScenarios = [
   {
-    title: "Chapter 1 — Societas Templois",
+    title: "Societas Templois",
     description:
       "A string of mysterious deaths haunts the Habsburg family, their trail leading to a secluded Austrian abbey — once the seat of a long-dead secret society. They believed they had sealed away their curse. But how long can anyone run from the Devil?",
     level: 1,
     date: "11th of December, 1344",
   },
   {
-    title: "Chapter 5 — Flagellum Dei",
+    title: "Flagellum Dei",
     description:
       "The streets of Marseille lie dead silent, for even the stray dogs have perished. What little remains of the population hides behind barred doors, lost in hunger, terror and prayer. With young Lord Hugues des Baux now burning with fever — who can stand against the scourge of God?",
     level: 5,
     date: "Christmas Eve, 1347",
   },
   {
-    title: "Chapter 9 — The Mad King",
+    title: "The Mad King",
     description:
       "Lost in the wastes of the Arabian desert, a company of Knights Templar uncovers a primordial, biblical secret — a horror that will plunge the world into endless madness.",
     level: 9,
