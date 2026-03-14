@@ -130,8 +130,15 @@ const PlayGame = () => {
 
       <main className={`flex-1 container py-8 flex items-center justify-center max-w-3xl ${isGuest ? "pb-32" : "pb-24"}`}>
         {sectionTitle ? (
-          <Card className="w-full aged-border">
-            <CardContent className="p-8 text-center">
+          <Card
+            className="w-full aged-border relative overflow-hidden"
+            style={activeBg ? {
+              backgroundImage: `linear-gradient(to bottom, hsl(var(--background) / 0.55), hsl(var(--background) / 0.75)), url(${activeBg})`,
+              backgroundSize: "cover",
+              backgroundPosition: "center",
+            } : undefined}
+          >
+            <CardContent className="p-8 text-center relative z-10">
               <h2 className="font-display text-2xl font-bold text-foreground">{sectionTitle}</h2>
             </CardContent>
           </Card>
