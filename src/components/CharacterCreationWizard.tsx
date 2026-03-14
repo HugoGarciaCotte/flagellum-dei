@@ -562,14 +562,14 @@ const CharacterCreationWizard = ({ onCreated, onCancel, gameId }: CharacterCreat
       <div className="space-y-6 text-center py-4">
         <div className="space-y-2">
           <Logo className="text-5xl mx-auto" />
-          <h2 className="font-display text-2xl text-foreground">Create Your Character</h2>
+          <h2 className="font-display text-2xl text-foreground">{t("wizard.welcome.title")}</h2>
           <p className="text-muted-foreground text-sm max-w-sm mx-auto">
-            Every hero begins with a calling. Let's forge yours step by step — choose your path, your beliefs, and your skills.
+            {t("wizard.welcome.desc")}
           </p>
         </div>
         <div className="flex flex-col gap-2">
           <Button onClick={() => setStep(1)} className="font-display gap-2">
-            <ChevronRight className="h-4 w-4" /> Begin
+            <ChevronRight className="h-4 w-4" /> {t("wizard.welcome.begin")}
           </Button>
           {skipButton}
         </div>
