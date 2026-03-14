@@ -511,7 +511,7 @@ const CharacterFeatPicker = ({ characterId, mode = "player", scenarioLevel }: Ch
             </div>
           )}
           {!validating && filteredFeats.length === 0 ? (
-            <p className="text-sm text-muted-foreground text-center py-8">No feats found</p>
+            <p className="text-sm text-muted-foreground text-center py-8">{t("feats.noFeatsFound")}</p>
           ) : !validating && (
             filteredFeats.map((feat) => {
               const isExpanded = expandedFeatId === feat.id;
