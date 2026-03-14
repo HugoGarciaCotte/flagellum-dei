@@ -66,6 +66,11 @@ const AdminTranslations = () => {
     return () => { cancelled = true; };
   }, [activeLocale]);
 
+  const orphanKeys = useMemo(
+    () => Object.keys(dbTranslations).filter((k) => !(k in en)),
+    [dbTranslations],
+  );
+
   const missingCount = useMemo(
     () => allKeys.filter((k) => !editValues[k] || editValues[k] === en[k]).length,
     [allKeys, editValues],
