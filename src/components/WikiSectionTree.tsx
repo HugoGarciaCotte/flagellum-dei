@@ -79,7 +79,6 @@ function SectionNode({
   parentBackground = null,
   featsMap,
   tooltipLabels,
-  lastBgRef,
 }: {
   section: WikiSection;
   activeSection: string | null;
@@ -88,7 +87,6 @@ function SectionNode({
   parentBackground?: string | null;
   featsMap: Map<string, any> | undefined;
   tooltipLabels: TooltipLabels;
-  lastBgRef: React.MutableRefObject<string | null>;
 }) {
   const [open, setOpen] = useState(true);
   const [hoveredFeat, setHoveredFeat] = useState<{ name: string; rect: DOMRect } | null>(null);
@@ -97,8 +95,7 @@ function SectionNode({
   const hasChildren = section.children.length > 0;
   const hasContent = section.content.trim().length > 0;
 
-  const effectiveBg = resolveBackgroundImage(section, parentBackground) || lastBgRef.current;
-  if (effectiveBg) lastBgRef.current = effectiveBg;
+  const effectiveBg = resolveBackgroundImage(section, parentBackground);
 
   const bgStyle: React.CSSProperties = isActive && effectiveBg
     ? {
@@ -203,7 +200,6 @@ function SectionNode({
               parentBackground={effectiveBg}
               featsMap={featsMap}
               tooltipLabels={tooltipLabels}
-              lastBgRef={lastBgRef}
             />
           ))}
         </>
@@ -215,7 +211,6 @@ function SectionNode({
 export default function WikiSectionTree({ sections, activeSection, onActivateSection, parentBackground = null }: WikiSectionTreeProps) {
   const { data: featsMap } = useFeatsMap();
   const { t } = useTranslation();
-  const lastBgRef = useRef<string | null>(parentBackground);
   const tooltipLabels = useMemo(() => ({
     description: t("wiki.description"),
     prerequisites: t("wiki.prerequisites"),
@@ -233,7 +228,6 @@ export default function WikiSectionTree({ sections, activeSection, onActivateSec
           parentBackground={parentBackground}
           featsMap={featsMap}
           tooltipLabels={tooltipLabels}
-          lastBgRef={lastBgRef}
         />
       ))}
     </div>
