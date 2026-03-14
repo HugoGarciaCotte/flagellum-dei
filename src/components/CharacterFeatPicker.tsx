@@ -486,7 +486,7 @@ const CharacterFeatPicker = ({ characterId, mode = "player", scenarioLevel }: Ch
                   action();
                 }}
               >
-                Do it anyway
+                {t("feats.doItAnyway")}
               </Button>
             </AlertDescription>
           </Alert>
