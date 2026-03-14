@@ -240,7 +240,10 @@ export function parseWikitext(wikitext: string): ParsedScenario {
       if (stack.length === 0) {
         root.push(section);
       } else {
-        stack[stack.length - 1].section.children.push(section);
+        const parent = stack[stack.length - 1].section;
+        parent.children.push(section);
+        // Push a new segment for content that follows this child
+        parent.contentSegments.push("");
       }
 
       stack.push({ level, section, children: section.children });
