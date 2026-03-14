@@ -39,7 +39,6 @@ const ScenarioEditorPanel = () => {
   const refImageInputRef = useRef<HTMLInputElement | null>(null);
   const [bgRefFile, setBgRefFile] = useState<File | null>(null);
   const [bgRefPreview, setBgRefPreview] = useState<string>("");
-  const [bgRefPreview, setBgRefPreview] = useState<string>("");
 
   // Load overrides from DB
   useEffect(() => {
