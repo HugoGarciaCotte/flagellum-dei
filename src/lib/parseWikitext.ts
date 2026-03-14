@@ -232,6 +232,22 @@ export function parseWikitext(wikitext: string): ParsedScenario {
     const lineMeta = extractMetaTags(line);
     const hasMetaTags = Object.keys(lineMeta).length > 0;
 
+    // Check for ambiance block markers
+    const ambianceMarkerRe = /<!--@@AMBIANCE_BLOCK_(\d+)@@-->/;
+    const ambianceMatch = line.match(ambianceMarkerRe);
+    if (ambianceMatch) {
+      const idx = parseInt(ambianceMatch[1], 10);
+      const entries = ambianceBlocks[idx];
+      if (entries.length > 0) {
+        if (!seenHeading) {
+          scenarioAmbianceTrack = entries;
+        } else if (currentTarget) {
+          currentTarget.ambianceTrack = entries;
+        }
+      }
+      continue;
+    }
+
     if (hasMetaTags && isMetaOnlyLine(line)) {
       if (!seenHeading) {
         Object.assign(scenarioMeta, lineMeta);
