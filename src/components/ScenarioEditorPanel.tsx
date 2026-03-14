@@ -1,48 +1,136 @@
-import { useState, useMemo } from "react";
+import { useState, useEffect, useMemo, useCallback, useRef } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
-import { Download, Plus, Trash2, ChevronDown } from "lucide-react";
-import { getAllScenarios, type Scenario } from "@/data/scenarios";
+import { Download, Plus, Trash2, ChevronDown, AlertTriangle, Check, Image, Loader2 } from "lucide-react";
+import { getHardcodedScenarios, type Scenario } from "@/data/scenarios";
 import { downloadFile } from "@/lib/downloadFile";
 import { toast } from "@/hooks/use-toast";
 import { useTranslation } from "@/i18n/useTranslation";
+import { supabase } from "@/integrations/supabase/client";
+import { invalidateScenarioOverrides, type ScenarioOverrideMap } from "@/lib/scenarioOverrides";
+
+const SCENARIO_FIELDS = ["title", "description", "level", "content"] as const;
 
 const ScenarioEditorPanel = () => {
   const { t } = useTranslation();
-  const [scenarios, setScenarios] = useState<Scenario[]>(() =>
-    getAllScenarios().map(s => ({ ...s }))
-  );
+  const [hardcodedScenarios] = useState<Scenario[]>(() => getHardcodedScenarios().map(s => ({ ...s })));
+  const [overrides, setOverrides] = useState<ScenarioOverrideMap>(new Map());
   const [expandedId, setExpandedId] = useState<string | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [savingFields, setSavingFields] = useState<Set<string>>(new Set());
+  const contentRefs = useRef<Record<string, HTMLTextAreaElement | null>>({});
+  const [bgUrl, setBgUrl] = useState("");
 
-  const updateScenario = (id: string, patch: Partial<Scenario>) => {
-    setScenarios(prev => prev.map(s => s.id === id ? { ...s, ...patch } : s));
+  // Load overrides from DB
+  useEffect(() => {
+    let cancelled = false;
+    (async () => {
+      setLoading(true);
+      const { data } = await supabase
+        .from("scenario_overrides" as any)
+        .select("scenario_id, field, value");
+      if (!cancelled && data) {
+        const map: ScenarioOverrideMap = new Map();
+        for (const row of data as any[]) {
+          if (!map.has(row.scenario_id)) map.set(row.scenario_id, new Map());
+          map.get(row.scenario_id)!.set(row.field, row.value);
+        }
+        setOverrides(map);
+      }
+      if (!cancelled) setLoading(false);
+    })();
+    return () => { cancelled = true; };
+  }, []);
+
+  const getEffective = useCallback((scenario: Scenario, field: string): any => {
+    const dbVal = overrides.get(scenario.id)?.get(field);
+    if (dbVal !== undefined) return dbVal;
+    return (scenario as any)[field];
+  }, [overrides]);
+
+  const isOverridden = useCallback((scenarioId: string, field: string): boolean => {
+    return overrides.get(scenarioId)?.has(field) ?? false;
+  }, [overrides]);
+
+  const overriddenCount = useMemo(() => {
+    let count = 0;
+    for (const [, fields] of overrides) {
+      if (fields.size > 0) count++;
+    }
+    return count;
+  }, [overrides]);
+
+  const mergedScenarios = useMemo(() => {
+    return hardcodedScenarios.map(scenario => {
+      const fields = overrides.get(scenario.id);
+      if (!fields || fields.size === 0) return scenario;
+      const merged = { ...scenario };
+      for (const [field, value] of fields) {
+        (merged as any)[field] = value;
+      }
+      return merged;
+    });
+  }, [hardcodedScenarios, overrides]);
+
+  const saveField = async (scenarioId: string, field: string, value: any) => {
+    const key = `${scenarioId}:${field}`;
+    setSavingFields(prev => new Set(prev).add(key));
+    try {
+      const { error } = await supabase.from("scenario_overrides" as any).upsert(
+        { scenario_id: scenarioId, field, value, updated_at: new Date().toISOString() } as any,
+        { onConflict: "scenario_id,field" }
+      );
+      if (error) throw error;
+      setOverrides(prev => {
+        const next = new Map(prev);
+        if (!next.has(scenarioId)) next.set(scenarioId, new Map());
+        next.get(scenarioId)!.set(field, value);
+        return next;
+      });
+      invalidateScenarioOverrides();
+    } catch (e: any) {
+      toast({ title: t("adminScenarios.saveFailed"), description: e.message, variant: "destructive" });
+    }
+    setSavingFields(prev => { const s = new Set(prev); s.delete(key); return s; });
   };
 
-  const addScenario = () => {
-    const newId = crypto.randomUUID();
-    setScenarios(prev => [...prev, {
-      id: newId,
-      title: t("adminScenarios.newScenario"),
-      description: null,
-      level: null,
-      content: null,
-    }]);
-    setExpandedId(newId);
+  const revertField = async (scenarioId: string, field: string) => {
+    const key = `${scenarioId}:${field}`;
+    setSavingFields(prev => new Set(prev).add(key));
+    try {
+      const { error } = await supabase.from("scenario_overrides" as any)
+        .delete()
+        .eq("scenario_id", scenarioId)
+        .eq("field", field);
+      if (error) throw error;
+      setOverrides(prev => {
+        const next = new Map(prev);
+        const fields = next.get(scenarioId);
+        if (fields) {
+          fields.delete(field);
+          if (fields.size === 0) next.delete(scenarioId);
+        }
+        return next;
+      });
+      invalidateScenarioOverrides();
+    } catch (e: any) {
+      toast({ title: t("adminScenarios.revertFailed"), description: e.message, variant: "destructive" });
+    }
+    setSavingFields(prev => { const s = new Set(prev); s.delete(key); return s; });
   };
 
-  const deleteScenario = (id: string) => {
-    setScenarios(prev => prev.filter(s => s.id !== id));
-    if (expandedId === id) setExpandedId(null);
-  };
-
-  const generateTsFile = (): string => {
+  const handleDownloadAndClear = async () => {
+    // Generate TS file from merged data
+    const scenarios = mergedScenarios;
     const lines: string[] = [
       "// Auto-generated from admin editor",
       `// Generated on ${new Date().toISOString()}`,
+      "",
+      'import { getCachedScenarioOverrides, applyScenarioOverrides } from "@/lib/scenarioOverrides";',
       "",
       "export interface Scenario {",
       "  id: string;",
@@ -67,102 +155,302 @@ const ScenarioEditorPanel = () => {
     });
 
     const varNames = scenarios.map((_, i) => `scenario${i + 1}`);
-    lines.push(`export const scenarios: Scenario[] = [${varNames.join(", ")}];`);
+    lines.push(`const hardcodedScenarios: Scenario[] = [${varNames.join(", ")}];`);
     lines.push("");
+    lines.push("/** Returns all scenarios, with DB overrides applied if loaded. */");
     lines.push("export function getAllScenarios(): Scenario[] {");
-    lines.push("  return scenarios;");
+    lines.push("  const overrides = getCachedScenarioOverrides();");
+    lines.push("  if (!overrides || overrides.size === 0) return hardcodedScenarios;");
+    lines.push("  return hardcodedScenarios.map(s => applyScenarioOverrides(s, overrides));");
+    lines.push("}");
+    lines.push("");
+    lines.push("/** Returns the raw hardcoded scenarios without any overrides. */");
+    lines.push("export function getHardcodedScenarios(): Scenario[] {");
+    lines.push("  return hardcodedScenarios;");
     lines.push("}");
     lines.push("");
     lines.push("export function getScenarioById(id: string): Scenario | undefined {");
-    lines.push("  return scenarios.find(s => s.id === id);");
+    lines.push("  const overrides = getCachedScenarioOverrides();");
+    lines.push("  const scenario = hardcodedScenarios.find(s => s.id === id);");
+    lines.push("  if (!scenario) return undefined;");
+    lines.push("  return overrides ? applyScenarioOverrides(scenario, overrides) : scenario;");
     lines.push("}");
 
-    return lines.join("\n");
+    downloadFile("scenarios.ts", lines.join("\n"), "text/typescript");
+
+    // Clear DB
+    const { error } = await supabase.from("scenario_overrides" as any)
+      .delete()
+      .neq("id", "00000000-0000-0000-0000-000000000000");
+    if (error) {
+      toast({ title: t("adminScenarios.downloadClearFailed"), description: error.message, variant: "destructive" });
+    } else {
+      setOverrides(new Map());
+      invalidateScenarioOverrides();
+      toast({ title: t("adminScenarios.downloadedCleared"), description: t("adminScenarios.downloadedClearedDesc") });
+    }
   };
 
-  const handleDownload = () => {
-    downloadFile("scenarios.ts", generateTsFile(), "text/typescript");
-    toast({ title: t("adminScenarios.downloaded"), description: t("adminScenarios.downloadedDesc") });
+  const insertBackgroundTag = (scenarioId: string) => {
+    if (!bgUrl.trim()) return;
+    const tag = `<!--@ background_image: ${bgUrl.trim()} @-->`;
+    const textarea = contentRefs.current[scenarioId];
+    const currentContent = getEffective(
+      hardcodedScenarios.find(s => s.id === scenarioId)!,
+      "content"
+    ) || "";
+
+    if (textarea) {
+      const start = textarea.selectionStart;
+      const newContent = currentContent.slice(0, start) + tag + "\n" + currentContent.slice(start);
+      saveField(scenarioId, "content", newContent);
+    } else {
+      saveField(scenarioId, "content", tag + "\n" + currentContent);
+    }
+    setBgUrl("");
   };
 
   return (
     <div className="space-y-4 flex-1 overflow-hidden flex flex-col">
-      <div className="flex items-center justify-between">
+      {/* Header */}
+      <div className="flex items-center justify-between flex-wrap gap-2">
         <div className="flex items-center gap-2">
           <h2 className="font-display text-lg">{t("adminScenarios.title")}</h2>
-          <Badge variant="outline" className="text-xs">{scenarios.length}</Badge>
+          <Badge variant="outline" className="text-xs">
+            {t("adminScenarios.scenariosCount").replace("{count}", String(hardcodedScenarios.length))}
+          </Badge>
         </div>
         <div className="flex gap-2">
-          <Button variant="outline" size="sm" onClick={addScenario} className="gap-1">
-            <Plus className="h-3.5 w-3.5" /> {t("adminScenarios.add")}
-          </Button>
-          <Button size="sm" onClick={handleDownload} className="gap-1">
-            <Download className="h-3.5 w-3.5" /> {t("adminScenarios.downloadFile")}
+          <Button variant="outline" size="sm" onClick={handleDownloadAndClear} className="gap-1">
+            <Download className="h-3.5 w-3.5" /> {t("adminScenarios.downloadJsonClearDb")}
           </Button>
         </div>
       </div>
 
-      <div className="space-y-1 overflow-y-auto flex-1">
-        {scenarios.map((scenario) => (
-          <Collapsible
-            key={scenario.id}
-            open={expandedId === scenario.id}
-            onOpenChange={(open) => setExpandedId(open ? scenario.id : null)}
-          >
-            <CollapsibleTrigger className="w-full text-left px-3 py-2 rounded-md hover:bg-muted/50 flex items-center gap-2 text-sm">
-              <ChevronDown className={`h-3.5 w-3.5 transition-transform ${expandedId === scenario.id ? "rotate-0" : "-rotate-90"}`} />
-              <span className="font-medium flex-1">{scenario.title}</span>
-              {scenario.level != null && (
-                <Badge variant="secondary" className="text-xs">{t("adminScenarios.lvl").replace("{level}", String(scenario.level))}</Badge>
-              )}
-            </CollapsibleTrigger>
-            <CollapsibleContent className="px-3 pb-3 pt-1">
-              <div className="space-y-3 border border-border rounded-md p-3 bg-muted/20">
-                <div className="grid grid-cols-2 gap-3">
-                  <div>
-                    <Label className="text-xs">{t("adminScenarios.fieldTitle")}</Label>
-                    <Input
-                      value={scenario.title}
-                      onChange={(e) => updateScenario(scenario.id, { title: e.target.value })}
-                      className="h-8 text-sm"
+      {/* Override banner */}
+      {overriddenCount > 0 && (
+        <div className="flex items-center gap-3 rounded-lg bg-amber-500/10 border border-amber-500/30 p-3">
+          <AlertTriangle className="h-4 w-4 text-amber-600 dark:text-amber-400 shrink-0" />
+          <p className="text-sm text-amber-700 dark:text-amber-300" dangerouslySetInnerHTML={{
+            __html: t("adminScenarios.overrideBanner").replace("{count}", String(overriddenCount))
+          }} />
+        </div>
+      )}
+
+      {loading ? (
+        <div className="flex justify-center py-12">
+          <Loader2 className="h-6 w-6 animate-spin text-primary" />
+        </div>
+      ) : (
+        <div className="space-y-1 overflow-y-auto flex-1">
+          {mergedScenarios.map((scenario) => {
+            const hardcoded = hardcodedScenarios.find(s => s.id === scenario.id)!;
+            const scenarioHasOverrides = overrides.has(scenario.id) && (overrides.get(scenario.id)?.size ?? 0) > 0;
+
+            return (
+              <Collapsible
+                key={scenario.id}
+                open={expandedId === scenario.id}
+                onOpenChange={(open) => setExpandedId(open ? scenario.id : null)}
+              >
+                <CollapsibleTrigger className="w-full text-left px-3 py-2 rounded-md hover:bg-muted/50 flex items-center gap-2 text-sm">
+                  <ChevronDown className={`h-3.5 w-3.5 transition-transform ${expandedId === scenario.id ? "rotate-0" : "-rotate-90"}`} />
+                  <span className="font-medium flex-1">{scenario.title}</span>
+                  {scenarioHasOverrides && <Badge variant="secondary" className="text-[10px]">{t("adminScenarios.modified")}</Badge>}
+                  {scenario.level != null && (
+                    <Badge variant="secondary" className="text-xs">{t("adminScenarios.lvl").replace("{level}", String(scenario.level))}</Badge>
+                  )}
+                </CollapsibleTrigger>
+                <CollapsibleContent className="px-3 pb-3 pt-1">
+                  <div className="space-y-3 border border-border rounded-md p-3 bg-muted/20">
+                    {/* Title */}
+                    <OverrideField
+                      label={t("adminScenarios.fieldTitle")}
+                      value={getEffective(hardcoded, "title") ?? ""}
+                      isOverridden={isOverridden(scenario.id, "title")}
+                      saving={savingFields.has(`${scenario.id}:title`)}
+                      onSave={(v) => saveField(scenario.id, "title", v)}
+                      onRevert={() => revertField(scenario.id, "title")}
+                      t={t}
                     />
-                  </div>
-                  <div>
-                    <Label className="text-xs">{t("adminScenarios.fieldLevel")}</Label>
-                    <Input
+
+                    {/* Level */}
+                    <OverrideField
+                      label={t("adminScenarios.fieldLevel")}
+                      value={getEffective(hardcoded, "level") ?? ""}
+                      isOverridden={isOverridden(scenario.id, "level")}
+                      saving={savingFields.has(`${scenario.id}:level`)}
+                      onSave={(v) => saveField(scenario.id, "level", v === "" ? null : parseInt(v))}
+                      onRevert={() => revertField(scenario.id, "level")}
                       type="number"
-                      value={scenario.level ?? ""}
-                      onChange={(e) => updateScenario(scenario.id, { level: e.target.value ? parseInt(e.target.value) : null })}
-                      className="h-8 text-sm"
+                      t={t}
                     />
+
+                    {/* Description */}
+                    <OverrideField
+                      label={t("adminScenarios.fieldDescription")}
+                      value={getEffective(hardcoded, "description") ?? ""}
+                      isOverridden={isOverridden(scenario.id, "description")}
+                      saving={savingFields.has(`${scenario.id}:description`)}
+                      onSave={(v) => saveField(scenario.id, "description", v || null)}
+                      onRevert={() => revertField(scenario.id, "description")}
+                      multiline
+                      t={t}
+                    />
+
+                    {/* Content with background tag inserter */}
+                    <div className="space-y-1.5">
+                      <div className="flex items-center justify-between">
+                        <Label className="text-xs flex items-center gap-1.5">
+                          {t("adminScenarios.fieldContent")}
+                          {isOverridden(scenario.id, "content") && (
+                            <button
+                              onClick={() => revertField(scenario.id, "content")}
+                              className="text-amber-600 dark:text-amber-400 hover:underline text-[10px]"
+                              title={t("adminScenarios.dbOverrideRevert")}
+                            >
+                              ● {t("adminScenarios.revert")}
+                            </button>
+                          )}
+                        </Label>
+                      </div>
+
+                      {/* Background tag inserter toolbar */}
+                      <div className="flex items-center gap-1.5 rounded-md border border-border bg-muted/30 p-1.5">
+                        <Image className="h-3.5 w-3.5 text-muted-foreground shrink-0" />
+                        <Input
+                          value={bgUrl}
+                          onChange={(e) => setBgUrl(e.target.value)}
+                          placeholder={t("adminScenarios.backgroundUrl")}
+                          className="h-7 text-xs flex-1"
+                        />
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          className="h-7 text-xs gap-1 shrink-0"
+                          disabled={!bgUrl.trim()}
+                          onClick={() => insertBackgroundTag(scenario.id)}
+                        >
+                          <Image className="h-3 w-3" />
+                          {t("adminScenarios.insertBackground")}
+                        </Button>
+                      </div>
+
+                      <ContentField
+                        value={getEffective(hardcoded, "content") ?? ""}
+                        saving={savingFields.has(`${scenario.id}:content`)}
+                        onSave={(v) => saveField(scenario.id, "content", v || null)}
+                        textareaRef={(el) => { contentRefs.current[scenario.id] = el; }}
+                      />
+                    </div>
                   </div>
-                </div>
-                <div>
-                  <Label className="text-xs">{t("adminScenarios.fieldDescription")}</Label>
-                  <Textarea
-                    value={scenario.description ?? ""}
-                    onChange={(e) => updateScenario(scenario.id, { description: e.target.value || null })}
-                    className="text-sm min-h-[60px]"
-                  />
-                </div>
-                <div>
-                  <Label className="text-xs">{t("adminScenarios.fieldContent")}</Label>
-                  <Textarea
-                    value={scenario.content ?? ""}
-                    onChange={(e) => updateScenario(scenario.id, { content: e.target.value || null })}
-                    className="text-sm min-h-[200px] font-mono text-xs"
-                  />
-                </div>
-                <div className="flex justify-end">
-                  <Button variant="destructive" size="sm" onClick={() => deleteScenario(scenario.id)} className="gap-1">
-                    <Trash2 className="h-3.5 w-3.5" /> {t("adminScenarios.delete")}
-                  </Button>
-                </div>
-              </div>
-            </CollapsibleContent>
-          </Collapsible>
-        ))}
+                </CollapsibleContent>
+              </Collapsible>
+            );
+          })}
+        </div>
+      )}
+    </div>
+  );
+};
+
+/** Reusable field with override indicator and save/revert */
+const OverrideField = ({
+  label, value, isOverridden, saving, onSave, onRevert, type, multiline, t
+}: {
+  label: string;
+  value: any;
+  isOverridden: boolean;
+  saving: boolean;
+  onSave: (v: string) => void;
+  onRevert: () => void;
+  type?: string;
+  multiline?: boolean;
+  t: (k: string) => string;
+}) => {
+  const [local, setLocal] = useState(String(value ?? ""));
+  const dirty = local !== String(value ?? "");
+
+  useEffect(() => { setLocal(String(value ?? "")); }, [value]);
+
+  return (
+    <div className="space-y-1">
+      <Label className="text-xs flex items-center gap-1.5">
+        {label}
+        {isOverridden && (
+          <button
+            onClick={onRevert}
+            className="text-amber-600 dark:text-amber-400 hover:underline text-[10px]"
+            title={t("adminScenarios.dbOverrideRevert")}
+          >
+            ● {t("adminScenarios.revert")}
+          </button>
+        )}
+      </Label>
+      <div className="flex gap-1.5">
+        {multiline ? (
+          <Textarea
+            value={local}
+            onChange={(e) => setLocal(e.target.value)}
+            className="text-sm min-h-[60px] flex-1"
+          />
+        ) : (
+          <Input
+            type={type}
+            value={local}
+            onChange={(e) => setLocal(e.target.value)}
+            className="h-8 text-sm flex-1"
+          />
+        )}
+        {dirty && (
+          <Button
+            variant="outline"
+            size="sm"
+            className="h-8 gap-1 shrink-0"
+            disabled={saving}
+            onClick={() => onSave(local)}
+          >
+            {saving ? <Loader2 className="h-3 w-3 animate-spin" /> : <Check className="h-3 w-3" />}
+          </Button>
+        )}
       </div>
+    </div>
+  );
+};
+
+/** Content textarea with save on blur/confirm */
+const ContentField = ({
+  value, saving, onSave, textareaRef
+}: {
+  value: string;
+  saving: boolean;
+  onSave: (v: string) => void;
+  textareaRef: (el: HTMLTextAreaElement | null) => void;
+}) => {
+  const [local, setLocal] = useState(value);
+  const dirty = local !== value;
+
+  useEffect(() => { setLocal(value); }, [value]);
+
+  return (
+    <div className="flex gap-1.5">
+      <Textarea
+        ref={textareaRef}
+        value={local}
+        onChange={(e) => setLocal(e.target.value)}
+        className="text-sm min-h-[200px] font-mono text-xs flex-1"
+      />
+      {dirty && (
+        <Button
+          variant="outline"
+          size="sm"
+          className="h-8 gap-1 shrink-0 self-start"
+          disabled={saving}
+          onClick={() => onSave(local)}
+        >
+          {saving ? <Loader2 className="h-3 w-3 animate-spin" /> : <Check className="h-3 w-3" />}
+        </Button>
+      )}
     </div>
   );
 };
