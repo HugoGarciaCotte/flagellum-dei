@@ -342,10 +342,10 @@ const CharacterFeatPicker = ({ characterId, mode = "player", scenarioLevel }: Ch
   };
 
   const dialogTitle = pickerTarget?.type === "level"
-    ? `Choose Feat — Level ${pickerTarget.level}`
+    ? `${t("feats.chooseFeatLevel")} ${pickerTarget.level}`
     : pickerTarget?.type === "subfeat"
-    ? `Choose Subfeat`
-    : "Add Free Feat";
+    ? t("feats.chooseSubfeat")
+    : t("feats.addFreeFeat");
 
   const renderSubfeats = (cf: CharacterFeat, feat: Feat) => {
     const subs = subfeatMap.get(cf.id) || [];
