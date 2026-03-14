@@ -591,11 +591,11 @@ const CharacterCreationWizard = ({ onCreated, onCancel, gameId }: CharacterCreat
       <div className="space-y-4">
         {renderStepIndicator()}
         <div className="flex items-center justify-between">
-          <h3 className="font-display text-lg text-foreground">Choose Your Archetype</h3>
+          <h3 className="font-display text-lg text-foreground">{t("wizard.archetype.title")}</h3>
           {skipButton}
         </div>
         <p className="text-sm text-muted-foreground">
-          Your archetype defines who you are — your core abilities and role in the world.
+          {t("wizard.archetype.desc")}
         </p>
         {renderSearchBar()}
         {renderFeatList(filterBySearch(archetypes), handleArchetypeSelect)}
