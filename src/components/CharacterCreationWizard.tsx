@@ -16,7 +16,7 @@ import {
 import { getAllFeats, getFeatMeta } from "@/data/feats";
 import Logo from "@/components/Logo";
 import { useNetworkStatus } from "@/hooks/useNetworkStatus";
-import { upsertRow, deleteBy } from "@/lib/localStore";
+import { upsertRow, softDeleteBy } from "@/lib/localStore";
 import { triggerPush } from "@/lib/syncManager";
 import { useTranslation } from "@/i18n/useTranslation";
 
