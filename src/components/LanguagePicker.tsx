@@ -11,6 +11,9 @@ const locales = [
 
 const LanguagePicker = () => {
   const { locale, setLocale } = useTranslation();
+  const { pathname } = useLocation();
+
+  if (pathname !== "/") return null;
 
   return (
     <Popover>
