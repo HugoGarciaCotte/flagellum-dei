@@ -647,7 +647,7 @@ const CharacterCreationWizard = ({ onCreated, onCancel, gameId }: CharacterCreat
         <div className="space-y-1 text-sm">
           {archetypeFeat && (
             <p className="text-muted-foreground">
-              <span className="text-foreground font-medium">Archetype:</span> {archetypeFeat.title}
+              <span className="text-foreground font-medium">{t("wizard.summary.archetype")}</span> {archetypeFeat.title}
             </p>
           )}
           {selectedSubfeats.map((s, i) => (
