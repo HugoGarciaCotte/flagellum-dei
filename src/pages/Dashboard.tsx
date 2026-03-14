@@ -123,7 +123,7 @@ const Dashboard = () => {
   return (
     <div className="min-h-screen bg-background">
       <PageHeader
-        title="Flagellum Dei"
+        title={t("dashboard.appTitle")}
         rightActions={
           <>
             {isOwner && (
