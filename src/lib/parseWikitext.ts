@@ -176,7 +176,7 @@ export function parseWikitext(wikitext: string): ParsedScenario {
   let seenHeading = false;
 
   // Buffer for meta tags that appear between sections
-  let pendingMeta: Record<string, string> = {};
+  
 
   function flushBody() {
     if (currentTarget && currentBodyLines.length > 0) {
