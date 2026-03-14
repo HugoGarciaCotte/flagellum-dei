@@ -11,7 +11,7 @@ const fr: Record<string, string> = {
   "home.hero.enter": "Bienvenue en 1347.",
   "home.hero.judge": "Jugez les damnés.",
   "home.hero.fear": "Craignez ce qui répond.",
-  "home.hero.description": "Un sombre jeu de rôle d'horreur historique où vous incarnez un inquisiteur, interrogeant les hérétiques, dévoilant des rituels blasphématoires et affrontant une terreur indicible en pleine Peste Noire. Réunissez 3 à 9 joueurs autour d'une table, ouvrez ce site et lancez votre investigation. Entièrement gratuit.",
+  "home.hero.description": "Un jeu de rôle d'horreur historique où vous incarnez un inquisiteur, chassant les hérétiques, dévoilant des rituels blasphématoires et affrontant une terreur indicible en pleine Peste Noire. Réunissez 3 à 9 joueurs autour d'une table, ouvrez ce site et lancez votre investigation. Entièrement gratuit.",
   "home.hero.subtext": "Aucun livre. Aucun supplément payant. Rien que les hurlements des damnés.",
   "home.hero.cta": "Plongez dans les Ténèbres",
   "home.hero.how": "Découvrez le principe",
