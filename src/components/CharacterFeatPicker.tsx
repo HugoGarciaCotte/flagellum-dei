@@ -1,4 +1,5 @@
 import { useState, useMemo } from "react";
+import { useTranslation } from "@/i18n/useTranslation";
 import { supabase } from "@/integrations/supabase/client";
 import { sortTitlesEmojiLast } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
