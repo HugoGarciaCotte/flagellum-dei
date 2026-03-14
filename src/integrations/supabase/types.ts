@@ -17,21 +17,27 @@ export type Database = {
       character_feat_subfeats: {
         Row: {
           character_feat_id: string
+          deleted_at: string | null
           id: string
           slot: number
           subfeat_id: string
+          updated_at: string
         }
         Insert: {
           character_feat_id: string
+          deleted_at?: string | null
           id?: string
           slot: number
           subfeat_id: string
+          updated_at?: string
         }
         Update: {
           character_feat_id?: string
+          deleted_at?: string | null
           id?: string
           slot?: number
           subfeat_id?: string
+          updated_at?: string
         }
         Relationships: [
           {
@@ -46,27 +52,33 @@ export type Database = {
       character_feats: {
         Row: {
           character_id: string
+          deleted_at: string | null
           feat_id: string
           id: string
           is_free: boolean
           level: number
           note: string | null
+          updated_at: string
         }
         Insert: {
           character_id: string
+          deleted_at?: string | null
           feat_id: string
           id?: string
           is_free?: boolean
           level: number
           note?: string | null
+          updated_at?: string
         }
         Update: {
           character_id?: string
+          deleted_at?: string | null
           feat_id?: string
           id?: string
           is_free?: boolean
           level?: number
           note?: string | null
+          updated_at?: string
         }
         Relationships: [
           {
@@ -81,6 +93,7 @@ export type Database = {
       characters: {
         Row: {
           created_at: string
+          deleted_at: string | null
           description: string | null
           id: string
           name: string
@@ -90,6 +103,7 @@ export type Database = {
         }
         Insert: {
           created_at?: string
+          deleted_at?: string | null
           description?: string | null
           id?: string
           name: string
@@ -99,6 +113,7 @@ export type Database = {
         }
         Update: {
           created_at?: string
+          deleted_at?: string | null
           description?: string | null
           id?: string
           name?: string
@@ -135,23 +150,29 @@ export type Database = {
       game_players: {
         Row: {
           character_id: string | null
+          deleted_at: string | null
           game_id: string
           id: string
           joined_at: string
+          updated_at: string
           user_id: string
         }
         Insert: {
           character_id?: string | null
+          deleted_at?: string | null
           game_id: string
           id?: string
           joined_at?: string
+          updated_at?: string
           user_id: string
         }
         Update: {
           character_id?: string | null
+          deleted_at?: string | null
           game_id?: string
           id?: string
           joined_at?: string
+          updated_at?: string
           user_id?: string
         }
         Relationships: [
@@ -182,6 +203,7 @@ export type Database = {
         Row: {
           created_at: string
           current_section: string | null
+          deleted_at: string | null
           host_user_id: string
           id: string
           join_code: string
@@ -192,6 +214,7 @@ export type Database = {
         Insert: {
           created_at?: string
           current_section?: string | null
+          deleted_at?: string | null
           host_user_id: string
           id?: string
           join_code: string
@@ -202,6 +225,7 @@ export type Database = {
         Update: {
           created_at?: string
           current_section?: string | null
+          deleted_at?: string | null
           host_user_id?: string
           id?: string
           join_code?: string
@@ -214,6 +238,7 @@ export type Database = {
       profiles: {
         Row: {
           created_at: string
+          deleted_at: string | null
           display_name: string | null
           id: string
           updated_at: string
@@ -221,6 +246,7 @@ export type Database = {
         }
         Insert: {
           created_at?: string
+          deleted_at?: string | null
           display_name?: string | null
           id?: string
           updated_at?: string
@@ -228,6 +254,7 @@ export type Database = {
         }
         Update: {
           created_at?: string
+          deleted_at?: string | null
           display_name?: string | null
           id?: string
           updated_at?: string
@@ -288,18 +315,24 @@ export type Database = {
       }
       user_roles: {
         Row: {
+          deleted_at: string | null
           id: string
           role: Database["public"]["Enums"]["app_role"]
+          updated_at: string
           user_id: string
         }
         Insert: {
+          deleted_at?: string | null
           id?: string
           role: Database["public"]["Enums"]["app_role"]
+          updated_at?: string
           user_id: string
         }
         Update: {
+          deleted_at?: string | null
           id?: string
           role?: Database["public"]["Enums"]["app_role"]
+          updated_at?: string
           user_id?: string
         }
         Relationships: []
