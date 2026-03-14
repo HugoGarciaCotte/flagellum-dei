@@ -138,7 +138,7 @@ const ScenarioCard = ({
 
 const showcaseScenarios = [
   {
-    title: "Chapter 1 — Societas Templois",
+    title: "Societas Templois",
     description:
       "A string of mysterious deaths haunts the Habsburg family, their trail leading to a secluded Austrian abbey — once the seat of a long-dead secret society. They believed they had sealed away their curse. But how long can anyone run from the Devil?",
     level: 1,
