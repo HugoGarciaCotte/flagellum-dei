@@ -147,7 +147,7 @@ const showcaseScenarios = [
   {
     title: "Flagellum Dei",
     description:
-      "The streets of Marseille lie silent, for even the stray dogs have died. What little remains of the population hides behind barred doors, lost in hunger, terror, and prayer. With young Lord Hugues des Baux now burning with fever—who can stand against the scourge of God?",
+      "The streets of Marseille lie silent, for even the stray dogs have died. What little remains of the population hides in terror, lost in hunger and prayer. With young Lord Hugues des Baux now burning with fever—who can stand against the scourge of God?",
     level: 5,
     date: "Christmas Eve, 1347",
   },
