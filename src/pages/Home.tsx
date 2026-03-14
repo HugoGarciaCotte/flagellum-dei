@@ -26,6 +26,7 @@ import heroImg from "@/assets/landing-hero.jpg";
 import scenario1Img from "@/assets/landing-scenario-1.jpg";
 import scenario2Img from "@/assets/landing-scenario-2.jpg";
 import scenario3Img from "@/assets/landing-scenario-3.jpg";
+import scenarioMarseilleImg from "@/assets/landing-scenario-marseille.jpg";
 import scriptoriumImg from "@/assets/landing-scriptorium.jpg";
 
 import scenarioWarImg from "@/assets/landing-scenario-war.jpg";
