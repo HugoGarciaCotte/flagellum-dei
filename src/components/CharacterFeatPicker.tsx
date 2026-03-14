@@ -474,7 +474,7 @@ const CharacterFeatPicker = ({ characterId, mode = "player", scenarioLevel }: Ch
         {validationResult && !validationResult.allowed && (
           <Alert variant="destructive">
             <span className="text-base" aria-hidden="true">🝍</span>
-            <AlertTitle>AI says this feat may not be valid</AlertTitle>
+            <AlertTitle>{t("feats.aiInvalid")}</AlertTitle>
             <AlertDescription className="space-y-2">
               <p className="text-sm">{validationResult.reason}</p>
               <Button
