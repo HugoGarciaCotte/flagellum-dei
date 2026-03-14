@@ -1,6 +1,7 @@
 import featsData from "./feats-data.json";
 import { parseEmbeddedFeatMeta, type SubfeatSlot } from "@/lib/parseEmbeddedFeatMeta";
 import { parseFeatFields } from "@/lib/parseFeatContent";
+import { getCachedOverrides, applyOverrides } from "@/lib/featOverrides";
 
 export type { SubfeatSlot };
 
@@ -32,13 +33,27 @@ export interface FeatRedirect {
 const typedFeats: Feat[] = featsData.feats as Feat[];
 const typedRedirects: FeatRedirect[] = featsData.redirects as FeatRedirect[];
 
-export const getAllFeats = (): Feat[] => typedFeats;
+/** Returns all feats, with DB overrides applied if loaded. */
+export const getAllFeats = (): Feat[] => {
+  const overrides = getCachedOverrides();
+  if (!overrides || overrides.size === 0) return typedFeats;
+  return typedFeats.map(f => applyOverrides(f, overrides));
+};
 
-export const getFeatById = (id: string): Feat | undefined =>
-  typedFeats.find((f) => f.id === id);
+/** Returns the raw hardcoded feats without any overrides. */
+export const getHardcodedFeats = (): Feat[] => typedFeats;
 
-export const getFeatByTitle = (title: string): Feat | undefined =>
-  typedFeats.find((f) => f.title.toLowerCase() === title.toLowerCase());
+export const getFeatById = (id: string): Feat | undefined => {
+  const overrides = getCachedOverrides();
+  const feat = typedFeats.find((f) => f.id === id);
+  if (!feat) return undefined;
+  return overrides ? applyOverrides(feat, overrides) : feat;
+};
+
+export const getFeatByTitle = (title: string): Feat | undefined => {
+  const all = getAllFeats();
+  return all.find((f) => f.title.toLowerCase() === title.toLowerCase());
+};
 
 export const getAllFeatRedirects = (): FeatRedirect[] => typedRedirects;
 
@@ -67,7 +82,8 @@ export function getFeatMeta(feat: Feat): FeatMeta {
  */
 export function buildFeatsMap(): Map<string, Feat> {
   const map = new Map<string, Feat>();
-  typedFeats.forEach((f) => map.set(f.title.toLowerCase(), f));
+  const all = getAllFeats();
+  all.forEach((f) => map.set(f.title.toLowerCase(), f));
   typedRedirects.forEach((r) => {
     const target = map.get(r.to_title.toLowerCase());
     if (target) map.set(r.from_title.toLowerCase(), target);
