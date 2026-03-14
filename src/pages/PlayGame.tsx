@@ -32,6 +32,11 @@ const PlayGame = () => {
   const [sheetExpanded, setSheetExpanded] = useState(false);
   const [creatingChar, setCreatingChar] = useState(false);
   const [editingCharId, setEditingCharId] = useState<string | null>(null);
+  const [scenarioReady, setScenarioReady] = useState(false);
+
+  useEffect(() => {
+    loadScenarioOverrides().then(() => setScenarioReady(true)).catch(() => setScenarioReady(true));
+  }, []);
 
   const game = useLocalRow<any>("games", gameId);
   const allMyPlayers = useLocalRows<any>("game_players", gameId && user ? { game_id: gameId, user_id: user.id } : undefined);
