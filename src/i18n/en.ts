@@ -75,6 +75,8 @@ const en: Record<string, string> = {
   "home.faq.a9": "Yes! Flagellum Dei works as a Progressive Web App — you can install it on your phone or computer for quick access and offline play. Visit the <a href=\"/install\" class=\"underline text-primary hover:text-primary/80\">install page</a> for instructions.",
   "home.faq.q10": "Does it work offline?",
   "home.faq.a10": "Yes! Once installed as a PWA, the game works fully offline — character creation, feat browsing, dice rolling, and scenario reading all function without an internet connection. The only features that require connectivity are online multiplayer gaming and background music.",
+  "home.faq.q11": "How much of this was made with AI?",
+  "home.faq.a11": "The heart of the game — every scenario, feat, and piece of lore — is 100% handwritten. AI was only used for minor spelling corrections and light rephrasing. The content is the result of a full decade of work by history and tabletop enthusiasts. The website interface and illustrations, however, were generated with AI.",
 
   // ─── HOME: FINAL CTA ───
   "home.cta.title1": "Bring your players to the table.",
