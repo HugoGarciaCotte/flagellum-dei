@@ -143,6 +143,7 @@ const showcaseScenarios = [
     description:
       "A string of mysterious deaths haunts the Habsburg family, their trail leading to a secluded Austrian abbey — once the seat of a long-dead secret society. They believed they had sealed away their curse. But how long can anyone run from the Devil?",
     level: 1,
+    date: "11th of December, 1344",
   },
   {
     title: "La Dama De Blanco",
@@ -155,6 +156,7 @@ const showcaseScenarios = [
     description:
       "Lost in the wastes of the Arabian desert, a company of Knights Templar uncovers a primordial, biblical secret—a horror that will plunge the world into endless madness.",
     level: 9,
+    date: "6th of October, 1241",
   },
 ];
 
