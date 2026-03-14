@@ -52,6 +52,25 @@ const HostGame = () => {
   const sections = parsed.sections;
   const scenarioMeta = parsed.metadata;
 
+  // Resolve ambiance track for the active section (inherits downward)
+  const resolvedAmbianceTrack = useMemo(() => {
+    if (!activeSection) return parsed.ambianceTrack;
+    // Walk section tree to find the active section and collect ancestor tracks
+    function walkAndResolve(
+      secs: typeof sections,
+      parentTrack: typeof parsed.ambianceTrack
+    ): typeof parsed.ambianceTrack {
+      for (const s of secs) {
+        const track = s.ambianceTrack || parentTrack;
+        if (s.id === activeSection) return track;
+        const found = walkAndResolve(s.children, track);
+        if (found !== undefined) return found;
+      }
+      return undefined;
+    }
+    return walkAndResolve(sections, parsed.ambianceTrack) ?? parsed.ambianceTrack;
+  }, [activeSection, sections, parsed.ambianceTrack]);
+
   useEffect(() => {
     const urls = extractImageUrls(scenarioContent);
     if (urls.length > 0) { for (const url of urls) { const img = new Image(); img.src = url; } }
