@@ -140,3 +140,31 @@ export function clearAll() {
   clearDeletions();
   window.dispatchEvent(new CustomEvent("localstore-change", { detail: { table: "*" } }));
 }
+
+/** Remove ended games older than 24h and their associated game_players */
+export function evictStaleGames() {
+  const games = cache.get("games") ?? [];
+  const cutoff = Date.now() - 24 * 60 * 60 * 1000;
+  const staleIds = new Set<string>();
+
+  const freshGames = games.filter((g) => {
+    if (g.status === "ended") {
+      const updatedAt = new Date(g.updated_at).getTime();
+      if (updatedAt < cutoff) {
+        staleIds.add(g.id);
+        return false;
+      }
+    }
+    return true;
+  });
+
+  if (staleIds.size === 0) return;
+
+  cache.set("games", freshGames);
+  persist("games");
+
+  // Also remove associated game_players
+  const players = cache.get("game_players") ?? [];
+  cache.set("game_players", players.filter((p) => !staleIds.has(p.game_id)));
+  persist("game_players");
+}
