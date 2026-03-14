@@ -207,6 +207,7 @@ function SectionNode({
               parentBackground={effectiveBg}
               featsMap={featsMap}
               tooltipLabels={tooltipLabels}
+              lastBgRef={lastBgRef}
             />
           ))}
         </>
