@@ -5,6 +5,7 @@ import { Link2 } from "lucide-react";
 import { getAllFeats, getAllFeatRedirects } from "@/data/feats";
 import { Table, TableHeader, TableBody, TableHead, TableRow, TableCell } from "@/components/ui/table";
 import { ArrowRight } from "lucide-react";
+import { useTranslation } from "@/i18n/useTranslation";
 
 const WIKI_LINK_RE = /\[\[([^|\]]+?)(?:\|[^\]]+?)?\]\]/g;
 
@@ -22,6 +23,7 @@ function extractAllLinkTargets(feats: { content: string | null }[]): string[] {
 }
 
 export default function ManageRedirects() {
+  const { t } = useTranslation();
   const feats = useMemo(() => getAllFeats().map(f => ({ title: f.title, content: f.content })), []);
   const redirects = useMemo(() => getAllFeatRedirects(), []);
 
@@ -38,29 +40,27 @@ export default function ManageRedirects() {
     <Card className="border-primary/20 opacity-60">
       <CardHeader>
         <CardTitle className="font-display flex items-center gap-2">
-          <Link2 className="h-5 w-5 text-muted-foreground" /> Wiki Redirects
+          <Link2 className="h-5 w-5 text-muted-foreground" /> {t("adminLegacy.wikiRedirects")}
         </CardTitle>
-        <CardDescription>
-          Redirects are now hardcoded in the source code. Wiki sync is disabled.
-        </CardDescription>
+        <CardDescription>{t("adminLegacy.wikiRedirectsDesc")}</CardDescription>
       </CardHeader>
       <CardContent className="space-y-4">
         <div className="flex items-center gap-3 text-sm text-muted-foreground">
-          <span>{unmatchedLinks.length} unmatched link(s)</span>
+          <span>{t("adminLegacy.unmatchedLinks").replace("{count}", String(unmatchedLinks.length))}</span>
           <span>·</span>
-          <span>{redirects.length} redirect(s) stored</span>
+          <span>{t("adminLegacy.storedRedirects").replace("{count}", String(redirects.length))}</span>
         </div>
 
         {redirects.length > 0 && (
           <div className="space-y-2">
-            <p className="text-sm font-medium text-foreground">Stored Redirects</p>
+            <p className="text-sm font-medium text-foreground">{t("adminLegacy.storedRedirectsTitle")}</p>
             <div className="rounded-lg border border-border overflow-hidden max-h-72 overflow-y-auto">
               <Table>
                 <TableHeader>
                   <TableRow>
-                    <TableHead>From</TableHead>
+                    <TableHead>{t("adminLegacy.from")}</TableHead>
                     <TableHead></TableHead>
-                    <TableHead>To</TableHead>
+                    <TableHead>{t("adminLegacy.to")}</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>

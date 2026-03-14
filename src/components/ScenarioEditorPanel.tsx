@@ -9,8 +9,10 @@ import { Download, Plus, Trash2, ChevronDown } from "lucide-react";
 import { getAllScenarios, type Scenario } from "@/data/scenarios";
 import { downloadFile } from "@/lib/downloadFile";
 import { toast } from "@/hooks/use-toast";
+import { useTranslation } from "@/i18n/useTranslation";
 
 const ScenarioEditorPanel = () => {
+  const { t } = useTranslation();
   const [scenarios, setScenarios] = useState<Scenario[]>(() =>
     getAllScenarios().map(s => ({ ...s }))
   );
@@ -24,7 +26,7 @@ const ScenarioEditorPanel = () => {
     const newId = crypto.randomUUID();
     setScenarios(prev => [...prev, {
       id: newId,
-      title: "New Scenario",
+      title: t("adminScenarios.newScenario"),
       description: null,
       level: null,
       content: null,
@@ -80,22 +82,22 @@ const ScenarioEditorPanel = () => {
 
   const handleDownload = () => {
     downloadFile("scenarios.ts", generateTsFile(), "text/typescript");
-    toast({ title: "Downloaded", description: "scenarios.ts file downloaded. Replace src/data/scenarios.ts with it." });
+    toast({ title: t("adminScenarios.downloaded"), description: t("adminScenarios.downloadedDesc") });
   };
 
   return (
     <div className="space-y-4 flex-1 overflow-hidden flex flex-col">
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-2">
-          <h2 className="font-display text-lg">Scenarios</h2>
+          <h2 className="font-display text-lg">{t("adminScenarios.title")}</h2>
           <Badge variant="outline" className="text-xs">{scenarios.length}</Badge>
         </div>
         <div className="flex gap-2">
           <Button variant="outline" size="sm" onClick={addScenario} className="gap-1">
-            <Plus className="h-3.5 w-3.5" /> Add
+            <Plus className="h-3.5 w-3.5" /> {t("adminScenarios.add")}
           </Button>
           <Button size="sm" onClick={handleDownload} className="gap-1">
-            <Download className="h-3.5 w-3.5" /> Download scenarios.ts
+            <Download className="h-3.5 w-3.5" /> {t("adminScenarios.downloadFile")}
           </Button>
         </div>
       </div>
@@ -111,14 +113,14 @@ const ScenarioEditorPanel = () => {
               <ChevronDown className={`h-3.5 w-3.5 transition-transform ${expandedId === scenario.id ? "rotate-0" : "-rotate-90"}`} />
               <span className="font-medium flex-1">{scenario.title}</span>
               {scenario.level != null && (
-                <Badge variant="secondary" className="text-xs">Lvl {scenario.level}</Badge>
+                <Badge variant="secondary" className="text-xs">{t("adminScenarios.lvl").replace("{level}", String(scenario.level))}</Badge>
               )}
             </CollapsibleTrigger>
             <CollapsibleContent className="px-3 pb-3 pt-1">
               <div className="space-y-3 border border-border rounded-md p-3 bg-muted/20">
                 <div className="grid grid-cols-2 gap-3">
                   <div>
-                    <Label className="text-xs">Title</Label>
+                    <Label className="text-xs">{t("adminScenarios.fieldTitle")}</Label>
                     <Input
                       value={scenario.title}
                       onChange={(e) => updateScenario(scenario.id, { title: e.target.value })}
@@ -126,7 +128,7 @@ const ScenarioEditorPanel = () => {
                     />
                   </div>
                   <div>
-                    <Label className="text-xs">Level</Label>
+                    <Label className="text-xs">{t("adminScenarios.fieldLevel")}</Label>
                     <Input
                       type="number"
                       value={scenario.level ?? ""}
@@ -136,7 +138,7 @@ const ScenarioEditorPanel = () => {
                   </div>
                 </div>
                 <div>
-                  <Label className="text-xs">Description</Label>
+                  <Label className="text-xs">{t("adminScenarios.fieldDescription")}</Label>
                   <Textarea
                     value={scenario.description ?? ""}
                     onChange={(e) => updateScenario(scenario.id, { description: e.target.value || null })}
@@ -144,7 +146,7 @@ const ScenarioEditorPanel = () => {
                   />
                 </div>
                 <div>
-                  <Label className="text-xs">Content (wikitext)</Label>
+                  <Label className="text-xs">{t("adminScenarios.fieldContent")}</Label>
                   <Textarea
                     value={scenario.content ?? ""}
                     onChange={(e) => updateScenario(scenario.id, { content: e.target.value || null })}
@@ -153,7 +155,7 @@ const ScenarioEditorPanel = () => {
                 </div>
                 <div className="flex justify-end">
                   <Button variant="destructive" size="sm" onClick={() => deleteScenario(scenario.id)} className="gap-1">
-                    <Trash2 className="h-3.5 w-3.5" /> Delete
+                    <Trash2 className="h-3.5 w-3.5" /> {t("adminScenarios.delete")}
                   </Button>
                 </div>
               </div>

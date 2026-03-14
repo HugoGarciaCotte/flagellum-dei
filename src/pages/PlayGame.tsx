@@ -129,7 +129,7 @@ const PlayGame = () => {
         </p>
       )}
 
-      <DiceRoller gameId={gameId} userName={selectedCharacter?.name ?? "A player"} isGameMaster={false} />
+      <DiceRoller gameId={gameId} userName={selectedCharacter?.name ?? t("game.aPlayer")} isGameMaster={false} />
 
       {!sheetExpanded && (
         <div
