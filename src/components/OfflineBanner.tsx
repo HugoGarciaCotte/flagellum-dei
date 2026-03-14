@@ -14,7 +14,7 @@ export const OfflineBanner = () => {
     const onSynced = () => {
       setSyncing(false);
       setJustSynced(true);
-      setTimeout(() => setJustSynced(false), 3000);
+      setTimeout(() => setJustSynced(false), 1500);
     };
     window.addEventListener("sync-syncing", onSyncing);
     window.addEventListener("sync-synced", onSynced);
@@ -26,9 +26,8 @@ export const OfflineBanner = () => {
 
   if (justSynced && online) {
     return (
-      <div className="fixed bottom-0 left-0 right-0 z-50 bg-primary/90 text-primary-foreground text-center py-2 px-4 text-sm font-display flex items-center justify-center gap-2 backdrop-blur">
+      <div className="fixed bottom-4 left-4 z-50 h-8 w-8 rounded-full bg-primary/80 text-primary-foreground flex items-center justify-center backdrop-blur animate-in fade-in duration-200">
         <Check className="h-4 w-4" />
-        {t("common.allSynced")}
       </div>
     );
   }
@@ -37,9 +36,8 @@ export const OfflineBanner = () => {
 
   if (syncing) {
     return (
-      <div className="fixed bottom-0 left-0 right-0 z-50 bg-primary/90 text-primary-foreground text-center py-2 px-4 text-sm font-display flex items-center justify-center gap-2 backdrop-blur">
+      <div className="fixed bottom-4 left-4 z-50 h-8 w-8 rounded-full bg-muted/80 text-muted-foreground flex items-center justify-center backdrop-blur">
         <Loader2 className="h-4 w-4 animate-spin" />
-        {t("common.syncing")}
       </div>
     );
   }
