@@ -181,7 +181,9 @@ export function parseWikitext(wikitext: string): ParsedScenario {
 
   function flushBody() {
     if (currentTarget && currentBodyLines.length > 0) {
-      currentTarget.content += convertBodyToHtml(currentBodyLines);
+      const html = convertBodyToHtml(currentBodyLines);
+      currentTarget.content += html;
+      currentTarget.contentSegments[currentTarget.contentSegments.length - 1] += html;
     }
     currentBodyLines = [];
   }
