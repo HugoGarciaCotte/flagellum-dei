@@ -5,6 +5,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { getScenarioById } from "@/data/scenarios";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
+import { parseWikitext, findSection, resolveBackgroundImage, extractImageUrls, WikiSection } from "@/lib/parseWikitext";
 import { ArrowLeft, Plus, Check, X, GripHorizontal, Pencil, Copy } from "lucide-react";
 import CharacterSheet from "@/components/CharacterSheet";
 import { useNetworkStatus } from "@/hooks/useNetworkStatus";
