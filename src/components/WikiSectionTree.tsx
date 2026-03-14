@@ -211,7 +211,6 @@ function SectionNode({
 export default function WikiSectionTree({ sections, activeSection, onActivateSection, parentBackground = null }: WikiSectionTreeProps) {
   const { data: featsMap } = useFeatsMap();
   const { t } = useTranslation();
-  const lastBgRef = useRef<string | null>(parentBackground);
   const tooltipLabels = useMemo(() => ({
     description: t("wiki.description"),
     prerequisites: t("wiki.prerequisites"),
@@ -229,7 +228,6 @@ export default function WikiSectionTree({ sections, activeSection, onActivateSec
           parentBackground={parentBackground}
           featsMap={featsMap}
           tooltipLabels={tooltipLabels}
-          lastBgRef={lastBgRef}
         />
       ))}
     </div>
