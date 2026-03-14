@@ -335,7 +335,7 @@ const CharacterCreationWizard = ({ onCreated, onCancel, gameId }: CharacterCreat
       .upload(filePath, file, { contentType: file.type, upsert: true });
 
     if (uploadError) {
-      toast({ title: "Upload failed", description: uploadError.message, variant: "destructive" });
+      toast({ title: t("wizard.toast.uploadFailed"), description: uploadError.message, variant: "destructive" });
       return;
     }
 
