@@ -1,4 +1,4 @@
-import { useState, useRef, useEffect, useCallback, useMemo } from "react";
+import React, { useState, useRef, useEffect, useCallback, useMemo } from "react";
 import { createPortal } from "react-dom";
 import { ChevronRight, Play } from "lucide-react";
 import { WikiSection, resolveBackgroundImage } from "@/lib/parseWikitext";
@@ -177,30 +177,34 @@ function SectionNode({
 
       {open && (
         <>
-          {hasContent && (
-            <div
-              ref={contentRef}
-              onMouseOver={handleMouseOver}
-              onMouseOut={handleMouseOut}
-              className={cn("px-8 pb-2 text-sm leading-relaxed prose prose-sm max-w-none overflow-x-auto", isActive ? "text-primary-foreground/80" : "text-muted-foreground",
-                "[&_ul]:list-disc [&_ul]:pl-5 [&_li]:mb-1 [&_hr]:my-3 [&_p]:mb-1.5 [&_pre]:whitespace-pre-wrap [&_pre]:break-words [&_pre]:overflow-x-auto")}
-              dangerouslySetInnerHTML={{ __html: section.content }}
-            />
-          )}
-          {hoveredFeat && featsMap && tooltipLabels && (
-            <FeatLinkTooltip featName={hoveredFeat.name} rect={hoveredFeat.rect} featsMap={featsMap} labels={tooltipLabels} />
-          )}
-          {section.children.map((child) => (
-            <SectionNode
-              key={child.id}
-              section={child}
-              activeSection={activeSection}
-              onActivateSection={onActivateSection}
-              depth={depth + 1}
-              parentBackground={effectiveBg}
-              featsMap={featsMap}
-              tooltipLabels={tooltipLabels}
-            />
+          {(section.contentSegments ?? [section.content]).map((seg, i) => (
+            <React.Fragment key={i}>
+              {seg.trim().length > 0 && (
+                <div
+                  ref={i === 0 ? contentRef : undefined}
+                  onMouseOver={handleMouseOver}
+                  onMouseOut={handleMouseOut}
+                  className={cn("px-8 pb-2 text-sm leading-relaxed prose prose-sm max-w-none overflow-x-auto", isActive ? "text-primary-foreground/80" : "text-muted-foreground",
+                    "[&_ul]:list-disc [&_ul]:pl-5 [&_li]:mb-1 [&_hr]:my-3 [&_p]:mb-1.5 [&_pre]:whitespace-pre-wrap [&_pre]:break-words [&_pre]:overflow-x-auto")}
+                  dangerouslySetInnerHTML={{ __html: seg }}
+                />
+              )}
+              {hoveredFeat && featsMap && tooltipLabels && (
+                <FeatLinkTooltip featName={hoveredFeat.name} rect={hoveredFeat.rect} featsMap={featsMap} labels={tooltipLabels} />
+              )}
+              {section.children[i] && (
+                <SectionNode
+                  key={section.children[i].id}
+                  section={section.children[i]}
+                  activeSection={activeSection}
+                  onActivateSection={onActivateSection}
+                  depth={depth + 1}
+                  parentBackground={effectiveBg}
+                  featsMap={featsMap}
+                  tooltipLabels={tooltipLabels}
+                />
+              )}
+            </React.Fragment>
           ))}
         </>
       )}

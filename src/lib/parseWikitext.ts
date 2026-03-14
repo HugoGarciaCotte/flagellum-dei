@@ -3,6 +3,7 @@ export interface WikiSection {
   title: string;
   level: number;
   content: string;
+  contentSegments: string[];
   metadata: Record<string, string>;
   children: WikiSection[];
 }
@@ -180,7 +181,9 @@ export function parseWikitext(wikitext: string): ParsedScenario {
 
   function flushBody() {
     if (currentTarget && currentBodyLines.length > 0) {
-      currentTarget.content += convertBodyToHtml(currentBodyLines);
+      const html = convertBodyToHtml(currentBodyLines);
+      currentTarget.content += html;
+      currentTarget.contentSegments[currentTarget.contentSegments.length - 1] += html;
     }
     currentBodyLines = [];
   }
@@ -225,6 +228,7 @@ export function parseWikitext(wikitext: string): ParsedScenario {
         title,
         level,
         content: "",
+        contentSegments: [""],
         metadata: {},
         children: [],
       };
@@ -236,7 +240,10 @@ export function parseWikitext(wikitext: string): ParsedScenario {
       if (stack.length === 0) {
         root.push(section);
       } else {
-        stack[stack.length - 1].section.children.push(section);
+        const parent = stack[stack.length - 1].section;
+        parent.children.push(section);
+        // Push a new segment for content that follows this child
+        parent.contentSegments.push("");
       }
 
       stack.push({ level, section, children: section.children });
