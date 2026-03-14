@@ -4,6 +4,9 @@ import { ChevronRight, Play } from "lucide-react";
 import { WikiSection, resolveBackgroundImage } from "@/lib/parseWikitext";
 import { cn } from "@/lib/utils";
 import { buildFeatsMap, getFeatMeta } from "@/data/feats";
+import { useTranslation } from "@/i18n/useTranslation";
+
+type TooltipLabels = { description: string; prerequisites: string; special: string };
 
 interface WikiSectionTreeProps {
   sections: WikiSection[];
