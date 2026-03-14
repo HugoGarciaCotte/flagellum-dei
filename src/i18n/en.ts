@@ -351,6 +351,8 @@ const en: Record<string, string> = {
 
   // ─── TIMER ───
   "timer.min": "min",
+  "timer.timer": "Timer",
+  "timer.ambiance": "Ambiance",
 
   // ─── GAME EXTRA ───
   "game.level": "Lv. {level}",
