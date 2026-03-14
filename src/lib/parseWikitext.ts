@@ -180,7 +180,7 @@ export function parseWikitext(wikitext: string): ParsedScenario {
 
   function flushBody() {
     if (currentTarget && currentBodyLines.length > 0) {
-      currentTarget.content = convertBodyToHtml(currentBodyLines);
+      currentTarget.content += convertBodyToHtml(currentBodyLines);
     }
     currentBodyLines = [];
   }
