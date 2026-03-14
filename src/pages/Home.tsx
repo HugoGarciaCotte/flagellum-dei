@@ -91,12 +91,14 @@ const ScenarioCard = ({
   level,
   image,
   chapterLabel,
+  date,
 }: {
   title: string;
   description: string;
   level?: number | null;
   image?: string;
   chapterLabel: string;
+  date?: string;
 }) => (
   <div className="group relative overflow-hidden rounded aged-border bg-card transition-all duration-300 hover:border-primary/40 gold-glow-box">
     <div className="relative h-48 overflow-hidden">
@@ -114,9 +116,16 @@ const ScenarioCard = ({
     </div>
     <div className="space-y-3 p-6">
       {level != null && (
-        <span className="font-display text-[10px] tracking-[0.3em] uppercase text-primary/50">
-          {chapterLabel} {level}
-        </span>
+        <div className="flex items-baseline justify-between">
+          <span className="font-display text-[10px] tracking-[0.3em] uppercase text-primary/50">
+            {chapterLabel} {level}
+          </span>
+          {date && (
+            <span className="font-display text-[10px] tracking-wide text-muted-foreground/50 italic">
+              {date}
+            </span>
+          )}
+        </div>
       )}
       <h3 className="font-display text-base font-bold text-foreground">
         {title}
@@ -134,6 +143,7 @@ const showcaseScenarios = [
     description:
       "A string of mysterious deaths haunts the Habsburg family, their trail leading to a secluded Austrian abbey — once the seat of a long-dead secret society. They believed they had sealed away their curse. But how long can anyone run from the Devil?",
     level: 1,
+    date: "11th of December, 1344",
   },
   {
     title: "La Dama De Blanco",
@@ -146,6 +156,7 @@ const showcaseScenarios = [
     description:
       "Lost in the wastes of the Arabian desert, a company of Knights Templar uncovers a primordial, biblical secret—a horror that will plunge the world into endless madness.",
     level: 9,
+    date: "6th of October, 1241",
   },
 ];
 
@@ -327,6 +338,7 @@ const Home = () => {
                 level={s.level}
                 image={scenarioImages[i]}
                 chapterLabel={t("home.scenarios.chapter")}
+                date={(s as any).date}
               />
             ))}
           </div>
