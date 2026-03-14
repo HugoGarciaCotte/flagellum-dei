@@ -54,20 +54,36 @@ const PlayGame = () => {
   };
 
   const effectiveScenario = game ? getScenarioById(game.scenario_id) : null;
+  const scenarioContent = effectiveScenario?.content || "";
+  const parsed = useMemo(() => parseWikitext(scenarioContent), [scenarioContent]);
 
   useEffect(() => {
-    if (!gameId) return;
-    const channel = supabase
-      .channel(`game-${gameId}`)
-      .on("postgres_changes", { event: "UPDATE", schema: "public", table: "games", filter: `id=eq.${gameId}` }, () => { pullAll(); })
-      .subscribe();
-    return () => { supabase.removeChannel(channel); };
-  }, [gameId]);
+    const urls = extractImageUrls(scenarioContent);
+    if (urls.length > 0) { for (const url of urls) { const img = new Image(); img.src = url; } }
+  }, [scenarioContent]);
 
-  const currentSectionId = game?.current_section ?? null;
-  const sectionTitle = currentSectionId
-    ? currentSectionId.replace(/-/g, " ").replace(/\b\w/g, (c: string) => c.toUpperCase())
-    : null;
+  /** Walk the tree to find a section and collect ancestor background along the way. */
+  const findSectionWithBg = useMemo(() => {
+    function walk(sections: WikiSection[], id: string, parentBg: string | null): { section: WikiSection; bg: string | null } | null {
+      for (const s of sections) {
+        const effectiveBg = resolveBackgroundImage(s, parentBg);
+        if (s.id === id) return { section: s, bg: effectiveBg };
+        const found = walk(s.children, id, effectiveBg);
+        if (found) return found;
+      }
+      return null;
+    }
+    if (!currentSectionId) return null;
+    return walk(parsed.sections, currentSectionId, parsed.metadata.background_image || null);
+  }, [parsed, currentSectionId]);
+
+  const activeSection = findSectionWithBg?.section ?? null;
+  const activeBg = findSectionWithBg?.bg ?? null;
+
+  const sectionTitle = activeSection?.title
+    ?? (currentSectionId
+      ? currentSectionId.replace(/-/g, " ").replace(/\b\w/g, (c: string) => c.toUpperCase())
+      : null);
 
   if (!game) return <FullPageLoader message={t("game.joiningQuest")} />;
 
