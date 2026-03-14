@@ -5,6 +5,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { getScenarioById } from "@/data/scenarios";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
+import { parseWikitext, findSection, resolveBackgroundImage, extractImageUrls, WikiSection } from "@/lib/parseWikitext";
 import { ArrowLeft, Plus, Check, X, GripHorizontal, Pencil, Copy } from "lucide-react";
 import CharacterSheet from "@/components/CharacterSheet";
 import { useNetworkStatus } from "@/hooks/useNetworkStatus";
@@ -51,6 +52,7 @@ const PlayGame = () => {
     triggerPush();
     toast({ title: t("game.characterSelected") });
   };
+  const currentSectionId = game?.current_section ?? null;
 
   const effectiveScenario = game ? getScenarioById(game.scenario_id) : null;
 
@@ -62,11 +64,36 @@ const PlayGame = () => {
       .subscribe();
     return () => { supabase.removeChannel(channel); };
   }, [gameId]);
+  const scenarioContent = effectiveScenario?.content || "";
+  const parsed = useMemo(() => parseWikitext(scenarioContent), [scenarioContent]);
 
-  const currentSectionId = game?.current_section ?? null;
-  const sectionTitle = currentSectionId
-    ? currentSectionId.replace(/-/g, " ").replace(/\b\w/g, (c: string) => c.toUpperCase())
-    : null;
+  useEffect(() => {
+    const urls = extractImageUrls(scenarioContent);
+    if (urls.length > 0) { for (const url of urls) { const img = new Image(); img.src = url; } }
+  }, [scenarioContent]);
+
+  /** Walk the tree to find a section and collect ancestor background along the way. */
+  const findSectionWithBg = useMemo(() => {
+    function walk(sections: WikiSection[], id: string, parentBg: string | null): { section: WikiSection; bg: string | null } | null {
+      for (const s of sections) {
+        const effectiveBg = resolveBackgroundImage(s, parentBg);
+        if (s.id === id) return { section: s, bg: effectiveBg };
+        const found = walk(s.children, id, effectiveBg);
+        if (found) return found;
+      }
+      return null;
+    }
+    if (!currentSectionId) return null;
+    return walk(parsed.sections, currentSectionId, parsed.metadata.background_image || null);
+  }, [parsed, currentSectionId]);
+
+  const activeSection = findSectionWithBg?.section ?? null;
+  const activeBg = findSectionWithBg?.bg ?? null;
+
+  const sectionTitle = activeSection?.title
+    ?? (currentSectionId
+      ? currentSectionId.replace(/-/g, " ").replace(/\b\w/g, (c: string) => c.toUpperCase())
+      : null);
 
   if (!game) return <FullPageLoader message={t("game.joiningQuest")} />;
 
@@ -103,8 +130,15 @@ const PlayGame = () => {
 
       <main className={`flex-1 container py-8 flex items-center justify-center max-w-3xl ${isGuest ? "pb-32" : "pb-24"}`}>
         {sectionTitle ? (
-          <Card className="w-full aged-border">
-            <CardContent className="p-8 text-center">
+          <Card
+            className="w-full aged-border relative overflow-hidden"
+            style={activeBg ? {
+              backgroundImage: `linear-gradient(to bottom, hsl(var(--background) / 0.55), hsl(var(--background) / 0.75)), url(${activeBg})`,
+              backgroundSize: "cover",
+              backgroundPosition: "center",
+            } : undefined}
+          >
+            <CardContent className="p-8 text-center relative z-10">
               <h2 className="font-display text-2xl font-bold text-foreground">{sectionTitle}</h2>
             </CardContent>
           </Card>
