@@ -31,7 +31,7 @@ import scriptoriumImg from "@/assets/landing-scriptorium.jpg";
 
 import scenarioWarImg from "@/assets/landing-scenario-war.jpg";
 
-const scenarioImages = [scenario2Img, scenarioMarseilleImg, scenarioWarImg];
+const scenarioImages = [scenario1Img, scenarioMarseilleImg, scenarioWarImg];
 
 const ClarityItem = ({
   icon,
