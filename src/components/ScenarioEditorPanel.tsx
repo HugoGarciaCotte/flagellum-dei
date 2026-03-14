@@ -5,7 +5,8 @@ import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
-import { Download, Plus, Trash2, ChevronDown, AlertTriangle, Check, Image, Loader2 } from "lucide-react";
+import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
+import { Download, ChevronDown, AlertTriangle, Check, Image, Loader2, Link, Upload, Sparkles } from "lucide-react";
 import { getHardcodedScenarios, type Scenario } from "@/data/scenarios";
 import { downloadFile } from "@/lib/downloadFile";
 import { toast } from "@/hooks/use-toast";
@@ -15,6 +16,8 @@ import { invalidateScenarioOverrides, type ScenarioOverrideMap } from "@/lib/sce
 
 const SCENARIO_FIELDS = ["title", "description", "level", "content"] as const;
 
+type BgMode = "link" | "upload" | "ai";
+
 const ScenarioEditorPanel = () => {
   const { t } = useTranslation();
   const [hardcodedScenarios] = useState<Scenario[]>(() => getHardcodedScenarios().map(s => ({ ...s })));
@@ -23,7 +26,14 @@ const ScenarioEditorPanel = () => {
   const [loading, setLoading] = useState(true);
   const [savingFields, setSavingFields] = useState<Set<string>>(new Set());
   const contentRefs = useRef<Record<string, HTMLTextAreaElement | null>>({});
+
+  // Background inserter state
+  const [bgMode, setBgMode] = useState<BgMode>("link");
   const [bgUrl, setBgUrl] = useState("");
+  const [bgPrompt, setBgPrompt] = useState("");
+  const [generating, setGenerating] = useState(false);
+  const [uploading, setUploading] = useState(false);
+  const fileInputRef = useRef<HTMLInputElement | null>(null);
 
   // Load overrides from DB
   useEffect(() => {
@@ -124,7 +134,6 @@ const ScenarioEditorPanel = () => {
   };
 
   const handleDownloadAndClear = async () => {
-    // Generate TS file from merged data
     const scenarios = mergedScenarios;
     const lines: string[] = [
       "// Auto-generated from admin editor",
@@ -178,7 +187,6 @@ const ScenarioEditorPanel = () => {
 
     downloadFile("scenarios.ts", lines.join("\n"), "text/typescript");
 
-    // Clear DB
     const { error } = await supabase.from("scenario_overrides" as any)
       .delete()
       .neq("id", "00000000-0000-0000-0000-000000000000");
@@ -191,14 +199,11 @@ const ScenarioEditorPanel = () => {
     }
   };
 
-  const insertBackgroundTag = (scenarioId: string) => {
-    if (!bgUrl.trim()) return;
-    const tag = `<!--@ background_image: ${bgUrl.trim()} @-->`;
+  const insertBackgroundTagWithUrl = (scenarioId: string, url: string) => {
+    const tag = `<!--@ background_image: ${url.trim()} @-->`;
     const textarea = contentRefs.current[scenarioId];
-    const currentContent = getEffective(
-      hardcodedScenarios.find(s => s.id === scenarioId)!,
-      "content"
-    ) || "";
+    const hardcoded = hardcodedScenarios.find(s => s.id === scenarioId)!;
+    const currentContent = getEffective(hardcoded, "content") || "";
 
     if (textarea) {
       const start = textarea.selectionStart;
@@ -207,7 +212,61 @@ const ScenarioEditorPanel = () => {
     } else {
       saveField(scenarioId, "content", tag + "\n" + currentContent);
     }
+  };
+
+  const handleLinkInsert = (scenarioId: string) => {
+    if (!bgUrl.trim()) return;
+    insertBackgroundTagWithUrl(scenarioId, bgUrl.trim());
     setBgUrl("");
+  };
+
+  const handleFileUpload = async (scenarioId: string, file: File) => {
+    setUploading(true);
+    try {
+      const ext = file.name.split(".").pop() || "png";
+      const filePath = `scenario-backgrounds/${scenarioId}/${Date.now()}.${ext}`;
+      const { error: uploadError } = await supabase.storage
+        .from("app-assets")
+        .upload(filePath, file, { contentType: file.type, upsert: false });
+      if (uploadError) throw uploadError;
+
+      const { data: publicUrlData } = supabase.storage
+        .from("app-assets")
+        .getPublicUrl(filePath);
+      insertBackgroundTagWithUrl(scenarioId, publicUrlData.publicUrl);
+      toast({ title: "✓", description: "Image uploaded" });
+    } catch (e: any) {
+      toast({ title: t("adminScenarios.uploadFailed"), description: e.message, variant: "destructive" });
+    }
+    setUploading(false);
+    if (fileInputRef.current) fileInputRef.current.value = "";
+  };
+
+  const handleAiGenerate = async (scenarioId: string) => {
+    setGenerating(true);
+    try {
+      const hardcoded = hardcodedScenarios.find(s => s.id === scenarioId)!;
+      const scenario = mergedScenarios.find(s => s.id === scenarioId)!;
+
+      const { data, error } = await supabase.functions.invoke("generate-scenario-background", {
+        body: {
+          scenarioId,
+          scenarioTitle: scenario.title,
+          scenarioDescription: scenario.description,
+          prompt: bgPrompt.trim() || undefined,
+        },
+      });
+      if (error) throw error;
+      if (data?.error) throw new Error(data.error);
+      if (!data?.url) throw new Error("No URL returned");
+
+      insertBackgroundTagWithUrl(scenarioId, data.url);
+      setBgPrompt("");
+      toast({ title: "✓", description: "Background generated" });
+    } catch (e: any) {
+      toast({ title: t("adminScenarios.generateFailed"), description: e.message, variant: "destructive" });
+    }
+    setGenerating(false);
   };
 
   return (
@@ -315,25 +374,105 @@ const ScenarioEditorPanel = () => {
                         </Label>
                       </div>
 
-                      {/* Background tag inserter toolbar */}
-                      <div className="flex items-center gap-1.5 rounded-md border border-border bg-muted/30 p-1.5">
-                        <Image className="h-3.5 w-3.5 text-muted-foreground shrink-0" />
-                        <Input
-                          value={bgUrl}
-                          onChange={(e) => setBgUrl(e.target.value)}
-                          placeholder={t("adminScenarios.backgroundUrl")}
-                          className="h-7 text-xs flex-1"
-                        />
-                        <Button
-                          variant="outline"
-                          size="sm"
-                          className="h-7 text-xs gap-1 shrink-0"
-                          disabled={!bgUrl.trim()}
-                          onClick={() => insertBackgroundTag(scenario.id)}
-                        >
-                          <Image className="h-3 w-3" />
-                          {t("adminScenarios.insertBackground")}
-                        </Button>
+                      {/* Background inserter toolbar */}
+                      <div className="rounded-md border border-border bg-muted/30 p-2 space-y-2">
+                        <div className="flex items-center gap-2">
+                          <Image className="h-3.5 w-3.5 text-muted-foreground shrink-0" />
+                          <ToggleGroup
+                            type="single"
+                            value={bgMode}
+                            onValueChange={(v) => v && setBgMode(v as BgMode)}
+                            size="sm"
+                            className="gap-0.5"
+                          >
+                            <ToggleGroupItem value="link" className="h-6 text-[11px] px-2 gap-1">
+                              <Link className="h-3 w-3" /> {t("adminScenarios.bgModeLink")}
+                            </ToggleGroupItem>
+                            <ToggleGroupItem value="upload" className="h-6 text-[11px] px-2 gap-1">
+                              <Upload className="h-3 w-3" /> {t("adminScenarios.bgModeUpload")}
+                            </ToggleGroupItem>
+                            <ToggleGroupItem value="ai" className="h-6 text-[11px] px-2 gap-1">
+                              <Sparkles className="h-3 w-3" /> {t("adminScenarios.bgModeAi")}
+                            </ToggleGroupItem>
+                          </ToggleGroup>
+                        </div>
+
+                        {/* Link mode */}
+                        {bgMode === "link" && (
+                          <div className="flex items-center gap-1.5">
+                            <Input
+                              value={bgUrl}
+                              onChange={(e) => setBgUrl(e.target.value)}
+                              placeholder={t("adminScenarios.backgroundUrl")}
+                              className="h-7 text-xs flex-1"
+                            />
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              className="h-7 text-xs gap-1 shrink-0"
+                              disabled={!bgUrl.trim()}
+                              onClick={() => handleLinkInsert(scenario.id)}
+                            >
+                              <Image className="h-3 w-3" />
+                              {t("adminScenarios.insertBackground")}
+                            </Button>
+                          </div>
+                        )}
+
+                        {/* Upload mode */}
+                        {bgMode === "upload" && (
+                          <div className="flex items-center gap-1.5">
+                            <input
+                              ref={fileInputRef}
+                              type="file"
+                              accept="image/*"
+                              className="text-xs file:mr-2 file:py-1 file:px-2 file:rounded file:border-0 file:text-xs file:bg-primary/10 file:text-primary hover:file:bg-primary/20 flex-1"
+                              disabled={uploading}
+                              onChange={(e) => {
+                                const file = e.target.files?.[0];
+                                if (file) handleFileUpload(scenario.id, file);
+                              }}
+                            />
+                            {uploading && (
+                              <span className="flex items-center gap-1 text-xs text-muted-foreground">
+                                <Loader2 className="h-3 w-3 animate-spin" />
+                                {t("adminScenarios.uploading")}
+                              </span>
+                            )}
+                          </div>
+                        )}
+
+                        {/* AI Generate mode */}
+                        {bgMode === "ai" && (
+                          <div className="flex items-center gap-1.5">
+                            <Input
+                              value={bgPrompt}
+                              onChange={(e) => setBgPrompt(e.target.value)}
+                              placeholder={t("adminScenarios.bgPromptPlaceholder")}
+                              className="h-7 text-xs flex-1"
+                              disabled={generating}
+                            />
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              className="h-7 text-xs gap-1 shrink-0"
+                              disabled={generating}
+                              onClick={() => handleAiGenerate(scenario.id)}
+                            >
+                              {generating ? (
+                                <>
+                                  <Loader2 className="h-3 w-3 animate-spin" />
+                                  {t("adminScenarios.generating")}
+                                </>
+                              ) : (
+                                <>
+                                  <Sparkles className="h-3 w-3" />
+                                  {t("adminScenarios.bgModeAi")}
+                                </>
+                              )}
+                            </Button>
+                          </div>
+                        )}
                       </div>
 
                       <ContentField
