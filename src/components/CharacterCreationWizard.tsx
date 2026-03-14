@@ -667,7 +667,7 @@ const CharacterCreationWizard = ({ onCreated, onCancel, gameId }: CharacterCreat
           <div className="flex gap-2">
             <input ref={fileInputRef} type="file" accept="image/*" className="hidden" onChange={handleUpload} />
             <Button variant="outline" size="sm" className="gap-1.5" onClick={() => fileInputRef.current?.click()} disabled={generatingPortrait || !online}>
-              <Upload className="h-3.5 w-3.5" /> Upload
+              <Upload className="h-3.5 w-3.5" /> {t("wizard.portrait.upload")}
             </Button>
             <Button
               variant="outline"
@@ -677,7 +677,7 @@ const CharacterCreationWizard = ({ onCreated, onCancel, gameId }: CharacterCreat
               disabled={generatingPortrait || !online || (!description && !archetypeFeatId)}
             >
               {generatingPortrait ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Sparkles className="h-3.5 w-3.5" />}
-              Generate
+              {t("wizard.portrait.generate")}
             </Button>
           </div>
           {!online && (
