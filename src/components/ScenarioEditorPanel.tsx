@@ -169,7 +169,7 @@ const ScenarioEditorPanel = () => {
       if (!s.content) return s;
       let content = s.content;
       for (const [originalUrl, localPath] of urlMap) {
-        content = content.replaceAll(originalUrl, localPath);
+        content = content.split(originalUrl).join(localPath);
       }
       return { ...s, content };
     });
