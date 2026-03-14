@@ -1,3 +1,8 @@
+export interface AmbianceEntry {
+  minutes: number;
+  text: string;
+}
+
 export interface WikiSection {
   id: string;
   title: string;
@@ -5,6 +10,7 @@ export interface WikiSection {
   content: string;
   contentSegments: string[];
   metadata: Record<string, string>;
+  ambianceTrack?: AmbianceEntry[];
   children: WikiSection[];
 }
 
