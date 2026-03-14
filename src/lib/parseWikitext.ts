@@ -3,6 +3,7 @@ export interface WikiSection {
   title: string;
   level: number;
   content: string;
+  contentSegments: string[];
   metadata: Record<string, string>;
   children: WikiSection[];
 }
