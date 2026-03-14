@@ -91,12 +91,14 @@ const ScenarioCard = ({
   level,
   image,
   chapterLabel,
+  date,
 }: {
   title: string;
   description: string;
   level?: number | null;
   image?: string;
   chapterLabel: string;
+  date?: string;
 }) => (
   <div className="group relative overflow-hidden rounded aged-border bg-card transition-all duration-300 hover:border-primary/40 gold-glow-box">
     <div className="relative h-48 overflow-hidden">
