@@ -3,6 +3,7 @@ import { useLocalRows } from "@/hooks/useLocalData";
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
 import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
 import { getFeatById } from "@/data/feats";
+import { useTranslation } from "@/i18n/useTranslation";
 
 interface CharacterListItemProps {
   character: { id: string; name: string; description?: string | null; portrait_url?: string | null };
@@ -10,11 +11,11 @@ interface CharacterListItemProps {
 }
 
 const CharacterListItem = ({ character, actions }: CharacterListItemProps) => {
+  const { t } = useTranslation();
   const allFeats = useLocalRows("character_feats", { character_id: character.id });
   const allSubfeats = useLocalRows("character_feat_subfeats");
 
   const feats = useMemo(() => {
-    const cfIds = new Set(allFeats.map((cf: any) => cf.id));
     const sorted = [...allFeats].sort((a: any, b: any) => (a.level ?? 0) - (b.level ?? 0));
     return sorted.map((cf: any) => ({
       ...cf,
@@ -47,14 +48,14 @@ const CharacterListItem = ({ character, actions }: CharacterListItemProps) => {
         <CardContent className="pt-0 pb-3">
           <ul className="list-disc list-inside text-sm text-muted-foreground space-y-0.5">
             {feats.map((cf: any) => {
-              const featTitle = getFeatById(cf.feat_id)?.title || "Unknown feat";
+              const featTitle = getFeatById(cf.feat_id)?.title || t("feats.unknownFeat");
               return (
                 <li key={cf.id}>
                   {featTitle}
                   {cf.character_feat_subfeats && cf.character_feat_subfeats.length > 0 && (
                     <ul className="list-[circle] list-inside ml-4 mt-0.5 space-y-0.5">
                       {cf.character_feat_subfeats.map((sf: any) => {
-                        const sfTitle = getFeatById(sf.subfeat_id)?.title || "Unknown";
+                        const sfTitle = getFeatById(sf.subfeat_id)?.title || t("feats.unknownFeat");
                         return <li key={sf.subfeat_id}>{sfTitle}</li>;
                       })}
                     </ul>

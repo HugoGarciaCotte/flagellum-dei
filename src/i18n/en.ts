@@ -354,6 +354,39 @@ const en: Record<string, string> = {
 
   // ─── GAME EXTRA ───
   "game.level": "Lv. {level}",
+
+  // ─── FEATS (shared) ───
+  "feats.select": "Select",
+  "feats.hide": "Hide",
+  "feats.info": "Info",
+  "feats.speciality": "Speciality...",
+  "feats.pick": "— Pick —",
+  "feats.unknownFeat": "Unknown feat",
+
+  // ─── GM / PLAYERS ───
+  "gm.myPlayers": "My Players",
+  "gm.unknown": "Unknown",
+  "gm.noCharacterSelected": "No character selected",
+  "gm.editCharacter": "Edit {name}'s Character",
+  "gm.playersCount": "Players ({count})",
+  "gm.noPlayers": "No players have joined yet.",
+  "gm.unknownPlayer": "Unknown player",
+  "gm.noCharacters": "No characters",
+  "gm.otherCharacters": "{count} other character(s)",
+
+  // ─── WIKI TOOLTIP ───
+  "wiki.description": "Description",
+  "wiki.prerequisites": "Prerequisites",
+  "wiki.special": "Special",
+
+  // ─── HOME FAQ LINKS ───
+  "home.faq.remixLovable": "Remix on Lovable ↗",
+  "home.faq.viewGithub": "View on GitHub ↗",
+
+  // ─── DASHBOARD EXTRA ───
+  "dashboard.appTitle": "Flagellum Dei",
+  "dashboard.code": "Code:",
+  "dashboard.untitled": "Untitled",
 };
 
 export default en;

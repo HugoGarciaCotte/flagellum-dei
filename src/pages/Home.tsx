@@ -372,12 +372,12 @@ const Home = () => {
                     <p className="flex gap-4">
                       {faqLinks[i].lovable && (
                         <a href={faqLinks[i].lovable} target="_blank" rel="noopener noreferrer" className="text-primary hover:underline">
-                          Remix on Lovable ↗
+                          {t("home.faq.remixLovable")}
                         </a>
                       )}
                       {faqLinks[i].github && (
                         <a href={faqLinks[i].github} target="_blank" rel="noopener noreferrer" className="text-primary hover:underline">
-                          View on GitHub ↗
+                          {t("home.faq.viewGithub")}
                         </a>
                       )}
                     </p>

@@ -71,7 +71,7 @@ const Dashboard = () => {
       if (g.host_user_id === user?.id && g.status === "active") {
         seen.add(g.id);
         const sc = getScenarioById(g.scenario_id);
-        games.push({ id: g.id, title: sc?.title || "Untitled", join_code: g.join_code, role: "hosting" });
+        games.push({ id: g.id, title: sc?.title || t("dashboard.untitled"), join_code: g.join_code, role: "hosting" });
       }
     }
     for (const gp of gamePlayers) {
@@ -80,7 +80,7 @@ const Dashboard = () => {
         if (g) {
           seen.add(g.id);
           const sc = getScenarioById(g.scenario_id);
-          games.push({ id: g.id, title: sc?.title || "Untitled", join_code: g.join_code, role: "playing" });
+          games.push({ id: g.id, title: sc?.title || t("dashboard.untitled"), join_code: g.join_code, role: "playing" });
         }
       }
     }
@@ -123,7 +123,7 @@ const Dashboard = () => {
   return (
     <div className="min-h-screen bg-background">
       <PageHeader
-        title="Flagellum Dei"
+        title={t("dashboard.appTitle")}
         rightActions={
           <>
             {isOwner && (
@@ -272,7 +272,7 @@ const Dashboard = () => {
                       </span>
                     </div>
                     {game.join_code ? (
-                      <CardDescription>Code: <span className="font-mono text-primary tracking-widest">{game.join_code}</span></CardDescription>
+                      <CardDescription>{t("dashboard.code")} <span className="font-mono text-primary tracking-widest">{game.join_code}</span></CardDescription>
                     ) : (
                       <CardDescription className="text-muted-foreground/60">{t("dashboard.localGame")}</CardDescription>
                     )}

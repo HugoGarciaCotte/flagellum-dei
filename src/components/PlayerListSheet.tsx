@@ -5,6 +5,7 @@ import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/component
 import { Pencil, ChevronDown } from "lucide-react";
 import CharacterSheet from "@/components/CharacterSheet";
 import CharacterListItem from "@/components/CharacterListItem";
+import { useTranslation } from "@/i18n/useTranslation";
 
 interface Player {
   id: string;
@@ -28,10 +29,10 @@ interface PlayerListSheetProps {
 
 const PlayerListSheet = ({ players, characters, gameId }: PlayerListSheetProps) => {
   const [editingId, setEditingId] = useState<string | null>(null);
+  const { t } = useTranslation();
 
   const cancelEdit = () => setEditingId(null);
 
-  // Group characters by user_id
   const charsByUser = new Map<string, Character[]>();
   for (const c of characters) {
     const list = charsByUser.get(c.user_id) ?? [];
@@ -49,16 +50,16 @@ const PlayerListSheet = ({ players, characters, gameId }: PlayerListSheetProps) 
       <SheetContent className="overflow-y-auto">
         <SheetHeader>
           <SheetTitle className="font-display flex items-center gap-2">
-            <span className="text-lg text-primary" aria-hidden="true">🜊</span> Players ({players.length})
+            <span className="text-lg text-primary" aria-hidden="true">🜊</span> {t("gm.playersCount").replace("{count}", String(players.length))}
           </SheetTitle>
         </SheetHeader>
 
         <div className="mt-6 space-y-6">
           {players.length === 0 ? (
-            <p className="text-sm text-muted-foreground text-center py-8">No players have joined yet.</p>
+            <p className="text-sm text-muted-foreground text-center py-8">{t("gm.noPlayers")}</p>
           ) : (
             players.map((player) => {
-              const displayName = (player as any).profiles?.display_name || "Unknown player";
+              const displayName = (player as any).profiles?.display_name || t("gm.unknownPlayer");
               const playerChars = charsByUser.get(player.user_id) ?? [];
               const selectedCharId = player.character_id;
 
@@ -70,10 +71,9 @@ const PlayerListSheet = ({ players, characters, gameId }: PlayerListSheetProps) 
                   <p className="text-xs font-medium text-muted-foreground px-1">{displayName}</p>
 
                   {playerChars.length === 0 ? (
-                    <p className="text-xs text-muted-foreground italic px-1">No characters</p>
+                    <p className="text-xs text-muted-foreground italic px-1">{t("gm.noCharacters")}</p>
                   ) : (
                     <>
-                      {/* Selected character — full card */}
                       {selectedChar && (
                         editingId === selectedChar.id ? (
                           <div className="bg-muted/30 rounded-md p-2">
@@ -92,15 +92,14 @@ const PlayerListSheet = ({ players, characters, gameId }: PlayerListSheetProps) 
                       )}
 
                       {!selectedChar && (
-                        <p className="text-xs text-muted-foreground italic px-1">No character selected</p>
+                        <p className="text-xs text-muted-foreground italic px-1">{t("gm.noCharacterSelected")}</p>
                       )}
 
-                      {/* Unselected characters — collapsed */}
                       {otherChars.length > 0 && (
                         <Collapsible>
                           <CollapsibleTrigger className="flex items-center gap-1 text-xs text-muted-foreground hover:text-foreground transition-colors px-1 cursor-pointer group">
                             <ChevronDown className="h-3 w-3 transition-transform group-data-[state=open]:rotate-180" />
-                            {otherChars.length} other character{otherChars.length > 1 ? "s" : ""}
+                            {t("gm.otherCharacters").replace("{count}", String(otherChars.length))}
                           </CollapsibleTrigger>
                           <CollapsibleContent className="mt-1 space-y-1 pl-1">
                             {otherChars.map((char) => (

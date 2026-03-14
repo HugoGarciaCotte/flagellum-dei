@@ -4,6 +4,9 @@ import { ChevronRight, Play } from "lucide-react";
 import { WikiSection, resolveBackgroundImage } from "@/lib/parseWikitext";
 import { cn } from "@/lib/utils";
 import { buildFeatsMap, getFeatMeta } from "@/data/feats";
+import { useTranslation } from "@/i18n/useTranslation";
+
+type TooltipLabels = { description: string; prerequisites: string; special: string };
 
 interface WikiSectionTreeProps {
   sections: WikiSection[];
@@ -25,7 +28,7 @@ function stripLinks(text: string): string {
   return text.replace(/\[\[([^|\]]+)\|([^\]]+)\]\]/g, "$2").replace(/\[\[([^\]]+)\]\]/g, "$1");
 }
 
-function FeatLinkTooltip({ featName, rect, featsMap }: { featName: string; rect: DOMRect; featsMap: Map<string, any> }) {
+function FeatLinkTooltip({ featName, rect, featsMap, labels }: { featName: string; rect: DOMRect; featsMap: Map<string, any>; labels: { description: string; prerequisites: string; special: string } }) {
   const feat = featsMap.get(featName.toLowerCase());
   if (!feat) return null;
   const meta = getFeatMeta(feat);
@@ -41,19 +44,19 @@ function FeatLinkTooltip({ featName, rect, featsMap }: { featName: string; rect:
         {meta.description && <p className="text-xs text-muted-foreground">{meta.description}</p>}
         {meta.description && (
           <div>
-            <p className="text-xs font-medium text-muted-foreground">Description</p>
+            <p className="text-xs font-medium text-muted-foreground">{labels.description}</p>
             <p className="text-xs text-muted-foreground/80 whitespace-pre-line">{stripLinks(meta.description)}</p>
           </div>
         )}
         {prerequisites && (
           <div>
-            <p className="text-xs font-medium text-muted-foreground">Prerequisites</p>
+            <p className="text-xs font-medium text-muted-foreground">{labels.prerequisites}</p>
             <p className="text-xs text-muted-foreground/80">{stripLinks(prerequisites)}</p>
           </div>
         )}
         {meta.special && (
           <div>
-            <p className="text-xs font-medium text-muted-foreground">Special</p>
+            <p className="text-xs font-medium text-muted-foreground">{labels.special}</p>
             <p className="text-xs text-muted-foreground/80 whitespace-pre-line">{stripLinks(meta.special)}</p>
           </div>
         )}
@@ -75,6 +78,7 @@ function SectionNode({
   depth = 0,
   parentBackground = null,
   featsMap,
+  tooltipLabels,
 }: {
   section: WikiSection;
   activeSection: string | null;
@@ -82,6 +86,7 @@ function SectionNode({
   depth?: number;
   parentBackground?: string | null;
   featsMap: Map<string, any> | undefined;
+  tooltipLabels: TooltipLabels;
 }) {
   const [open, setOpen] = useState(true);
   const [hoveredFeat, setHoveredFeat] = useState<{ name: string; rect: DOMRect } | null>(null);
@@ -188,8 +193,8 @@ function SectionNode({
               dangerouslySetInnerHTML={{ __html: section.content }}
             />
           )}
-          {hoveredFeat && featsMap && (
-            <FeatLinkTooltip featName={hoveredFeat.name} rect={hoveredFeat.rect} featsMap={featsMap} />
+          {hoveredFeat && featsMap && tooltipLabels && (
+            <FeatLinkTooltip featName={hoveredFeat.name} rect={hoveredFeat.rect} featsMap={featsMap} labels={tooltipLabels} />
           )}
           {section.children.map((child) => (
             <SectionNode
@@ -200,6 +205,7 @@ function SectionNode({
               depth={depth + 1}
               parentBackground={effectiveBg}
               featsMap={featsMap}
+              tooltipLabels={tooltipLabels}
             />
           ))}
         </>
@@ -210,6 +216,12 @@ function SectionNode({
 
 export default function WikiSectionTree({ sections, activeSection, onActivateSection, parentBackground = null }: WikiSectionTreeProps) {
   const { data: featsMap } = useFeatsMap();
+  const { t } = useTranslation();
+  const tooltipLabels = useMemo(() => ({
+    description: t("wiki.description"),
+    prerequisites: t("wiki.prerequisites"),
+    special: t("wiki.special"),
+  }), [t]);
 
   return (
     <div className="space-y-1">
@@ -221,6 +233,7 @@ export default function WikiSectionTree({ sections, activeSection, onActivateSec
           onActivateSection={onActivateSection}
           parentBackground={parentBackground}
           featsMap={featsMap}
+          tooltipLabels={tooltipLabels}
         />
       ))}
     </div>
