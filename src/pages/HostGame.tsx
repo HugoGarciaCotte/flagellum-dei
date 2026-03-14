@@ -155,7 +155,7 @@ const HostGame = () => {
       )}
 
       <GameTimer />
-      <DiceRoller gameId={gameId} userName="Game Master" isGameMaster={true} />
+      <DiceRoller gameId={gameId} userName={t("game.gameMaster")} isGameMaster={true} />
     </div>
   );
 };
