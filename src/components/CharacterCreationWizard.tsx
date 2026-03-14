@@ -165,7 +165,7 @@ const CharacterCreationWizard = ({ onCreated, onCancel, gameId }: CharacterCreat
     if (characterId && characterFeatId) {
       // Update existing
       upsertRow("character_feats", { id: characterFeatId, character_id: characterId, feat_id: featId, level: 1, is_free: false, note: null });
-      deleteBy("character_feat_subfeats", { character_feat_id: characterFeatId });
+      softDeleteBy("character_feat_subfeats", { character_feat_id: characterFeatId });
       setSubfeatSelections(new Map());
     } else {
       const tempCharId = crypto.randomUUID();

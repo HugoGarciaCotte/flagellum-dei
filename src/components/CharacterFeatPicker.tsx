@@ -189,7 +189,7 @@ const CharacterFeatPicker = ({ characterId, mode = "player", scenarioLevel }: Ch
     // Delete existing at this slot
     const existing = characterSubfeats.filter(cs => cs.character_feat_id === characterFeatId && cs.slot === slot);
     for (const cs of existing) {
-      deleteRow("character_feat_subfeats", cs.id);
+      softDeleteRow("character_feat_subfeats", cs.id);
     }
     if (subfeatId) {
       upsertRow("character_feat_subfeats", { id: crypto.randomUUID(), character_feat_id: characterFeatId, slot, subfeat_id: subfeatId });

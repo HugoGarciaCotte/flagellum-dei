@@ -67,7 +67,7 @@ const PlayGame = () => {
     if (!gameId) return;
     const channel = supabase
       .channel(`game-${gameId}`)
-      .on("postgres_changes", { event: "UPDATE", schema: "public", table: "games", filter: `id=eq.${gameId}` }, () => { pullAll(); })
+      .on("postgres_changes", { event: "UPDATE", schema: "public", table: "games", filter: `id=eq.${gameId}` }, () => { pullTable("games", { id: gameId }); })
       .subscribe();
     return () => { supabase.removeChannel(channel); };
   }, [gameId]);

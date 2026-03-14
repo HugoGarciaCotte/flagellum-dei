@@ -72,7 +72,7 @@ const HostGame = () => {
   useEffect(() => {
     if (!gameId) return;
     const channel = supabase.channel(`game-players-${gameId}`)
-      .on("postgres_changes", { event: "*", schema: "public", table: "game_players", filter: `game_id=eq.${gameId}` }, () => { pullAll(); })
+      .on("postgres_changes", { event: "*", schema: "public", table: "game_players", filter: `game_id=eq.${gameId}` }, () => { pullTable("game_players", { game_id: gameId }); })
       .subscribe();
     return () => { supabase.removeChannel(channel); };
   }, [gameId]);
