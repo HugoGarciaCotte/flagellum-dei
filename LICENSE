@@ -1,3 +1,15 @@
+DUAL LICENSE
+============
+
+This project contains two distinct bodies of work under separate licenses.
+
+
+1. SOFTWARE (Unlicense — Public Domain)
+---------------------------------------
+
+All source code, configuration, tooling, stylesheets, and UI components
+in this repository are released into the public domain under the Unlicense.
+
 This is free and unencumbered software released into the public domain.
 
 Anyone is free to copy, modify, publish, use, compile, sell, or
@@ -22,3 +34,17 @@ ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR
 OTHER DEALINGS IN THE SOFTWARE.
 
 For more information, please refer to <https://unlicense.org>
+
+
+2. GAME CONTENT (All Rights Reserved)
+--------------------------------------
+
+All game content — including but not limited to scenarios, feats,
+character descriptions, lore, narrative text, and world-building
+(primarily found in src/data/scenarios.ts, src/data/feats.ts,
+src/data/feats-data.json, and associated scenario/feat prose) —
+is © the original authors. All rights reserved.
+
+You may NOT copy, redistribute, modify, or create derivative works
+from the game content without explicit written permission from the
+authors.

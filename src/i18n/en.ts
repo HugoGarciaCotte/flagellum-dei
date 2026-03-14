@@ -70,7 +70,7 @@ const en: Record<string, string> = {
   "home.faq.q7": "Does the game promote a particular faith?",
   "home.faq.a7": "Not at all. Religion shaped every aspect of 14th-century life, so faith and heresy are central to the setting. The game explores these themes purely for historical immersion — the writers do not endorse or discriminate against any religion.",
   "home.faq.q8": "Is this project open source?",
-  "home.faq.a8": "Yes! The entire website is open source. It was built with Lovable — only the game content (scenarios, feats, and lore) was handwritten. You can remix the project freely on Lovable or browse the source code on GitHub.",
+  "home.faq.a8": "Yes — with one important distinction. The <strong>software</strong> (website, game engine, UI, tools) is fully open source under the <strong>Unlicense</strong> (public domain). You can remix, fork, and reuse it freely. However, the <strong>game content</strong> — scenarios, feats, lore, and all narrative writing — is <strong>© the original authors, all rights reserved</strong>. You may not redistribute or adapt the game content without permission.",
   "home.faq.q9": "Can I install this as an app?",
   "home.faq.a9": "Yes! Flagellum Dei works as a Progressive Web App — you can install it on your phone or computer for quick access and offline play. Visit the <a href=\"/install\" class=\"underline text-primary hover:text-primary/80\">install page</a> for instructions.",
   "home.faq.q10": "Does it work offline?",
