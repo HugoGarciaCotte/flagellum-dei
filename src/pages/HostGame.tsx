@@ -91,7 +91,15 @@ const HostGame = () => {
   useEffect(() => {
     if (!gameId) return;
     const channel = supabase.channel(`game-players-${gameId}`)
-      .on("postgres_changes", { event: "*", schema: "public", table: "game_players", filter: `game_id=eq.${gameId}` }, () => { pullTable("game_players", { game_id: gameId }); })
+      .on("postgres_changes", { event: "*", schema: "public", table: "game_players", filter: `game_id=eq.${gameId}` }, async () => {
+        await pullTable("game_players", { game_id: gameId });
+        const updatedPlayers = getBy("game_players", { game_id: gameId });
+        const uids = [...new Set(updatedPlayers.map((p: any) => p.user_id as string))];
+        for (const uid of uids) {
+          await pullTable("characters", { user_id: uid });
+          await pullTable("profiles", { user_id: uid });
+        }
+      })
       .subscribe();
     return () => { supabase.removeChannel(channel); };
   }, [gameId]);
