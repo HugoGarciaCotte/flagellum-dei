@@ -11,7 +11,7 @@ interface CharacterListItemProps {
 }
 
 const CharacterListItem = ({ character, actions }: CharacterListItemProps) => {
-  const { t } = useTranslation();
+  const { t, locale } = useTranslation();
   const allFeats = useLocalRows("character_feats", { character_id: character.id });
   const allSubfeats = useLocalRows("character_feat_subfeats");
 
