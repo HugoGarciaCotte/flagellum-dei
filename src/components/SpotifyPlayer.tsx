@@ -59,8 +59,6 @@ const SpotifyPlayer = ({ position = "left", playlistUrl, playlistName, playTrack
 
   // Track which playlist is currently playing to detect changes
   const currentPlaylistRef = useRef<string | null>(null);
-  // Track which single track was last requested
-  const lastPlayTrackRef = useRef<string | null>(null);
 
   const effectivePlaylistUrl = playlistUrl;
   const effectivePlaylistName = playlistName;
@@ -226,29 +224,36 @@ const SpotifyPlayer = ({ position = "left", playlistUrl, playlistName, playTrack
     startPlayback();
   }, [deviceId, accessToken, effectivePlaylistUrl]);
 
-  // Play a single track on demand when playTrackUrl changes
+  // Add a single track to queue then skip to it
   useEffect(() => {
-    if (!deviceId || !accessToken || !playTrackUrl) return;
-    if (lastPlayTrackRef.current === playTrackUrl) return;
-    lastPlayTrackRef.current = playTrackUrl;
+    if (!playTrackUrl) return;
+    if (!deviceId || !accessToken) {
+      // Fallback: open in Spotify
+      window.open(playTrackUrl, "_blank");
+      return;
+    }
 
-    const playTrack = async () => {
+    const addToQueue = async () => {
       const uri = urlToUri(playTrackUrl);
       try {
-        await fetch(`https://api.spotify.com/v1/me/player/play?device_id=${deviceId}`, {
-          method: "PUT",
-          headers: {
-            Authorization: `Bearer ${accessToken}`,
-            "Content-Type": "application/json",
-          },
-          body: JSON.stringify({ uris: [uri] }),
-        });
+        const res = await fetch(
+          `https://api.spotify.com/v1/me/player/queue?uri=${encodeURIComponent(uri)}&device_id=${deviceId}`,
+          {
+            method: "POST",
+            headers: { Authorization: `Bearer ${accessToken}` },
+          }
+        );
+        if (res.ok) {
+          playerRef.current?.nextTrack();
+        } else {
+          console.error("Failed to queue track:", res.status);
+        }
       } catch (e) {
-        console.error("Failed to play track:", e);
+        console.error("Failed to queue track:", e);
       }
     };
 
-    playTrack();
+    addToQueue();
   }, [deviceId, accessToken, playTrackUrl]);
 
   const handleConnect = () => {
