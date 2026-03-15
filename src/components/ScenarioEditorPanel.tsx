@@ -170,6 +170,24 @@ const ScenarioEditorPanel = () => {
     setSavingFields(prev => { const s = new Set(prev); s.delete(key); return s; });
   };
 
+  const generateFrField = async (scenarioId: string, field: string, englishText: string) => {
+    const key = `${scenarioId}:fr:${field}`;
+    setGeneratingFr(prev => new Set(prev).add(key));
+    try {
+      const { data, error } = await supabase.functions.invoke("generate-translation", {
+        body: { key: `scenario.${field}`, english_text: englishText, target_locale: "fr", screen: "scenario" },
+      });
+      if (error) throw error;
+      if (data?.translated_text) {
+        await saveField(scenarioId, `fr:${field}`, data.translated_text);
+        toast({ title: t("adminEditor.translationSaved") });
+      }
+    } catch (e: any) {
+      toast({ title: t("adminTranslations.aiGenerationFailed"), description: e.message, variant: "destructive" });
+    }
+    setGeneratingFr(prev => { const s = new Set(prev); s.delete(key); return s; });
+  };
+
   const handleDownloadAndClear = async () => {
     const scenarios = mergedScenarios;
 
@@ -193,16 +211,13 @@ const ScenarioEditorPanel = () => {
           const res = await fetch(url);
           if (!res.ok) throw new Error(`HTTP ${res.status}`);
           const blob = await res.blob();
-          // Derive a clean filename from the URL path
           const urlPath = new URL(url).pathname;
           const segments = urlPath.split("/");
-          // Keep last 2 segments for uniqueness (e.g. scenarioId/filename.png)
           const localPath = `scenario-backgrounds/${segments.slice(-2).join("/")}`;
           urlMap.set(url, `/${localPath}`);
           imageBlobs.set(localPath, blob);
         } catch (e) {
           console.warn(`Failed to download image: ${url}`, e);
-          // Leave URL as-is if download fails
         }
       })
     );
@@ -217,7 +232,7 @@ const ScenarioEditorPanel = () => {
       return { ...s, content };
     });
 
-    // 4. Generate scenarios.ts
+    // 4. Generate scenarios.ts — include fr sub-object
     const lines: string[] = [
       "// Auto-generated from admin editor",
       `// Generated on ${new Date().toISOString()}`,
@@ -230,6 +245,18 @@ const ScenarioEditorPanel = () => {
       "  teaser: string | null;",
       "  level: number | null;",
       "  content: string | null;",
+      "  fr?: { title?: string; teaser?: string; content?: string };",
+      "}",
+      "",
+      "/** Apply locale to a scenario — returns FR fields when available, else EN fallback. */",
+      "export function localizeScenario(scenario: Scenario, locale?: string): Scenario {",
+      '  if (!locale || locale === "en" || !scenario.fr) return scenario;',
+      "  return {",
+      "    ...scenario,",
+      "    title: scenario.fr.title ?? scenario.title,",
+      "    teaser: scenario.fr.teaser ?? scenario.teaser,",
+      "    content: scenario.fr.content ?? scenario.content,",
+      "  };",
       "}",
       "",
     ];
@@ -242,6 +269,14 @@ const ScenarioEditorPanel = () => {
       lines.push(`  teaser: ${s.teaser ? JSON.stringify(s.teaser) : "null"},`);
       lines.push(`  level: ${s.level ?? "null"},`);
       lines.push(`  content: ${s.content ? JSON.stringify(s.content) : "null"},`);
+      // Include fr sub-object if it has any fields
+      if (s.fr && Object.values(s.fr).some(v => v != null)) {
+        const frObj: Record<string, string> = {};
+        if (s.fr.title) frObj.title = s.fr.title;
+        if (s.fr.teaser) frObj.teaser = s.fr.teaser;
+        if (s.fr.content) frObj.content = s.fr.content;
+        lines.push(`  fr: ${JSON.stringify(frObj)},`);
+      }
       lines.push("};");
       lines.push("");
     });
@@ -250,10 +285,14 @@ const ScenarioEditorPanel = () => {
     lines.push(`const hardcodedScenarios: Scenario[] = [${varNames.join(", ")}];`);
     lines.push("");
     lines.push("/** Returns all scenarios, with DB overrides applied if loaded. */");
-    lines.push("export function getAllScenarios(): Scenario[] {");
+    lines.push("export function getAllScenarios(locale?: string): Scenario[] {");
     lines.push("  const overrides = getCachedScenarioOverrides();");
-    lines.push("  if (!overrides || overrides.size === 0) return hardcodedScenarios;");
-    lines.push("  return hardcodedScenarios.map(s => applyScenarioOverrides(s, overrides));");
+    lines.push("  let scenarios = hardcodedScenarios;");
+    lines.push("  if (overrides && overrides.size > 0) {");
+    lines.push("    scenarios = hardcodedScenarios.map(s => applyScenarioOverrides(s, overrides));");
+    lines.push("  }");
+    lines.push('  if (locale && locale !== "en") return scenarios.map(s => localizeScenario(s, locale));');
+    lines.push("  return scenarios;");
     lines.push("}");
     lines.push("");
     lines.push("/** Returns the raw hardcoded scenarios without any overrides. */");
@@ -261,11 +300,12 @@ const ScenarioEditorPanel = () => {
     lines.push("  return hardcodedScenarios;");
     lines.push("}");
     lines.push("");
-    lines.push("export function getScenarioById(id: string): Scenario | undefined {");
+    lines.push("export function getScenarioById(id: string, locale?: string): Scenario | undefined {");
     lines.push("  const overrides = getCachedScenarioOverrides();");
     lines.push("  const scenario = hardcodedScenarios.find(s => s.id === id);");
     lines.push("  if (!scenario) return undefined;");
-    lines.push("  return overrides ? applyScenarioOverrides(scenario, overrides) : scenario;");
+    lines.push("  const withOverrides = overrides ? applyScenarioOverrides(scenario, overrides) : scenario;");
+    lines.push("  return locale ? localizeScenario(withOverrides, locale) : withOverrides;");
     lines.push("}");
 
     // 5. Build ZIP if there are images, otherwise just download .ts
@@ -277,7 +317,6 @@ const ScenarioEditorPanel = () => {
         zip.file(path, blob);
       }
 
-      // 6. Add README with Lovable prompt
       const readme = `## How to apply this export
 
 Copy-paste this prompt into Lovable:
