@@ -54,6 +54,7 @@ interface DiceRollerProps {
   gameId?: string;
   userName?: string;
   isGameMaster?: boolean;
+  position?: "left" | "right";
 }
 
 const DiceRoller = ({ gameId, userName, isGameMaster }: DiceRollerProps) => {
