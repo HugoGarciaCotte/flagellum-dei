@@ -258,7 +258,8 @@ export function parseWikitext(wikitext: string): ParsedScenario {
           for (const entry of lineMeta.queue_track.split(",")) {
             const [url, name] = entry.split("|").map(s => s.trim());
             if (url) {
-              currentBodyLines.push(`<span class="wiki-queue-track" data-url="${encodeURIComponent(url)}" data-name="${name || url}"></span>`);
+              const safeName = (name || url).replace(/</g, "&lt;").replace(/>/g, "&gt;");
+              currentBodyLines.push(`<span class="wiki-queue-track" data-url="${encodeURIComponent(url)}" data-name="${safeName}" style="display:inline-flex;align-items:center;gap:4px;padding:2px 10px;border-radius:9999px;font-size:12px;font-weight:500;cursor:pointer;vertical-align:middle;background:hsl(var(--accent));color:hsl(var(--accent-foreground))"><svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="currentColor" stroke="none"><polygon points="5 3 19 12 5 21 5 3"/></svg>${safeName}</span>`);
             }
           }
         }

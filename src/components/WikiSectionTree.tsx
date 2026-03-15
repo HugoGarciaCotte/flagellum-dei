@@ -122,36 +122,18 @@ function SectionNode({
 
   useEffect(() => {
     const el = contentRef.current;
-    if (!el) return;
+    if (!el || !featsMap) return;
 
-    // Style feat links
-    if (featsMap) {
-      const links = el.querySelectorAll<HTMLSpanElement>(".wiki-feat-link");
-      links.forEach((link) => {
-        link.style.color = "hsl(var(--primary))";
-        link.style.textDecoration = "underline";
-        link.style.textDecorationStyle = "dotted";
-        link.style.textUnderlineOffset = "2px";
-        link.style.cursor = "help";
-      });
-    }
-
-    // Render inline queue track buttons
-    const queueSpans = el.querySelectorAll<HTMLSpanElement>(".wiki-queue-track");
-    queueSpans.forEach((span) => {
-      if (span.dataset.rendered) return;
-      span.dataset.rendered = "1";
-      const url = decodeURIComponent(span.dataset.url || "");
-      const name = span.dataset.name || url;
-      span.className = cn(
-        "inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium transition-colors cursor-pointer align-middle",
-        isActive
-          ? "bg-primary-foreground/20 text-primary-foreground hover:bg-primary-foreground/30"
-          : "bg-accent text-accent-foreground hover:bg-accent/80"
-      );
-      span.innerHTML = `<svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="currentColor" stroke="none"><polygon points="5 3 19 12 5 21 5 3"/></svg>${name}`;
+    // Style feat links (non-destructive: only changes style properties, no innerHTML mutation)
+    const links = el.querySelectorAll<HTMLSpanElement>(".wiki-feat-link");
+    links.forEach((link) => {
+      link.style.color = "hsl(var(--primary))";
+      link.style.textDecoration = "underline";
+      link.style.textDecorationStyle = "dotted";
+      link.style.textUnderlineOffset = "2px";
+      link.style.cursor = "help";
     });
-  }, [section.content, featsMap, isActive]);
+  }, [section.content, featsMap]);
 
   const handleMouseOver = useCallback((e: React.MouseEvent) => {
     const target = (e.target as HTMLElement).closest(".wiki-feat-link") as HTMLElement | null;
