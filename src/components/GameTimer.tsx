@@ -10,6 +10,7 @@ import type { AmbianceEntry } from "@/lib/parseWikitext";
 interface GameTimerProps {
   ambianceTrack?: AmbianceEntry[];
   position?: "left" | "right";
+  hasActiveSection?: boolean;
 }
 
 const GameTimer = ({ ambianceTrack, position = "left" }: GameTimerProps) => {
