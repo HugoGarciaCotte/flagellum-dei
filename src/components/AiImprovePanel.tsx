@@ -158,12 +158,12 @@ export default function AiImprovePanel({ content, onApply, onClose, t }: AiImpro
     for (const d of diff) {
       if (d.kind === "equal") {
         lines.push(d.oldLine!);
+      } else if (d.kind === "modified") {
+        lines.push(d.accepted === true ? d.newLine! : d.oldLine!);
       } else if (d.kind === "added") {
         if (d.accepted === true) lines.push(d.newLine!);
-        // rejected or pending additions are skipped
       } else if (d.kind === "removed") {
         if (d.accepted !== true) lines.push(d.oldLine!);
-        // accepted removals are skipped (line removed)
       }
     }
     onApply(lines.join("\n"));
