@@ -439,12 +439,12 @@ Upload the images from the scenario-backgrounds/ folder in the attached ZIP into
 
 /** Full content editor with integrated insert toolbar and cursor-aware insertion */
 const ContentEditor = ({
-  scenarioId, scenarioTitle, scenarioDescription,
+  scenarioId, scenarioTitle, scenarioTeaser,
   value, isOverridden, saving, onSave, onRevert, fullScreen, t
 }: {
   scenarioId: string;
   scenarioTitle: string;
-  scenarioDescription: string | null;
+  scenarioTeaser: string | null;
   value: string;
   isOverridden: boolean;
   saving: boolean;
