@@ -523,7 +523,7 @@ const CharacterCreationWizard = ({ onCreated, onCancel, gameId }: CharacterCreat
           </div>
         ) : options?.type === "list" ? (
           <div className="space-y-3">
-            <p className="text-sm text-muted-foreground">
+            <p className="text-base text-muted-foreground">
               {stepConfig.subtitleChoice}
             </p>
             <button
