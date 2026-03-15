@@ -196,6 +196,7 @@ export function setCurrentUserId(userId: string | undefined) {
 
 export async function pullAll(userId?: string): Promise<void> {
   if (_syncing) return;
+  if (!(await ensureSession())) return;
   _syncing = true;
   notify("syncing");
   try {
