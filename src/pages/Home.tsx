@@ -40,7 +40,7 @@ const ClarityItem = ({
 }) => (
   <div className="flex items-center gap-3 text-muted-foreground">
     <span className="text-primary">{icon}</span>
-    <span className="font-display text-[11px] tracking-[0.2em] uppercase">
+    <span className="font-display text-base tracking-[0.2em] uppercase">
       {label}
     </span>
   </div>
@@ -116,11 +116,11 @@ const ScenarioCard = ({
     <div className="space-y-3 p-6">
       {level != null && (
         <div className="flex items-baseline justify-between">
-          <span className="font-display text-[10px] tracking-[0.3em] uppercase text-primary/50">
+          <span className="font-display text-base tracking-[0.3em] uppercase text-primary/50">
             {chapterLabel} {level}
           </span>
           {date && (
-            <span className="font-display text-[10px] tracking-wide text-muted-foreground/50 italic">
+            <span className="font-display text-base tracking-wide text-muted-foreground/50 italic">
               {date}
             </span>
           )}
@@ -186,7 +186,7 @@ const Home = () => {
 
         <div className="container relative mx-auto px-6 lg:max-w-6xl">
           <div className="flex flex-col justify-center space-y-8 lg:max-w-xl lg:py-20">
-            <p className="font-display text-[10px] tracking-[0.45em] uppercase text-primary/70">
+            <p className="font-display text-base tracking-[0.45em] uppercase text-primary/70">
               {t("home.hero.tagline")}
             </p>
             <h1 className="font-display text-6xl font-black leading-[1.02] tracking-tight text-foreground md:text-7xl lg:text-8xl">
