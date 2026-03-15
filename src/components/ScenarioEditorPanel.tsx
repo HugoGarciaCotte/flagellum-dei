@@ -69,6 +69,8 @@ const ScenarioEditorPanel = () => {
   const [expandedId, setExpandedId] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const [savingFields, setSavingFields] = useState<Set<string>>(new Set());
+  const [editorLocale, setEditorLocale] = useState<EditorLocale>("en");
+  const [generatingFr, setGeneratingFr] = useState<Set<string>>(new Set());
 
   // Load overrides from DB
   useEffect(() => {
