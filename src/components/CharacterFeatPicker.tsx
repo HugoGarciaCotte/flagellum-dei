@@ -632,14 +632,18 @@ const CharacterFeatPicker = ({ characterId, mode = "player", scenarioLevel }: Ch
                 expanded={expandedAssignedFeatId === cf.id}
                 onToggleExpand={() => setExpandedAssignedFeatId(expandedAssignedFeatId === cf.id ? null : cf.id)}
                 actions={mode === "gm" ? (
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    className="h-6 px-1 text-destructive ml-auto shrink-0"
-                    onClick={() => deleteFeat(0, true, cf.id)}
-                  >
-                    <X className="h-3 w-3" />
-                  </Button>
+                  <DropdownMenu>
+                    <DropdownMenuTrigger asChild>
+                      <Button variant="ghost" size="sm" className="h-6 w-6 p-0">
+                        <MoreVertical className="h-3.5 w-3.5" />
+                      </Button>
+                    </DropdownMenuTrigger>
+                    <DropdownMenuContent align="end">
+                      <DropdownMenuItem className="text-destructive" onClick={() => deleteFeat(0, true, cf.id)}>
+                        {t("feats.delete")}
+                      </DropdownMenuItem>
+                    </DropdownMenuContent>
+                  </DropdownMenu>
                 ) : undefined}
                 collapsedContent={renderSubfeats(cf, feat)}
                 compact
