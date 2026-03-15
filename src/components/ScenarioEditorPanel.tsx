@@ -502,6 +502,65 @@ const ContentEditor = ({
               <SeparatorHorizontal className="h-4 w-4 mr-2" />
               {t("adminScenarios.insertSectionBreak") || "Section Break"}
             </DropdownMenuItem>
+            <DropdownMenuItem
+              onMouseDown={(e) => e.preventDefault()}
+              onClick={async () => {
+                const url = prompt(t("adminScenarios.spotifyUrlPrompt"));
+                if (!url) return;
+                let name = url;
+                // Try to resolve name from Spotify API
+                const token = sessionStorage.getItem("spotify_access_token");
+                if (token) {
+                  try {
+                    const u = new URL(url);
+                    const parts = u.pathname.split("/").filter(Boolean);
+                    if (parts.length >= 2) {
+                      const [type, id] = parts;
+                      const res = await fetch(`https://api.spotify.com/v1/${type}s/${id}`, {
+                        headers: { Authorization: `Bearer ${token}` },
+                      });
+                      if (res.ok) {
+                        const data = await res.json();
+                        if (data.name) name = data.name;
+                      }
+                    }
+                  } catch {}
+                }
+                insertAtCursor(`<!--@ playlist: ${url.trim()} | ${name} @-->\n`);
+              }}
+            >
+              <ListMusic className="h-4 w-4 mr-2" />
+              {t("adminScenarios.insertTagPlaylist")}
+            </DropdownMenuItem>
+            <DropdownMenuItem
+              onMouseDown={(e) => e.preventDefault()}
+              onClick={async () => {
+                const url = prompt(t("adminScenarios.spotifyUrlPrompt"));
+                if (!url) return;
+                let name = url;
+                const token = sessionStorage.getItem("spotify_access_token");
+                if (token) {
+                  try {
+                    const u = new URL(url);
+                    const parts = u.pathname.split("/").filter(Boolean);
+                    if (parts.length >= 2) {
+                      const [type, id] = parts;
+                      const res = await fetch(`https://api.spotify.com/v1/${type}s/${id}`, {
+                        headers: { Authorization: `Bearer ${token}` },
+                      });
+                      if (res.ok) {
+                        const data = await res.json();
+                        if (data.name) name = data.name;
+                      }
+                    }
+                  } catch {}
+                }
+                insertAtCursor(`<!--@ queue_track: ${url.trim()} | ${name} @-->\n`);
+              }}
+            >
+              <Music className="h-4 w-4 mr-2" />
+              {t("adminScenarios.insertTagQueueTrack")}
+            </DropdownMenuItem>
           </DropdownMenuContent>
         </DropdownMenu>
       </div>
