@@ -73,6 +73,7 @@ interface FeatDetailsDisplayProps {
 }
 
 const FeatDetailsDisplay = ({ content, rawContent, className = "" }: FeatDetailsDisplayProps) => {
+  const { t } = useTranslation();
   const featsMap = getFeatsMap();
 
   const featFromMap = useMemo(() => {
