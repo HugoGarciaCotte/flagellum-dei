@@ -144,16 +144,16 @@ const FeatDetailsDisplay = ({ content, rawContent, className = "" }: FeatDetails
     <div className={`space-y-1.5 border-t border-border pt-1.5 mt-2 ${className}`}>
       {prerequisites && (
         <div>
-          <div className="text-xs font-medium text-muted-foreground">Prerequisites</div>
-          <div className="text-xs text-muted-foreground/80">
+          <div className="text-sm font-medium text-muted-foreground">Prerequisites</div>
+          <div className="text-sm text-muted-foreground/80">
             <WikiLinkedText text={prerequisites} />
           </div>
         </div>
       )}
       {blocking && blocking.length > 0 && (
         <div>
-          <div className="text-xs font-medium text-destructive">Incompatible with</div>
-          <div className="text-xs text-destructive/80">
+          <div className="text-sm font-medium text-destructive">Incompatible with</div>
+          <div className="text-sm text-destructive/80">
             {blocking.map((b, i) => (
               <span key={b}>
                 {i > 0 && ", "}
