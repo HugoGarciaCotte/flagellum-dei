@@ -223,7 +223,7 @@ const ScenarioEditorPanel = () => {
       "export interface Scenario {",
       "  id: string;",
       "  title: string;",
-      "  description: string | null;",
+      "  teaser: string | null;",
       "  level: number | null;",
       "  content: string | null;",
       "}",
