@@ -226,7 +226,7 @@ const Dashboard = () => {
               <CardContent className="py-8 text-center text-muted-foreground">
                 <span className="text-2xl mx-auto mb-2 opacity-40 block text-center" aria-hidden="true">🝖</span>
                 <p className="font-display">{t("dashboard.noCharacters")}</p>
-                <p className="text-sm mt-1">{t("dashboard.createToStart")}</p>
+                <p className="text-base mt-1">{t("dashboard.createToStart")}</p>
               </CardContent>
             </Card>
           )}
