@@ -152,7 +152,11 @@ function SectionNode({
       e.preventDefault();
       const url = target.getAttribute("data-url");
       if (url) {
-        onPlayTrack?.(url) ?? window.open(url, "_blank");
+        if (onPlayTrack) {
+          onPlayTrack(url);
+        } else {
+          window.open(url, "_blank");
+        }
       }
     }
   }, [onPlayTrack]);
