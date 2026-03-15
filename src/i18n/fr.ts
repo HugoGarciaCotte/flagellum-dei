@@ -143,6 +143,20 @@ const fr: Record<string, string> = {
   "adminLegacy.incompatible": "Incompatible",
   "dashboard.sendBeforeGame": "Envoyer aux joueurs avant la partie",
   "dashboard.teaserCopied": "Accroche copiée !",
+  "adminScenarios.improveWithAi": "Améliorer avec l'IA",
+  "adminScenarios.improvePlaceholder": "Décrivez les modifications… ex. « ajouter des descriptions atmosphériques », « insérer une image de fond pour la scène de la cathédrale »",
+  "adminScenarios.improve": "Améliorer",
+  "adminScenarios.improving": "Amélioration",
+  "adminScenarios.improveError": "L'amélioration par IA a échoué",
+  "adminScenarios.diffChanges": "{count} modification(s)",
+  "adminScenarios.diffPending": "en attente",
+  "adminScenarios.diffAcceptAll": "Tout accepter",
+  "adminScenarios.diffRejectAll": "Tout rejeter",
+  "adminScenarios.diffNewPrompt": "Nouveau prompt",
+  "adminScenarios.diffOriginal": "Original",
+  "adminScenarios.diffProposed": "Proposé",
+  "adminScenarios.diffApply": "Appliquer",
+  "adminScenarios.diffCancel": "Annuler",
 };
 
 export default fr;
