@@ -61,21 +61,26 @@ const GameTimer = ({ ambianceTrack }: GameTimerProps) => {
   if (!open) {
     return (
       <div className="fixed bottom-6 left-6 z-50">
-        <Button
-          onClick={() => setOpen(true)}
-          size={showTime ? undefined : "icon"}
-          className={showTime
-            ? "h-12 rounded-full shadow-lg px-4 gap-2"
-            : "h-12 w-12 rounded-full shadow-lg"
-          }
-        >
-          <Timer className="h-5 w-5 shrink-0" />
-          {showTime && (
-            <span className="font-display font-bold tabular-nums text-sm">
-              {minutes}<span className="text-xs font-normal opacity-75 ml-0.5">m</span>
-            </span>
+        <div className="relative inline-flex">
+          <Button
+            onClick={() => setOpen(true)}
+            size={showTime ? undefined : "icon"}
+            className={showTime
+              ? "h-12 rounded-full shadow-lg px-4 gap-2"
+              : "h-12 w-12 rounded-full shadow-lg"
+            }
+          >
+            <Timer className="h-5 w-5 shrink-0" />
+            {showTime && (
+              <span className="font-display font-bold tabular-nums text-sm">
+                {minutes}<span className="text-xs font-normal opacity-75 ml-0.5">m</span>
+              </span>
+            )}
+          </Button>
+          {hasAmbiance && newEvent && (
+            <span className="absolute -top-1 -right-1 h-3 w-3 rounded-full bg-primary animate-pulse" />
           )}
-        </Button>
+        </div>
       </div>
     );
   }
