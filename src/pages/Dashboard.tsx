@@ -392,6 +392,7 @@ const Dashboard = () => {
           </p>
         )}
       </main>
+      </div>
     </div>
   );
 };

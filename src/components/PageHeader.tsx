@@ -11,7 +11,7 @@ interface PageHeaderProps {
 
 const PageHeader = ({ title, icon, leftAction, rightActions, badge }: PageHeaderProps) => {
   return (
-    <header className="border-b border-primary/10 bg-card/50 backdrop-blur sticky top-0 z-10 pt-[env(safe-area-inset-top)]">
+    <header className="border-b border-primary/10 bg-card/50 backdrop-blur z-10 pt-[env(safe-area-inset-top)]">
       <div className="container flex flex-wrap items-center gap-x-3 gap-y-1 py-2 sm:py-0 sm:h-14 sm:flex-nowrap sm:justify-between">
         <div className="flex items-center gap-3 min-w-0">
           {leftAction}
