@@ -707,6 +707,15 @@ const ContentEditor = ({
             </DropdownMenuItem>
           </DropdownMenuContent>
         </DropdownMenu>
+        <Button
+          variant="outline"
+          size="sm"
+          className="h-7 text-sm gap-1"
+          onClick={() => setAiPanelOpen(true)}
+        >
+          <Sparkles className="h-3 w-3" />
+          {t("adminScenarios.improveWithAi")}
+        </Button>
       </div>
 
       {/* Textarea + save button */}
