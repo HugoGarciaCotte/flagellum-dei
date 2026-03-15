@@ -46,7 +46,7 @@ const SubfeatSlotEditor = ({ slot, onChange, onRemove }: Props) => {
               checked={slot.optional ?? false}
               onCheckedChange={(c) => onChange({ ...slot, optional: !!c })}
             />
-            <Label htmlFor={`optional-${slot.slot}`} className="text-xs">{t("adminFeats.optional")}</Label>
+            <Label htmlFor={`optional-${slot.slot}`} className="text-sm">{t("adminFeats.optional")}</Label>
           </div>
         </div>
       </div>
