@@ -105,6 +105,12 @@ const fr: Record<string, string> = {
   "spotify.connect": "Connecter Spotify",
   "spotify.disconnect": "Déconnecter",
   "spotify.premiumRequired": "Spotify Premium requis",
+  "spotify.openInSpotify": "Ouvrir dans Spotify",
+  "spotify.defaultPlaylist": "Playlist de campagne",
+  "adminScenarios.insertTagPlaylist": "Playlist",
+  "adminScenarios.insertTagQueueTrack": "Piste en file",
+  "adminScenarios.spotifyUrlPrompt": "Collez une URL Spotify (playlist ou piste) :",
+  "adminScenarios.insertSectionBreak": "Saut de section",
 };
 
 export default fr;

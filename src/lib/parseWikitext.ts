@@ -341,6 +341,50 @@ export function resolveBackgroundImage(
   return section.metadata.background_image || ancestorBg || null;
 }
 
+/** Playlist info parsed from a `<!--@ playlist: URL | Name @-->` tag */
+export interface PlaylistInfo {
+  url: string;
+  name: string;
+}
+
+/** Queue track info parsed from a `<!--@ queue_track: URL | Name @-->` tag */
+export interface QueueTrackInfo {
+  url: string;
+  name: string;
+}
+
+/** Parse a "URL | Name" value into { url, name }. Falls back to URL as name. */
+function parseUrlPipe(value: string): { url: string; name: string } {
+  const pipeIdx = value.indexOf("|");
+  if (pipeIdx === -1) return { url: value.trim(), name: value.trim() };
+  return { url: value.slice(0, pipeIdx).trim(), name: value.slice(pipeIdx + 1).trim() };
+}
+
+/**
+ * Resolve the effective playlist for a section,
+ * falling back to the ancestor's playlist if the section has none.
+ */
+export function resolvePlaylist(
+  section: WikiSection,
+  ancestorPlaylist: PlaylistInfo | null
+): PlaylistInfo | null {
+  if (section.metadata.playlist) {
+    return parseUrlPipe(section.metadata.playlist);
+  }
+  return ancestorPlaylist;
+}
+
+/**
+ * Collect queue tracks from a section's metadata.
+ * Multiple queue_track entries are supported via comma-separated values or multiple tags.
+ */
+export function collectQueueTracks(section: WikiSection): QueueTrackInfo[] {
+  const raw = section.metadata.queue_track;
+  if (!raw) return [];
+  // Support multiple tracks separated by commas (each is URL | Name)
+  return raw.split(",").map(s => parseUrlPipe(s)).filter(t => t.url);
+}
+
 /**
  * Extract image URLs from MediaWiki wikitext.
  */
