@@ -46,7 +46,7 @@ const CharacterListItem = ({ character, actions }: CharacterListItemProps) => {
       </CardHeader>
       {feats && feats.length > 0 && (
         <CardContent className="pt-0 pb-3">
-          <ul className="list-disc list-inside text-sm text-muted-foreground space-y-0.5">
+          <ul className="list-disc list-inside text-base text-muted-foreground space-y-0.5">
             {feats.map((cf: any) => {
               const featTitle = getFeatById(cf.feat_id)?.title || t("feats.unknownFeat");
               return (
