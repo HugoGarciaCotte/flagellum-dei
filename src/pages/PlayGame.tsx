@@ -52,6 +52,13 @@ const PlayGame = () => {
     [myCharacters, myPlayer]
   );
 
+  useEffect(() => {
+    if (myPlayer && !myPlayer.character_id && sortedCharacters.length > 0) {
+      selectCharacter(sortedCharacters[0].id);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [myPlayer?.character_id, sortedCharacters]);
+
   const selectCharacter = (characterId: string) => {
     if (!myPlayer) return;
     upsertRow("game_players", { ...myPlayer, character_id: characterId });
