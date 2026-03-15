@@ -13,7 +13,7 @@ interface GameTimerProps {
   hasActiveSection?: boolean;
 }
 
-const GameTimer = ({ ambianceTrack, position = "left" }: GameTimerProps) => {
+const GameTimer = ({ ambianceTrack, position = "left", hasActiveSection = false }: GameTimerProps) => {
   const [expanded, setExpanded] = useState(false);
   const [running, setRunning] = useState(false);
   const [elapsed, setElapsed] = useState(0);
