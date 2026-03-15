@@ -164,7 +164,7 @@ const Dashboard = () => {
             </Button>
           </div>
           {!online && (
-            <p className="text-xs text-muted-foreground flex items-center gap-1">
+            <p className="text-sm text-muted-foreground flex items-center gap-1">
               <WifiOff className="h-3 w-3" /> {t("dashboard.needOnline")}
             </p>
           )}
