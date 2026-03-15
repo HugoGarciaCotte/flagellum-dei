@@ -145,7 +145,7 @@ const Auth = () => {
                         <button
                           type="button"
                           onClick={() => { enterGuestMode(); navigate(redirectTo); }}
-                          className="w-full text-sm text-muted-foreground hover:text-foreground transition-colors font-display flex items-center justify-center gap-2 py-2"
+                          className="w-full text-base text-muted-foreground hover:text-foreground transition-colors font-display flex items-center justify-center gap-2 py-2"
                         >
                           {t("auth.exploreGuest")}
                         </button>
