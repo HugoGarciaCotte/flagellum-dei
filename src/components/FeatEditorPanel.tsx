@@ -16,6 +16,9 @@ import { supabase } from "@/integrations/supabase/client";
 import { invalidateOverrides, type FeatOverrideMap } from "@/lib/featOverrides";
 import { useTranslation } from "@/i18n/useTranslation";
 
+type EditorLocale = "en" | "fr";
+const FR_FEAT_FIELDS = ["title", "description", "prerequisites", "special"] as const;
+
 /** Fields that live inside meta */
 const META_FIELDS = ["description", "prerequisites", "special", "specialities", "subfeats", "unlocks_categories", "blocking", "synonyms"] as const;
 type MetaField = (typeof META_FIELDS)[number];
