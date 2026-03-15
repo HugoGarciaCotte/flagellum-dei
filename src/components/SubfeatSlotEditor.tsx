@@ -65,9 +65,9 @@ const SubfeatSlotEditor = ({ slot, onChange, onRemove }: Props) => {
 
       {slot.kind === "list" && (
         <div>
-          <Label className="text-xs">{t("adminFeats.optionsPipeSeparated")}</Label>
+          <Label className="text-sm">{t("adminFeats.optionsPipeSeparated")}</Label>
           <Input
-            className="h-8 text-xs"
+            className="h-8 text-sm"
             value={(slot.options ?? []).join(" | ")}
             onChange={(e) => onChange({ ...slot, options: e.target.value.split("|").map(s => s.trim()).filter(Boolean) })}
             placeholder={t("adminFeats.optionsPlaceholder")}
