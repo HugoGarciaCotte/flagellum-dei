@@ -48,7 +48,7 @@ export function applyScenarioOverrides(scenario: Scenario, overrides: ScenarioOv
   const result = { ...scenario };
   for (const [field, value] of fields) {
     if (field === "title") result.title = value;
-    else if (field === "description") result.description = value;
+    else if (field === "teaser") result.teaser = value;
     else if (field === "level") result.level = value;
     else if (field === "content") result.content = value;
   }

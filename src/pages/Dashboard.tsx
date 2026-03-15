@@ -304,7 +304,7 @@ const Dashboard = () => {
                     <Card key={scenario.id} className="aged-border hover:border-primary/40 transition-colors gold-glow-box">
                       <CardHeader className="pb-2">
                         <CardTitle className="font-display text-base">{scenario.title}</CardTitle>
-                        {scenario.description && <CardDescription className="text-sm">{scenario.description}</CardDescription>}
+                        {scenario.teaser && <CardDescription className="text-sm">{scenario.teaser}</CardDescription>}
                       </CardHeader>
                       <CardContent>
                         <Button onClick={() => handleCreateGame(scenario.id)} variant="outline" className="w-full gap-2 font-display" size="sm">

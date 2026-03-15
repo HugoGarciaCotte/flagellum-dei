@@ -37,7 +37,7 @@ const ManageScenarios = () => {
                       {s.level ?? "—"}
                     </TableCell>
                     <TableCell className="hidden sm:table-cell text-muted-foreground text-sm max-w-[300px]">
-                      {s.description || "—"}
+                      {s.teaser || "—"}
                     </TableCell>
                   </TableRow>
                 ))}
