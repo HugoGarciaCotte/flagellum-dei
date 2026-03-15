@@ -100,13 +100,14 @@ const HostGame = () => {
     return walkPlaylist(sections, null);
   }, [activeSection, sections, parsed.metadata.playlist]);
 
-  // Collect queue tracks for the active section (not inherited)
-  const activeQueueTracks = useMemo((): string[] => {
-    if (!activeSection) return [];
-    const sec = findSection(sections, activeSection);
-    if (!sec) return [];
-    return collectQueueTracks(sec).map(qt => qt.url);
-  }, [activeSection, sections]);
+  // Single track playback triggered by inline buttons
+  const [playTrackUrl, setPlayTrackUrl] = useState<string | null>(null);
+
+  const handlePlayTrack = useCallback((url: string) => {
+    // Force re-trigger even if same track by toggling
+    setPlayTrackUrl(null);
+    setTimeout(() => setPlayTrackUrl(url), 0);
+  }, []);
 
   // Targeted pull if game missing after initial sync (e.g. direct URL navigation)
   useEffect(() => {
