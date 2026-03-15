@@ -38,7 +38,7 @@ const CharacterCreationWizard = ({ onCreated, onCancel, gameId }: CharacterCreat
   const { user } = useAuth();
   const fileInputRef = useRef<HTMLInputElement>(null);
   const online = useNetworkStatus();
-  const { t } = useTranslation();
+  const { t, locale } = useTranslation();
 
   // Wizard state
   const [step, setStep] = useState(0);
