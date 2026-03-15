@@ -198,7 +198,7 @@ const HostGame = () => {
         {sections.length > 0 ? (
           <Card className="w-full aged-border gold-glow-box">
             <CardContent className="p-4">
-              <WikiSectionTree sections={sections} activeSection={activeSection} onActivateSection={activateSection} />
+              <WikiSectionTree sections={sections} activeSection={activeSection} onActivateSection={activateSection} onPlayTrack={handlePlayTrack} />
             </CardContent>
           </Card>
         ) : (
