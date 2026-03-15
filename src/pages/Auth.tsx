@@ -14,10 +14,12 @@ const Auth = () => {
   const { user, isGuest, isLocalGuest, enterGuestMode } = useAuth();
   const navigate = useNavigate();
   const { t } = useTranslation();
+  const [searchParams] = useSearchParams();
+  const redirectTo = searchParams.get("redirect") || "/";
 
   useEffect(() => {
-    if (user && !isGuest) navigate("/", { replace: true });
-  }, [user, isGuest, navigate]);
+    if (user && !isGuest) navigate(redirectTo, { replace: true });
+  }, [user, isGuest, navigate, redirectTo]);
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [displayName, setDisplayName] = useState("");
