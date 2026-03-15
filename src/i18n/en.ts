@@ -552,7 +552,8 @@ const en: Record<string, string> = {
   "adminScenarios.insertTagPlaylist": "Background Playlist",
   "adminScenarios.insertTagQueueTrack": "One-Time Music",
   "adminScenarios.spotifyUrlPrompt": "Paste a Spotify URL (playlist or track):",
-  "adminScenarios.insertSectionBreak": "Section Break",
+   "adminScenarios.insertSectionBreak": "Section Break",
+  "adminScenarios.spotifyNameFallback": "Could not resolve name — using URL",
 };
 
 export default en;

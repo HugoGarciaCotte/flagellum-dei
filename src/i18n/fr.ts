@@ -111,6 +111,7 @@ const fr: Record<string, string> = {
   "adminScenarios.insertTagQueueTrack": "Musique ponctuelle",
   "adminScenarios.spotifyUrlPrompt": "Collez une URL Spotify (playlist ou piste) :",
   "adminScenarios.insertSectionBreak": "Saut de section",
+  "adminScenarios.spotifyNameFallback": "Impossible de résoudre le nom — URL utilisée",
 };
 
 export default fr;

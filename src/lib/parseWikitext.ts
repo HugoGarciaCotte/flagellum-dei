@@ -254,7 +254,7 @@ export function parseWikitext(wikitext: string): ParsedScenario {
         const parts = lineMeta.queue_track.split(",");
         for (const part of parts) {
           const { url, name } = parseUrlPipe(part);
-          currentBodyLines.push(`<button class="wiki-queue-track" data-url="${url}">▶ ${name}</button>`);
+          currentBodyLines.push(`<button class="wiki-queue-track" data-url="${url}">🎵 ${name}</button>`);
         }
       }
       // Store all meta (including queue_track) in metadata as before
