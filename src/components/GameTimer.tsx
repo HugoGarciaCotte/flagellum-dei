@@ -148,6 +148,7 @@ const GameTimer = ({ ambianceTrack, position = "left" }: GameTimerProps) => {
       <div className="fixed inset-0 z-40" onClick={() => setOpen(false)} />
       <div className={cn("fixed bottom-6 z-50", posClass)}>
         <div className="bg-card border border-border rounded-2xl shadow-xl p-4 flex flex-col items-center gap-3 min-w-[180px] relative">
+          <span className="font-display text-xs font-medium text-muted-foreground uppercase tracking-wider">{t("timer.title")}</span>
           <button
             onClick={() => setOpen(false)}
             className="absolute top-2 right-2 text-muted-foreground hover:text-foreground text-xs"
