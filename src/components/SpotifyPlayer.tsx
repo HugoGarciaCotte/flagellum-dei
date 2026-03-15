@@ -303,8 +303,8 @@ const SpotifyPlayer = ({ position = "left", playlistUrl, playlistName, playTrack
           ) : (
             <Music className="h-4 w-4 shrink-0" />
           )}
-          <span className="font-semibold shrink-0">{effectivePlaylistName}</span>
-          {pillStatus.text && pillStatus.text !== effectivePlaylistName && (
+          {effectivePlaylistName && <span className="font-semibold shrink-0">{effectivePlaylistName}</span>}
+          {pillStatus.text && pillStatus.text !== (effectivePlaylistName ?? "") && (
             <span className="truncate max-w-[180px] opacity-90 text-xs">
               {pillStatus.text}
             </span>
