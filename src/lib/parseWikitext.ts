@@ -253,6 +253,15 @@ export function parseWikitext(wikitext: string): ParsedScenario {
         Object.assign(scenarioMeta, lineMeta);
       } else if (currentTarget) {
         Object.assign(currentTarget.metadata, lineMeta);
+        // Inject inline HTML placeholder for queue_track tags
+        if (lineMeta.queue_track) {
+          for (const entry of lineMeta.queue_track.split(",")) {
+            const [url, name] = entry.split("|").map(s => s.trim());
+            if (url) {
+              currentBodyLines.push(`<span class="wiki-queue-track" data-url="${encodeURIComponent(url)}" data-name="${name || url}"></span>`);
+            }
+          }
+        }
       }
       continue; // Don't add to body
     }
