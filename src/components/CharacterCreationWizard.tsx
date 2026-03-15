@@ -377,7 +377,7 @@ const CharacterCreationWizard = ({ onCreated, onCancel, gameId }: CharacterCreat
   const renderFeatList = (feats: Feat[], onSelect: (id: string) => void) => (
     <div className="space-y-1.5">
       {feats.length === 0 ? (
-        <p className="text-sm text-muted-foreground text-center py-4">No feats found.</p>
+        <p className="text-base text-muted-foreground text-center py-4">No feats found.</p>
       ) : feats.map(f => (
         <FeatListItem
           key={f.id}
