@@ -68,7 +68,7 @@ type ValidationResult = {
 } | null;
 
 const CharacterFeatPicker = ({ characterId, mode = "player", scenarioLevel }: CharacterFeatPickerProps) => {
-  const { t } = useTranslation();
+  const { t, locale } = useTranslation();
   const [pickerTarget, setPickerTarget] = useState<PickerTarget | null>(null);
   const [searchTerm, setSearchTerm] = useState("");
   const [expandedFeatId, setExpandedFeatId] = useState<string | null>(null);
@@ -79,7 +79,7 @@ const CharacterFeatPicker = ({ characterId, mode = "player", scenarioLevel }: Ch
   const [validating, setValidating] = useState(false);
   const [validationResult, setValidationResult] = useState<ValidationResult>(null);
 
-  const allFeats = useMemo(() => getAllFeats() as Feat[], []);
+  const allFeats = useMemo(() => getAllFeats(locale) as Feat[], [locale]);
 
   const metaMap = useMemo(() => {
     const map = new Map<string, ReturnType<typeof getFeatMeta>>();
