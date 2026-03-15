@@ -8,12 +8,43 @@ import { supabase } from "@/integrations/supabase/client";
 import { toast } from "@/hooks/use-toast";
 
 /* ─── Diff types ─── */
-type DiffLineKind = "equal" | "added" | "removed";
+type DiffLineKind = "equal" | "added" | "removed" | "modified";
 interface DiffLine {
   kind: DiffLineKind;
   oldLine?: string;
   newLine?: string;
   accepted: boolean | null; // null = pending, true = accepted, false = rejected
+}
+
+/* ─── Word-level diff for modified lines ─── */
+interface WordSpan { kind: "equal" | "added" | "removed"; text: string }
+
+function computeWordDiff(oldLine: string, newLine: string): { oldSpans: WordSpan[]; newSpans: WordSpan[] } {
+  const oldWords = oldLine.split(/(\s+)/);
+  const newWords = newLine.split(/(\s+)/);
+  const m = oldWords.length, n = newWords.length;
+  const dp: number[][] = Array.from({ length: m + 1 }, () => Array(n + 1).fill(0));
+  for (let i = 1; i <= m; i++)
+    for (let j = 1; j <= n; j++)
+      dp[i][j] = oldWords[i-1] === newWords[j-1] ? dp[i-1][j-1]+1 : Math.max(dp[i-1][j], dp[i][j-1]);
+
+  const oldSpans: WordSpan[] = [];
+  const newSpans: WordSpan[] = [];
+  let i = m, j = n;
+  while (i > 0 || j > 0) {
+    if (i > 0 && j > 0 && oldWords[i-1] === newWords[j-1]) {
+      oldSpans.unshift({ kind: "equal", text: oldWords[i-1] });
+      newSpans.unshift({ kind: "equal", text: newWords[j-1] });
+      i--; j--;
+    } else if (j > 0 && (i === 0 || dp[i][j-1] >= dp[i-1][j])) {
+      newSpans.unshift({ kind: "added", text: newWords[j-1] });
+      j--;
+    } else {
+      oldSpans.unshift({ kind: "removed", text: oldWords[i-1] });
+      i--;
+    }
+  }
+  return { oldSpans, newSpans };
 }
 
 /* ─── Simple LCS-based line diff ─── */
@@ -23,7 +54,6 @@ function computeDiff(oldText: string, newText: string): DiffLine[] {
   const m = oldLines.length;
   const n = newLines.length;
 
-  // Build LCS table
   const dp: number[][] = Array.from({ length: m + 1 }, () => Array(n + 1).fill(0));
   for (let i = 1; i <= m; i++) {
     for (let j = 1; j <= n; j++) {
@@ -35,19 +65,29 @@ function computeDiff(oldText: string, newText: string): DiffLine[] {
     }
   }
 
-  // Backtrack
-  const result: DiffLine[] = [];
+  const raw: DiffLine[] = [];
   let i = m, j = n;
   while (i > 0 || j > 0) {
     if (i > 0 && j > 0 && oldLines[i - 1] === newLines[j - 1]) {
-      result.unshift({ kind: "equal", oldLine: oldLines[i - 1], newLine: newLines[j - 1], accepted: null });
+      raw.unshift({ kind: "equal", oldLine: oldLines[i - 1], newLine: newLines[j - 1], accepted: null });
       i--; j--;
     } else if (j > 0 && (i === 0 || dp[i][j - 1] >= dp[i - 1][j])) {
-      result.unshift({ kind: "added", newLine: newLines[j - 1], accepted: null });
+      raw.unshift({ kind: "added", newLine: newLines[j - 1], accepted: null });
       j--;
     } else {
-      result.unshift({ kind: "removed", oldLine: oldLines[i - 1], accepted: null });
+      raw.unshift({ kind: "removed", oldLine: oldLines[i - 1], accepted: null });
       i--;
+    }
+  }
+
+  // Merge consecutive removed→added pairs into "modified" hunks
+  const result: DiffLine[] = [];
+  for (let k = 0; k < raw.length; k++) {
+    if (raw[k].kind === "removed" && k + 1 < raw.length && raw[k + 1].kind === "added") {
+      result.push({ kind: "modified", oldLine: raw[k].oldLine, newLine: raw[k + 1].newLine, accepted: null });
+      k++; // skip the added line
+    } else {
+      result.push(raw[k]);
     }
   }
   return result;
