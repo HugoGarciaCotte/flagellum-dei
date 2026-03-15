@@ -147,7 +147,7 @@ const FeatDetailsDisplay = ({ content, rawContent, className = "" }: FeatDetails
     <div className={`space-y-1.5 border-t border-border pt-1.5 mt-2 ${className}`}>
       {prerequisites && (
         <div>
-          <div className="text-sm font-medium text-muted-foreground">Prerequisites</div>
+          <div className="text-sm font-medium text-muted-foreground">{t("wiki.prerequisites")}</div>
           <div className="text-sm text-muted-foreground/80">
             <WikiLinkedText text={prerequisites} />
           </div>
