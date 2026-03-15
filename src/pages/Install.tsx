@@ -47,7 +47,7 @@ const Install = () => {
         <div className="grid grid-cols-3 gap-3 text-center">
           <div className="space-y-1.5">
             <WifiOff className="h-5 w-5 mx-auto text-primary" />
-            <p className="text-xs text-muted-foreground">{t("install.worksOffline")}</p>
+            <p className="text-sm text-muted-foreground">{t("install.worksOffline")}</p>
           </div>
           <div className="space-y-1.5">
             <Home className="h-5 w-5 mx-auto text-primary" />
