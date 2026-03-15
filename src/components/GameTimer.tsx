@@ -91,11 +91,11 @@ const GameTimer = ({ ambianceTrack, position = "left", hasActiveSection = false 
       <div className={cn("fixed bottom-14 sm:bottom-6 z-50", posClass)}>
         <button
           onClick={() => hasAmbiance && setExpanded(true)}
-          className={cn(
-            "flex items-center gap-2 px-3 py-2 rounded-full bg-primary text-primary-foreground text-sm shadow-lg transition-all hover:shadow-xl",
-            newEvent && "animate-pulse shadow-[0_0_12px_hsl(var(--primary)/0.5)]"
-          )}
+          className="relative flex items-center gap-2 px-3 py-2 rounded-full bg-primary text-primary-foreground text-sm shadow-lg transition-all hover:shadow-xl"
         >
+          {newEvent && (
+            <span className="absolute -top-1 -right-1 h-3 w-3 rounded-full bg-destructive border-2 border-primary" />
+          )}
           <Timer className="h-4 w-4 shrink-0" />
           {running && elapsed > 0 && (
             <span className="font-display font-bold tabular-nums">{minutes}m</span>
