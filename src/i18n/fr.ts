@@ -141,6 +141,8 @@ const fr: Record<string, string> = {
   "adminLegacy.searchFeats": "Rechercher un talent…",
   "adminLegacy.rawContent": "Contenu brut",
   "adminLegacy.incompatible": "Incompatible",
+  "dashboard.sendBeforeGame": "Envoyer aux joueurs avant la partie",
+  "dashboard.teaserCopied": "Accroche copiée !",
 };
 
 export default fr;
