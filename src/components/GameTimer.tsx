@@ -96,7 +96,10 @@ const GameTimer = ({ ambianceTrack, position = "left", hasActiveSection = false 
       <div className={cn("fixed bottom-14 sm:bottom-6 z-50", posClass)}>
         <button
           onClick={() => hasAmbiance && setExpanded(true)}
-          className="relative flex items-center gap-2 px-3 py-2 rounded-full bg-primary text-primary-foreground text-sm shadow-lg transition-all hover:shadow-xl"
+          className={cn(
+            "relative flex items-center gap-2 px-3 py-2 rounded-full bg-primary text-primary-foreground text-sm shadow-lg transition-all hover:shadow-xl",
+            flashing && "animate-pulse shadow-[0_0_12px_hsl(var(--destructive)/0.5)]"
+          )}
         >
           {newEvent && (
             <span className="absolute -top-1 -right-1 h-3 w-3 rounded-full bg-destructive border-2 border-primary" />
