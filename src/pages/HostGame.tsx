@@ -55,7 +55,7 @@ const HostGame = () => {
   const playerUserIds = useMemo(() => [...new Set(allPlayers.map((p: any) => p.user_id as string))], [allPlayers]);
   const characters = useMemo(() => allCharacters.filter((c: any) => playerUserIds.includes(c.user_id)), [allCharacters, playerUserIds]);
 
-  const effectiveScenario = game ? getScenarioById(game.scenario_id) : null;
+  const effectiveScenario = game ? getScenarioById(game.scenario_id, locale) : null;
   const scenarioContent = effectiveScenario?.content || "";
   const parsed = useMemo(() => parseWikitext(scenarioContent), [scenarioContent]);
   const sections = parsed.sections;
