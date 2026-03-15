@@ -82,6 +82,7 @@ function SectionNode({
   parentPlaylist = null,
   featsMap,
   tooltipLabels,
+  onPlayTrack,
 }: {
   section: WikiSection;
   activeSection: string | null;
