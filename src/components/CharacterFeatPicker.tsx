@@ -4,7 +4,13 @@ import { supabase } from "@/integrations/supabase/client";
 import { sortTitlesEmojiLast } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { X, Search, Loader2, Pencil, ArrowLeft, Plus } from "lucide-react";
+import { X, Search, Loader2, Pencil, ArrowLeft, Plus, MoreVertical } from "lucide-react";
+import {
+  DropdownMenu,
+  DropdownMenuTrigger,
+  DropdownMenuContent,
+  DropdownMenuItem,
+} from "@/components/ui/dropdown-menu";
 import { toast } from "sonner";
 import FeatListItem from "@/components/FeatListItem";
 import { Alert, AlertTitle, AlertDescription } from "@/components/ui/alert";
