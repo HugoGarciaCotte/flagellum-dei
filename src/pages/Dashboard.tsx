@@ -267,7 +267,7 @@ const Dashboard = () => {
                   <CardHeader className="pb-2">
                     <div className="flex items-center justify-between">
                       <CardTitle className="font-display text-lg">{game.title}</CardTitle>
-                      <span className={`text-xs font-display px-2 py-0.5 rounded-full ${game.role === "hosting" ? "bg-primary/15 text-primary" : "bg-accent text-accent-foreground"}`}>
+                      <span className={`text-sm font-display px-2 py-0.5 rounded-full ${game.role === "hosting" ? "bg-primary/15 text-primary" : "bg-accent text-accent-foreground"}`}>
                         {game.role === "hosting" ? t("dashboard.hosting") : t("dashboard.playing")}
                       </span>
                     </div>
