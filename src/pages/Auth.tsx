@@ -79,7 +79,7 @@ const Auth = () => {
         toast({ title: t("auth.signupFailed"), description: error.message, variant: "destructive" });
       } else {
         toast({ title: t("auth.accountCreated"), description: t("auth.welcomeFlagellum") });
-        navigate("/");
+        navigate(redirectTo);
       }
     }
     setLoading(false);
