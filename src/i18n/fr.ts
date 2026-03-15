@@ -87,6 +87,7 @@ const fr: Record<string, string> = {
   "timer.ambiance": "Ambiance",
   "timer.startToBegin": "Lancez le minuteur pour commencer",
   "timer.paused": "Minuteur en pause",
+  "timer.title": "Minuteur d'ambiance",
   "adminScenarios.insertTagAmbiance": "Piste d'ambiance",
   "game.joinCode": "Code d'invitation",
   "game.joinLinkCopied": "Lien d'invitation copié.",
