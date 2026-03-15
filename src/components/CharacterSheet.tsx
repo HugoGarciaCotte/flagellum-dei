@@ -31,7 +31,7 @@ const CharacterSheet = ({ characterId, mode = "player", scenarioLevel, onDone }:
   const [dirty, setDirty] = useState(false);
   const [generating, setGenerating] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
-  const { t } = useTranslation();
+  const { t, locale } = useTranslation();
 
   const character = useLocalRow<any>("characters", characterId);
 
