@@ -273,7 +273,7 @@ function SectionNode({
   );
 }
 
-export default function WikiSectionTree({ sections, activeSection, onActivateSection, parentBackground = null, parentPlaylist = null }: WikiSectionTreeProps) {
+export default function WikiSectionTree({ sections, activeSection, onActivateSection, parentBackground = null, parentPlaylist = null, onPlayTrack }: WikiSectionTreeProps) {
   const { data: featsMap } = useFeatsMap();
   const { t } = useTranslation();
   const tooltipLabels = useMemo(() => ({
@@ -294,6 +294,7 @@ export default function WikiSectionTree({ sections, activeSection, onActivateSec
           parentPlaylist={parentPlaylist}
           featsMap={featsMap}
           tooltipLabels={tooltipLabels}
+          onPlayTrack={onPlayTrack}
         />
       ))}
     </div>
