@@ -59,15 +59,13 @@ const SpotifyPlayer = ({ position = "left", playlistUrl, playlistName, playTrack
 
   // Track which playlist is currently playing to detect changes
   const currentPlaylistRef = useRef<string | null>(null);
-  // Track which queue tracks have been queued
-  const queuedTracksRef = useRef<string[]>([]);
+  // Track which single track was last requested
+  const lastPlayTrackRef = useRef<string | null>(null);
 
   const effectivePlaylistUrl = playlistUrl || DEFAULT_PLAYLIST_URL;
   const effectivePlaylistName = playlistName || t("spotify.defaultPlaylist");
 
-  // The URL to open in Spotify — last queued track or the playlist
-  const [lastQueuedUrl, setLastQueuedUrl] = useState<string | null>(null);
-  const openInSpotifyUrl = lastQueuedUrl || effectivePlaylistUrl;
+  const openInSpotifyUrl = effectivePlaylistUrl;
 
   // Load SDK script once
   useEffect(() => {
