@@ -64,10 +64,10 @@ const SpotifyCallback = () => {
     return (
       <div className="min-h-screen flex items-center justify-center bg-background text-foreground p-4">
         <div className="text-center space-y-4">
-          <p className="text-destructive font-display text-lg">Spotify connection failed</p>
+          <p className="text-destructive font-display text-lg">{t("spotify.connectionFailed")}</p>
           <p className="text-muted-foreground text-sm">{error}</p>
           <button className="text-primary underline" onClick={() => navigate("/")}>
-            Return home
+            {t("spotify.returnHome")}
           </button>
         </div>
       </div>
