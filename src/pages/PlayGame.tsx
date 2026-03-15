@@ -116,7 +116,7 @@ const PlayGame = () => {
       ? currentSectionId.replace(/-/g, " ").replace(/\b\w/g, (c: string) => c.toUpperCase())
       : null);
 
-  if (!game) return <FullPageLoader message={t("game.joiningQuest")} />;
+  if (!syncReady || !game) return <FullPageLoader message={t("game.joiningQuest")} />;
 
   const copyCode = () => {
     if (game?.join_code) {
