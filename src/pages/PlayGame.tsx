@@ -184,7 +184,7 @@ const PlayGame = () => {
               {selectedCharacter ? (
                 <div className="flex-1 min-w-0"><CharacterListItem character={selectedCharacter} /></div>
               ) : (
-                <span className="font-display text-sm font-medium text-muted-foreground">{t("game.selectCharacter")}</span>
+                <span className="font-display text-base font-medium text-muted-foreground">{t("game.selectCharacter")}</span>
               )}
             </div>
           </div>
