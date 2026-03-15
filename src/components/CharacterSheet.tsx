@@ -106,7 +106,7 @@ const CharacterSheet = ({ characterId, mode = "player", scenarioLevel, onDone }:
   const handleDescChange = (val: string) => { setDesc(val); setDirty(true); };
 
   if (!character) {
-    return <div className="text-sm text-muted-foreground py-4 text-center">{t("character.loading")}</div>;
+    return <div className="text-base text-muted-foreground py-4 text-center">{t("character.loading")}</div>;
   }
 
   const initials = character.name.slice(0, 2).toUpperCase();
