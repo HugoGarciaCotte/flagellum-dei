@@ -40,7 +40,7 @@ const ClarityItem = ({
 }) => (
   <div className="flex items-center gap-3 text-muted-foreground">
     <span className="text-primary">{icon}</span>
-    <span className="font-display text-[11px] tracking-[0.2em] uppercase">
+    <span className="font-display text-base tracking-[0.2em] uppercase">
       {label}
     </span>
   </div>
