@@ -129,7 +129,7 @@ const PlayGame = () => {
 
   return (
     <div
-      className="min-h-screen bg-background flex flex-col transition-[background-image] duration-700"
+      className="fixed inset-0 bg-background flex flex-col transition-[background-image] duration-700"
       style={activeBg ? {
         backgroundImage: `linear-gradient(to bottom, hsl(var(--background) / 0.3), hsl(var(--background) / 0.5)), url(${activeBg})`,
         backgroundSize: "cover",
