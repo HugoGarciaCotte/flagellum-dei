@@ -1,7 +1,7 @@
 import React, { useState, useRef, useEffect, useCallback, useMemo } from "react";
 import { createPortal } from "react-dom";
 import { ChevronRight, Play, Music, ExternalLink } from "lucide-react";
-import { WikiSection, resolveBackgroundImage, resolvePlaylist, type PlaylistInfo } from "@/lib/parseWikitext";
+import { WikiSection, resolveBackgroundImage, resolvePlaylist, collectQueueTracks, type PlaylistInfo, type QueueTrackInfo } from "@/lib/parseWikitext";
 import { cn } from "@/lib/utils";
 import { buildFeatsMap, getFeatMeta } from "@/data/feats";
 import { useTranslation } from "@/i18n/useTranslation";
@@ -14,6 +14,7 @@ interface WikiSectionTreeProps {
   onActivateSection: (sectionId: string) => void;
   parentBackground?: string | null;
   parentPlaylist?: PlaylistInfo | null;
+  onPlayTrack?: (url: string) => void;
 }
 
 const TITLE_SIZES: Record<number, string> = {
@@ -81,6 +82,7 @@ function SectionNode({
   parentPlaylist = null,
   featsMap,
   tooltipLabels,
+  onPlayTrack,
 }: {
   section: WikiSection;
   activeSection: string | null;
@@ -90,6 +92,7 @@ function SectionNode({
   parentPlaylist?: PlaylistInfo | null;
   featsMap: Map<string, any> | undefined;
   tooltipLabels: TooltipLabels;
+  onPlayTrack?: (url: string) => void;
 }) {
   const [open, setOpen] = useState(true);
   const [hoveredFeat, setHoveredFeat] = useState<{ name: string; rect: DOMRect } | null>(null);
@@ -97,6 +100,7 @@ function SectionNode({
   const isActive = activeSection === section.id;
   const hasChildren = section.children.length > 0;
   const hasContent = section.content.trim().length > 0;
+  const queueTracks = useMemo(() => collectQueueTracks(section), [section]);
 
   const effectiveBg = resolveBackgroundImage(section, parentBackground);
   const effectivePlaylist = resolvePlaylist(section, parentPlaylist);
@@ -225,6 +229,26 @@ function SectionNode({
                   dangerouslySetInnerHTML={{ __html: seg }}
                 />
               )}
+              {/* Queue track play buttons — only on last content segment */}
+              {i === (section.contentSegments ?? [section.content]).length - 1 && queueTracks.length > 0 && (
+                <div className="flex flex-wrap gap-2 px-8 pb-2 pt-1">
+                  {queueTracks.map((qt, qi) => (
+                    <button
+                      key={qi}
+                      onClick={() => onPlayTrack?.(qt.url) ?? window.open(qt.url, "_blank")}
+                      className={cn(
+                        "inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium transition-colors",
+                        isActive
+                          ? "bg-primary-foreground/20 text-primary-foreground hover:bg-primary-foreground/30"
+                          : "bg-accent text-accent-foreground hover:bg-accent/80"
+                      )}
+                    >
+                      <Play className="h-3 w-3 fill-current" />
+                      {qt.name}
+                    </button>
+                  ))}
+                </div>
+              )}
               {hoveredFeat && featsMap && tooltipLabels && (
                 <FeatLinkTooltip featName={hoveredFeat.name} rect={hoveredFeat.rect} featsMap={featsMap} labels={tooltipLabels} />
               )}
@@ -239,6 +263,7 @@ function SectionNode({
                   parentPlaylist={effectivePlaylist}
                   featsMap={featsMap}
                   tooltipLabels={tooltipLabels}
+                  onPlayTrack={onPlayTrack}
                 />
               )}
             </React.Fragment>
@@ -249,7 +274,7 @@ function SectionNode({
   );
 }
 
-export default function WikiSectionTree({ sections, activeSection, onActivateSection, parentBackground = null, parentPlaylist = null }: WikiSectionTreeProps) {
+export default function WikiSectionTree({ sections, activeSection, onActivateSection, parentBackground = null, parentPlaylist = null, onPlayTrack }: WikiSectionTreeProps) {
   const { data: featsMap } = useFeatsMap();
   const { t } = useTranslation();
   const tooltipLabels = useMemo(() => ({
@@ -270,6 +295,7 @@ export default function WikiSectionTree({ sections, activeSection, onActivateSec
           parentPlaylist={parentPlaylist}
           featsMap={featsMap}
           tooltipLabels={tooltipLabels}
+          onPlayTrack={onPlayTrack}
         />
       ))}
     </div>

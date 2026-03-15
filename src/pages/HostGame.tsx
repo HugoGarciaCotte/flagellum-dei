@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { useParams, useNavigate, Link } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
@@ -9,7 +9,7 @@ import { toast } from "@/hooks/use-toast";
 import { ArrowLeft, Copy } from "lucide-react";
 
 import PlayerListSheet from "@/components/PlayerListSheet";
-import { parseWikitext, extractImageUrls, findSection, resolveAmbianceTrack, resolvePlaylist, collectQueueTracks, type PlaylistInfo, type QueueTrackInfo } from "@/lib/parseWikitext";
+import { parseWikitext, extractImageUrls, findSection, resolveAmbianceTrack, resolvePlaylist, type PlaylistInfo } from "@/lib/parseWikitext";
 import { getBy } from "@/lib/localStore";
 import WikiSectionTree from "@/components/WikiSectionTree";
 import DiceRoller from "@/components/DiceRoller";
@@ -100,13 +100,14 @@ const HostGame = () => {
     return walkPlaylist(sections, null);
   }, [activeSection, sections, parsed.metadata.playlist]);
 
-  // Collect queue tracks for the active section (not inherited)
-  const activeQueueTracks = useMemo((): string[] => {
-    if (!activeSection) return [];
-    const sec = findSection(sections, activeSection);
-    if (!sec) return [];
-    return collectQueueTracks(sec).map(qt => qt.url);
-  }, [activeSection, sections]);
+  // Single track playback triggered by inline buttons
+  const [playTrackUrl, setPlayTrackUrl] = useState<string | null>(null);
+
+  const handlePlayTrack = useCallback((url: string) => {
+    // Force re-trigger even if same track by toggling
+    setPlayTrackUrl(null);
+    setTimeout(() => setPlayTrackUrl(url), 0);
+  }, []);
 
   // Targeted pull if game missing after initial sync (e.g. direct URL navigation)
   useEffect(() => {
@@ -197,7 +198,7 @@ const HostGame = () => {
         {sections.length > 0 ? (
           <Card className="w-full aged-border gold-glow-box">
             <CardContent className="p-4">
-              <WikiSectionTree sections={sections} activeSection={activeSection} onActivateSection={activateSection} />
+              <WikiSectionTree sections={sections} activeSection={activeSection} onActivateSection={activateSection} onPlayTrack={handlePlayTrack} />
             </CardContent>
           </Card>
         ) : (
@@ -220,7 +221,7 @@ const HostGame = () => {
       )}
       </div>
 
-      <SpotifyPlayer position="left" playlistUrl={resolvedPlaylist?.url} playlistName={resolvedPlaylist?.name} queueTracks={activeQueueTracks} />
+      <SpotifyPlayer position="left" playlistUrl={resolvedPlaylist?.url} playlistName={resolvedPlaylist?.name} playTrackUrl={playTrackUrl ?? undefined} />
       <GameTimer ambianceTrack={resolvedAmbianceTrack} position="right" hasActiveSection={!!activeSection} />
       <DiceRoller gameId={gameId} userName={t("game.gameMaster")} isGameMaster={true} position="right" />
     </div>

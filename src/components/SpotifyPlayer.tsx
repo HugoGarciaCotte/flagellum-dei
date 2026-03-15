@@ -34,10 +34,10 @@ interface SpotifyPlayerProps {
   position?: "left" | "right";
   playlistUrl?: string;
   playlistName?: string;
-  queueTracks?: string[];
+  playTrackUrl?: string;
 }
 
-const SpotifyPlayer = ({ position = "left", playlistUrl, playlistName, queueTracks }: SpotifyPlayerProps) => {
+const SpotifyPlayer = ({ position = "left", playlistUrl, playlistName, playTrackUrl }: SpotifyPlayerProps) => {
   const isMobile = useIsMobile();
   const bannerOffset = useBottomOffset();
   const online = useNetworkStatus();
@@ -59,15 +59,13 @@ const SpotifyPlayer = ({ position = "left", playlistUrl, playlistName, queueTrac
 
   // Track which playlist is currently playing to detect changes
   const currentPlaylistRef = useRef<string | null>(null);
-  // Track which queue tracks have been queued
-  const queuedTracksRef = useRef<string[]>([]);
+  // Track which single track was last requested
+  const lastPlayTrackRef = useRef<string | null>(null);
 
   const effectivePlaylistUrl = playlistUrl || DEFAULT_PLAYLIST_URL;
   const effectivePlaylistName = playlistName || t("spotify.defaultPlaylist");
 
-  // The URL to open in Spotify — last queued track or the playlist
-  const [lastQueuedUrl, setLastQueuedUrl] = useState<string | null>(null);
-  const openInSpotifyUrl = lastQueuedUrl || effectivePlaylistUrl;
+  const openInSpotifyUrl = effectivePlaylistUrl;
 
   // Load SDK script once
   useEffect(() => {
@@ -228,33 +226,30 @@ const SpotifyPlayer = ({ position = "left", playlistUrl, playlistName, queueTrac
     startPlayback();
   }, [deviceId, accessToken, effectivePlaylistUrl]);
 
-  // Queue tracks when queueTracks change
+  // Play a single track on demand when playTrackUrl changes
   useEffect(() => {
-    if (!deviceId || !accessToken || !queueTracks || queueTracks.length === 0) return;
+    if (!deviceId || !accessToken || !playTrackUrl) return;
+    if (lastPlayTrackRef.current === playTrackUrl) return;
+    lastPlayTrackRef.current = playTrackUrl;
 
-    // Only queue new tracks
-    const newTracks = queueTracks.filter(t => !queuedTracksRef.current.includes(t));
-    if (newTracks.length === 0) return;
-
-    queuedTracksRef.current = [...queuedTracksRef.current, ...newTracks];
-    setLastQueuedUrl(newTracks[newTracks.length - 1]);
-
-    const queueAll = async () => {
-      for (const trackUrl of newTracks) {
-        const uri = urlToUri(trackUrl);
-        try {
-          await fetch(`https://api.spotify.com/v1/me/player/queue?uri=${encodeURIComponent(uri)}&device_id=${deviceId}`, {
-            method: "POST",
-            headers: { Authorization: `Bearer ${accessToken}` },
-          });
-        } catch (e) {
-          console.error("Failed to queue track:", e);
-        }
+    const playTrack = async () => {
+      const uri = urlToUri(playTrackUrl);
+      try {
+        await fetch(`https://api.spotify.com/v1/me/player/play?device_id=${deviceId}`, {
+          method: "PUT",
+          headers: {
+            Authorization: `Bearer ${accessToken}`,
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({ uris: [uri] }),
+        });
+      } catch (e) {
+        console.error("Failed to play track:", e);
       }
     };
 
-    queueAll();
-  }, [deviceId, accessToken, queueTracks]);
+    playTrack();
+  }, [deviceId, accessToken, playTrackUrl]);
 
   const handleConnect = () => {
     if (!spotifyClientId) return;
