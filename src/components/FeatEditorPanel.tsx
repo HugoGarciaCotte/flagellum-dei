@@ -64,6 +64,8 @@ const FeatEditorPanel = () => {
   const [bulkGenerating, setBulkGenerating] = useState(false);
   const [bulkProgress, setBulkProgress] = useState({ done: 0, total: 0 });
   const bulkAbortRef = useRef(false);
+  const [editorLocale, setEditorLocale] = useState<EditorLocale>("en");
+  const [generatingFr, setGeneratingFr] = useState<Set<string>>(new Set());
 
   // Load overrides from DB
   useEffect(() => {
