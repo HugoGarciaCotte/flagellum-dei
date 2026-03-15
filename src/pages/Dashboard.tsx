@@ -328,7 +328,7 @@ const Dashboard = () => {
                 <AlertDialogTitle className="font-display flex items-center gap-2">
                   <span className="text-lg text-primary" aria-hidden="true">🜁</span> {t("dashboard.becomeGMTitle")}
                 </AlertDialogTitle>
-                <AlertDialogDescription className="text-sm leading-relaxed">
+                <AlertDialogDescription className="text-base leading-relaxed">
                   <span dangerouslySetInnerHTML={{ __html: t("dashboard.becomeGMDesc") }} />
                   <br /><br />
                   {t("dashboard.becomeGMConfirm")}
