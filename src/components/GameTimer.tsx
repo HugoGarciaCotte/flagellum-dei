@@ -74,9 +74,11 @@ const GameTimer = ({ ambianceTrack, position = "left", hasActiveSection = false 
 
   // Current ambiance text for pill
   const getAmbianceText = () => {
+    if (!hasActiveSection) return { text: t("timer.noSection"), muted: true };
+    if (!hasAmbiance) return { text: t("timer.noAmbiance"), muted: true };
     if (!running && elapsed === 0) return { text: t("timer.startToBegin"), muted: true };
     if (!running && elapsed > 0) return { text: t("timer.paused"), muted: true };
-    if (running && activeAmbianceIdx >= 0) return { text: ambianceTrack[activeAmbianceIdx].text, muted: false };
+    if (running && activeAmbianceIdx >= 0) return { text: ambianceTrack![activeAmbianceIdx].text, muted: false };
     return { text: "", muted: false };
   };
   const ambianceStatus = getAmbianceText();
