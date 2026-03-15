@@ -121,7 +121,7 @@ const HostGame = () => {
   if (!game) return <FullPageLoader message={t("game.loadingQuest")} />;
 
   return (
-    <div className="min-h-screen bg-background flex flex-col">
+    <div className="fixed inset-0 bg-background flex flex-col">
       <PageHeader
         title={effectiveScenario?.title ?? ""}
         leftAction={<Button variant="ghost" size="icon" onClick={() => navigate("/")}><ArrowLeft className="h-4 w-4" /></Button>}
@@ -146,7 +146,8 @@ const HostGame = () => {
         }
       />
 
-      <main className="flex-1 container py-6 max-w-5xl">
+      <div className="flex-1 overflow-y-auto">
+      <main className="container py-6 max-w-5xl pb-20">
         {sections.length > 0 ? (
           <Card className="w-full aged-border gold-glow-box">
             <CardContent className="p-4">
@@ -171,6 +172,7 @@ const HostGame = () => {
           </Link>
         </p>
       )}
+      </div>
 
       <GameTimer ambianceTrack={resolvedAmbianceTrack} position="right" hasActiveSection={!!activeSection} />
       <DiceRoller gameId={gameId} userName={t("game.gameMaster")} isGameMaster={true} position="right" />
