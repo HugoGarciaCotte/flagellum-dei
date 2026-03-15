@@ -156,7 +156,7 @@ const Home = () => {
   const faqCount = 12; // q0..q11
 
   return (
-    <div data-page="home" className="min-h-screen bg-background text-foreground">
+    <div className="min-h-screen bg-background text-foreground">
       {/* ─── HEADER ─── */}
       <header className="fixed top-0 left-0 right-0 z-50 border-b border-primary/10 bg-background/95 backdrop-blur-md pt-[env(safe-area-inset-top)]">
         <div className="container mx-auto flex items-center justify-between px-6 py-4">

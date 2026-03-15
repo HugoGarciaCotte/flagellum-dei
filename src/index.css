@@ -4,18 +4,6 @@
 @tailwind components;
 @tailwind utilities;
 
-:root {
-  --min-body-font: 1rem;
-}
-
-[data-page="home"] {
-  --min-body-font: 0px;
-}
-
-p, li, label {
-  font-size: max(var(--min-body-font), inherit) !important;
-}
-
 @layer base {
   :root {
     --background: 0 0% 7%;
