@@ -2,7 +2,7 @@ import { useState, useEffect, useCallback, useRef } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 
-const SPOTIFY_CLIENT_ID = "0f359b30c2484879a3d42b57ac0aabab";
+const SPOTIFY_CLIENT_ID = "2212a74fa26147aabc35a8c6ef66c9eb";
 const SPOTIFY_SCOPES = "streaming user-read-email user-read-private";
 const VERIFIER_KEY = "spotify_pkce_verifier";
 const RETURN_KEY = "spotify_return_path";
