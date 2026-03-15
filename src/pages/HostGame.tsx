@@ -173,7 +173,7 @@ const HostGame = () => {
       )}
 
       <GameTimer ambianceTrack={resolvedAmbianceTrack} position="right" hasActiveSection={!!activeSection} />
-      <DiceRoller gameId={gameId} userName={t("game.gameMaster")} isGameMaster={true} position="left" />
+      <DiceRoller gameId={gameId} userName={t("game.gameMaster")} isGameMaster={true} position="right" />
     </div>
   );
 };
