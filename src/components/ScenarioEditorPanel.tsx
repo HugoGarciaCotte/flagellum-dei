@@ -473,7 +473,7 @@ const ContentEditor = ({
             <Button
               variant="outline"
               size="sm"
-              className="h-7 text-xs gap-1"
+              className="h-7 text-sm gap-1"
               onMouseDown={(e) => e.preventDefault()}
             >
               <Plus className="h-3 w-3" />
