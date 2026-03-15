@@ -179,6 +179,18 @@ function SectionNode({
         <>
           {(section.contentSegments ?? [section.content]).map((seg, i) => (
             <React.Fragment key={i}>
+              {i > 0 && seg.trim().length > 0 && (
+                <button
+                  onClick={() => onActivateSection(section.id)}
+                  className={cn(
+                    "flex items-center gap-1.5 px-8 py-1 text-sm font-medium transition-colors",
+                    isActive ? "text-primary-foreground/70" : "text-primary"
+                  )}
+                >
+                  <Play className="h-3 w-3 fill-current" />
+                  Resume {section.title}
+                </button>
+              )}
               {seg.trim().length > 0 && (
                 <div
                   ref={i === 0 ? contentRef : undefined}
