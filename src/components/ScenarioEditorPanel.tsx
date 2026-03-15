@@ -383,7 +383,7 @@ Upload the images from the scenario-backgrounds/ folder in the attached ZIP into
               >
                 <ChevronDown className="h-3.5 w-3.5 -rotate-90" />
                 <span className="font-medium flex-1">{scenario.title}</span>
-                {scenarioHasOverrides && <Badge variant="secondary" className="text-[10px]">{t("adminScenarios.modified")}</Badge>}
+                {scenarioHasOverrides && <Badge variant="secondary" className="text-base">{t("adminScenarios.modified")}</Badge>}
                 {scenario.level != null && (
                   <Badge variant="secondary" className="text-xs">{t("adminScenarios.lvl").replace("{level}", String(scenario.level))}</Badge>
                 )}
