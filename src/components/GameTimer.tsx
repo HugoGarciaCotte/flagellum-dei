@@ -1,7 +1,6 @@
 import { useState, useEffect, useRef, useCallback } from "react";
 import { Timer, Play, Pause, RotateCcw } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { Table, TableBody, TableRow, TableCell } from "@/components/ui/table";
 import { useTranslation } from "@/i18n/useTranslation";
 import { cn } from "@/lib/utils";
@@ -13,6 +12,7 @@ interface GameTimerProps {
 
 const GameTimer = ({ ambianceTrack }: GameTimerProps) => {
   const [open, setOpen] = useState(false);
+  const [ambianceOpen, setAmbianceOpen] = useState(false);
   const [running, setRunning] = useState(false);
   const [elapsed, setElapsed] = useState(0); // seconds
   const [newEvent, setNewEvent] = useState(false);
@@ -60,27 +60,69 @@ const GameTimer = ({ ambianceTrack }: GameTimerProps) => {
 
   if (!open) {
     return (
-      <div className="fixed bottom-6 left-6 z-50">
-        <div className="relative inline-flex">
-          <Button
-            onClick={() => setOpen(true)}
-            size={showTime ? undefined : "icon"}
-            className={showTime
-              ? "h-12 rounded-full shadow-lg px-4 gap-2"
-              : "h-12 w-12 rounded-full shadow-lg"
-            }
-          >
-            <Timer className="h-5 w-5 shrink-0" />
-            {showTime && (
-              <span className="font-display font-bold tabular-nums text-sm">
-                {minutes}<span className="text-xs font-normal opacity-75 ml-0.5">m</span>
-              </span>
-            )}
-          </Button>
-          {hasAmbiance && newEvent && (
-            <span className="absolute -top-1 -right-1 h-3 w-3 rounded-full bg-primary animate-pulse" />
+      <div className="fixed bottom-6 left-6 z-50 flex flex-col items-start gap-1">
+        <Button
+          onClick={() => setOpen(true)}
+          size={showTime ? undefined : "icon"}
+          className={showTime
+            ? "h-12 rounded-full shadow-lg px-4 gap-2"
+            : "h-12 w-12 rounded-full shadow-lg"
+          }
+        >
+          <Timer className="h-5 w-5 shrink-0" />
+          {showTime && (
+            <span className="font-display font-bold tabular-nums text-sm">
+              {minutes}<span className="text-xs font-normal opacity-75 ml-0.5">m</span>
+            </span>
           )}
-        </div>
+        </Button>
+
+        {hasAmbiance && (
+          <>
+            <button
+              onClick={() => setAmbianceOpen(!ambianceOpen)}
+              className={cn(
+                "flex items-center gap-1.5 px-3 py-1 rounded-full border border-amber-300 bg-amber-100 text-amber-900 text-xs shadow-sm transition-all",
+                newEvent && "animate-pulse shadow-[0_0_10px_rgba(251,191,36,0.5)]"
+              )}
+            >
+              <span className="font-semibold shrink-0">{t("timer.ambiance")} :</span>
+              {activeAmbianceIdx >= 0 && (
+                <span className="truncate max-w-[150px]">
+                  {ambianceTrack[activeAmbianceIdx].text}
+                </span>
+              )}
+            </button>
+
+            {ambianceOpen && (
+              <>
+                <div className="fixed inset-0 z-40" onClick={() => setAmbianceOpen(false)} />
+                <div className="relative z-50 bg-card border border-border rounded-xl shadow-xl p-3 max-w-[340px] max-h-[50vh] overflow-y-auto">
+                  <Table>
+                    <TableBody>
+                      {ambianceTrack.map((entry, idx) => (
+                        <TableRow
+                          key={idx}
+                          className={cn(
+                            "transition-colors",
+                            idx === activeAmbianceIdx && "bg-primary/15 font-medium"
+                          )}
+                        >
+                          <TableCell className="py-1.5 px-2 text-xs tabular-nums whitespace-nowrap w-12 align-top text-muted-foreground">
+                            {entry.minutes}m
+                          </TableCell>
+                          <TableCell className="py-1.5 px-2 text-xs leading-relaxed">
+                            {entry.text}
+                          </TableCell>
+                        </TableRow>
+                      ))}
+                    </TableBody>
+                  </Table>
+                </div>
+              </>
+            )}
+          </>
+        )}
       </div>
     );
   }
@@ -89,7 +131,7 @@ const GameTimer = ({ ambianceTrack }: GameTimerProps) => {
     <>
       <div className="fixed inset-0 z-40" onClick={() => setOpen(false)} />
       <div className="fixed bottom-6 left-6 z-50">
-        <div className="bg-card border border-border rounded-2xl shadow-xl p-4 flex flex-col items-center gap-3 min-w-[180px] max-w-[360px] max-h-[70vh] relative">
+        <div className="bg-card border border-border rounded-2xl shadow-xl p-4 flex flex-col items-center gap-3 min-w-[180px] relative">
           <button
             onClick={() => setOpen(false)}
             className="absolute top-2 right-2 text-muted-foreground hover:text-foreground text-xs"
@@ -98,66 +140,14 @@ const GameTimer = ({ ambianceTrack }: GameTimerProps) => {
             ✕
           </button>
 
-          {hasAmbiance ? (
-            <Tabs defaultValue="timer" className="w-full">
-              <TabsList className="w-full grid grid-cols-2 h-8">
-                <TabsTrigger value="timer" className="text-xs">{t("timer.timer")}</TabsTrigger>
-                <TabsTrigger value="ambiance" className="text-xs">{t("timer.ambiance")}</TabsTrigger>
-              </TabsList>
-
-              <TabsContent value="timer" className="mt-3">
-                <TimerControls
-                  minutes={minutes}
-                  seconds={seconds}
-                  running={running}
-                  setRunning={setRunning}
-                  reset={reset}
-                  t={t}
-                />
-              </TabsContent>
-
-              <TabsContent value="ambiance" className="mt-3 overflow-y-auto max-h-[50vh]">
-                <TimerControls
-                  minutes={minutes}
-                  seconds={seconds}
-                  running={running}
-                  setRunning={setRunning}
-                  reset={reset}
-                  t={t}
-                  compact
-                />
-                <Table className="mt-2">
-                  <TableBody>
-                    {ambianceTrack.map((entry, idx) => (
-                      <TableRow
-                        key={idx}
-                        className={cn(
-                          "transition-colors",
-                          idx === activeAmbianceIdx && "bg-primary/15 font-medium"
-                        )}
-                      >
-                        <TableCell className="py-1.5 px-2 text-xs tabular-nums whitespace-nowrap w-12 align-top text-muted-foreground">
-                          {entry.minutes}m
-                        </TableCell>
-                        <TableCell className="py-1.5 px-2 text-xs leading-relaxed">
-                          {entry.text}
-                        </TableCell>
-                      </TableRow>
-                    ))}
-                  </TableBody>
-                </Table>
-              </TabsContent>
-            </Tabs>
-          ) : (
-            <TimerControls
-              minutes={minutes}
-              seconds={seconds}
-              running={running}
-              setRunning={setRunning}
-              reset={reset}
-              t={t}
-            />
-          )}
+          <TimerControls
+            minutes={minutes}
+            seconds={seconds}
+            running={running}
+            setRunning={setRunning}
+            reset={reset}
+            t={t}
+          />
         </div>
       </div>
     </>
