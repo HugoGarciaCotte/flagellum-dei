@@ -16,7 +16,7 @@ interface BackgroundInsertDialogProps {
   onInsert: (url: string) => void;
   scenarioId: string;
   scenarioTitle: string;
-  scenarioDescription: string | null;
+  scenarioTeaser: string | null;
 }
 
 const BackgroundInsertDialog = ({
