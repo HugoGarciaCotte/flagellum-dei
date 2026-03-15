@@ -21,6 +21,7 @@ import { useLocalRow, useLocalRows } from "@/hooks/useLocalData";
 import { upsertRow } from "@/lib/localStore";
 import { triggerPush, pullTable } from "@/lib/syncManager";
 import { useTranslation } from "@/i18n/useTranslation";
+import SpotifyPlayer from "@/components/SpotifyPlayer";
 
 const PlayGame = () => {
   const { gameId } = useParams<{ gameId: string }>();
@@ -180,6 +181,7 @@ const PlayGame = () => {
         )}
       </div>
 
+      <SpotifyPlayer position="left" />
       <DiceRoller gameId={gameId} userName={selectedCharacter?.name ?? t("game.aPlayer")} isGameMaster={false} />
 
       {!sheetExpanded && (
