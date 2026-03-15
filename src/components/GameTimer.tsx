@@ -121,7 +121,7 @@ const GameTimer = ({ ambianceTrack, position = "left", hasActiveSection = false 
               </span>
               <button
                 onClick={() => setExpanded(false)}
-                className="text-muted-foreground hover:text-foreground text-xs"
+                className="text-muted-foreground hover:text-foreground text-sm"
                 aria-label="Close"
               >
                 ✕
