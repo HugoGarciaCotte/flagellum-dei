@@ -71,6 +71,8 @@ const DiceRoller = ({ gameId, userName, isGameMaster, position = "right" }: Dice
   const rollIdRef = useRef("");
   const channelRef = useRef<ReturnType<typeof supabase.channel> | null>(null);
   const { t } = useTranslation();
+  const isMobile = useIsMobile();
+  const bannerOffset = useBottomOffset();
 
   // Subscribe to broadcast channel
   useEffect(() => {
