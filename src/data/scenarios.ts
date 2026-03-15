@@ -9,6 +9,18 @@ export interface Scenario {
   teaser: string | null;
   level: number | null;
   content: string | null;
+  fr?: { title?: string; teaser?: string; content?: string };
+}
+
+/** Apply locale to a scenario — returns FR fields when available, else EN fallback. */
+export function localizeScenario(scenario: Scenario, locale?: string): Scenario {
+  if (!locale || locale === "en" || !scenario.fr) return scenario;
+  return {
+    ...scenario,
+    title: scenario.fr.title ?? scenario.title,
+    teaser: scenario.fr.teaser ?? scenario.teaser,
+    content: scenario.fr.content ?? scenario.content,
+  };
 }
 
 export const scenario1: Scenario = {
