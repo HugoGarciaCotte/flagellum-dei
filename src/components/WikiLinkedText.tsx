@@ -66,7 +66,7 @@ function parseSegments(raw: string): TextSegment[] {
 function FeatHoverContent({ featTitle, featsMap }: { featTitle: string; featsMap: Map<string, Feat> }) {
   const feat = featsMap.get(featTitle.toLowerCase());
   if (!feat) {
-    return <p className="text-xs text-muted-foreground">Feat not found: {featTitle}</p>;
+    return <p className="text-sm text-muted-foreground">Feat not found: {featTitle}</p>;
   }
 
   const meta = getFeatMeta(feat);
