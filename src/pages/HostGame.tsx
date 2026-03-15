@@ -220,7 +220,7 @@ const HostGame = () => {
       )}
       </div>
 
-      <SpotifyPlayer position="left" />
+      <SpotifyPlayer position="left" playlistUrl={resolvedPlaylist?.url} playlistName={resolvedPlaylist?.name} queueTracks={activeQueueTracks} />
       <GameTimer ambianceTrack={resolvedAmbianceTrack} position="right" hasActiveSection={!!activeSection} />
       <DiceRoller gameId={gameId} userName={t("game.gameMaster")} isGameMaster={true} position="right" />
     </div>

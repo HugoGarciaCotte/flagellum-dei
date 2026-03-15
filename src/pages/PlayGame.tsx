@@ -181,7 +181,7 @@ const PlayGame = () => {
         )}
       </div>
 
-      <SpotifyPlayer position="left" />
+      {/* SpotifyPlayer removed — GM-only feature */}
       <DiceRoller gameId={gameId} userName={selectedCharacter?.name ?? t("game.aPlayer")} isGameMaster={false} />
 
       {!sheetExpanded && (

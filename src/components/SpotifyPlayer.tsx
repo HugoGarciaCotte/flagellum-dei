@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef, useCallback } from "react";
-import { Music, Play, Pause, SkipForward, SkipBack, X, Loader2, WifiOff } from "lucide-react";
+import { Music, Play, Pause, SkipForward, SkipBack, X, Loader2, WifiOff, ExternalLink } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import { useIsMobile } from "@/hooks/use-mobile";
@@ -10,8 +10,18 @@ import { useTranslation } from "@/i18n/useTranslation";
 import { supabase } from "@/integrations/supabase/client";
 import { initiateSpotifyLogin } from "@/lib/spotifyAuth";
 
-const PLAYLIST_URI = "spotify:playlist:4GZgLYVRC7JG84Ftrmqu62";
+const DEFAULT_PLAYLIST_URL = "https://open.spotify.com/playlist/4GZgLYVRC7JG84Ftrmqu62";
 const SPOTIFY_SDK_URL = "https://sdk.scdn.co/spotify-player.js";
+
+/** Convert a Spotify open URL to a URI for the SDK */
+function urlToUri(url: string): string {
+  try {
+    const u = new URL(url);
+    const parts = u.pathname.split("/").filter(Boolean); // e.g. ["playlist", "abc123"]
+    if (parts.length >= 2) return `spotify:${parts[0]}:${parts[1]}`;
+  } catch {}
+  return url; // fallback
+}
 
 declare global {
   interface Window {
@@ -22,9 +32,12 @@ declare global {
 
 interface SpotifyPlayerProps {
   position?: "left" | "right";
+  playlistUrl?: string;
+  playlistName?: string;
+  queueTracks?: string[];
 }
 
-const SpotifyPlayer = ({ position = "left" }: SpotifyPlayerProps) => {
+const SpotifyPlayer = ({ position = "left", playlistUrl, playlistName, queueTracks }: SpotifyPlayerProps) => {
   const isMobile = useIsMobile();
   const bannerOffset = useBottomOffset();
   const online = useNetworkStatus();
@@ -43,6 +56,18 @@ const SpotifyPlayer = ({ position = "left" }: SpotifyPlayerProps) => {
   const [error, setError] = useState<string | null>(null);
   const playerRef = useRef<any>(null);
   const sdkScriptRef = useRef<boolean>(false);
+
+  // Track which playlist is currently playing to detect changes
+  const currentPlaylistRef = useRef<string | null>(null);
+  // Track which queue tracks have been queued
+  const queuedTracksRef = useRef<string[]>([]);
+
+  const effectivePlaylistUrl = playlistUrl || DEFAULT_PLAYLIST_URL;
+  const effectivePlaylistName = playlistName || t("spotify.defaultPlaylist");
+
+  // The URL to open in Spotify — last queued track or the playlist
+  const [lastQueuedUrl, setLastQueuedUrl] = useState<string | null>(null);
+  const openInSpotifyUrl = lastQueuedUrl || effectivePlaylistUrl;
 
   // Load SDK script once
   useEffect(() => {
@@ -87,7 +112,6 @@ const SpotifyPlayer = ({ position = "left" }: SpotifyPlayerProps) => {
 
       if (!profile?.spotify_refresh_token) return;
 
-      // Check if stored access token is still valid
       if (profile.spotify_access_token && profile.spotify_token_expires_at) {
         const expiresAt = new Date(profile.spotify_token_expires_at).getTime();
         if (Date.now() < expiresAt - 60000) {
@@ -96,7 +120,6 @@ const SpotifyPlayer = ({ position = "left" }: SpotifyPlayerProps) => {
         }
       }
 
-      // Refresh
       const { data, error } = await supabase.functions.invoke("spotify-token-exchange", {
         body: { grant_type: "refresh_token", refresh_token: profile.spotify_refresh_token },
       });
@@ -107,23 +130,19 @@ const SpotifyPlayer = ({ position = "left" }: SpotifyPlayerProps) => {
         sessionStorage.setItem("spotify_token_expires", String(Date.now() + data.expires_in * 1000));
       }
     } catch {
-      // silent - user just won't have Spotify
+      // silent
     }
   }, [user]);
 
-  // Fetch client ID from edge function (we need it for the auth URL)
+  // Fetch client ID
   useEffect(() => {
-    // We store client ID as a secret but also need it client-side for PKCE
-    // Fetch it via a lightweight call to the edge function
     const fetchClientId = async () => {
       try {
         const { data } = await supabase.functions.invoke("spotify-token-exchange", {
           body: { grant_type: "client_id" },
         });
         if (data?.client_id) setSpotifyClientId(data.client_id);
-      } catch {
-        // Will be fetched when user tries to connect
-      }
+      } catch {}
     };
     if (online && !spotifyClientId) fetchClientId();
   }, [online, spotifyClientId]);
@@ -163,7 +182,6 @@ const SpotifyPlayer = ({ position = "left" }: SpotifyPlayerProps) => {
       setAccessToken(null);
       sessionStorage.removeItem("spotify_access_token");
       sessionStorage.removeItem("spotify_token_expires");
-      // Clear bad tokens from profile to prevent reload loop
       if (user) {
         supabase.from("profiles").update({
           spotify_access_token: null,
@@ -184,9 +202,13 @@ const SpotifyPlayer = ({ position = "left" }: SpotifyPlayerProps) => {
     };
   }, [sdkReady, accessToken]);
 
-  // Start playlist when device is ready
+  // Start/switch playlist when device is ready or playlist changes
   useEffect(() => {
     if (!deviceId || !accessToken) return;
+
+    const uri = urlToUri(effectivePlaylistUrl);
+    if (currentPlaylistRef.current === uri) return;
+    currentPlaylistRef.current = uri;
 
     const startPlayback = async () => {
       try {
@@ -196,7 +218,7 @@ const SpotifyPlayer = ({ position = "left" }: SpotifyPlayerProps) => {
             Authorization: `Bearer ${accessToken}`,
             "Content-Type": "application/json",
           },
-          body: JSON.stringify({ context_uri: PLAYLIST_URI }),
+          body: JSON.stringify({ context_uri: uri }),
         });
       } catch (e) {
         console.error("Failed to start playback:", e);
@@ -204,7 +226,35 @@ const SpotifyPlayer = ({ position = "left" }: SpotifyPlayerProps) => {
     };
 
     startPlayback();
-  }, [deviceId, accessToken]);
+  }, [deviceId, accessToken, effectivePlaylistUrl]);
+
+  // Queue tracks when queueTracks change
+  useEffect(() => {
+    if (!deviceId || !accessToken || !queueTracks || queueTracks.length === 0) return;
+
+    // Only queue new tracks
+    const newTracks = queueTracks.filter(t => !queuedTracksRef.current.includes(t));
+    if (newTracks.length === 0) return;
+
+    queuedTracksRef.current = [...queuedTracksRef.current, ...newTracks];
+    setLastQueuedUrl(newTracks[newTracks.length - 1]);
+
+    const queueAll = async () => {
+      for (const trackUrl of newTracks) {
+        const uri = urlToUri(trackUrl);
+        try {
+          await fetch(`https://api.spotify.com/v1/me/player/queue?uri=${encodeURIComponent(uri)}&device_id=${deviceId}`, {
+            method: "POST",
+            headers: { Authorization: `Bearer ${accessToken}` },
+          });
+        } catch (e) {
+          console.error("Failed to queue track:", e);
+        }
+      }
+    };
+
+    queueAll();
+  }, [deviceId, accessToken, queueTracks]);
 
   const handleConnect = () => {
     if (!spotifyClientId) return;
@@ -216,7 +266,6 @@ const SpotifyPlayer = ({ position = "left" }: SpotifyPlayerProps) => {
   const nextTrack = () => player?.nextTrack();
   const prevTrack = () => player?.previousTrack();
 
-  // Determine pill status
   const getPillStatus = (): { text: string; actionable: boolean } => {
     if (!online) return { text: t("spotify.offline"), actionable: false };
     if (isGuest) return { text: t("spotify.connectPrompt"), actionable: false };
@@ -225,7 +274,7 @@ const SpotifyPlayer = ({ position = "left" }: SpotifyPlayerProps) => {
     if (loading) return { text: "…", actionable: false };
     if (isPlaying && currentTrack) return { text: currentTrack.name, actionable: true };
     if (currentTrack) return { text: t("spotify.paused"), actionable: true };
-    return { text: t("spotify.playing"), actionable: true };
+    return { text: effectivePlaylistName, actionable: true };
   };
 
   const pillStatus = getPillStatus();
@@ -243,7 +292,7 @@ const SpotifyPlayer = ({ position = "left" }: SpotifyPlayerProps) => {
               handleConnect();
               return;
             }
-            if (accessToken) setExpanded(true);
+            setExpanded(true);
           }}
           className={cn(
             "flex items-center gap-2 px-3 py-2 rounded-full text-sm shadow-lg transition-all hover:shadow-xl",
@@ -260,8 +309,8 @@ const SpotifyPlayer = ({ position = "left" }: SpotifyPlayerProps) => {
           ) : (
             <Music className="h-4 w-4 shrink-0" />
           )}
-          <span className="font-semibold shrink-0">{t("spotify.pill")}</span>
-          {pillStatus.text && (
+          <span className="font-semibold shrink-0">{effectivePlaylistName}</span>
+          {pillStatus.text && pillStatus.text !== effectivePlaylistName && (
             <span className="truncate max-w-[180px] opacity-90 text-xs">
               {pillStatus.text}
             </span>
@@ -284,7 +333,7 @@ const SpotifyPlayer = ({ position = "left" }: SpotifyPlayerProps) => {
           <div className="flex items-center justify-between">
             <span className="font-display text-sm font-semibold text-foreground flex items-center gap-2">
               <Music className="h-4 w-4 text-[#1DB954]" />
-              {t("spotify.pill")}
+              {effectivePlaylistName}
             </span>
             <Button variant="ghost" size="icon" className="h-6 w-6" onClick={() => setExpanded(false)}>
               <X className="h-3 w-3" />
@@ -311,22 +360,47 @@ const SpotifyPlayer = ({ position = "left" }: SpotifyPlayerProps) => {
           )}
 
           {/* Controls */}
-          <div className="flex items-center justify-center gap-2">
-            <Button variant="ghost" size="icon" className="h-8 w-8" onClick={prevTrack}>
-              <SkipBack className="h-4 w-4" />
-            </Button>
+          {accessToken && (
+            <div className="flex items-center justify-center gap-2">
+              <Button variant="ghost" size="icon" className="h-8 w-8" onClick={prevTrack}>
+                <SkipBack className="h-4 w-4" />
+              </Button>
+              <Button
+                variant="default"
+                size="icon"
+                className="h-10 w-10 rounded-full bg-[#1DB954] hover:bg-[#1ed760] text-white"
+                onClick={togglePlay}
+              >
+                {isPlaying ? <Pause className="h-5 w-5" /> : <Play className="h-5 w-5" />}
+              </Button>
+              <Button variant="ghost" size="icon" className="h-8 w-8" onClick={nextTrack}>
+                <SkipForward className="h-4 w-4" />
+              </Button>
+            </div>
+          )}
+
+          {/* Open in Spotify button — always visible */}
+          <a
+            href={openInSpotifyUrl}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="flex items-center justify-center gap-2 w-full py-2 rounded-md text-sm font-medium bg-[#1DB954]/10 text-[#1DB954] hover:bg-[#1DB954]/20 transition-colors"
+          >
+            <ExternalLink className="h-3.5 w-3.5" />
+            {t("spotify.openInSpotify")}
+          </a>
+
+          {!accessToken && !isGuest && (
             <Button
-              variant="default"
-              size="icon"
-              className="h-10 w-10 rounded-full bg-[#1DB954] hover:bg-[#1ed760] text-white"
-              onClick={togglePlay}
+              variant="outline"
+              size="sm"
+              className="w-full gap-2"
+              onClick={handleConnect}
             >
-              {isPlaying ? <Pause className="h-5 w-5" /> : <Play className="h-5 w-5" />}
+              <Music className="h-3.5 w-3.5" />
+              {t("spotify.connect")}
             </Button>
-            <Button variant="ghost" size="icon" className="h-8 w-8" onClick={nextTrack}>
-              <SkipForward className="h-4 w-4" />
-            </Button>
-          </div>
+          )}
 
           {error && (
             <p className="text-xs text-destructive text-center">{error}</p>
