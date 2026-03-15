@@ -249,12 +249,23 @@ export function parseWikitext(wikitext: string): ParsedScenario {
     }
 
     if (hasMetaTags && isMetaOnlyLine(line)) {
+      // queue_track tags get injected as inline HTML markers instead of being stripped
+      if (lineMeta.queue_track) {
+        const parts = lineMeta.queue_track.split(",");
+        for (const part of parts) {
+          const { url, name } = parseUrlPipe(part);
+          currentBodyLines.push(`<button class="wiki-queue-track" data-url="${url}">▶ ${name}</button>`);
+        }
+      }
+      // Store all meta (including queue_track) in metadata as before
       if (!seenHeading) {
         Object.assign(scenarioMeta, lineMeta);
       } else if (currentTarget) {
         Object.assign(currentTarget.metadata, lineMeta);
       }
-      continue; // Don't add to body
+      // Skip body for non-queue_track meta lines
+      if (!lineMeta.queue_track) continue;
+      continue; // queue_track body lines were already pushed above
     }
 
     // Section break: bare `====` (even count, 2-6) closes a section

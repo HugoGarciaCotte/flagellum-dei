@@ -107,8 +107,8 @@ const fr: Record<string, string> = {
   "spotify.premiumRequired": "Spotify Premium requis",
   "spotify.openInSpotify": "Ouvrir dans Spotify",
   "spotify.defaultPlaylist": "Playlist de campagne",
-  "adminScenarios.insertTagPlaylist": "Playlist",
-  "adminScenarios.insertTagQueueTrack": "Piste en file",
+  "adminScenarios.insertTagPlaylist": "Playlist de fond",
+  "adminScenarios.insertTagQueueTrack": "Musique ponctuelle",
   "adminScenarios.spotifyUrlPrompt": "Collez une URL Spotify (playlist ou piste) :",
   "adminScenarios.insertSectionBreak": "Saut de section",
 };

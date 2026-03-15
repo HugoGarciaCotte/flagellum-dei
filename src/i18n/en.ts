@@ -549,8 +549,8 @@ const en: Record<string, string> = {
   "spotify.defaultPlaylist": "Campaign Playlist",
 
   // ─── ADMIN SCENARIOS (playlist tags) ───
-  "adminScenarios.insertTagPlaylist": "Playlist",
-  "adminScenarios.insertTagQueueTrack": "Queue Track",
+  "adminScenarios.insertTagPlaylist": "Background Playlist",
+  "adminScenarios.insertTagQueueTrack": "One-Time Music",
   "adminScenarios.spotifyUrlPrompt": "Paste a Spotify URL (playlist or track):",
   "adminScenarios.insertSectionBreak": "Section Break",
 };

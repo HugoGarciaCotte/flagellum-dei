@@ -33,6 +33,12 @@ const HostGame = () => {
   const { t } = useTranslation();
 
   const [localSection, setLocalSection] = useState<string | null>(null);
+  const [overridesLoaded, setOverridesLoaded] = useState(false);
+
+  // Load scenario overrides from DB so edited content is used
+  useEffect(() => {
+    loadScenarioOverrides().then(() => setOverridesLoaded(true));
+  }, []);
 
   const game = useLocalRow<any>("games", gameId);
   const allPlayers = useLocalRows<any>("game_players", gameId ? { game_id: gameId } : undefined);
