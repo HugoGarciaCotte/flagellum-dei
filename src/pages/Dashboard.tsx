@@ -31,7 +31,7 @@ const Dashboard = () => {
   const { user, signOut, isGuest } = useAuth();
   const navigate = useNavigate();
   const online = useNetworkStatus();
-  const { t } = useTranslation();
+  const { t, locale } = useTranslation();
   const [joinCode, setJoinCode] = useState("");
   const [hostOpen, setHostOpen] = useState(false);
   const [newCharDialogOpen, setNewCharDialogOpen] = useState(false);
