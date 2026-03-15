@@ -234,30 +234,11 @@ function SectionNode({
                   ref={i === 0 ? contentRef : undefined}
                   onMouseOver={handleMouseOver}
                   onMouseOut={handleMouseOut}
+                  onClick={handleContentClick}
                   className={cn("px-8 pb-2 text-base leading-relaxed prose prose-base max-w-none overflow-x-auto", isActive ? "text-primary-foreground/80" : "text-muted-foreground",
                     "[&_ul]:list-disc [&_ul]:pl-5 [&_li]:mb-1 [&_hr]:my-3 [&_p]:mb-1.5 [&_pre]:whitespace-pre-wrap [&_pre]:break-words [&_pre]:overflow-x-auto")}
                   dangerouslySetInnerHTML={{ __html: seg }}
                 />
-              )}
-              {/* Queue track play buttons — only on last content segment */}
-              {i === (section.contentSegments ?? [section.content]).length - 1 && queueTracks.length > 0 && (
-                <div className="flex flex-wrap gap-2 px-8 pb-2 pt-1">
-                  {queueTracks.map((qt, qi) => (
-                    <button
-                      key={qi}
-                      onClick={() => onPlayTrack?.(qt.url) ?? window.open(qt.url, "_blank")}
-                      className={cn(
-                        "inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium transition-colors",
-                        isActive
-                          ? "bg-primary-foreground/20 text-primary-foreground hover:bg-primary-foreground/30"
-                          : "bg-accent text-accent-foreground hover:bg-accent/80"
-                      )}
-                    >
-                      <Play className="h-3 w-3 fill-current" />
-                      {qt.name}
-                    </button>
-                  ))}
-                </div>
               )}
               {hoveredFeat && featsMap && tooltipLabels && (
                 <FeatLinkTooltip featName={hoveredFeat.name} rect={hoveredFeat.rect} featsMap={featsMap} labels={tooltipLabels} />
