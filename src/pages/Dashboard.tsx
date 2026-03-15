@@ -383,7 +383,7 @@ const Dashboard = () => {
 
         {!window.matchMedia('(display-mode: standalone)').matches && (
           <p className="text-center py-6">
-            <Link to="/install" className="text-xs text-muted-foreground/50 hover:text-primary transition-colors font-display">
+            <Link to="/install" className="text-sm text-muted-foreground/50 hover:text-primary transition-colors font-display">
               {t("dashboard.installApp")}
             </Link>
           </p>

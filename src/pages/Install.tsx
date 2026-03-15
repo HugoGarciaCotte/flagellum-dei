@@ -112,7 +112,7 @@ const Install = () => {
                         <li dangerouslySetInnerHTML={{ __html: t("install.chromeDesktopStep1") }} />
                         <li dangerouslySetInnerHTML={{ __html: t("install.chromeDesktopStep2") }} />
                       </ol>
-                      <p className="text-xs text-muted-foreground/70 mt-3 italic">{t("install.chromeDesktopAlt")}</p>
+                      <p className="text-sm text-muted-foreground/70 mt-3 italic">{t("install.chromeDesktopAlt")}</p>
                     </AccordionContent>
                   </AccordionItem>
 

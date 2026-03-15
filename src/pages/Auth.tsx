@@ -158,7 +158,7 @@ const Auth = () => {
               <TabsContent value="signup">
                 <form onSubmit={handleSignup} className="space-y-4">
                   {isGuest && (
-                    <p className="text-sm text-muted-foreground bg-primary/10 rounded p-2">
+                    <p className="text-base text-muted-foreground bg-primary/10 rounded p-2">
                       {t("auth.guestConvert")}
                     </p>
                   )}
