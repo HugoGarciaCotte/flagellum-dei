@@ -15,7 +15,9 @@ const GameTimer = ({ ambianceTrack }: GameTimerProps) => {
   const [open, setOpen] = useState(false);
   const [running, setRunning] = useState(false);
   const [elapsed, setElapsed] = useState(0); // seconds
+  const [newEvent, setNewEvent] = useState(false);
   const intervalRef = useRef<ReturnType<typeof setInterval>>();
+  const prevAmbianceIdxRef = useRef<number>(-1);
   const { t } = useTranslation();
 
   useEffect(() => {
@@ -39,7 +41,6 @@ const GameTimer = ({ ambianceTrack }: GameTimerProps) => {
   const showTime = running && elapsed > 0;
   const hasAmbiance = ambianceTrack && ambianceTrack.length > 0;
 
-  // Find the active ambiance entry: largest minutes <= elapsed minutes
   const activeAmbianceIdx = hasAmbiance
     ? ambianceTrack.reduce<number>((best, entry, idx) => {
         if (entry.minutes <= minutes) return idx;
@@ -47,24 +48,39 @@ const GameTimer = ({ ambianceTrack }: GameTimerProps) => {
       }, -1)
     : -1;
 
+  useEffect(() => {
+    if (activeAmbianceIdx >= 0 && activeAmbianceIdx !== prevAmbianceIdxRef.current) {
+      setNewEvent(true);
+      const timer = setTimeout(() => setNewEvent(false), 3000);
+      prevAmbianceIdxRef.current = activeAmbianceIdx;
+      return () => clearTimeout(timer);
+    }
+    prevAmbianceIdxRef.current = activeAmbianceIdx;
+  }, [activeAmbianceIdx]);
+
   if (!open) {
     return (
       <div className="fixed bottom-6 left-6 z-50">
-        <Button
-          onClick={() => setOpen(true)}
-          size={showTime ? undefined : "icon"}
-          className={showTime
-            ? "h-12 rounded-full shadow-lg px-4 gap-2"
-            : "h-12 w-12 rounded-full shadow-lg"
-          }
-        >
-          <Timer className="h-5 w-5 shrink-0" />
-          {showTime && (
-            <span className="font-display font-bold tabular-nums text-sm">
-              {minutes}<span className="text-xs font-normal opacity-75 ml-0.5">m</span>
-            </span>
+        <div className="relative inline-flex">
+          <Button
+            onClick={() => setOpen(true)}
+            size={showTime ? undefined : "icon"}
+            className={showTime
+              ? "h-12 rounded-full shadow-lg px-4 gap-2"
+              : "h-12 w-12 rounded-full shadow-lg"
+            }
+          >
+            <Timer className="h-5 w-5 shrink-0" />
+            {showTime && (
+              <span className="font-display font-bold tabular-nums text-sm">
+                {minutes}<span className="text-xs font-normal opacity-75 ml-0.5">m</span>
+              </span>
+            )}
+          </Button>
+          {hasAmbiance && newEvent && (
+            <span className="absolute -top-1 -right-1 h-3 w-3 rounded-full bg-primary animate-pulse" />
           )}
-        </Button>
+        </div>
       </div>
     );
   }
