@@ -235,6 +235,7 @@ const SpotifyPlayer = ({ position = "left", playlistUrl, playlistName, playTrack
 
     const addToQueue = async () => {
       const uri = urlToUri(playTrackUrl);
+      console.log("[SpotifyPlayer] Queuing track:", playTrackUrl, "→", uri);
       try {
         const res = await fetch(
           `https://api.spotify.com/v1/me/player/queue?uri=${encodeURIComponent(uri)}&device_id=${deviceId}`,
@@ -244,9 +245,12 @@ const SpotifyPlayer = ({ position = "left", playlistUrl, playlistName, playTrack
           }
         );
         if (res.ok) {
+          // Small delay to let Spotify process the queue before skipping
+          await new Promise(r => setTimeout(r, 300));
           playerRef.current?.nextTrack();
         } else {
-          console.error("Failed to queue track:", res.status);
+          const body = await res.text().catch(() => "");
+          console.error("Failed to queue track:", res.status, body);
         }
       } catch (e) {
         console.error("Failed to queue track:", e);
