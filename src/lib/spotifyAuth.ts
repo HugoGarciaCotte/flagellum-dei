@@ -4,7 +4,7 @@
  */
 
 const SPOTIFY_CLIENT_ID_KEY = "spotify_client_id";
-const SPOTIFY_SCOPES = "streaming user-read-email user-read-playback-state user-modify-playback-state";
+const SPOTIFY_SCOPES = "streaming user-read-email user-read-private user-read-playback-state user-modify-playback-state";
 
 export function generateCodeVerifier(): string {
   const array = new Uint8Array(64);
