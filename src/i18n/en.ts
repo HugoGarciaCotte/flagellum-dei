@@ -192,6 +192,7 @@ const en: Record<string, string> = {
   "game.loadingQuest": "Loading quest...",
   "game.copied": "Copied!",
   "game.joinCodeCopied": "Join code copied to clipboard.",
+  "game.joinLinkCopied": "Join link copied to clipboard.",
   "game.end": "End",
   "game.noContent": "No content available.",
 

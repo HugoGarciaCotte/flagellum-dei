@@ -39,6 +39,7 @@ const App = () => (
           <Routes>
             <Route path="/" element={<Index />} />
             <Route path="/auth" element={<Auth />} />
+            <Route path="/join/:code" element={<JoinGame />} />
             <Route path="/game/:gameId/host" element={<HostGame />} />
             <Route path="/game/:gameId/play" element={<PlayGame />} />
             <Route path="/reset-password" element={<ResetPassword />} />
