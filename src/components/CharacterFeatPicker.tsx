@@ -576,7 +576,7 @@ const CharacterFeatPicker = ({ characterId, mode = "player", scenarioLevel }: Ch
                   />
                 </div>
               ) : (
-                <Button variant="ghost" size="sm" className="text-xs text-muted-foreground" onClick={() => openPicker({ type: "level", level })}>
+                <Button variant="ghost" size="sm" className="text-sm text-muted-foreground" onClick={() => openPicker({ type: "level", level })}>
                   {t("feats.chooseFeat")}
                 </Button>
               )}
