@@ -515,7 +515,7 @@ const FeatEditorPanel = () => {
                         </div>
                         <div className="flex gap-1 items-center">
                           {isOverridden(feat.id, "subfeats") && (
-                            <Badge variant="secondary" className="text-[10px] cursor-pointer" onClick={() => revertField(feat.id, "subfeats")}>
+                            <Badge variant="secondary" className="text-base cursor-pointer" onClick={() => revertField(feat.id, "subfeats")}>
                               {t("adminFeats.revert")}
                             </Badge>
                           )}
