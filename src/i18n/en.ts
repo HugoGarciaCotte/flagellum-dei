@@ -535,6 +535,16 @@ const en: Record<string, string> = {
   "adminFeats.optionsPlaceholder": "Option A | Option B | Option C",
   "adminFeats.filterCategory": "Filter (category)",
   "adminFeats.categoryFilter": "Category filter",
+
+  // ─── SPOTIFY ───
+  "spotify.pill": "Playlist",
+  "spotify.connectPrompt": "Connect to unlock the soundtrack",
+  "spotify.offline": "Not available offline",
+  "spotify.playing": "Playing",
+  "spotify.paused": "Paused",
+  "spotify.connect": "Connect Spotify",
+  "spotify.disconnect": "Disconnect",
+  "spotify.premiumRequired": "Spotify Premium required",
 };
 
 export default en;

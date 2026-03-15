@@ -95,6 +95,16 @@ const fr: Record<string, string> = {
   "game.joinLinkCopied": "Lien d'invitation copié.",
   "game.joiningQuest": "Connexion à la quête…",
   "game.gmHint": "Appuyez sur \u25B6\uFE0E d'une section pour la révéler à vos joueurs. Utilisez les dés (en bas à gauche) et le minuteur (en bas à droite) pendant la partie.",
+
+  // ─── SPOTIFY ───
+  "spotify.pill": "Playlist",
+  "spotify.connectPrompt": "Connectez-vous pour activer la bande-son",
+  "spotify.offline": "Indisponible hors-ligne",
+  "spotify.playing": "Lecture",
+  "spotify.paused": "Pause",
+  "spotify.connect": "Connecter Spotify",
+  "spotify.disconnect": "Déconnecter",
+  "spotify.premiumRequired": "Spotify Premium requis",
 };
 
 export default fr;

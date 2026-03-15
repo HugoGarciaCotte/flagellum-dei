@@ -181,6 +181,7 @@ const PlayGame = () => {
         )}
       </div>
 
+      <SpotifyPlayer position="left" />
       <DiceRoller gameId={gameId} userName={selectedCharacter?.name ?? t("game.aPlayer")} isGameMaster={false} />
 
       {!sheetExpanded && (
