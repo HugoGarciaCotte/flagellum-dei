@@ -235,7 +235,7 @@ const ScenarioEditorPanel = () => {
       lines.push(`export const ${varName}: Scenario = {`);
       lines.push(`  id: ${JSON.stringify(s.id)},`);
       lines.push(`  title: ${JSON.stringify(s.title)},`);
-      lines.push(`  description: ${s.description ? JSON.stringify(s.description) : "null"},`);
+      lines.push(`  teaser: ${s.teaser ? JSON.stringify(s.teaser) : "null"},`);
       lines.push(`  level: ${s.level ?? "null"},`);
       lines.push(`  content: ${s.content ? JSON.stringify(s.content) : "null"},`);
       lines.push("};");
