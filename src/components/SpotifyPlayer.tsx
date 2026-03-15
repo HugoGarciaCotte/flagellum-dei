@@ -1,4 +1,4 @@
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect, useRef, useCallback } from "react";
 import { Music, X, ExternalLink } from "lucide-react";
 import { useNetworkStatus } from "@/hooks/useNetworkStatus";
 
@@ -9,18 +9,30 @@ interface SpotifyPlayerProps {
   playTrackUrl?: string;
 }
 
-/** Convert a Spotify open URL to an embed URL */
-function toEmbedUrl(url: string): string | null {
+/** Convert a Spotify open URL to a spotify: URI */
+function toSpotifyUri(url: string): string | null {
   try {
     const u = new URL(url);
     if (!u.hostname.includes("spotify.com")) return null;
     // Path like /playlist/ID or /track/ID — strip locale prefix if present
     const path = u.pathname.replace(/^\/intl-[a-z]+/, "");
-    return `https://open.spotify.com/embed${path}?utm_source=generator&theme=0&autoplay=1`;
+    const parts = path.split("/").filter(Boolean); // e.g. ["playlist","3abc..."]
+    if (parts.length >= 2) return `spotify:${parts[0]}:${parts[1]}`;
+    return null;
   } catch {
     return null;
   }
 }
+
+// Augment window for the Spotify IFrame API callback
+declare global {
+  interface Window {
+    onSpotifyIframeApiReady?: (IFrameAPI: any) => void;
+    SpotifyIframeApi?: any;
+  }
+}
+
+const IFRAME_API_URL = "https://open.spotify.com/embed/iframe-api/v1";
 
 const SpotifyPlayer = ({
   position = "left",
@@ -31,28 +43,91 @@ const SpotifyPlayer = ({
   const [expanded, setExpanded] = useState(false);
   const online = useNetworkStatus();
 
+  const apiRef = useRef<any>(null);
+  const controllerRef = useRef<any>(null);
+  const expandedContainerRef = useRef<HTMLDivElement>(null);
+  const hiddenContainerRef = useRef<HTMLDivElement>(null);
+  const [apiReady, setApiReady] = useState(false);
+
   // Track takes priority over playlist
   const activeUrl = playTrackUrl || playlistUrl;
-  const embedUrl = useMemo(() => (activeUrl ? toEmbedUrl(activeUrl) : null), [activeUrl]);
+  const spotifyUri = useMemo(() => (activeUrl ? toSpotifyUri(activeUrl) : null), [activeUrl]);
 
   const displayName = playTrackUrl ? "♫ Track" : playlistName || "Spotify";
 
-  if (!activeUrl || !online || !embedUrl) return null;
+  // Load the Spotify IFrame API script once
+  useEffect(() => {
+    if (window.SpotifyIframeApi) {
+      apiRef.current = window.SpotifyIframeApi;
+      setApiReady(true);
+      return;
+    }
+
+    // Check if script already loading
+    if (document.querySelector(`script[src="${IFRAME_API_URL}"]`)) return;
+
+    const script = document.createElement("script");
+    script.src = IFRAME_API_URL;
+    script.async = true;
+
+    window.onSpotifyIframeApiReady = (IFrameAPI: any) => {
+      window.SpotifyIframeApi = IFrameAPI;
+      apiRef.current = IFrameAPI;
+      setApiReady(true);
+    };
+
+    document.body.appendChild(script);
+  }, []);
+
+  // Create / recreate controller when URI changes or API becomes ready
+  const createController = useCallback((container: HTMLElement, uri: string) => {
+    if (!apiRef.current) return;
+
+    // Destroy previous controller's DOM content
+    if (controllerRef.current) {
+      try { controllerRef.current.destroy?.(); } catch {}
+      controllerRef.current = null;
+    }
+    // Clear container children (API appends an iframe)
+    container.innerHTML = "";
+
+    apiRef.current.createController(
+      container,
+      { uri, height: 152, width: "100%" },
+      (controller: any) => {
+        controllerRef.current = controller;
+        // Auto-play once the embed is ready
+        controller.addListener("ready", () => {
+          controller.play();
+        });
+      }
+    );
+  }, []);
+
+  // Active container depends on expanded state
+  useEffect(() => {
+    if (!apiReady || !spotifyUri) return;
+
+    const container = expanded
+      ? expandedContainerRef.current
+      : hiddenContainerRef.current;
+
+    if (!container) return;
+
+    createController(container, spotifyUri);
+
+    return () => {
+      if (controllerRef.current) {
+        try { controllerRef.current.destroy?.(); } catch {}
+        controllerRef.current = null;
+      }
+    };
+    // Re-create when uri or expanded state changes
+  }, [apiReady, spotifyUri, expanded, createController]);
+
+  if (!activeUrl || !online || !spotifyUri) return null;
 
   const posClass = position === "left" ? "left-4" : "right-4";
-
-  const iframeEl = (
-    <iframe
-      key={embedUrl}
-      src={embedUrl}
-      width="100%"
-      height="152"
-      frameBorder={0}
-      allow="autoplay; clipboard-write; encrypted-media; fullscreen; picture-in-picture"
-      loading="lazy"
-      className="block"
-    />
-  );
 
   return (
     <>
@@ -69,8 +144,8 @@ const SpotifyPlayer = ({
         </button>
       )}
 
-      {/* Hidden iframe keeps playing when collapsed; visible panel when expanded */}
-      {expanded ? (
+      {/* Expanded panel */}
+      {expanded && (
         <div
           className={`fixed bottom-20 ${posClass} z-40 w-[340px] rounded-xl bg-card/95 backdrop-blur border border-border shadow-2xl overflow-hidden`}
         >
@@ -99,13 +174,18 @@ const SpotifyPlayer = ({
               </button>
             </div>
           </div>
-          {iframeEl}
+          {/* API-managed embed container */}
+          <div ref={expandedContainerRef} className="block" />
         </div>
-      ) : (
-        /* Keep iframe alive but invisible so playback continues */
-        <div className="fixed -z-50 opacity-0 pointer-events-none h-0 w-0 overflow-hidden">
-          {iframeEl}
-        </div>
+      )}
+
+      {/* Hidden container keeps playback alive when collapsed — off-screen but "visible" to browser */}
+      {!expanded && (
+        <div
+          ref={hiddenContainerRef}
+          className="fixed -z-50 opacity-0 pointer-events-none"
+          style={{ position: "absolute", left: "-9999px" }}
+        />
       )}
     </>
   );
