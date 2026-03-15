@@ -358,6 +358,8 @@ const en: Record<string, string> = {
   "timer.title": "Ambiance Timer",
   "timer.ambiance": "Ambiance",
   "timer.startToBegin": "Start the timer to begin",
+  "timer.noSection": "Press ▶ on a section to begin",
+  "timer.noAmbiance": "None for this section",
   "timer.paused": "Timer paused",
 
   // ─── GAME EXTRA ───
