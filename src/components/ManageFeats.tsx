@@ -38,19 +38,19 @@ const ManageFeats = () => {
     <div className="space-y-4">
       <div className="flex items-center justify-between">
         <h2 className="font-display text-2xl flex items-center gap-2">
-          <Swords className="h-6 w-6 text-primary" /> Feats Library
+          <Swords className="h-6 w-6 text-primary" /> {t("adminLegacy.featsLibrary")}
           <Badge variant="outline" className="text-xs">{feats.length} feats</Badge>
         </h2>
       </div>
 
       <p className="text-sm text-muted-foreground">
-        Feats are hardcoded in the source code. This is a read-only viewer.
+        {t("adminLegacy.featsReadOnly")}
       </p>
 
       <div className="relative">
         <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
         <Input
-          placeholder="Search feats..."
+          placeholder={t("adminLegacy.searchFeats")}
           value={searchTerm}
           onChange={(e) => setSearchTerm(e.target.value)}
           className="pl-9"
