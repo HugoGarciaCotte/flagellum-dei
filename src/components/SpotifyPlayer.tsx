@@ -10,7 +10,6 @@ import { useTranslation } from "@/i18n/useTranslation";
 import { supabase } from "@/integrations/supabase/client";
 import { initiateSpotifyLogin } from "@/lib/spotifyAuth";
 
-const DEFAULT_PLAYLIST_URL = "https://open.spotify.com/playlist/4GZgLYVRC7JG84Ftrmqu62";
 const SPOTIFY_SDK_URL = "https://sdk.scdn.co/spotify-player.js";
 
 /** Convert a Spotify open URL to a URI for the SDK */
@@ -62,10 +61,10 @@ const SpotifyPlayer = ({ position = "left", playlistUrl, playlistName, playTrack
   // Track which single track was last requested
   const lastPlayTrackRef = useRef<string | null>(null);
 
-  const effectivePlaylistUrl = playlistUrl || DEFAULT_PLAYLIST_URL;
-  const effectivePlaylistName = playlistName || t("spotify.defaultPlaylist");
+  const effectivePlaylistUrl = playlistUrl;
+  const effectivePlaylistName = playlistName;
 
-  const openInSpotifyUrl = effectivePlaylistUrl;
+  const openInSpotifyUrl = effectivePlaylistUrl || playTrackUrl;
 
   // Load SDK script once
   useEffect(() => {
@@ -202,7 +201,7 @@ const SpotifyPlayer = ({ position = "left", playlistUrl, playlistName, playTrack
 
   // Start/switch playlist when device is ready or playlist changes
   useEffect(() => {
-    if (!deviceId || !accessToken) return;
+    if (!deviceId || !accessToken || !effectivePlaylistUrl) return;
 
     const uri = urlToUri(effectivePlaylistUrl);
     if (currentPlaylistRef.current === uri) return;
@@ -304,8 +303,8 @@ const SpotifyPlayer = ({ position = "left", playlistUrl, playlistName, playTrack
           ) : (
             <Music className="h-4 w-4 shrink-0" />
           )}
-          <span className="font-semibold shrink-0">{effectivePlaylistName}</span>
-          {pillStatus.text && pillStatus.text !== effectivePlaylistName && (
+          {effectivePlaylistName && <span className="font-semibold shrink-0">{effectivePlaylistName}</span>}
+          {pillStatus.text && pillStatus.text !== (effectivePlaylistName ?? "") && (
             <span className="truncate max-w-[180px] opacity-90 text-xs">
               {pillStatus.text}
             </span>
@@ -328,7 +327,7 @@ const SpotifyPlayer = ({ position = "left", playlistUrl, playlistName, playTrack
           <div className="flex items-center justify-between">
             <span className="font-display text-sm font-semibold text-foreground flex items-center gap-2">
               <Music className="h-4 w-4 text-[#1DB954]" />
-              {effectivePlaylistName}
+              {effectivePlaylistName || t("spotify.paused")}
             </span>
             <Button variant="ghost" size="icon" className="h-6 w-6" onClick={() => setExpanded(false)}>
               <X className="h-3 w-3" />
