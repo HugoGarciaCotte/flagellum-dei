@@ -57,7 +57,7 @@ interface DiceRollerProps {
   position?: "left" | "right";
 }
 
-const DiceRoller = ({ gameId, userName, isGameMaster }: DiceRollerProps) => {
+const DiceRoller = ({ gameId, userName, isGameMaster, position = "right" }: DiceRollerProps) => {
   const [rolling, setRolling] = useState(false);
   const [result, setResult] = useState<number | null>(null);
   const [displayValue, setDisplayValue] = useState(1);
