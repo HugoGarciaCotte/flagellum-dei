@@ -327,7 +327,7 @@ const SpotifyPlayer = ({ position = "left", playlistUrl, playlistName, playTrack
           <div className="flex items-center justify-between">
             <span className="font-display text-sm font-semibold text-foreground flex items-center gap-2">
               <Music className="h-4 w-4 text-[#1DB954]" />
-              {effectivePlaylistName}
+              {effectivePlaylistName || t("spotify.paused")}
             </span>
             <Button variant="ghost" size="icon" className="h-6 w-6" onClick={() => setExpanded(false)}>
               <X className="h-3 w-3" />
