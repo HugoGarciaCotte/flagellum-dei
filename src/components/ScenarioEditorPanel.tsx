@@ -616,7 +616,7 @@ const ContentEditor = ({
         onInsert={handleBgInsert}
         scenarioId={scenarioId}
         scenarioTitle={scenarioTitle}
-        scenarioDescription={scenarioDescription}
+        scenarioTeaser={scenarioTeaser}
       />
     </div>
   );
