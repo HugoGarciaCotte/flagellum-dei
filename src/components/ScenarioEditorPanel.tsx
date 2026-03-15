@@ -5,7 +5,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
-import { Download, ChevronDown, AlertTriangle, Check, Image, Loader2, Plus, Music, SeparatorHorizontal, ListMusic } from "lucide-react";
+import { Download, ChevronDown, AlertTriangle, Check, Image, Loader2, Plus, Music, SeparatorHorizontal, ListMusic, Timer } from "lucide-react";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import BackgroundInsertDialog from "@/components/BackgroundInsertDialog";
 import { getHardcodedScenarios, type Scenario } from "@/data/scenarios";
@@ -492,7 +492,7 @@ const ContentEditor = ({
               onMouseDown={(e) => e.preventDefault()}
               onClick={() => insertAtCursor("\n{{Ambiance Track\n| 5min = \n| 15min = \n| 30min = \n}}\n")}
             >
-              <Music className="h-4 w-4 mr-2" />
+              <Timer className="h-4 w-4 mr-2" />
               {t("adminScenarios.insertTagAmbiance")}
             </DropdownMenuItem>
             <DropdownMenuItem
@@ -508,7 +508,6 @@ const ContentEditor = ({
                 const url = prompt(t("adminScenarios.spotifyUrlPrompt"));
                 if (!url) return;
                 let name = url;
-                // Try to resolve name from Spotify API
                 const token = sessionStorage.getItem("spotify_access_token");
                 if (token) {
                   try {

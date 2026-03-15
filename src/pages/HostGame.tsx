@@ -3,6 +3,7 @@ import { useParams, useNavigate, Link } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
 import { getScenarioById } from "@/data/scenarios";
+import { loadScenarioOverrides } from "@/lib/scenarioOverrides";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { toast } from "@/hooks/use-toast";
@@ -32,6 +33,12 @@ const HostGame = () => {
   const { t } = useTranslation();
 
   const [localSection, setLocalSection] = useState<string | null>(null);
+  const [overridesLoaded, setOverridesLoaded] = useState(false);
+
+  // Load scenario overrides from DB so edited content is used
+  useEffect(() => {
+    loadScenarioOverrides().then(() => setOverridesLoaded(true));
+  }, []);
 
   const game = useLocalRow<any>("games", gameId);
   const allPlayers = useLocalRows<any>("game_players", gameId ? { game_id: gameId } : undefined);
