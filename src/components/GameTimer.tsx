@@ -2,7 +2,7 @@ import { useState, useEffect, useRef, useCallback } from "react";
 import { Timer, Play, Pause, RotateCcw } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Table, TableBody, TableRow, TableCell } from "@/components/ui/table";
-import { ScrollArea } from "@/components/ui/scroll-area";
+
 import { useTranslation } from "@/i18n/useTranslation";
 import { cn } from "@/lib/utils";
 import type { AmbianceEntry } from "@/lib/parseWikitext";
@@ -148,7 +148,7 @@ const GameTimer = ({ ambianceTrack, position = "left", hasActiveSection = false 
           </div>
 
           {/* Scrollable ambiance table */}
-          <ScrollArea className="flex-1 min-h-0">
+          <div className="flex-1 min-h-0 overflow-y-auto overscroll-contain">
             <div className="p-2">
               <Table>
                 <TableBody>
@@ -171,7 +171,7 @@ const GameTimer = ({ ambianceTrack, position = "left", hasActiveSection = false 
                 </TableBody>
               </Table>
             </div>
-          </ScrollArea>
+          </div>
         </div>
       </div>
     </>
