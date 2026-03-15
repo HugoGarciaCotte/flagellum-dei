@@ -644,7 +644,7 @@ const CharacterCreationWizard = ({ onCreated, onCancel, gameId }: CharacterCreat
           {skipButton}
         </div>
 
-        <div className="space-y-1 text-sm">
+        <div className="space-y-1 text-base">
           {archetypeFeat && (
             <p className="text-muted-foreground">
               <span className="text-foreground font-medium">{t("wizard.summary.archetype")}</span> {archetypeFeat.title}
