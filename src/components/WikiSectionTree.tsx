@@ -233,6 +233,7 @@ function SectionNode({
                   onActivateSection={onActivateSection}
                   depth={depth + 1}
                   parentBackground={effectiveBg}
+                  parentPlaylist={effectivePlaylist}
                   featsMap={featsMap}
                   tooltipLabels={tooltipLabels}
                 />
