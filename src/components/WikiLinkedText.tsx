@@ -75,24 +75,24 @@ function FeatHoverContent({ featTitle, featsMap }: { featTitle: string; featsMap
     <div className="space-y-1.5">
       <p className="text-sm font-semibold text-foreground">{feat.title}</p>
       {meta.description && (
-        <p className="text-xs text-muted-foreground">{meta.description}</p>
+        <p className="text-sm text-muted-foreground">{meta.description}</p>
       )}
       {meta.prerequisites && (
         <div>
-          <p className="text-xs font-medium text-muted-foreground">Prerequisites</p>
-          <p className="text-xs text-muted-foreground/80">{stripLinks(meta.prerequisites)}</p>
+          <p className="text-sm font-medium text-muted-foreground">Prerequisites</p>
+          <p className="text-sm text-muted-foreground/80">{stripLinks(meta.prerequisites)}</p>
         </div>
       )}
       {meta.blocking && meta.blocking.length > 0 && (
         <div>
-          <p className="text-xs font-medium text-destructive">Incompatible with</p>
-          <p className="text-xs text-destructive/80">{meta.blocking.join(", ")}</p>
+          <p className="text-sm font-medium text-destructive">Incompatible with</p>
+          <p className="text-sm text-destructive/80">{meta.blocking.join(", ")}</p>
         </div>
       )}
       {meta.special && (
         <div>
-          <p className="text-xs font-medium text-muted-foreground">Special</p>
-          <p className="text-xs text-muted-foreground/80 whitespace-pre-line">{stripLinks(meta.special)}</p>
+          <p className="text-sm font-medium text-muted-foreground">Special</p>
+          <p className="text-sm text-muted-foreground/80 whitespace-pre-line">{stripLinks(meta.special)}</p>
         </div>
       )}
     </div>

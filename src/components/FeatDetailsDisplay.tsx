@@ -168,7 +168,7 @@ const FeatDetailsDisplay = ({ content, rawContent, className = "" }: FeatDetails
           ref={contentRef}
           onMouseOver={handleMouseOver}
           onMouseOut={handleMouseOut}
-          className="text-xs text-muted-foreground/80 prose prose-xs prose-invert max-w-none [&_ul]:list-disc [&_ul]:pl-4 [&_li]:my-0 [&_dt]:font-semibold [&_dt]:text-muted-foreground [&_dd]:ml-3 [&_dd]:text-muted-foreground/80"
+          className="text-sm text-muted-foreground/80 prose prose-sm prose-invert max-w-none [&_ul]:list-disc [&_ul]:pl-4 [&_li]:my-0 [&_dt]:font-semibold [&_dt]:text-muted-foreground [&_dd]:ml-3 [&_dd]:text-muted-foreground/80"
           dangerouslySetInnerHTML={{ __html: fullHtml }}
         />
       )}

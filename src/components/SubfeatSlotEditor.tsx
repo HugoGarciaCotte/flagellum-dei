@@ -77,9 +77,9 @@ const SubfeatSlotEditor = ({ slot, onChange, onRemove }: Props) => {
 
       {slot.kind === "type" && (
         <div>
-          <Label className="text-xs">{t("adminFeats.filterCategory")}</Label>
+          <Label className="text-sm">{t("adminFeats.filterCategory")}</Label>
           <Input
-            className="h-8 text-xs"
+            className="h-8 text-sm"
             value={slot.filter ?? ""}
             onChange={(e) => onChange({ ...slot, filter: e.target.value })}
             placeholder={t("adminFeats.categoryFilter")}

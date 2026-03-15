@@ -568,7 +568,7 @@ const OverrideField = ({
   return (
     <div className={inline ? "flex items-center gap-1.5" : "space-y-1"}>
       {!inline && (
-        <Label className="text-xs flex items-center gap-1.5">
+        <Label className="text-sm flex items-center gap-1.5">
           {label}
           {isOverridden && (
             <button

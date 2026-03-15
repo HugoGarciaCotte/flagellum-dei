@@ -70,22 +70,22 @@ const ManageFeats = () => {
               </CollapsibleTrigger>
               <CollapsibleContent className="px-3 pb-2">
                 {meta.description && (
-                  <p className="text-xs text-muted-foreground mb-1">{meta.description}</p>
+                  <p className="text-sm text-muted-foreground mb-1">{meta.description}</p>
                 )}
                 {meta.prerequisites && (
-                  <p className="text-xs text-muted-foreground">
+                  <p className="text-sm text-muted-foreground">
                     <span className="font-medium">Prerequisites:</span> {meta.prerequisites}
                   </p>
                 )}
                 {meta.blocking && meta.blocking.length > 0 && (
-                  <p className="text-xs text-destructive">
+                  <p className="text-sm text-destructive">
                     <span className="font-medium">Incompatible:</span> {meta.blocking.join(", ")}
                   </p>
                 )}
                 {feat.content && (
                   <details className="mt-1">
-                    <summary className="text-xs text-muted-foreground cursor-pointer">Raw content</summary>
-                    <pre className="text-xs text-muted-foreground/70 whitespace-pre-wrap mt-1 max-h-48 overflow-y-auto">
+                    <summary className="text-sm text-muted-foreground cursor-pointer">Raw content</summary>
+                    <pre className="text-sm text-muted-foreground/70 whitespace-pre-wrap mt-1 max-h-48 overflow-y-auto">
                       {feat.content}
                     </pre>
                   </details>

@@ -294,7 +294,7 @@ const AdminTranslations = () => {
                             className={`rounded-md border p-3 space-y-2 ${isMissing ? "border-destructive/30 bg-destructive/5" : "border-border"}`}
                           >
                             <div className="flex items-start justify-between gap-2">
-                              <code className="text-xs text-muted-foreground break-all">{key}</code>
+                              <code className="text-sm text-muted-foreground break-all">{key}</code>
                               {isMissing && (
                                 <Badge variant="destructive" className="text-[10px] shrink-0">{t("adminTranslations.missing")}</Badge>
                               )}

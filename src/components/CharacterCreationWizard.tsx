@@ -722,7 +722,7 @@ const CharacterCreationWizard = ({ onCreated, onCancel, gameId }: CharacterCreat
             <Button
               variant="ghost"
               size="sm"
-              className="gap-1 text-xs"
+              className="gap-1 text-sm"
               onClick={generateName}
               disabled={generatingName || !online}
             >

@@ -238,7 +238,7 @@ const BackgroundInsertDialog = ({
                       className="h-8 w-8 rounded object-cover border border-border"
                     />
                     <button
-                      className="text-xs text-destructive hover:underline"
+                      className="text-sm text-destructive hover:underline"
                       onClick={() => {
                         setBgRefFile(null);
                         setBgRefPreview("");
