@@ -130,7 +130,7 @@ const AdminTranslations = () => {
   };
 
   const handleGenerateAll = async () => {
-    const missing = allKeys.filter((k) => !editValues[k] || editValues[k] === en[k]);
+    const missing = allKeys.filter(isTrulyMissing);
     if (missing.length === 0) {
       toast({ title: t("adminTranslations.allComplete") });
       return;
