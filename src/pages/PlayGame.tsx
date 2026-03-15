@@ -24,7 +24,7 @@ import { useTranslation } from "@/i18n/useTranslation";
 
 const PlayGame = () => {
   const { gameId } = useParams<{ gameId: string }>();
-  const { user, isGuest } = useAuth();
+  const { user, isGuest, syncReady } = useAuth();
   const navigate = useNavigate();
   const online = useNetworkStatus();
   const { t } = useTranslation();
@@ -39,6 +39,13 @@ const PlayGame = () => {
   }, []);
 
   const game = useLocalRow<any>("games", gameId);
+
+  // Targeted pull if game missing after initial sync (e.g. direct URL navigation)
+  useEffect(() => {
+    if (!syncReady || game || !gameId || !online) return;
+    pullTable("games", { id: gameId });
+    pullTable("game_players", { game_id: gameId });
+  }, [syncReady, game, gameId, online]);
   const allMyPlayers = useLocalRows<any>("game_players", gameId && user ? { game_id: gameId, user_id: user.id } : undefined);
   const myPlayer = allMyPlayers.length > 0 ? allMyPlayers[0] : null;
   const myCharacters = useLocalRows<any>("characters", user ? { user_id: user.id } : undefined);
@@ -109,7 +116,7 @@ const PlayGame = () => {
       ? currentSectionId.replace(/-/g, " ").replace(/\b\w/g, (c: string) => c.toUpperCase())
       : null);
 
-  if (!game) return <FullPageLoader message={t("game.joiningQuest")} />;
+  if (!syncReady || !game) return <FullPageLoader message={t("game.joiningQuest")} />;
 
   const copyCode = () => {
     if (game?.join_code) {

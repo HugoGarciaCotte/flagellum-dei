@@ -25,7 +25,7 @@ import { useTranslation } from "@/i18n/useTranslation";
 
 const HostGame = () => {
   const { gameId } = useParams<{ gameId: string }>();
-  const { user } = useAuth();
+  const { user, syncReady } = useAuth();
   const navigate = useNavigate();
   const online = useNetworkStatus();
   const { t } = useTranslation();
@@ -78,6 +78,13 @@ const HostGame = () => {
     return walkAndResolve(sections, parsed.ambianceTrack) ?? parsed.ambianceTrack;
   }, [activeSection, sections, parsed.ambianceTrack]);
 
+  // Targeted pull if game missing after initial sync (e.g. direct URL navigation)
+  useEffect(() => {
+    if (!syncReady || game || !gameId || !online) return;
+    pullTable("games", { id: gameId });
+    pullTable("game_players", { game_id: gameId });
+  }, [syncReady, game, gameId, online]);
+
   useEffect(() => { if (game) setLocalSection(null); }, [game?.current_section]);
 
   useEffect(() => {
@@ -127,7 +134,7 @@ const HostGame = () => {
     triggerPush();
   };
 
-  if (!game) return <FullPageLoader message={t("game.loadingQuest")} />;
+  if (!syncReady || !game) return <FullPageLoader message={t("game.loadingQuest")} />;
 
   return (
     <div className="fixed inset-0 bg-background flex flex-col">
