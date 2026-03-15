@@ -174,7 +174,7 @@ const HostGame = () => {
     triggerPush();
   };
 
-  if (!syncReady || !game) return <FullPageLoader message={t("game.loadingQuest")} />;
+  if (!syncReady || !game || !scenarioReady) return <FullPageLoader message={t("game.loadingQuest")} />;
 
   return (
     <div className="fixed inset-0 bg-background flex flex-col">
