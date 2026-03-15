@@ -146,7 +146,8 @@ const HostGame = () => {
         }
       />
 
-      <main className="flex-1 container py-6 max-w-5xl">
+      <div className="flex-1 overflow-y-auto">
+      <main className="container py-6 max-w-5xl pb-20">
         {sections.length > 0 ? (
           <Card className="w-full aged-border gold-glow-box">
             <CardContent className="p-4">
