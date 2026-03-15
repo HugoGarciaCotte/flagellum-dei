@@ -25,6 +25,15 @@ const GameTimer = ({ ambianceTrack, position = "left" }: GameTimerProps) => {
   const hasAmbiance = ambianceTrack && ambianceTrack.length > 0;
 
   useEffect(() => {
+    if (prevTrackRef.current && ambianceTrack && prevTrackRef.current !== ambianceTrack) {
+      setElapsed(0);
+      setRunning(true);
+      prevAmbianceIdxRef.current = -1;
+    }
+    prevTrackRef.current = ambianceTrack;
+  }, [ambianceTrack]);
+
+  useEffect(() => {
     if (running) {
       intervalRef.current = setInterval(() => setElapsed((s) => s + 1), 1000);
     } else {
