@@ -105,8 +105,8 @@ const HostGame = () => {
 
   const copyCode = () => {
     if (game) {
-      navigator.clipboard.writeText(game.join_code);
-      toast({ title: t("game.copied"), description: t("game.joinCodeCopied") });
+      navigator.clipboard.writeText(`${window.location.origin}/join/${game.join_code}`);
+      toast({ title: t("game.copied"), description: t("game.joinLinkCopied") });
     }
   };
 

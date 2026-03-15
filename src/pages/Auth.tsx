@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useSearchParams } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { Button } from "@/components/ui/button";
@@ -14,10 +14,12 @@ const Auth = () => {
   const { user, isGuest, isLocalGuest, enterGuestMode } = useAuth();
   const navigate = useNavigate();
   const { t } = useTranslation();
+  const [searchParams] = useSearchParams();
+  const redirectTo = searchParams.get("redirect") || "/";
 
   useEffect(() => {
-    if (user && !isGuest) navigate("/", { replace: true });
-  }, [user, isGuest, navigate]);
+    if (user && !isGuest) navigate(redirectTo, { replace: true });
+  }, [user, isGuest, navigate, redirectTo]);
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [displayName, setDisplayName] = useState("");
@@ -77,7 +79,7 @@ const Auth = () => {
         toast({ title: t("auth.signupFailed"), description: error.message, variant: "destructive" });
       } else {
         toast({ title: t("auth.accountCreated"), description: t("auth.welcomeFlagellum") });
-        navigate("/");
+        navigate(redirectTo);
       }
     }
     setLoading(false);
@@ -142,7 +144,7 @@ const Auth = () => {
                         </div>
                         <button
                           type="button"
-                          onClick={() => { enterGuestMode(); navigate("/"); }}
+                          onClick={() => { enterGuestMode(); navigate(redirectTo); }}
                           className="w-full text-sm text-muted-foreground hover:text-foreground transition-colors font-display flex items-center justify-center gap-2 py-2"
                         >
                           {t("auth.exploreGuest")}
