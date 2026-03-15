@@ -518,7 +518,7 @@ const ContentEditor = ({
           onSelect={handleSelect}
           onClick={handleSelect}
           onKeyUp={handleSelect}
-          className={`text-sm font-mono text-xs flex-1 ${fullScreen ? "h-full resize-none" : "min-h-[200px]"}`}
+          className={`font-mono text-sm flex-1 ${fullScreen ? "h-full resize-none" : "min-h-[200px]"}`}
         />
         {dirty && (
           <Button
