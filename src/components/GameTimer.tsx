@@ -116,7 +116,7 @@ const GameTimer = ({ ambianceTrack, position = "left", hasActiveSection = false 
           {/* Sticky header: timer controls */}
           <div className="shrink-0 bg-card border-b border-border p-4 flex flex-col items-center gap-2">
             <div className="w-full flex items-center justify-between">
-              <span className="font-display text-xs font-medium text-muted-foreground uppercase tracking-wider">
+              <span className="font-display text-sm font-medium text-muted-foreground uppercase tracking-wider">
                 {t("timer.title")}
               </span>
               <button
