@@ -5,7 +5,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
-import { Download, ChevronDown, AlertTriangle, Check, Image, Loader2, Plus, Music, SeparatorHorizontal, ListMusic } from "lucide-react";
+import { Download, ChevronDown, AlertTriangle, Check, Image, Loader2, Plus, Music, Wind, SeparatorHorizontal, ListMusic } from "lucide-react";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import BackgroundInsertDialog from "@/components/BackgroundInsertDialog";
 import { getHardcodedScenarios, type Scenario } from "@/data/scenarios";
@@ -492,7 +492,7 @@ const ContentEditor = ({
               onMouseDown={(e) => e.preventDefault()}
               onClick={() => insertAtCursor("\n{{Ambiance Track\n| 5min = \n| 15min = \n| 30min = \n}}\n")}
             >
-              <Music className="h-4 w-4 mr-2" />
+              <Wind className="h-4 w-4 mr-2" />
               {t("adminScenarios.insertTagAmbiance")}
             </DropdownMenuItem>
             <DropdownMenuItem
