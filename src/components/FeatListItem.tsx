@@ -71,7 +71,7 @@ const FeatListItem = ({
         <div className={`w-full text-left ${compact ? "" : "p-3"}`}>
           <div className="flex items-center gap-2">
             {titlePrefix}
-            <span className="text-sm font-medium text-foreground truncate">{feat.title}</span>
+            <span className="text-base font-medium text-foreground truncate">{feat.title}</span>
             <FeatCategoryBadges categories={feat.categories} />
             <div className="ml-auto flex gap-1 shrink-0" onClick={(e) => e.stopPropagation()}>
               {hasPicker && (
@@ -86,7 +86,7 @@ const FeatListItem = ({
             </div>
           </div>
           {feat.description && (
-            <p className="text-xs text-muted-foreground/70 mt-0.5">{feat.description}</p>
+            <p className="text-sm text-muted-foreground/70 mt-0.5">{feat.description}</p>
           )}
         </div>
         {hasSpecialities && onSpecialityChange && (
@@ -95,7 +95,7 @@ const FeatListItem = ({
               value={specialityValue || "__none__"}
               onValueChange={(val) => onSpecialityChange(val === "__none__" ? "" : val)}
             >
-              <SelectTrigger className="h-6 text-xs w-32">
+              <SelectTrigger className="h-7 text-sm w-36">
                 <SelectValue placeholder={t("feats.speciality")} />
               </SelectTrigger>
               <SelectContent>
@@ -108,7 +108,7 @@ const FeatListItem = ({
           </div>
         )}
         {hasSpecialities && !onSpecialityChange && specialityValue && (
-          <p className={`text-xs text-muted-foreground italic ${compact ? "mt-1" : "px-3 pb-1"}`}>({specialityValue})</p>
+          <p className={`text-sm text-muted-foreground italic ${compact ? "mt-1" : "px-3 pb-1"}`}>({specialityValue})</p>
         )}
       </div>
       {collapsedContent}

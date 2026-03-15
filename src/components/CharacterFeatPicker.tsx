@@ -420,12 +420,12 @@ const CharacterFeatPicker = ({ characterId, mode = "player", scenarioLevel }: Ch
           }
 
           return (
-            <div key={slotNum} className="flex items-center gap-2 text-xs ml-1">
+            <div key={slotNum} className="flex items-center gap-2 text-sm ml-1">
               <span className="text-muted-foreground">↳</span>
               <Button
                 variant="ghost"
                 size="sm"
-                className="h-5 px-1 text-xs text-muted-foreground"
+                className="h-5 px-1 text-sm text-muted-foreground"
                 onClick={() => openPicker({ type: "subfeat", characterFeatId: cf.id, slot: slotNum, slotMeta: slotMetaByNum.get(slotNum) })}
               >
                 + {t("feats.chooseSubfeatShort")}
@@ -467,7 +467,7 @@ const CharacterFeatPicker = ({ characterId, mode = "player", scenarioLevel }: Ch
           >
             <ArrowLeft className="h-4 w-4" />
           </Button>
-          <p className="text-sm font-semibold">{dialogTitle}</p>
+          <p className="text-base font-semibold">{dialogTitle}</p>
         </div>
 
         {validationResult && !validationResult.allowed && (
@@ -506,11 +506,11 @@ const CharacterFeatPicker = ({ characterId, mode = "player", scenarioLevel }: Ch
           {validating && (
             <div className="flex items-center justify-center gap-2 py-8">
               <Loader2 className="h-5 w-5 animate-spin text-primary" />
-              <span className="text-sm text-muted-foreground">{t("feats.validating")}</span>
+              <span className="text-base text-muted-foreground">{t("feats.validating")}</span>
             </div>
           )}
           {!validating && filteredFeats.length === 0 ? (
-            <p className="text-sm text-muted-foreground text-center py-8">{t("feats.noFeatsFound")}</p>
+            <p className="text-base text-muted-foreground text-center py-8">{t("feats.noFeatsFound")}</p>
           ) : !validating && (
             filteredFeats.map((feat) => {
               const isExpanded = expandedFeatId === feat.id;
@@ -535,7 +535,7 @@ const CharacterFeatPicker = ({ characterId, mode = "player", scenarioLevel }: Ch
   return (
     <div className="space-y-2">
       <div className="flex items-center gap-2">
-        <p className="text-sm font-medium text-muted-foreground">{t("feats.perLevel")}</p>
+        <p className="text-base font-medium text-muted-foreground">{t("feats.perLevel")}</p>
       </div>
       {Array.from({ length: levelsToShow }, (_, i) => i + 1).map((level) => {
         const assigned = levelFeats.find((cf) => cf.level === level);
@@ -558,7 +558,7 @@ const CharacterFeatPicker = ({ characterId, mode = "player", scenarioLevel }: Ch
                     onToggleExpand={() => setExpandedAssignedFeatId(expandedAssignedFeatId === assigned!.id ? null : assigned!.id)}
                     actions={
                       <>
-                        <Button variant="ghost" size="sm" className="h-6 px-2 text-xs" onClick={() => openPicker({ type: "level", level })}>
+                        <Button variant="ghost" size="sm" className="h-6 px-2 text-sm" onClick={() => openPicker({ type: "level", level })}>
                           {t("feats.edit")}
                         </Button>
                         <Button
@@ -576,7 +576,7 @@ const CharacterFeatPicker = ({ characterId, mode = "player", scenarioLevel }: Ch
                   />
                 </div>
               ) : (
-                <Button variant="ghost" size="sm" className="text-xs text-muted-foreground" onClick={() => openPicker({ type: "level", level })}>
+                <Button variant="ghost" size="sm" className="text-sm text-muted-foreground" onClick={() => openPicker({ type: "level", level })}>
                   {t("feats.chooseFeat")}
                 </Button>
               )}
@@ -588,12 +588,12 @@ const CharacterFeatPicker = ({ characterId, mode = "player", scenarioLevel }: Ch
       {/* Free Feats Section */}
       {(freeFeats.length > 0 || mode === "gm") && (
         <div className="mt-4 space-y-2">
-          <p className="text-sm font-medium text-muted-foreground flex items-center gap-1.5">
+          <p className="text-base font-medium text-muted-foreground flex items-center gap-1.5">
             <span className="text-base" aria-hidden="true">🜅</span> {t("feats.freeFeats")}
           </p>
 
           {freeFeats.length === 0 && mode === "gm" && (
-            <p className="text-xs text-muted-foreground italic">{t("feats.noFreeFeats")}</p>
+            <p className="text-sm text-muted-foreground italic">{t("feats.noFreeFeats")}</p>
           )}
 
           {freeFeats.map((cf) => {
@@ -622,7 +622,7 @@ const CharacterFeatPicker = ({ characterId, mode = "player", scenarioLevel }: Ch
           })}
 
           {mode === "gm" && (
-            <Button variant="ghost" size="sm" className="text-xs text-muted-foreground" onClick={() => openPicker({ type: "free" })}>
+            <Button variant="ghost" size="sm" className="text-sm text-muted-foreground" onClick={() => openPicker({ type: "free" })}>
               {t("feats.addFree")}
             </Button>
           )}

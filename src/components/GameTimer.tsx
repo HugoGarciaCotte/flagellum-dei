@@ -89,7 +89,7 @@ const GameTimer = ({ ambianceTrack, position = "left", hasActiveSection = false 
         <button
           onClick={() => hasAmbiance && setExpanded(true)}
           className={cn(
-            "flex items-center gap-2 px-3 py-2 rounded-full bg-primary text-primary-foreground text-xs shadow-lg transition-all hover:shadow-xl",
+            "flex items-center gap-2 px-3 py-2 rounded-full bg-primary text-primary-foreground text-sm shadow-lg transition-all hover:shadow-xl",
             newEvent && "animate-pulse shadow-[0_0_12px_hsl(var(--primary)/0.5)]"
           )}
         >
@@ -116,12 +116,12 @@ const GameTimer = ({ ambianceTrack, position = "left", hasActiveSection = false 
           {/* Sticky header: timer controls */}
           <div className="shrink-0 bg-card border-b border-border p-4 flex flex-col items-center gap-2">
             <div className="w-full flex items-center justify-between">
-              <span className="font-display text-xs font-medium text-muted-foreground uppercase tracking-wider">
+              <span className="font-display text-sm font-medium text-muted-foreground uppercase tracking-wider">
                 {t("timer.title")}
               </span>
               <button
                 onClick={() => setExpanded(false)}
-                className="text-muted-foreground hover:text-foreground text-xs"
+                className="text-muted-foreground hover:text-foreground text-sm"
                 aria-label="Close"
               >
                 ✕
@@ -160,10 +160,10 @@ const GameTimer = ({ ambianceTrack, position = "left", hasActiveSection = false 
                         idx === activeAmbianceIdx && "bg-primary/15 font-medium"
                       )}
                     >
-                      <TableCell className="py-1.5 px-2 text-xs tabular-nums whitespace-nowrap w-12 align-top text-muted-foreground">
+                      <TableCell className="py-1.5 px-2 text-sm tabular-nums whitespace-nowrap w-12 align-top text-muted-foreground">
                         {entry.minutes}m
                       </TableCell>
-                      <TableCell className="py-1.5 px-2 text-xs leading-relaxed">
+                      <TableCell className="py-1.5 px-2 text-sm leading-relaxed">
                         {entry.text}
                       </TableCell>
                     </TableRow>

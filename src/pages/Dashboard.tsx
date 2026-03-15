@@ -164,7 +164,7 @@ const Dashboard = () => {
             </Button>
           </div>
           {!online && (
-            <p className="text-xs text-muted-foreground flex items-center gap-1">
+            <p className="text-sm text-muted-foreground flex items-center gap-1">
               <WifiOff className="h-3 w-3" /> {t("dashboard.needOnline")}
             </p>
           )}
@@ -187,7 +187,7 @@ const Dashboard = () => {
               <DialogContent className="fixed inset-0 max-w-none w-full h-full rounded-none p-0 translate-x-0 translate-y-0 left-0 top-0 border-none overflow-hidden">
                 <div className="flex flex-col h-full min-h-0">
                   <div className="border-b border-border/50 bg-card/80 backdrop-blur px-4 py-3 flex items-center justify-between shrink-0 safe-top">
-                    <span className="font-display text-sm font-medium text-foreground">{t("dashboard.createCharacter")}</span>
+                    <span className="font-display text-base font-medium text-foreground">{t("dashboard.createCharacter")}</span>
                   </div>
                   <ScrollArea className="flex-1">
                     <div className="container max-w-2xl py-6 px-4">
@@ -226,7 +226,7 @@ const Dashboard = () => {
               <CardContent className="py-8 text-center text-muted-foreground">
                 <span className="text-2xl mx-auto mb-2 opacity-40 block text-center" aria-hidden="true">🝖</span>
                 <p className="font-display">{t("dashboard.noCharacters")}</p>
-                <p className="text-sm mt-1">{t("dashboard.createToStart")}</p>
+                <p className="text-base mt-1">{t("dashboard.createToStart")}</p>
               </CardContent>
             </Card>
           )}
@@ -235,7 +235,7 @@ const Dashboard = () => {
             <DialogContent className="fixed inset-0 max-w-none w-full h-full rounded-none p-0 translate-x-0 translate-y-0 left-0 top-0 border-none overflow-hidden">
               <div className="flex flex-col h-full min-h-0">
                 <div className="border-b border-border/50 bg-card/80 backdrop-blur px-4 py-3 flex items-center justify-between shrink-0 safe-top">
-                  <span className="font-display text-sm font-medium text-foreground">{t("dashboard.editCharacter")}</span>
+                  <span className="font-display text-base font-medium text-foreground">{t("dashboard.editCharacter")}</span>
                 </div>
                 <ScrollArea className="flex-1">
                   <div className="container max-w-2xl py-6 px-4">
@@ -267,7 +267,7 @@ const Dashboard = () => {
                   <CardHeader className="pb-2">
                     <div className="flex items-center justify-between">
                       <CardTitle className="font-display text-lg">{game.title}</CardTitle>
-                      <span className={`text-xs font-display px-2 py-0.5 rounded-full ${game.role === "hosting" ? "bg-primary/15 text-primary" : "bg-accent text-accent-foreground"}`}>
+                      <span className={`text-sm font-display px-2 py-0.5 rounded-full ${game.role === "hosting" ? "bg-primary/15 text-primary" : "bg-accent text-accent-foreground"}`}>
                         {game.role === "hosting" ? t("dashboard.hosting") : t("dashboard.playing")}
                       </span>
                     </div>
@@ -301,7 +301,7 @@ const Dashboard = () => {
                     <Card key={scenario.id} className="aged-border hover:border-primary/40 transition-colors gold-glow-box">
                       <CardHeader className="pb-2">
                         <CardTitle className="font-display text-base">{scenario.title}</CardTitle>
-                        {scenario.description && <CardDescription className="text-xs">{scenario.description}</CardDescription>}
+                        {scenario.description && <CardDescription className="text-sm">{scenario.description}</CardDescription>}
                       </CardHeader>
                       <CardContent>
                         <Button onClick={() => handleCreateGame(scenario.id)} variant="outline" className="w-full gap-2 font-display" size="sm">
@@ -312,7 +312,7 @@ const Dashboard = () => {
                   ))}
                 </div>
               ) : (
-                <p className="text-sm text-muted-foreground text-center py-4">{t("dashboard.noScenarios")}</p>
+                <p className="text-base text-muted-foreground text-center py-4">{t("dashboard.noScenarios")}</p>
               )}
             </CollapsibleContent>
           </Collapsible>
@@ -328,7 +328,7 @@ const Dashboard = () => {
                 <AlertDialogTitle className="font-display flex items-center gap-2">
                   <span className="text-lg text-primary" aria-hidden="true">🜁</span> {t("dashboard.becomeGMTitle")}
                 </AlertDialogTitle>
-                <AlertDialogDescription className="text-sm leading-relaxed">
+                <AlertDialogDescription className="text-base leading-relaxed">
                   <span dangerouslySetInnerHTML={{ __html: t("dashboard.becomeGMDesc") }} />
                   <br /><br />
                   {t("dashboard.becomeGMConfirm")}
@@ -383,7 +383,7 @@ const Dashboard = () => {
 
         {!window.matchMedia('(display-mode: standalone)').matches && (
           <p className="text-center py-6">
-            <Link to="/install" className="text-xs text-muted-foreground/50 hover:text-primary transition-colors font-display">
+            <Link to="/install" className="text-sm text-muted-foreground/50 hover:text-primary transition-colors font-display">
               {t("dashboard.installApp")}
             </Link>
           </p>

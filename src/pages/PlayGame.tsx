@@ -141,12 +141,12 @@ const PlayGame = () => {
         leftAction={<Button variant="ghost" size="icon" onClick={() => navigate("/")}><ArrowLeft className="h-4 w-4" /></Button>}
         rightActions={
           game?.join_code ? (
-            <Button variant="outline" size="sm" onClick={copyCode} className="font-mono text-xs gap-1.5">
+            <Button variant="outline" size="sm" onClick={copyCode} className="font-mono text-sm gap-1.5">
               <span className="font-sans font-medium tracking-normal">{t("game.joinCode")} :</span> {game.join_code} <Copy className="h-3.5 w-3.5" />
             </Button>
           ) : undefined
         }
-        badge={!online ? <span className="text-xs bg-destructive/20 text-destructive px-2 py-0.5 rounded-full">{t("game.offline")}</span> : undefined}
+        badge={!online ? <span className="text-sm bg-destructive/20 text-destructive px-2 py-0.5 rounded-full">{t("game.offline")}</span> : undefined}
       />
 
       <main className={`flex-1 container py-8 flex items-center justify-center max-w-3xl ${isGuest ? "pb-32" : "pb-24"}`}>
@@ -155,7 +155,7 @@ const PlayGame = () => {
             <div className="animate-pulse-glow text-primary font-display text-xl">
               {online ? t("game.waitingGM") : t("game.offlineLastState")}
             </div>
-            <p className="text-muted-foreground text-sm">
+            <p className="text-muted-foreground text-base">
               {online ? t("game.questBegin") : t("game.realtimeResume")}
             </p>
             <div className="ornamental-divider w-32 mx-auto" />
@@ -165,7 +165,7 @@ const PlayGame = () => {
 
       {!window.matchMedia('(display-mode: standalone)').matches && (
         <p className="text-center py-4">
-          <Link to="/install" className="text-xs text-muted-foreground/50 hover:text-primary transition-colors font-display">
+          <Link to="/install" className="text-sm text-muted-foreground/50 hover:text-primary transition-colors font-display">
             {t("dashboard.installApp")}
           </Link>
         </p>
@@ -184,7 +184,7 @@ const PlayGame = () => {
               {selectedCharacter ? (
                 <div className="flex-1 min-w-0"><CharacterListItem character={selectedCharacter} /></div>
               ) : (
-                <span className="font-display text-sm font-medium text-muted-foreground">{t("game.selectCharacter")}</span>
+                <span className="font-display text-base font-medium text-muted-foreground">{t("game.selectCharacter")}</span>
               )}
             </div>
           </div>
@@ -195,7 +195,7 @@ const PlayGame = () => {
         <div className="fixed inset-0 z-50 bg-background flex flex-col animate-in slide-in-from-bottom duration-300 pt-[env(safe-area-inset-top)]">
           <div className="border-b border-border/50 bg-card/80 backdrop-blur">
             <div className="container max-w-2xl flex items-center justify-between py-3 px-4">
-              <span className="font-display text-sm font-medium text-foreground">{t("game.yourCharacters")}</span>
+              <span className="font-display text-base font-medium text-foreground">{t("game.yourCharacters")}</span>
               <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => setSheetExpanded(false)}><X className="h-4 w-4" /></Button>
             </div>
           </div>
@@ -203,7 +203,7 @@ const PlayGame = () => {
             <div className="container max-w-2xl py-6 px-4 space-y-3">
               {sortedCharacters.length === 0 ? (
                 <div className="space-y-2">
-                  <p className="text-sm text-muted-foreground">{t("game.noCharactersYet")}</p>
+                  <p className="text-base text-muted-foreground">{t("game.noCharactersYet")}</p>
                   <Button variant="outline" size="sm" className="gap-2 w-full" onClick={() => setCreatingChar(true)}>
                     <Plus className="h-3 w-3" /> {t("game.newCharacter")}
                   </Button>
@@ -242,7 +242,7 @@ const PlayGame = () => {
       {creatingChar && (
         <div className="fixed inset-0 z-50 bg-background flex flex-col animate-in fade-in duration-200 pt-[env(safe-area-inset-top)]">
           <div className="border-b border-border/50 bg-card/80 backdrop-blur px-4 py-3 flex items-center justify-between shrink-0">
-            <span className="font-display text-sm font-medium text-foreground">{t("dashboard.createCharacter")}</span>
+            <span className="font-display text-base font-medium text-foreground">{t("dashboard.createCharacter")}</span>
             <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => setCreatingChar(false)}><X className="h-4 w-4" /></Button>
           </div>
           <ScrollArea className="flex-1">
@@ -256,7 +256,7 @@ const PlayGame = () => {
       {editingCharId && (
         <div className="fixed inset-0 z-50 bg-background flex flex-col animate-in fade-in duration-200 pt-[env(safe-area-inset-top)]">
           <div className="border-b border-border/50 bg-card/80 backdrop-blur px-4 py-3 flex items-center justify-between shrink-0">
-            <span className="font-display text-sm font-medium text-foreground">{t("dashboard.editCharacter")}</span>
+            <span className="font-display text-base font-medium text-foreground">{t("dashboard.editCharacter")}</span>
             <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => setEditingCharId(null)}><X className="h-4 w-4" /></Button>
           </div>
           <ScrollArea className="flex-1">

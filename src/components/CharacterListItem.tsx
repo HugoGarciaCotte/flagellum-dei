@@ -34,19 +34,19 @@ const CharacterListItem = ({ character, actions }: CharacterListItemProps) => {
               {character.portrait_url ? (
                 <AvatarImage src={character.portrait_url} alt={character.name} />
               ) : null}
-              <AvatarFallback className="text-xs font-display bg-muted">{initials}</AvatarFallback>
+              <AvatarFallback className="text-sm font-display bg-muted">{initials}</AvatarFallback>
             </Avatar>
             <CardTitle className="font-display text-lg">{character.name}</CardTitle>
           </div>
           {actions && <div className="flex gap-1 shrink-0">{actions}</div>}
         </div>
         {character.description && (
-          <p className="text-sm text-muted-foreground mt-1.5 leading-relaxed">{character.description}</p>
+          <p className="text-base text-muted-foreground mt-1.5 leading-relaxed">{character.description}</p>
         )}
       </CardHeader>
       {feats && feats.length > 0 && (
         <CardContent className="pt-0 pb-3">
-          <ul className="list-disc list-inside text-sm text-muted-foreground space-y-0.5">
+          <ul className="list-disc list-inside text-base text-muted-foreground space-y-0.5">
             {feats.map((cf: any) => {
               const featTitle = getFeatById(cf.feat_id)?.title || t("feats.unknownFeat");
               return (

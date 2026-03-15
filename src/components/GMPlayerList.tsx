@@ -73,7 +73,7 @@ const GMPlayerList = () => {
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
             {players.map((p) => (
               <div key={p.user_id} className="space-y-1">
-                <p className="text-xs font-medium text-muted-foreground px-1">{p.display_name || t("gm.unknown")}</p>
+                <p className="text-sm font-medium text-muted-foreground px-1">{p.display_name || t("gm.unknown")}</p>
                 {p.character_id ? (
                   <CharacterListItem
                     character={{ id: p.character_id, name: p.character_name || "Unnamed", description: p.character_description }}
@@ -84,7 +84,7 @@ const GMPlayerList = () => {
                     }
                   />
                 ) : (
-                  <p className="text-xs text-muted-foreground italic px-1">{t("gm.noCharacterSelected")}</p>
+                  <p className="text-sm text-muted-foreground italic px-1">{t("gm.noCharacterSelected")}</p>
                 )}
               </div>
             ))}

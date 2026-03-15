@@ -117,12 +117,12 @@ const Auth = () => {
               <TabsContent value="login">
                 {showForgotPassword ? (
                   <form onSubmit={handleForgotPassword} className="space-y-4">
-                    <p className="text-sm text-muted-foreground">{t("auth.resetDesc")}</p>
+                    <p className="text-base text-muted-foreground">{t("auth.resetDesc")}</p>
                     <Input placeholder={t("auth.email")} type="email" value={resetEmail} onChange={(e) => setResetEmail(e.target.value)} required />
                     <Button type="submit" className="w-full font-display" disabled={loading}>
                       {loading ? t("auth.sending") : t("auth.resetTitle")}
                     </Button>
-                    <button type="button" onClick={() => setShowForgotPassword(false)} className="text-sm text-primary hover:underline w-full text-center">
+                    <button type="button" onClick={() => setShowForgotPassword(false)} className="text-base text-primary hover:underline w-full text-center">
                       {t("auth.backToLogin")}
                     </button>
                   </form>
@@ -133,19 +133,19 @@ const Auth = () => {
                     <Button type="submit" className="w-full font-display" disabled={loading}>
                       {loading ? t("auth.entering") : t("auth.enterRealm")}
                     </Button>
-                    <button type="button" onClick={() => setShowForgotPassword(true)} className="text-sm text-primary hover:underline w-full text-center">
+                    <button type="button" onClick={() => setShowForgotPassword(true)} className="text-base text-primary hover:underline w-full text-center">
                       {t("auth.forgotPassword")}
                     </button>
                     {!isGuest && (
                       <>
                         <div className="relative my-2">
                           <div className="absolute inset-0 flex items-center"><span className="w-full border-t border-border/50" /></div>
-                          <div className="relative flex justify-center text-xs"><span className="bg-card px-2 text-muted-foreground">{t("auth.or")}</span></div>
+                          <div className="relative flex justify-center text-sm"><span className="bg-card px-2 text-muted-foreground">{t("auth.or")}</span></div>
                         </div>
                         <button
                           type="button"
                           onClick={() => { enterGuestMode(); navigate(redirectTo); }}
-                          className="w-full text-sm text-muted-foreground hover:text-foreground transition-colors font-display flex items-center justify-center gap-2 py-2"
+                          className="w-full text-base text-muted-foreground hover:text-foreground transition-colors font-display flex items-center justify-center gap-2 py-2"
                         >
                           {t("auth.exploreGuest")}
                         </button>
@@ -158,7 +158,7 @@ const Auth = () => {
               <TabsContent value="signup">
                 <form onSubmit={handleSignup} className="space-y-4">
                   {isGuest && (
-                    <p className="text-sm text-muted-foreground bg-primary/10 rounded p-2">
+                    <p className="text-base text-muted-foreground bg-primary/10 rounded p-2">
                       {t("auth.guestConvert")}
                     </p>
                   )}

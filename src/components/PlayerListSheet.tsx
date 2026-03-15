@@ -43,7 +43,7 @@ const PlayerListSheet = ({ players, characters, gameId }: PlayerListSheetProps) 
   return (
     <Sheet>
       <SheetTrigger asChild>
-        <button className="flex items-center gap-1 text-muted-foreground text-sm hover:text-foreground transition-colors cursor-pointer">
+        <button className="flex items-center gap-1 text-muted-foreground text-base hover:text-foreground transition-colors cursor-pointer">
           <span className="text-base" aria-hidden="true">🜊</span> {players.length}
         </button>
       </SheetTrigger>
@@ -56,7 +56,7 @@ const PlayerListSheet = ({ players, characters, gameId }: PlayerListSheetProps) 
 
         <div className="mt-6 space-y-6">
           {players.length === 0 ? (
-            <p className="text-sm text-muted-foreground text-center py-8">{t("gm.noPlayers")}</p>
+            <p className="text-base text-muted-foreground text-center py-8">{t("gm.noPlayers")}</p>
           ) : (
             players.map((player) => {
               const displayName = (player as any).profiles?.display_name || t("gm.unknownPlayer");
@@ -68,10 +68,10 @@ const PlayerListSheet = ({ players, characters, gameId }: PlayerListSheetProps) 
 
               return (
                 <div key={player.id} className="space-y-2">
-                  <p className="text-xs font-medium text-muted-foreground px-1">{displayName}</p>
+                  <p className="text-sm font-medium text-muted-foreground px-1">{displayName}</p>
 
                   {playerChars.length === 0 ? (
-                    <p className="text-xs text-muted-foreground italic px-1">{t("gm.noCharacters")}</p>
+                    <p className="text-sm text-muted-foreground italic px-1">{t("gm.noCharacters")}</p>
                   ) : (
                     <>
                       {selectedChar && (
@@ -92,12 +92,12 @@ const PlayerListSheet = ({ players, characters, gameId }: PlayerListSheetProps) 
                       )}
 
                       {!selectedChar && (
-                        <p className="text-xs text-muted-foreground italic px-1">{t("gm.noCharacterSelected")}</p>
+                        <p className="text-sm text-muted-foreground italic px-1">{t("gm.noCharacterSelected")}</p>
                       )}
 
                       {otherChars.length > 0 && (
                         <Collapsible>
-                          <CollapsibleTrigger className="flex items-center gap-1 text-xs text-muted-foreground hover:text-foreground transition-colors px-1 cursor-pointer group">
+                          <CollapsibleTrigger className="flex items-center gap-1 text-sm text-muted-foreground hover:text-foreground transition-colors px-1 cursor-pointer group">
                             <ChevronDown className="h-3 w-3 transition-transform group-data-[state=open]:rotate-180" />
                             {t("gm.otherCharacters").replace("{count}", String(otherChars.length))}
                           </CollapsibleTrigger>

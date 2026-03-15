@@ -106,7 +106,7 @@ const CharacterSheet = ({ characterId, mode = "player", scenarioLevel, onDone }:
   const handleDescChange = (val: string) => { setDesc(val); setDirty(true); };
 
   if (!character) {
-    return <div className="text-sm text-muted-foreground py-4 text-center">{t("character.loading")}</div>;
+    return <div className="text-base text-muted-foreground py-4 text-center">{t("character.loading")}</div>;
   }
 
   const initials = character.name.slice(0, 2).toUpperCase();
@@ -155,7 +155,7 @@ const CharacterSheet = ({ characterId, mode = "player", scenarioLevel, onDone }:
           </Button>
         </div>
         {effectivelyOffline && (
-          <p className="text-xs text-muted-foreground flex items-center gap-1">
+          <p className="text-sm text-muted-foreground flex items-center gap-1">
             <WifiOff className="h-3 w-3" /> {t("wizard.portrait.offlineNote")}
           </p>
         )}

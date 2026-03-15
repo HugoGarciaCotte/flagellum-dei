@@ -377,7 +377,7 @@ const CharacterCreationWizard = ({ onCreated, onCancel, gameId }: CharacterCreat
   const renderFeatList = (feats: Feat[], onSelect: (id: string) => void) => (
     <div className="space-y-1.5">
       {feats.length === 0 ? (
-        <p className="text-sm text-muted-foreground text-center py-4">No feats found.</p>
+        <p className="text-base text-muted-foreground text-center py-4">No feats found.</p>
       ) : feats.map(f => (
         <FeatListItem
           key={f.id}
@@ -507,7 +507,7 @@ const CharacterCreationWizard = ({ onCreated, onCancel, gameId }: CharacterCreat
 
         {isFixed && options.type === "fixed" ? (
           <div className="space-y-3">
-            <p className="text-sm text-muted-foreground">
+            <p className="text-base text-muted-foreground">
               {stepConfig.subtitleFixed}
             </p>
             <div className="ring-2 ring-primary rounded">
@@ -523,7 +523,7 @@ const CharacterCreationWizard = ({ onCreated, onCancel, gameId }: CharacterCreat
           </div>
         ) : options?.type === "list" ? (
           <div className="space-y-3">
-            <p className="text-sm text-muted-foreground">
+            <p className="text-base text-muted-foreground">
               {stepConfig.subtitleChoice}
             </p>
             <button
@@ -531,8 +531,8 @@ const CharacterCreationWizard = ({ onCreated, onCancel, gameId }: CharacterCreat
               className="w-full text-left p-3 rounded border border-border hover:border-primary/50 transition-colors"
             >
               <div className="flex flex-col gap-0.5">
-                <span className="text-sm font-medium text-foreground">{slotIndex === 0 ? t("wizard.step.noFaith") : t("wizard.step.none")}</span>
-                <span className="text-xs text-muted-foreground">
+                <span className="text-base font-medium text-foreground">{slotIndex === 0 ? t("wizard.step.noFaith") : t("wizard.step.none")}</span>
+                <span className="text-sm text-muted-foreground">
                   {slotIndex === 0
                     ? t("wizard.step.noFaithDesc")
                     : t("wizard.step.skipSlot")}
@@ -546,7 +546,7 @@ const CharacterCreationWizard = ({ onCreated, onCancel, gameId }: CharacterCreat
           </div>
         ) : (
           <div className="space-y-3">
-            <p className="text-sm text-muted-foreground">{t("wizard.step.noChoices")}</p>
+            <p className="text-base text-muted-foreground">{t("wizard.step.noChoices")}</p>
             <Button onClick={() => goToNextStep(stepNum)} className="w-full font-display gap-2">
               <ChevronRight className="h-4 w-4" /> {t("wizard.continue")}
             </Button>
@@ -563,7 +563,7 @@ const CharacterCreationWizard = ({ onCreated, onCancel, gameId }: CharacterCreat
         <div className="space-y-2">
           <Logo className="text-5xl mx-auto" />
           <h2 className="font-display text-2xl text-foreground">{t("wizard.welcome.title")}</h2>
-          <p className="text-muted-foreground text-sm max-w-sm mx-auto">
+          <p className="text-muted-foreground text-base max-w-sm mx-auto">
             {t("wizard.welcome.desc")}
           </p>
         </div>
@@ -594,7 +594,7 @@ const CharacterCreationWizard = ({ onCreated, onCancel, gameId }: CharacterCreat
           <h3 className="font-display text-lg text-foreground">{t("wizard.archetype.title")}</h3>
           {skipButton}
         </div>
-        <p className="text-sm text-muted-foreground">
+        <p className="text-base text-muted-foreground">
           {t("wizard.archetype.desc")}
         </p>
         {renderSearchBar()}
@@ -644,7 +644,7 @@ const CharacterCreationWizard = ({ onCreated, onCancel, gameId }: CharacterCreat
           {skipButton}
         </div>
 
-        <div className="space-y-1 text-sm">
+        <div className="space-y-1 text-base">
           {archetypeFeat && (
             <p className="text-muted-foreground">
               <span className="text-foreground font-medium">{t("wizard.summary.archetype")}</span> {archetypeFeat.title}
@@ -681,7 +681,7 @@ const CharacterCreationWizard = ({ onCreated, onCancel, gameId }: CharacterCreat
             </Button>
           </div>
           {!online && (
-            <p className="text-xs text-muted-foreground flex items-center gap-1">
+            <p className="text-sm text-muted-foreground flex items-center gap-1">
               <WifiOff className="h-3 w-3" /> {t("wizard.portrait.offlineNote")}
             </p>
           )}
@@ -689,7 +689,7 @@ const CharacterCreationWizard = ({ onCreated, onCancel, gameId }: CharacterCreat
 
         <div className="space-y-2">
           <div className="flex items-center justify-between">
-            <label className="text-sm font-medium text-foreground">{t("wizard.description")}</label>
+            <label className="text-base font-medium text-foreground">{t("wizard.description")}</label>
             <Button
               variant="ghost"
               size="sm"
@@ -704,7 +704,7 @@ const CharacterCreationWizard = ({ onCreated, onCancel, gameId }: CharacterCreat
           {generatingDesc ? (
             <div className="flex items-center gap-2 py-3 justify-center text-muted-foreground">
               <Loader2 className="h-4 w-4 animate-spin" />
-              <span className="text-sm">{t("wizard.craftingLegend")}</span>
+              <span className="text-base">{t("wizard.craftingLegend")}</span>
             </div>
           ) : (
             <Textarea
@@ -718,7 +718,7 @@ const CharacterCreationWizard = ({ onCreated, onCancel, gameId }: CharacterCreat
 
         <div className="space-y-2">
           <div className="flex items-center justify-between">
-            <label className="text-sm font-medium text-foreground">{t("wizard.name")}</label>
+            <label className="text-base font-medium text-foreground">{t("wizard.name")}</label>
             <Button
               variant="ghost"
               size="sm"

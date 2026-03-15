@@ -71,7 +71,7 @@ const Admin = () => {
         </div>
 
         <Collapsible open={legacyOpen} onOpenChange={setLegacyOpen}>
-          <CollapsibleTrigger className="w-full text-left px-4 py-3 rounded-md border border-border hover:bg-muted/50 flex items-center gap-2 text-sm text-muted-foreground">
+          <CollapsibleTrigger className="w-full text-left px-4 py-3 rounded-md border border-border hover:bg-muted/50 flex items-center gap-2 text-base text-muted-foreground">
             <Archive className="h-4 w-4" />
             <span className="flex-1 font-display">{t("admin.legacyImport")}</span>
             <ChevronDown className={`h-4 w-4 transition-transform ${legacyOpen ? "rotate-0" : "-rotate-90"}`} />

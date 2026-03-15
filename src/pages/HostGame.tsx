@@ -128,9 +128,9 @@ const HostGame = () => {
         badge={
           <>
             {scenarioMeta.scenario_level && (
-              <span className="text-xs font-normal bg-primary/20 text-primary px-2 py-0.5 rounded-full">{t("game.level").replace("{level}", String(scenarioMeta.scenario_level))}</span>
+              <span className="text-sm font-normal bg-primary/20 text-primary px-2 py-0.5 rounded-full">{t("game.level").replace("{level}", String(scenarioMeta.scenario_level))}</span>
             )}
-            {!online && <span className="text-xs bg-destructive/20 text-destructive px-2 py-0.5 rounded-full">{t("game.offline")}</span>}
+            {!online && <span className="text-sm bg-destructive/20 text-destructive px-2 py-0.5 rounded-full">{t("game.offline")}</span>}
           </>
         }
         rightActions={
@@ -166,7 +166,7 @@ const HostGame = () => {
 
       {!window.matchMedia('(display-mode: standalone)').matches && (
         <p className="text-center py-4">
-          <Link to="/install" className="text-xs text-muted-foreground/50 hover:text-primary transition-colors font-display">
+          <Link to="/install" className="text-sm text-muted-foreground/50 hover:text-primary transition-colors font-display">
             {t("dashboard.installApp")}
           </Link>
         </p>

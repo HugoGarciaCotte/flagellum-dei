@@ -47,15 +47,15 @@ const Install = () => {
         <div className="grid grid-cols-3 gap-3 text-center">
           <div className="space-y-1.5">
             <WifiOff className="h-5 w-5 mx-auto text-primary" />
-            <p className="text-xs text-muted-foreground">{t("install.worksOffline")}</p>
+            <p className="text-sm text-muted-foreground">{t("install.worksOffline")}</p>
           </div>
           <div className="space-y-1.5">
             <Home className="h-5 w-5 mx-auto text-primary" />
-            <p className="text-xs text-muted-foreground">{t("install.homeScreen")}</p>
+            <p className="text-sm text-muted-foreground">{t("install.homeScreen")}</p>
           </div>
           <div className="space-y-1.5">
             <Zap className="h-5 w-5 mx-auto text-primary" />
-            <p className="text-xs text-muted-foreground">{t("install.fasterLoading")}</p>
+            <p className="text-sm text-muted-foreground">{t("install.fasterLoading")}</p>
           </div>
         </div>
 
@@ -86,7 +86,7 @@ const Install = () => {
                         <li dangerouslySetInnerHTML={{ __html: t("install.safariStep2") }} />
                         <li dangerouslySetInnerHTML={{ __html: t("install.safariStep3") }} />
                       </ol>
-                      <p className="text-xs text-muted-foreground/70 mt-3 italic">{t("install.safariNote")}</p>
+                      <p className="text-sm text-muted-foreground/70 mt-3 italic">{t("install.safariNote")}</p>
                     </AccordionContent>
                   </AccordionItem>
 
@@ -112,7 +112,7 @@ const Install = () => {
                         <li dangerouslySetInnerHTML={{ __html: t("install.chromeDesktopStep1") }} />
                         <li dangerouslySetInnerHTML={{ __html: t("install.chromeDesktopStep2") }} />
                       </ol>
-                      <p className="text-xs text-muted-foreground/70 mt-3 italic">{t("install.chromeDesktopAlt")}</p>
+                      <p className="text-sm text-muted-foreground/70 mt-3 italic">{t("install.chromeDesktopAlt")}</p>
                     </AccordionContent>
                   </AccordionItem>
 
