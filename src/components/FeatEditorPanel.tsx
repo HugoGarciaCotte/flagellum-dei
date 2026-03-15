@@ -373,6 +373,25 @@ const FeatEditorPanel = () => {
         <div className="flex items-center gap-2">
           <h2 className="font-display text-lg">{t("adminFeats.title")}</h2>
           <Badge variant="outline" className="text-xs">{t("adminFeats.featsCount").replace("{count}", String(hardcodedFeats.length))}</Badge>
+          {/* Locale toggle */}
+          <div className="flex items-center gap-1 ml-2">
+            <Button
+              variant={editorLocale === "en" ? "default" : "ghost"}
+              size="sm"
+              className="h-7 px-2 text-xs"
+              onClick={() => setEditorLocale("en")}
+            >
+              🇬🇧
+            </Button>
+            <Button
+              variant={editorLocale === "fr" ? "default" : "ghost"}
+              size="sm"
+              className="h-7 px-2 text-xs"
+              onClick={() => setEditorLocale("fr")}
+            >
+              🇫🇷
+            </Button>
+          </div>
         </div>
         <div className="flex gap-2">
           <Button variant="outline" size="sm" onClick={handleDownloadAndClear} className="gap-1">
