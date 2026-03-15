@@ -22,6 +22,7 @@ function getFeatsMap(): Map<string, Feat> {
 }
 
 function FeatLinkTooltip({ featName, rect }: { featName: string; rect: DOMRect }) {
+  const { t } = useTranslation();
   const featsMap = getFeatsMap();
   const feat = featsMap.get(featName.toLowerCase());
   if (!feat) return null;
@@ -37,25 +38,25 @@ function FeatLinkTooltip({ featName, rect }: { featName: string; rect: DOMRect }
         <p className="text-sm font-semibold">{feat.title}</p>
         {meta.description && (
           <div>
-            <p className="text-sm font-medium text-muted-foreground">Description</p>
+            <p className="text-sm font-medium text-muted-foreground">{t("wiki.description")}</p>
             <p className="text-sm text-muted-foreground/80 whitespace-pre-line">{stripLinks(meta.description)}</p>
           </div>
         )}
         {prerequisites && (
           <div>
-            <p className="text-sm font-medium text-muted-foreground">Prerequisites</p>
+            <p className="text-sm font-medium text-muted-foreground">{t("wiki.prerequisites")}</p>
             <p className="text-sm text-muted-foreground/80">{stripLinks(prerequisites)}</p>
           </div>
         )}
         {meta.blocking && meta.blocking.length > 0 && (
           <div>
-            <p className="text-sm font-medium text-destructive">Incompatible with</p>
+            <p className="text-sm font-medium text-destructive">{t("wiki.incompatibleWith")}</p>
             <p className="text-sm text-destructive/80">{meta.blocking.join(", ")}</p>
           </div>
         )}
         {meta.special && (
           <div>
-            <p className="text-sm font-medium text-muted-foreground">Special</p>
+            <p className="text-sm font-medium text-muted-foreground">{t("wiki.special")}</p>
             <p className="text-sm text-muted-foreground/80 whitespace-pre-line">{stripLinks(meta.special)}</p>
           </div>
         )}
