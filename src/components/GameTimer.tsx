@@ -68,7 +68,7 @@ const GameTimer = ({ ambianceTrack, position = "left", hasActiveSection = false 
     prevAmbianceIdxRef.current = activeAmbianceIdx;
   }, [activeAmbianceIdx]);
 
-  if (!hasAmbiance) return null;
+  
 
   const posClass = position === "right" ? "right-6" : "left-6";
 
