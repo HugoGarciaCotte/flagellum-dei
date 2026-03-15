@@ -26,7 +26,7 @@ const GameTimer = ({ ambianceTrack, position = "left", hasActiveSection = false 
   const hasAmbiance = ambianceTrack && ambianceTrack.length > 0;
 
   useEffect(() => {
-    if (prevTrackRef.current && ambianceTrack && prevTrackRef.current !== ambianceTrack) {
+    if (ambianceTrack && ambianceTrack.length > 0 && prevTrackRef.current !== ambianceTrack) {
       setElapsed(0);
       setRunning(true);
       prevAmbianceIdxRef.current = -1;
