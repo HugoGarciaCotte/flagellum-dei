@@ -622,7 +622,7 @@ const CharacterFeatPicker = ({ characterId, mode = "player", scenarioLevel }: Ch
           })}
 
           {mode === "gm" && (
-            <Button variant="ghost" size="sm" className="text-xs text-muted-foreground" onClick={() => openPicker({ type: "free" })}>
+            <Button variant="ghost" size="sm" className="text-sm text-muted-foreground" onClick={() => openPicker({ type: "free" })}>
               {t("feats.addFree")}
             </Button>
           )}
