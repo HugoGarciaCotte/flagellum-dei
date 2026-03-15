@@ -116,7 +116,7 @@ const ScenarioCard = ({
     <div className="space-y-3 p-6">
       {level != null && (
         <div className="flex items-baseline justify-between">
-          <span className="font-display text-[10px] tracking-[0.3em] uppercase text-primary/50">
+          <span className="font-display text-base tracking-[0.3em] uppercase text-primary/50">
             {chapterLabel} {level}
           </span>
           {date && (
