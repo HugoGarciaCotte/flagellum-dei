@@ -24,7 +24,7 @@ import { useTranslation } from "@/i18n/useTranslation";
 
 const PlayGame = () => {
   const { gameId } = useParams<{ gameId: string }>();
-  const { user, isGuest } = useAuth();
+  const { user, isGuest, syncReady } = useAuth();
   const navigate = useNavigate();
   const online = useNetworkStatus();
   const { t } = useTranslation();
