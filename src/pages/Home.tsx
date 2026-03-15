@@ -130,7 +130,7 @@ const ScenarioCard = ({
         {title}
       </h3>
       <p className="text-sm leading-relaxed text-muted-foreground italic">
-        {description}
+        {teaser}
       </p>
     </div>
   </div>
