@@ -228,6 +228,7 @@ export async function pullTable(table: TableName, filter?: Record<string, any>):
 
 export async function pushAll(): Promise<void> {
   if (_syncing) return;
+  if (!(await ensureSession())) return;
   _syncing = true;
   notify("syncing");
   try {
