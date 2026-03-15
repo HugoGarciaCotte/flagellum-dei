@@ -1,18 +1,40 @@
-## Add Spotify Idle Hint with ▶ Emoji
 
-### Changes
 
-1. `**src/i18n/en.ts**` (line ~549) — Replace `spotify.defaultPlaylist` with `spotify.idleHint`:
-  ```
-   "spotify.idleHint": "Press ▶ on a section to start the bakcground music"
-  ```
-2. `**src/i18n/fr.ts**` (line ~109) — Same key in French:
-  ```
-   "spotify.idleHint": "Appuyez sur le ▶ d'une section pour lancer la musique d'ambiance"
-  ```
-3. `**src/components/SpotifyPlayer.tsx**` (line 271) — Update the fallback return in `getPillStatus()`:
-  ```typescript
-   return { text: effectivePlaylistName || t("spotify.idleHint"), actionable: !!effectivePlaylistName };
-  ```
+## Fix: Remove Scroll-Blocking Overlay from Spotify Player
 
-Three files, three one-line changes.
+**Approach**: Replace the `fixed inset-0` overlay div with a click-outside `useEffect` listener. This is the standard pattern — no new dependencies, minimal change.
+
+### Changes in `src/components/SpotifyPlayer.tsx`
+
+1. **Add a ref** for the expanded panel container:
+   ```typescript
+   const containerRef = useRef<HTMLDivElement>(null);
+   ```
+
+2. **Add a click-outside useEffect**:
+   ```typescript
+   useEffect(() => {
+     if (!expanded) return;
+     const handler = (e: MouseEvent | TouchEvent) => {
+       if (containerRef.current && !containerRef.current.contains(e.target as Node)) {
+         setExpanded(false);
+       }
+     };
+     document.addEventListener("mousedown", handler);
+     document.addEventListener("touchstart", handler);
+     return () => {
+       document.removeEventListener("mousedown", handler);
+       document.removeEventListener("touchstart", handler);
+     };
+   }, [expanded]);
+   ```
+
+3. **Remove the overlay div** (line 320):
+   ```tsx
+   // DELETE: <div className="fixed inset-0 z-40" onClick={() => setExpanded(false)} />
+   ```
+
+4. **Attach `containerRef`** to the expanded panel's outer `<div>`.
+
+One file, ~10 lines changed.
+
