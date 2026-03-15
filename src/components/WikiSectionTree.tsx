@@ -1,7 +1,7 @@
 import React, { useState, useRef, useEffect, useCallback, useMemo } from "react";
 import { createPortal } from "react-dom";
 import { ChevronRight, Play, Music, ExternalLink } from "lucide-react";
-import { WikiSection, resolveBackgroundImage, resolvePlaylist, collectQueueTracks, type PlaylistInfo, type QueueTrackInfo } from "@/lib/parseWikitext";
+import { WikiSection, resolveBackgroundImage, resolvePlaylist, type PlaylistInfo } from "@/lib/parseWikitext";
 import { cn } from "@/lib/utils";
 import { buildFeatsMap, getFeatMeta } from "@/data/feats";
 import { useTranslation } from "@/i18n/useTranslation";
@@ -100,7 +100,6 @@ function SectionNode({
   const isActive = activeSection === section.id;
   const hasChildren = section.children.length > 0;
   const hasContent = section.content.trim().length > 0;
-  const queueTracks = useMemo(() => collectQueueTracks(section), [section]);
 
   const effectiveBg = resolveBackgroundImage(section, parentBackground);
   const effectivePlaylist = resolvePlaylist(section, parentPlaylist);
@@ -123,16 +122,36 @@ function SectionNode({
 
   useEffect(() => {
     const el = contentRef.current;
-    if (!el || !featsMap) return;
-    const links = el.querySelectorAll<HTMLSpanElement>(".wiki-feat-link");
-    links.forEach((link) => {
-      link.style.color = "hsl(var(--primary))";
-      link.style.textDecoration = "underline";
-      link.style.textDecorationStyle = "dotted";
-      link.style.textUnderlineOffset = "2px";
-      link.style.cursor = "help";
+    if (!el) return;
+
+    // Style feat links
+    if (featsMap) {
+      const links = el.querySelectorAll<HTMLSpanElement>(".wiki-feat-link");
+      links.forEach((link) => {
+        link.style.color = "hsl(var(--primary))";
+        link.style.textDecoration = "underline";
+        link.style.textDecorationStyle = "dotted";
+        link.style.textUnderlineOffset = "2px";
+        link.style.cursor = "help";
+      });
+    }
+
+    // Render inline queue track buttons
+    const queueSpans = el.querySelectorAll<HTMLSpanElement>(".wiki-queue-track");
+    queueSpans.forEach((span) => {
+      if (span.dataset.rendered) return;
+      span.dataset.rendered = "1";
+      const url = decodeURIComponent(span.dataset.url || "");
+      const name = span.dataset.name || url;
+      span.className = cn(
+        "inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium transition-colors cursor-pointer align-middle",
+        isActive
+          ? "bg-primary-foreground/20 text-primary-foreground hover:bg-primary-foreground/30"
+          : "bg-accent text-accent-foreground hover:bg-accent/80"
+      );
+      span.innerHTML = `<svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="currentColor" stroke="none"><polygon points="5 3 19 12 5 21 5 3"/></svg>${name}`;
     });
-  }, [section.content, featsMap]);
+  }, [section.content, featsMap, isActive]);
 
   const handleMouseOver = useCallback((e: React.MouseEvent) => {
     const target = (e.target as HTMLElement).closest(".wiki-feat-link") as HTMLElement | null;
@@ -146,6 +165,16 @@ function SectionNode({
     const target = (e.target as HTMLElement).closest(".wiki-feat-link");
     if (target) setHoveredFeat(null);
   }, []);
+
+  const handleContentClick = useCallback((e: React.MouseEvent) => {
+    const target = (e.target as HTMLElement).closest(".wiki-queue-track") as HTMLElement | null;
+    if (target) {
+      const url = decodeURIComponent(target.dataset.url || "");
+      if (url) {
+        onPlayTrack?.(url) ?? window.open(url, "_blank");
+      }
+    }
+  }, [onPlayTrack]);
 
   return (
     <div
@@ -224,30 +253,11 @@ function SectionNode({
                   ref={i === 0 ? contentRef : undefined}
                   onMouseOver={handleMouseOver}
                   onMouseOut={handleMouseOut}
+                  onClick={handleContentClick}
                   className={cn("px-8 pb-2 text-base leading-relaxed prose prose-base max-w-none overflow-x-auto", isActive ? "text-primary-foreground/80" : "text-muted-foreground",
                     "[&_ul]:list-disc [&_ul]:pl-5 [&_li]:mb-1 [&_hr]:my-3 [&_p]:mb-1.5 [&_pre]:whitespace-pre-wrap [&_pre]:break-words [&_pre]:overflow-x-auto")}
                   dangerouslySetInnerHTML={{ __html: seg }}
                 />
-              )}
-              {/* Queue track play buttons — only on last content segment */}
-              {i === (section.contentSegments ?? [section.content]).length - 1 && queueTracks.length > 0 && (
-                <div className="flex flex-wrap gap-2 px-8 pb-2 pt-1">
-                  {queueTracks.map((qt, qi) => (
-                    <button
-                      key={qi}
-                      onClick={() => onPlayTrack?.(qt.url) ?? window.open(qt.url, "_blank")}
-                      className={cn(
-                        "inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium transition-colors",
-                        isActive
-                          ? "bg-primary-foreground/20 text-primary-foreground hover:bg-primary-foreground/30"
-                          : "bg-accent text-accent-foreground hover:bg-accent/80"
-                      )}
-                    >
-                      <Play className="h-3 w-3 fill-current" />
-                      {qt.name}
-                    </button>
-                  ))}
-                </div>
               )}
               {hoveredFeat && featsMap && tooltipLabels && (
                 <FeatLinkTooltip featName={hoveredFeat.name} rect={hoveredFeat.rect} featsMap={featsMap} labels={tooltipLabels} />
