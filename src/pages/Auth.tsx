@@ -122,7 +122,7 @@ const Auth = () => {
                     <Button type="submit" className="w-full font-display" disabled={loading}>
                       {loading ? t("auth.sending") : t("auth.resetTitle")}
                     </Button>
-                    <button type="button" onClick={() => setShowForgotPassword(false)} className="text-sm text-primary hover:underline w-full text-center">
+                    <button type="button" onClick={() => setShowForgotPassword(false)} className="text-base text-primary hover:underline w-full text-center">
                       {t("auth.backToLogin")}
                     </button>
                   </form>
