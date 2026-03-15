@@ -56,7 +56,7 @@ const PlayerListSheet = ({ players, characters, gameId }: PlayerListSheetProps) 
 
         <div className="mt-6 space-y-6">
           {players.length === 0 ? (
-            <p className="text-sm text-muted-foreground text-center py-8">{t("gm.noPlayers")}</p>
+            <p className="text-base text-muted-foreground text-center py-8">{t("gm.noPlayers")}</p>
           ) : (
             players.map((player) => {
               const displayName = (player as any).profiles?.display_name || t("gm.unknownPlayer");
