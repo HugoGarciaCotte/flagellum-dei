@@ -146,7 +146,7 @@ const PlayGame = () => {
             </Button>
           ) : undefined
         }
-        badge={!online ? <span className="text-xs bg-destructive/20 text-destructive px-2 py-0.5 rounded-full">{t("game.offline")}</span> : undefined}
+        badge={!online ? <span className="text-sm bg-destructive/20 text-destructive px-2 py-0.5 rounded-full">{t("game.offline")}</span> : undefined}
       />
 
       <main className={`flex-1 container py-8 flex items-center justify-center max-w-3xl ${isGuest ? "pb-32" : "pb-24"}`}>
