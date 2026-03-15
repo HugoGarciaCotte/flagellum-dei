@@ -19,9 +19,19 @@ const GameTimer = ({ ambianceTrack, position = "left" }: GameTimerProps) => {
   const [newEvent, setNewEvent] = useState(false);
   const intervalRef = useRef<ReturnType<typeof setInterval>>();
   const prevAmbianceIdxRef = useRef<number>(-1);
+  const prevTrackRef = useRef<AmbianceEntry[] | undefined>();
   const { t } = useTranslation();
 
   const hasAmbiance = ambianceTrack && ambianceTrack.length > 0;
+
+  useEffect(() => {
+    if (prevTrackRef.current && ambianceTrack && prevTrackRef.current !== ambianceTrack) {
+      setElapsed(0);
+      setRunning(true);
+      prevAmbianceIdxRef.current = -1;
+    }
+    prevTrackRef.current = ambianceTrack;
+  }, [ambianceTrack]);
 
   useEffect(() => {
     if (running) {
