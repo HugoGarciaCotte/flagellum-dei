@@ -43,7 +43,7 @@ const PlayerListSheet = ({ players, characters, gameId }: PlayerListSheetProps) 
   return (
     <Sheet>
       <SheetTrigger asChild>
-        <button className="flex items-center gap-1 text-muted-foreground text-sm hover:text-foreground transition-colors cursor-pointer">
+        <button className="flex items-center gap-1 text-muted-foreground text-base hover:text-foreground transition-colors cursor-pointer">
           <span className="text-base" aria-hidden="true">🜊</span> {players.length}
         </button>
       </SheetTrigger>
