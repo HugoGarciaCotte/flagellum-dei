@@ -18,7 +18,9 @@ const GameTimer = ({ ambianceTrack, position = "left", hasActiveSection = false 
   const [running, setRunning] = useState(false);
   const [elapsed, setElapsed] = useState(0);
   const [newEvent, setNewEvent] = useState(false);
+  const [flashing, setFlashing] = useState(false);
   const intervalRef = useRef<ReturnType<typeof setInterval>>();
+  const flashTimeoutRef = useRef<ReturnType<typeof setTimeout>>();
   const prevAmbianceIdxRef = useRef<number>(-1);
   const prevTrackRef = useRef<AmbianceEntry[] | undefined>();
   const { t } = useTranslation();
