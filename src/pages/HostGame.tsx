@@ -121,7 +121,7 @@ const HostGame = () => {
   if (!game) return <FullPageLoader message={t("game.loadingQuest")} />;
 
   return (
-    <div className="min-h-screen bg-background flex flex-col">
+    <div className="fixed inset-0 bg-background flex flex-col">
       <PageHeader
         title={effectiveScenario?.title ?? ""}
         leftAction={<Button variant="ghost" size="icon" onClick={() => navigate("/")}><ArrowLeft className="h-4 w-4" /></Button>}
