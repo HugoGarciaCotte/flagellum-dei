@@ -492,7 +492,7 @@ const ContentEditor = ({
               onMouseDown={(e) => e.preventDefault()}
               onClick={() => insertAtCursor("\n{{Ambiance Track\n| 5min = \n| 15min = \n| 30min = \n}}\n")}
             >
-              <Music className="h-4 w-4 mr-2" />
+              <Wind className="h-4 w-4 mr-2" />
               {t("adminScenarios.insertTagAmbiance")}
             </DropdownMenuItem>
             <DropdownMenuItem
