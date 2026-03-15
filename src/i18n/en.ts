@@ -500,7 +500,7 @@ const en: Record<string, string> = {
   "adminScenarios.uploading": "Uploading…",
   "adminScenarios.insertTag": "Insert Tag",
   "adminScenarios.insertTagBg": "Background Image",
-  "adminScenarios.insertTagAmbiance": "Ambiance Track",
+  "adminScenarios.insertTagAmbiance": "Timed Narration",
   "adminScenarios.generateFailed": "AI generation failed",
   "adminScenarios.uploadFailed": "Upload failed",
 
