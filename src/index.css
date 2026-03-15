@@ -96,7 +96,7 @@
     left: 50%;
     transform: translate(-50%, -50%);
     color: hsl(43 74% 49% / 0.5);
-    font-size: 0.75rem;
+    font-size: 18px;
     
     padding: 0 0.75rem;
   }

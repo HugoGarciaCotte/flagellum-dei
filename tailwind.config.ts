@@ -13,6 +13,11 @@ export default {
       },
     },
     extend: {
+      fontSize: {
+        xs:   ['18px', { lineHeight: '1.4' }],
+        sm:   ['18px', { lineHeight: '1.5' }],
+        base: ['18px', { lineHeight: '1.6' }],
+      },
       fontFamily: {
         display: ['Cinzel', 'serif'],
         body: ['Crimson Text', 'serif'],
