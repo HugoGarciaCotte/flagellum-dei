@@ -349,15 +349,15 @@ Upload the images from the scenario-backgrounds/ folder in the attached ZIP into
             </div>
           </div>
 
-          {/* Row 2: Description */}
+          {/* Row 2: Teaser */}
           <div className="px-4 pb-2">
             <OverrideField
-              label={t("adminScenarios.fieldDescription")}
-              value={getEffective(editingHardcoded, "description") ?? ""}
-              isOverridden={isOverridden(editingScenario.id, "description")}
-              saving={savingFields.has(`${editingScenario.id}:description`)}
-              onSave={(v) => saveField(editingScenario.id, "description", v || null)}
-              onRevert={() => revertField(editingScenario.id, "description")}
+              label={t("adminScenarios.fieldTeaser")}
+              value={getEffective(editingHardcoded, "teaser") ?? ""}
+              isOverridden={isOverridden(editingScenario.id, "teaser")}
+              saving={savingFields.has(`${editingScenario.id}:teaser`)}
+              onSave={(v) => saveField(editingScenario.id, "teaser", v || null)}
+              onRevert={() => revertField(editingScenario.id, "teaser")}
               multiline
               inline
               t={t}
