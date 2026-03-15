@@ -21,3 +21,6 @@ verify_jwt = false
 [functions.spotify-token-exchange]
 verify_jwt = false
 
+[functions.improve-scenario-content]
+verify_jwt = false
+

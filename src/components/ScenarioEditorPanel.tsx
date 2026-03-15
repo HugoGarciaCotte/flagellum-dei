@@ -8,6 +8,7 @@ import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/component
 import { Download, ChevronDown, AlertTriangle, Check, Image, Loader2, Plus, Music, SeparatorHorizontal, ListMusic, Timer, Copy, Sparkles } from "lucide-react";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import BackgroundInsertDialog from "@/components/BackgroundInsertDialog";
+import AiImprovePanel from "@/components/AiImprovePanel";
 import { getHardcodedScenarios, type Scenario } from "@/data/scenarios";
 import { downloadFile } from "@/lib/downloadFile";
 import { extractImageUrls } from "@/lib/parseWikitext";
@@ -582,6 +583,7 @@ const ContentEditor = ({
   const textareaRef = useRef<HTMLTextAreaElement | null>(null);
   const cursorPosRef = useRef<number>(0);
   const [bgDialogOpen, setBgDialogOpen] = useState(false);
+  const [aiPanelOpen, setAiPanelOpen] = useState(false);
 
   useEffect(() => { setLocal(value); }, [value]);
 
@@ -705,6 +707,15 @@ const ContentEditor = ({
             </DropdownMenuItem>
           </DropdownMenuContent>
         </DropdownMenu>
+        <Button
+          variant="outline"
+          size="sm"
+          className="h-7 text-sm gap-1"
+          onClick={() => setAiPanelOpen(true)}
+        >
+          <Sparkles className="h-3 w-3" />
+          {t("adminScenarios.improveWithAi")}
+        </Button>
       </div>
 
       {/* Textarea + save button */}
@@ -742,6 +753,18 @@ const ContentEditor = ({
         scenarioTitle={scenarioTitle}
         scenarioTeaser={scenarioTeaser}
       />
+
+      {aiPanelOpen && (
+        <AiImprovePanel
+          content={local}
+          onApply={(newContent) => {
+            setLocal(newContent);
+            setAiPanelOpen(false);
+          }}
+          onClose={() => setAiPanelOpen(false)}
+          t={t}
+        />
+      )}
     </div>
   );
 };
