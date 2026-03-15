@@ -162,6 +162,15 @@ const SpotifyPlayer = ({ position = "left" }: SpotifyPlayerProps) => {
       console.error("Spotify auth error:", message);
       setAccessToken(null);
       sessionStorage.removeItem("spotify_access_token");
+      sessionStorage.removeItem("spotify_token_expires");
+      // Clear bad tokens from profile to prevent reload loop
+      if (user) {
+        supabase.from("profiles").update({
+          spotify_access_token: null,
+          spotify_refresh_token: null,
+          spotify_token_expires_at: null,
+        }).eq("user_id", user.id).then(() => {});
+      }
     });
 
     setLoading(true);
