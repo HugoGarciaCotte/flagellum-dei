@@ -111,7 +111,7 @@ const GameTimer = ({ ambianceTrack, position = "left", hasActiveSection = false 
   return (
     <>
       <div className="fixed inset-0 z-40" onClick={() => setExpanded(false)} />
-      <div className={cn("fixed bottom-6 z-50", posClass)}>
+      <div className={cn("fixed bottom-14 sm:bottom-6 z-50", posClass)}>
         <div className="bg-card border border-border rounded-2xl shadow-xl flex flex-col min-w-[260px] max-w-[360px] max-h-[60vh] overflow-hidden">
           {/* Sticky header: timer controls */}
           <div className="shrink-0 bg-card border-b border-border p-4 flex flex-col items-center gap-2">
