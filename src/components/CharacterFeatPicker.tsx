@@ -4,7 +4,13 @@ import { supabase } from "@/integrations/supabase/client";
 import { sortTitlesEmojiLast } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { X, Search, Loader2, Pencil, ArrowLeft, Plus } from "lucide-react";
+import { X, Search, Loader2, Pencil, ArrowLeft, Plus, MoreVertical } from "lucide-react";
+import {
+  DropdownMenu,
+  DropdownMenuTrigger,
+  DropdownMenuContent,
+  DropdownMenuItem,
+} from "@/components/ui/dropdown-menu";
 import { toast } from "sonner";
 import FeatListItem from "@/components/FeatListItem";
 import { Alert, AlertTitle, AlertDescription } from "@/components/ui/alert";
@@ -575,19 +581,21 @@ const CharacterFeatPicker = ({ characterId, mode = "player", scenarioLevel }: Ch
                     expanded={expandedAssignedFeatId === assigned!.id}
                     onToggleExpand={() => setExpandedAssignedFeatId(expandedAssignedFeatId === assigned!.id ? null : assigned!.id)}
                     actions={
-                      <>
-                        <Button variant="ghost" size="sm" className="h-6 px-2 text-sm" onClick={() => openPicker({ type: "level", level })}>
-                          {t("feats.edit")}
-                        </Button>
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          className="h-6 px-1 text-destructive"
-                          onClick={() => deleteFeat(level, false)}
-                        >
-                          <X className="h-3 w-3" />
-                        </Button>
-                      </>
+                      <DropdownMenu>
+                        <DropdownMenuTrigger asChild>
+                          <Button variant="ghost" size="sm" className="h-6 w-6 p-0">
+                            <MoreVertical className="h-3.5 w-3.5" />
+                          </Button>
+                        </DropdownMenuTrigger>
+                        <DropdownMenuContent align="end">
+                          <DropdownMenuItem onClick={() => openPicker({ type: "level", level })}>
+                            {t("feats.edit")}
+                          </DropdownMenuItem>
+                          <DropdownMenuItem className="text-destructive" onClick={() => deleteFeat(level, false)}>
+                            {t("feats.delete")}
+                          </DropdownMenuItem>
+                        </DropdownMenuContent>
+                      </DropdownMenu>
                     }
                     collapsedContent={assigned && assignedFeat ? renderSubfeats(assigned, assignedFeat) : undefined}
                     compact
@@ -624,14 +632,18 @@ const CharacterFeatPicker = ({ characterId, mode = "player", scenarioLevel }: Ch
                 expanded={expandedAssignedFeatId === cf.id}
                 onToggleExpand={() => setExpandedAssignedFeatId(expandedAssignedFeatId === cf.id ? null : cf.id)}
                 actions={mode === "gm" ? (
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    className="h-6 px-1 text-destructive ml-auto shrink-0"
-                    onClick={() => deleteFeat(0, true, cf.id)}
-                  >
-                    <X className="h-3 w-3" />
-                  </Button>
+                  <DropdownMenu>
+                    <DropdownMenuTrigger asChild>
+                      <Button variant="ghost" size="sm" className="h-6 w-6 p-0">
+                        <MoreVertical className="h-3.5 w-3.5" />
+                      </Button>
+                    </DropdownMenuTrigger>
+                    <DropdownMenuContent align="end">
+                      <DropdownMenuItem className="text-destructive" onClick={() => deleteFeat(0, true, cf.id)}>
+                        {t("feats.delete")}
+                      </DropdownMenuItem>
+                    </DropdownMenuContent>
+                  </DropdownMenu>
                 ) : undefined}
                 collapsedContent={renderSubfeats(cf, feat)}
                 compact
