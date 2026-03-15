@@ -203,7 +203,7 @@ const PlayGame = () => {
             <div className="container max-w-2xl py-6 px-4 space-y-3">
               {sortedCharacters.length === 0 ? (
                 <div className="space-y-2">
-                  <p className="text-sm text-muted-foreground">{t("game.noCharactersYet")}</p>
+                  <p className="text-base text-muted-foreground">{t("game.noCharactersYet")}</p>
                   <Button variant="outline" size="sm" className="gap-2 w-full" onClick={() => setCreatingChar(true)}>
                     <Plus className="h-3 w-3" /> {t("game.newCharacter")}
                   </Button>
