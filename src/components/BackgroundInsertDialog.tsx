@@ -212,7 +212,7 @@ const BackgroundInsertDialog = ({
 
               {/* Reference image */}
               <div className="flex items-center gap-2">
-                <label className="flex items-center gap-1.5 text-xs text-muted-foreground cursor-pointer hover:text-foreground transition-colors">
+                <label className="flex items-center gap-1.5 text-sm text-muted-foreground cursor-pointer hover:text-foreground transition-colors">
                   <Upload className="h-3.5 w-3.5" />
                   {t("adminScenarios.bgRefImage")}
                   <input
