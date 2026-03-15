@@ -531,7 +531,7 @@ const CharacterCreationWizard = ({ onCreated, onCancel, gameId }: CharacterCreat
               className="w-full text-left p-3 rounded border border-border hover:border-primary/50 transition-colors"
             >
               <div className="flex flex-col gap-0.5">
-                <span className="text-sm font-medium text-foreground">{slotIndex === 0 ? t("wizard.step.noFaith") : t("wizard.step.none")}</span>
+                <span className="text-base font-medium text-foreground">{slotIndex === 0 ? t("wizard.step.noFaith") : t("wizard.step.none")}</span>
                 <span className="text-xs text-muted-foreground">
                   {slotIndex === 0
                     ? t("wizard.step.noFaithDesc")
