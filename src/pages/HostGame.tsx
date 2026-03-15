@@ -9,7 +9,7 @@ import { toast } from "@/hooks/use-toast";
 import { ArrowLeft, Copy } from "lucide-react";
 
 import PlayerListSheet from "@/components/PlayerListSheet";
-import { parseWikitext, extractImageUrls, findSection, resolveAmbianceTrack } from "@/lib/parseWikitext";
+import { parseWikitext, extractImageUrls, findSection, resolveAmbianceTrack, resolvePlaylist, collectQueueTracks, type PlaylistInfo, type QueueTrackInfo } from "@/lib/parseWikitext";
 import { getBy } from "@/lib/localStore";
 import WikiSectionTree from "@/components/WikiSectionTree";
 import DiceRoller from "@/components/DiceRoller";
