@@ -135,7 +135,7 @@ const PlayGame = () => {
         rightActions={
           game?.join_code ? (
             <Button variant="outline" size="sm" onClick={copyCode} className="font-mono text-xs gap-1.5">
-              {game.join_code} <Copy className="h-3.5 w-3.5" />
+              <span className="font-sans font-medium tracking-normal">{t("game.joinCode")} :</span> {game.join_code} <Copy className="h-3.5 w-3.5" />
             </Button>
           ) : undefined
         }

@@ -191,6 +191,7 @@ const en: Record<string, string> = {
   // ─── GAME (HOST) ───
   "game.loadingQuest": "Loading quest...",
   "game.copied": "Copied!",
+  "game.joinCode": "Join code",
   "game.joinCodeCopied": "Join code copied to clipboard.",
   "game.joinLinkCopied": "Join link copied to clipboard.",
   "game.end": "End",

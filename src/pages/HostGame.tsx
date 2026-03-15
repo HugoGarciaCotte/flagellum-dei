@@ -136,7 +136,7 @@ const HostGame = () => {
         rightActions={
           <>
             <Button variant="outline" size="sm" onClick={copyCode} className="gap-2 border-primary/30 font-mono tracking-widest">
-              <Copy className="h-3 w-3" /> {game.join_code}
+              <span className="font-sans font-medium tracking-normal">{t("game.joinCode")} :</span> {game.join_code} <Copy className="h-3 w-3" />
             </Button>
             <PlayerListSheet players={players} characters={characters} gameId={gameId!} />
             <Button variant="destructive" size="sm" onClick={endGame} className="gap-1">
