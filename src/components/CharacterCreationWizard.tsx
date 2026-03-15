@@ -38,7 +38,7 @@ const CharacterCreationWizard = ({ onCreated, onCancel, gameId }: CharacterCreat
   const { user } = useAuth();
   const fileInputRef = useRef<HTMLInputElement>(null);
   const online = useNetworkStatus();
-  const { t } = useTranslation();
+  const { t, locale } = useTranslation();
 
   // Wizard state
   const [step, setStep] = useState(0);
@@ -61,7 +61,7 @@ const CharacterCreationWizard = ({ onCreated, onCancel, gameId }: CharacterCreat
   const [generatingPortrait, setGeneratingPortrait] = useState(false);
   const [creating, setCreating] = useState(false);
 
-  const allFeats = useMemo(() => getAllFeats() as Feat[], []);
+  const allFeats = useMemo(() => getAllFeats(locale) as Feat[], [locale]);
 
   const featMap = useMemo(() => {
     const map = new Map<string, Feat>();

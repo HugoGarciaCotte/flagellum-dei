@@ -16,6 +16,9 @@ import { supabase } from "@/integrations/supabase/client";
 import { invalidateOverrides, type FeatOverrideMap } from "@/lib/featOverrides";
 import { useTranslation } from "@/i18n/useTranslation";
 
+type EditorLocale = "en" | "fr";
+const FR_FEAT_FIELDS = ["title", "description", "prerequisites", "special"] as const;
+
 /** Fields that live inside meta */
 const META_FIELDS = ["description", "prerequisites", "special", "specialities", "subfeats", "unlocks_categories", "blocking", "synonyms"] as const;
 type MetaField = (typeof META_FIELDS)[number];
@@ -61,6 +64,8 @@ const FeatEditorPanel = () => {
   const [bulkGenerating, setBulkGenerating] = useState(false);
   const [bulkProgress, setBulkProgress] = useState({ done: 0, total: 0 });
   const bulkAbortRef = useRef(false);
+  const [editorLocale, setEditorLocale] = useState<EditorLocale>("en");
+  const [generatingFr, setGeneratingFr] = useState<Set<string>>(new Set());
 
   // Load overrides from DB
   useEffect(() => {
@@ -288,26 +293,63 @@ const FeatEditorPanel = () => {
     }
   };
 
+  const generateFrField = async (featId: string, field: string, englishText: string) => {
+    const key = `${featId}:fr:${field}`;
+    setGeneratingFr(prev => new Set(prev).add(key));
+    try {
+      const { data, error } = await supabase.functions.invoke("generate-translation", {
+        body: { key: `feat.${field}`, english_text: englishText, target_locale: "fr", screen: "feat" },
+      });
+      if (error) throw error;
+      if (data?.translated_text) {
+        await saveField(featId, `fr:${field}`, data.translated_text);
+        toast({ title: t("adminEditor.translationSaved") });
+      }
+    } catch (e: any) {
+      toast({ title: t("adminTranslations.aiGenerationFailed"), description: e.message, variant: "destructive" });
+    }
+    setGeneratingFr(prev => { const s = new Set(prev); s.delete(key); return s; });
+  };
+
   const handleDownloadAndClear = async () => {
-    const exportFeats = mergedFeats.map(f => ({
-      id: f.id,
-      title: f.title,
-      categories: f.categories,
-      content: f.content,
-      raw_content: f.raw_content,
-      meta: Object.keys(f.meta).some(k => (f.meta as any)[k] != null)
-        ? {
-            description: f.meta.description || undefined,
-            prerequisites: f.meta.prerequisites || undefined,
-            special: f.meta.special || undefined,
-            specialities: f.meta.specialities?.length ? f.meta.specialities : undefined,
-            subfeats: f.meta.subfeats?.length ? f.meta.subfeats : undefined,
-            unlocks_categories: f.meta.unlocks_categories?.length ? f.meta.unlocks_categories : undefined,
-            blocking: f.meta.blocking?.length ? f.meta.blocking : undefined,
-            synonyms: f.meta.synonyms || undefined,
-          }
-        : null,
-    }));
+    const exportFeats = mergedFeats.map(f => {
+      // Collect fr overrides
+      const frFields = overrides.get(f.id);
+      const fr: Record<string, string> = {};
+      if (frFields) {
+        for (const [k, v] of frFields) {
+          if (k.startsWith("fr:") && v) fr[k.slice(3)] = v;
+        }
+      }
+      // Also include hardcoded fr
+      if ((f as any).fr) {
+        for (const [k, v] of Object.entries((f as any).fr)) {
+          if (v && !fr[k]) fr[k] = v as string;
+        }
+      }
+      const hasFr = Object.keys(fr).length > 0;
+
+      return {
+        id: f.id,
+        title: f.title,
+        categories: f.categories,
+        content: f.content,
+        raw_content: f.raw_content,
+        meta: Object.keys(f.meta).some(k => (f.meta as any)[k] != null)
+          ? {
+              description: f.meta.description || undefined,
+              prerequisites: f.meta.prerequisites || undefined,
+              special: f.meta.special || undefined,
+              specialities: f.meta.specialities?.length ? f.meta.specialities : undefined,
+              subfeats: f.meta.subfeats?.length ? f.meta.subfeats : undefined,
+              unlocks_categories: f.meta.unlocks_categories?.length ? f.meta.unlocks_categories : undefined,
+              blocking: f.meta.blocking?.length ? f.meta.blocking : undefined,
+              synonyms: f.meta.synonyms || undefined,
+            }
+          : null,
+        ...(hasFr ? { fr } : {}),
+      };
+    });
 
     const json = JSON.stringify({ feats: exportFeats, redirects }, null, 2);
     downloadFile("feats-data.json", json, "application/json");
@@ -331,6 +373,25 @@ const FeatEditorPanel = () => {
         <div className="flex items-center gap-2">
           <h2 className="font-display text-lg">{t("adminFeats.title")}</h2>
           <Badge variant="outline" className="text-xs">{t("adminFeats.featsCount").replace("{count}", String(hardcodedFeats.length))}</Badge>
+          {/* Locale toggle */}
+          <div className="flex items-center gap-1 ml-2">
+            <Button
+              variant={editorLocale === "en" ? "default" : "ghost"}
+              size="sm"
+              className="h-7 px-2 text-xs"
+              onClick={() => setEditorLocale("en")}
+            >
+              🇬🇧
+            </Button>
+            <Button
+              variant={editorLocale === "fr" ? "default" : "ghost"}
+              size="sm"
+              className="h-7 px-2 text-xs"
+              onClick={() => setEditorLocale("fr")}
+            >
+              🇫🇷
+            </Button>
+          </div>
         </div>
         <div className="flex gap-2">
           <Button variant="outline" size="sm" onClick={handleDownloadAndClear} className="gap-1">
@@ -444,6 +505,19 @@ const FeatEditorPanel = () => {
                       onRevert={() => revertField(feat.id, "title")}
                       revertLabel={t("adminFeats.dbOverrideRevert")}
                     />
+                    {editorLocale === "fr" && (
+                      <FeatTranslationField
+                        label="🇫🇷"
+                        value={getEffective(feat, "fr:title") ?? ""}
+                        isOverridden={isOverridden(feat.id, "fr:title")}
+                        saving={savingFields.has(`${feat.id}:fr:title`)}
+                        generating={generatingFr.has(`${feat.id}:fr:title`)}
+                        onSave={(v) => saveField(feat.id, "fr:title", v || null)}
+                        onRevert={() => revertField(feat.id, "fr:title")}
+                        onGenerate={() => generateFrField(feat.id, "title", getEffective(feat, "title") ?? "")}
+                        t={t}
+                      />
+                    )}
 
                     {/* Categories */}
                     <OverrideField
@@ -460,19 +534,34 @@ const FeatEditorPanel = () => {
                     {(["description", "prerequisites", "special", "synonyms"] as const).map(field => {
                       const isGeneratable = GENERATABLE_FIELDS.includes(field as any);
                       const labelKey = `adminFeats.field${field.charAt(0).toUpperCase() + field.slice(1)}` as string;
+                      const isTranslatable = FR_FEAT_FIELDS.includes(field as any);
                       return (
-                        <OverrideField
-                          key={field}
-                          label={t(labelKey)}
-                          value={getEffective(feat, field) ?? ""}
-                          isOverridden={isOverridden(feat.id, field)}
-                          saving={savingFields.has(`${feat.id}:${field}`)}
-                          generating={generatingFields.has(`${feat.id}:${field}`)}
-                          onSave={(v) => saveField(feat.id, field, v || null)}
-                          onRevert={() => revertField(feat.id, field)}
-                          onGenerate={isGeneratable ? () => handleGenerateField(feat, field as GeneratableField) : undefined}
-                          revertLabel={t("adminFeats.dbOverrideRevert")}
-                        />
+                        <div key={field}>
+                          <OverrideField
+                            label={t(labelKey)}
+                            value={getEffective(feat, field) ?? ""}
+                            isOverridden={isOverridden(feat.id, field)}
+                            saving={savingFields.has(`${feat.id}:${field}`)}
+                            generating={generatingFields.has(`${feat.id}:${field}`)}
+                            onSave={(v) => saveField(feat.id, field, v || null)}
+                            onRevert={() => revertField(feat.id, field)}
+                            onGenerate={isGeneratable ? () => handleGenerateField(feat, field as GeneratableField) : undefined}
+                            revertLabel={t("adminFeats.dbOverrideRevert")}
+                          />
+                          {editorLocale === "fr" && isTranslatable && (
+                            <FeatTranslationField
+                              label="🇫🇷"
+                              value={getEffective(feat, `fr:${field}`) ?? ""}
+                              isOverridden={isOverridden(feat.id, `fr:${field}`)}
+                              saving={savingFields.has(`${feat.id}:fr:${field}`)}
+                              generating={generatingFr.has(`${feat.id}:fr:${field}`)}
+                              onSave={(v) => saveField(feat.id, `fr:${field}`, v || null)}
+                              onRevert={() => revertField(feat.id, `fr:${field}`)}
+                              onGenerate={() => generateFrField(feat.id, field, getEffective(feat, field) ?? "")}
+                              t={t}
+                            />
+                          )}
+                        </div>
                       );
                     })}
 
@@ -612,6 +701,68 @@ function OverrideField({
           value={local}
           onChange={(e) => setLocal(e.target.value)}
           className="h-8 text-sm flex-1"
+        />
+        {dirty && (
+          <Button size="icon" variant="default" className="h-8 w-8 shrink-0" disabled={saving} onClick={() => onSave(local)}>
+            {saving ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Check className="h-3.5 w-3.5" />}
+          </Button>
+        )}
+      </div>
+    </div>
+  );
+}
+
+
+/** Translation field for feat editor */
+function FeatTranslationField({
+  label, value, isOverridden, saving, generating, onSave, onRevert, onGenerate, t
+}: {
+  label: string;
+  value: string;
+  isOverridden: boolean;
+  saving: boolean;
+  generating?: boolean;
+  onSave: (v: string) => void;
+  onRevert: () => void;
+  onGenerate?: () => void;
+  t: (k: string) => string;
+}) {
+  const [local, setLocal] = useState(value);
+  const dirty = local !== value;
+
+  useEffect(() => { setLocal(value); }, [value]);
+
+  return (
+    <div className="mt-1">
+      <div className="flex items-center gap-1.5 mb-0.5">
+        <Label className="text-xs text-muted-foreground">{label}</Label>
+        {onGenerate && (
+          <Button
+            variant="ghost"
+            size="icon"
+            className="h-5 w-5"
+            disabled={generating}
+            onClick={onGenerate}
+            title={t("adminEditor.generateTranslation")}
+          >
+            {generating
+              ? <Loader2 className="h-3 w-3 animate-spin" />
+              : <Sparkles className="h-3 w-3 text-primary" />
+            }
+          </Button>
+        )}
+        {isOverridden && (
+          <Badge variant="secondary" className="text-[10px] cursor-pointer hover:bg-destructive/20" onClick={onRevert}>
+            {t("adminFeats.dbOverrideRevert")}
+          </Badge>
+        )}
+      </div>
+      <div className="flex gap-1.5">
+        <Input
+          value={local}
+          onChange={(e) => setLocal(e.target.value)}
+          className="h-8 text-sm flex-1 border-primary/20"
+          placeholder={t("adminEditor.noTranslation")}
         />
         {dirty && (
           <Button size="icon" variant="default" className="h-8 w-8 shrink-0" disabled={saving} onClick={() => onSave(local)}>

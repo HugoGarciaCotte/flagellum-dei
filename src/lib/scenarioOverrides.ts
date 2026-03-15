@@ -46,12 +46,21 @@ export function applyScenarioOverrides(scenario: Scenario, overrides: ScenarioOv
   if (!fields || fields.size === 0) return scenario;
 
   const result = { ...scenario };
+  const fr: Record<string, string> = { ...(scenario.fr || {}) } as any;
+  let hasFr = !!scenario.fr;
+
   for (const [field, value] of fields) {
-    if (field === "title") result.title = value;
+    if (field.startsWith("fr:")) {
+      const realField = field.slice(3);
+      (fr as any)[realField] = value;
+      hasFr = true;
+    } else if (field === "title") result.title = value;
     else if (field === "teaser") result.teaser = value;
     else if (field === "level") result.level = value;
     else if (field === "content") result.content = value;
   }
+
+  if (hasFr) result.fr = fr as any;
   return result;
 }
 

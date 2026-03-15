@@ -31,7 +31,7 @@ const CharacterSheet = ({ characterId, mode = "player", scenarioLevel, onDone }:
   const [dirty, setDirty] = useState(false);
   const [generating, setGenerating] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
-  const { t } = useTranslation();
+  const { t, locale } = useTranslation();
 
   const character = useLocalRow<any>("characters", characterId);
 
@@ -81,7 +81,7 @@ const CharacterSheet = ({ characterId, mode = "player", scenarioLevel, onDone }:
     try {
       const characterFeats = useLocalRowsStatic("character_feats", { character_id: characterId });
       const featNames = characterFeats
-        .map((cf: any) => getFeatById(cf.feat_id)?.title)
+        .map((cf: any) => getFeatById(cf.feat_id, locale)?.title)
         .filter(Boolean);
 
       const { data, error } = await supabase.functions.invoke("generate-character-portrait", {

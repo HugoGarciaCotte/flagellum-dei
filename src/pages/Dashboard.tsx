@@ -31,7 +31,7 @@ const Dashboard = () => {
   const { user, signOut, isGuest } = useAuth();
   const navigate = useNavigate();
   const online = useNetworkStatus();
-  const { t } = useTranslation();
+  const { t, locale } = useTranslation();
   const [joinCode, setJoinCode] = useState("");
   const [hostOpen, setHostOpen] = useState(false);
   const [newCharDialogOpen, setNewCharDialogOpen] = useState(false);
@@ -59,7 +59,7 @@ const Dashboard = () => {
     toast({ title: t("dashboard.characterDeleted") });
   };
 
-  const scenarios = getAllScenarios();
+  const scenarios = getAllScenarios(locale);
 
   const allGames = useLocalRows<any>("games");
   const gamePlayers = useLocalRows<any>("game_players", user ? { user_id: user.id } : undefined);
@@ -70,7 +70,7 @@ const Dashboard = () => {
     for (const g of allGames) {
       if (g.host_user_id === user?.id && g.status === "active") {
         seen.add(g.id);
-        const sc = getScenarioById(g.scenario_id);
+        const sc = getScenarioById(g.scenario_id, locale);
         games.push({ id: g.id, title: sc?.title || t("dashboard.untitled"), join_code: g.join_code, role: "hosting" });
       }
     }
@@ -79,7 +79,7 @@ const Dashboard = () => {
         const g = allGames.find((g: any) => g.id === gp.game_id && g.status === "active");
         if (g) {
           seen.add(g.id);
-          const sc = getScenarioById(g.scenario_id);
+          const sc = getScenarioById(g.scenario_id, locale);
           games.push({ id: g.id, title: sc?.title || t("dashboard.untitled"), join_code: g.join_code, role: "playing" });
         }
       }

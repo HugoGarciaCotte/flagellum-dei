@@ -30,7 +30,7 @@ const HostGame = () => {
   const { user, syncReady } = useAuth();
   const navigate = useNavigate();
   const online = useNetworkStatus();
-  const { t } = useTranslation();
+  const { t, locale } = useTranslation();
 
   const [localSection, setLocalSection] = useState<string | null>(null);
   const [overridesLoaded, setOverridesLoaded] = useState(false);
@@ -55,7 +55,7 @@ const HostGame = () => {
   const playerUserIds = useMemo(() => [...new Set(allPlayers.map((p: any) => p.user_id as string))], [allPlayers]);
   const characters = useMemo(() => allCharacters.filter((c: any) => playerUserIds.includes(c.user_id)), [allCharacters, playerUserIds]);
 
-  const effectiveScenario = game ? getScenarioById(game.scenario_id) : null;
+  const effectiveScenario = game ? getScenarioById(game.scenario_id, locale) : null;
   const scenarioContent = effectiveScenario?.content || "";
   const parsed = useMemo(() => parseWikitext(scenarioContent), [scenarioContent]);
   const sections = parsed.sections;

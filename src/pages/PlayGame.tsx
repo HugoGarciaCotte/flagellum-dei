@@ -28,7 +28,7 @@ const PlayGame = () => {
   const { user, isGuest, syncReady } = useAuth();
   const navigate = useNavigate();
   const online = useNetworkStatus();
-  const { t } = useTranslation();
+  const { t, locale } = useTranslation();
 
   const [sheetExpanded, setSheetExpanded] = useState(false);
   const [creatingChar, setCreatingChar] = useState(false);
@@ -76,7 +76,7 @@ const PlayGame = () => {
   const currentSectionId = game?.current_section ?? null;
 
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  const effectiveScenario = useMemo(() => game ? getScenarioById(game.scenario_id) : null, [game?.scenario_id, scenarioReady]);
+  const effectiveScenario = useMemo(() => game ? getScenarioById(game.scenario_id, locale) : null, [game?.scenario_id, scenarioReady, locale]);
 
   useEffect(() => {
     if (!gameId) return;

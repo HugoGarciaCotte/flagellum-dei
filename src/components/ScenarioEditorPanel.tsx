@@ -5,7 +5,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
-import { Download, ChevronDown, AlertTriangle, Check, Image, Loader2, Plus, Music, SeparatorHorizontal, ListMusic, Timer, Copy } from "lucide-react";
+import { Download, ChevronDown, AlertTriangle, Check, Image, Loader2, Plus, Music, SeparatorHorizontal, ListMusic, Timer, Copy, Sparkles } from "lucide-react";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import BackgroundInsertDialog from "@/components/BackgroundInsertDialog";
 import { getHardcodedScenarios, type Scenario } from "@/data/scenarios";
@@ -19,6 +19,8 @@ import { invalidateScenarioOverrides, type ScenarioOverrideMap } from "@/lib/sce
 import { useAuth } from "@/contexts/AuthContext";
 
 const SCENARIO_FIELDS = ["title", "teaser", "level", "content"] as const;
+const FR_TRANSLATABLE_FIELDS = ["title", "teaser", "content"] as const;
+type EditorLocale = "en" | "fr";
 
 /** Try to resolve a Spotify URL to a human-readable name */
 async function resolveSpotifyName(url: string): Promise<string | null> {
@@ -67,6 +69,8 @@ const ScenarioEditorPanel = () => {
   const [expandedId, setExpandedId] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const [savingFields, setSavingFields] = useState<Set<string>>(new Set());
+  const [editorLocale, setEditorLocale] = useState<EditorLocale>("en");
+  const [generatingFr, setGeneratingFr] = useState<Set<string>>(new Set());
 
   // Load overrides from DB
   useEffect(() => {
@@ -166,6 +170,24 @@ const ScenarioEditorPanel = () => {
     setSavingFields(prev => { const s = new Set(prev); s.delete(key); return s; });
   };
 
+  const generateFrField = async (scenarioId: string, field: string, englishText: string) => {
+    const key = `${scenarioId}:fr:${field}`;
+    setGeneratingFr(prev => new Set(prev).add(key));
+    try {
+      const { data, error } = await supabase.functions.invoke("generate-translation", {
+        body: { key: `scenario.${field}`, english_text: englishText, target_locale: "fr", screen: "scenario" },
+      });
+      if (error) throw error;
+      if (data?.translated_text) {
+        await saveField(scenarioId, `fr:${field}`, data.translated_text);
+        toast({ title: t("adminEditor.translationSaved") });
+      }
+    } catch (e: any) {
+      toast({ title: t("adminTranslations.aiGenerationFailed"), description: e.message, variant: "destructive" });
+    }
+    setGeneratingFr(prev => { const s = new Set(prev); s.delete(key); return s; });
+  };
+
   const handleDownloadAndClear = async () => {
     const scenarios = mergedScenarios;
 
@@ -189,16 +211,13 @@ const ScenarioEditorPanel = () => {
           const res = await fetch(url);
           if (!res.ok) throw new Error(`HTTP ${res.status}`);
           const blob = await res.blob();
-          // Derive a clean filename from the URL path
           const urlPath = new URL(url).pathname;
           const segments = urlPath.split("/");
-          // Keep last 2 segments for uniqueness (e.g. scenarioId/filename.png)
           const localPath = `scenario-backgrounds/${segments.slice(-2).join("/")}`;
           urlMap.set(url, `/${localPath}`);
           imageBlobs.set(localPath, blob);
         } catch (e) {
           console.warn(`Failed to download image: ${url}`, e);
-          // Leave URL as-is if download fails
         }
       })
     );
@@ -213,7 +232,7 @@ const ScenarioEditorPanel = () => {
       return { ...s, content };
     });
 
-    // 4. Generate scenarios.ts
+    // 4. Generate scenarios.ts — include fr sub-object
     const lines: string[] = [
       "// Auto-generated from admin editor",
       `// Generated on ${new Date().toISOString()}`,
@@ -226,6 +245,18 @@ const ScenarioEditorPanel = () => {
       "  teaser: string | null;",
       "  level: number | null;",
       "  content: string | null;",
+      "  fr?: { title?: string; teaser?: string; content?: string };",
+      "}",
+      "",
+      "/** Apply locale to a scenario — returns FR fields when available, else EN fallback. */",
+      "export function localizeScenario(scenario: Scenario, locale?: string): Scenario {",
+      '  if (!locale || locale === "en" || !scenario.fr) return scenario;',
+      "  return {",
+      "    ...scenario,",
+      "    title: scenario.fr.title ?? scenario.title,",
+      "    teaser: scenario.fr.teaser ?? scenario.teaser,",
+      "    content: scenario.fr.content ?? scenario.content,",
+      "  };",
       "}",
       "",
     ];
@@ -238,6 +269,14 @@ const ScenarioEditorPanel = () => {
       lines.push(`  teaser: ${s.teaser ? JSON.stringify(s.teaser) : "null"},`);
       lines.push(`  level: ${s.level ?? "null"},`);
       lines.push(`  content: ${s.content ? JSON.stringify(s.content) : "null"},`);
+      // Include fr sub-object if it has any fields
+      if (s.fr && Object.values(s.fr).some(v => v != null)) {
+        const frObj: Record<string, string> = {};
+        if (s.fr.title) frObj.title = s.fr.title;
+        if (s.fr.teaser) frObj.teaser = s.fr.teaser;
+        if (s.fr.content) frObj.content = s.fr.content;
+        lines.push(`  fr: ${JSON.stringify(frObj)},`);
+      }
       lines.push("};");
       lines.push("");
     });
@@ -246,10 +285,14 @@ const ScenarioEditorPanel = () => {
     lines.push(`const hardcodedScenarios: Scenario[] = [${varNames.join(", ")}];`);
     lines.push("");
     lines.push("/** Returns all scenarios, with DB overrides applied if loaded. */");
-    lines.push("export function getAllScenarios(): Scenario[] {");
+    lines.push("export function getAllScenarios(locale?: string): Scenario[] {");
     lines.push("  const overrides = getCachedScenarioOverrides();");
-    lines.push("  if (!overrides || overrides.size === 0) return hardcodedScenarios;");
-    lines.push("  return hardcodedScenarios.map(s => applyScenarioOverrides(s, overrides));");
+    lines.push("  let scenarios = hardcodedScenarios;");
+    lines.push("  if (overrides && overrides.size > 0) {");
+    lines.push("    scenarios = hardcodedScenarios.map(s => applyScenarioOverrides(s, overrides));");
+    lines.push("  }");
+    lines.push('  if (locale && locale !== "en") return scenarios.map(s => localizeScenario(s, locale));');
+    lines.push("  return scenarios;");
     lines.push("}");
     lines.push("");
     lines.push("/** Returns the raw hardcoded scenarios without any overrides. */");
@@ -257,11 +300,12 @@ const ScenarioEditorPanel = () => {
     lines.push("  return hardcodedScenarios;");
     lines.push("}");
     lines.push("");
-    lines.push("export function getScenarioById(id: string): Scenario | undefined {");
+    lines.push("export function getScenarioById(id: string, locale?: string): Scenario | undefined {");
     lines.push("  const overrides = getCachedScenarioOverrides();");
     lines.push("  const scenario = hardcodedScenarios.find(s => s.id === id);");
     lines.push("  if (!scenario) return undefined;");
-    lines.push("  return overrides ? applyScenarioOverrides(scenario, overrides) : scenario;");
+    lines.push("  const withOverrides = overrides ? applyScenarioOverrides(scenario, overrides) : scenario;");
+    lines.push("  return locale ? localizeScenario(withOverrides, locale) : withOverrides;");
     lines.push("}");
 
     // 5. Build ZIP if there are images, otherwise just download .ts
@@ -273,7 +317,6 @@ const ScenarioEditorPanel = () => {
         zip.file(path, blob);
       }
 
-      // 6. Add README with Lovable prompt
       const readme = `## How to apply this export
 
 Copy-paste this prompt into Lovable:
@@ -317,11 +360,30 @@ Upload the images from the scenario-backgrounds/ folder in the attached ZIP into
       {/* Full-screen editor overlay */}
       {editingScenario && editingHardcoded && (
         <div className="fixed inset-0 z-50 bg-background flex flex-col">
-          {/* Row 1: Back + Title + Level */}
+          {/* Row 1: Back + Locale Toggle + Title + Level */}
           <div className="flex items-start gap-3 px-4 pt-4 pb-2">
             <Button variant="ghost" size="sm" className="shrink-0 mt-0.5" onClick={() => setExpandedId(null)}>
-              ← {t("adminScenarios.back") || "Back"}
+              ← {t("adminEditor.back")}
             </Button>
+            {/* Locale toggle */}
+            <div className="flex items-center gap-1 shrink-0 mt-1">
+              <Button
+                variant={editorLocale === "en" ? "default" : "ghost"}
+                size="sm"
+                className="h-7 px-2 text-xs"
+                onClick={() => setEditorLocale("en")}
+              >
+                🇬🇧
+              </Button>
+              <Button
+                variant={editorLocale === "fr" ? "default" : "ghost"}
+                size="sm"
+                className="h-7 px-2 text-xs"
+                onClick={() => setEditorLocale("fr")}
+              >
+                🇫🇷
+              </Button>
+            </div>
             <div className="flex-1">
               <OverrideField
                 label={t("adminScenarios.fieldTitle")}
@@ -333,6 +395,19 @@ Upload the images from the scenario-backgrounds/ folder in the attached ZIP into
                 inline
                 t={t}
               />
+              {editorLocale === "fr" && (
+                <TranslationField
+                  label="🇫🇷"
+                  value={getEffective(editingHardcoded, "fr:title") ?? ""}
+                  isOverridden={isOverridden(editingScenario.id, "fr:title")}
+                  saving={savingFields.has(`${editingScenario.id}:fr:title`)}
+                  generating={generatingFr.has(`${editingScenario.id}:fr:title`)}
+                  onSave={(v) => saveField(editingScenario.id, "fr:title", v || null)}
+                  onRevert={() => revertField(editingScenario.id, "fr:title")}
+                  onGenerate={() => generateFrField(editingScenario.id, "title", getEffective(editingHardcoded, "title") ?? "")}
+                  t={t}
+                />
+              )}
             </div>
             <div className="w-24 shrink-0">
               <OverrideField
@@ -362,6 +437,20 @@ Upload the images from the scenario-backgrounds/ folder in the attached ZIP into
               inline
               t={t}
             />
+            {editorLocale === "fr" && (
+              <TranslationField
+                label="🇫🇷"
+                value={getEffective(editingHardcoded, "fr:teaser") ?? ""}
+                isOverridden={isOverridden(editingScenario.id, "fr:teaser")}
+                saving={savingFields.has(`${editingScenario.id}:fr:teaser`)}
+                generating={generatingFr.has(`${editingScenario.id}:fr:teaser`)}
+                onSave={(v) => saveField(editingScenario.id, "fr:teaser", v || null)}
+                onRevert={() => revertField(editingScenario.id, "fr:teaser")}
+                onGenerate={() => generateFrField(editingScenario.id, "teaser", getEffective(editingHardcoded, "teaser") ?? "")}
+                multiline
+                t={t}
+              />
+            )}
           </div>
 
           {/* Row 3+: Content editor fills remaining space */}
@@ -378,6 +467,22 @@ Upload the images from the scenario-backgrounds/ folder in the attached ZIP into
               fullScreen
               t={t}
             />
+            {editorLocale === "fr" && (
+              <div className="mt-2 border-t border-border pt-2">
+                <TranslationField
+                  label={`🇫🇷 ${t("adminScenarios.fieldContent")}`}
+                  value={getEffective(editingHardcoded, "fr:content") ?? ""}
+                  isOverridden={isOverridden(editingScenario.id, "fr:content")}
+                  saving={savingFields.has(`${editingScenario.id}:fr:content`)}
+                  generating={generatingFr.has(`${editingScenario.id}:fr:content`)}
+                  onSave={(v) => saveField(editingScenario.id, "fr:content", v || null)}
+                  onRevert={() => revertField(editingScenario.id, "fr:content")}
+                  onGenerate={() => generateFrField(editingScenario.id, "content", getEffective(editingHardcoded, "content") ?? "")}
+                  multiline
+                  t={t}
+                />
+              </div>
+            )}
           </div>
         </div>
       )}
@@ -690,6 +795,87 @@ const OverrideField = ({
             value={local}
             onChange={(e) => setLocal(e.target.value)}
             className="h-8 text-sm flex-1"
+          />
+        )}
+        {dirty && (
+          <Button
+            variant="outline"
+            size="sm"
+            className="h-8 gap-1 shrink-0"
+            disabled={saving}
+            onClick={() => onSave(local)}
+          >
+            {saving ? <Loader2 className="h-3 w-3 animate-spin" /> : <Check className="h-3 w-3" />}
+          </Button>
+        )}
+      </div>
+    </div>
+  );
+};
+
+/** Translation field with AI generate button */
+const TranslationField = ({
+  label, value, isOverridden, saving, generating, onSave, onRevert, onGenerate, multiline, t
+}: {
+  label: string;
+  value: string;
+  isOverridden: boolean;
+  saving: boolean;
+  generating?: boolean;
+  onSave: (v: string) => void;
+  onRevert: () => void;
+  onGenerate?: () => void;
+  multiline?: boolean;
+  t: (k: string) => string;
+}) => {
+  const [local, setLocal] = useState(value);
+  const dirty = local !== value;
+
+  useEffect(() => { setLocal(value); }, [value]);
+
+  return (
+    <div className="mt-1">
+      <div className="flex items-center gap-1.5 mb-0.5">
+        <Label className="text-xs text-muted-foreground">{label}</Label>
+        {onGenerate && (
+          <Button
+            variant="ghost"
+            size="icon"
+            className="h-5 w-5"
+            disabled={generating}
+            onClick={onGenerate}
+            title={t("adminEditor.generateTranslation")}
+          >
+            {generating
+              ? <Loader2 className="h-3 w-3 animate-spin" />
+              : <Sparkles className="h-3 w-3 text-primary" />
+            }
+          </Button>
+        )}
+        {isOverridden && (
+          <button
+            onClick={onRevert}
+            className="text-amber-600 dark:text-amber-400 hover:underline text-[10px]"
+            title={t("adminScenarios.dbOverrideRevert")}
+          >
+            ● {t("adminScenarios.revert")}
+          </button>
+        )}
+      </div>
+      <div className="flex gap-1.5">
+        {multiline ? (
+          <Textarea
+            value={local}
+            onChange={(e) => setLocal(e.target.value)}
+            className="text-sm min-h-[60px] flex-1 border-primary/20"
+            placeholder={t("adminEditor.noTranslation")}
+          />
+        ) : (
+          <Input
+            value={local}
+            onChange={(e) => setLocal(e.target.value)}
+            className="h-8 text-sm flex-1 border-primary/20"
+            placeholder={t("adminEditor.noTranslation")}
           />
         )}
         {dirty && (

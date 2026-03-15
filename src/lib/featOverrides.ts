@@ -52,9 +52,15 @@ export function applyOverrides(feat: Feat, overrides: FeatOverrideMap): Feat {
 
   const result = { ...feat };
   const meta: FeatMeta = { ...(feat.meta || {}) };
+  const fr: Record<string, string> = { ...(feat.fr || {}) } as any;
+  let hasFr = !!feat.fr;
 
   for (const [field, value] of fields) {
-    if (field === "title") result.title = value;
+    if (field.startsWith("fr:")) {
+      const realField = field.slice(3);
+      (fr as any)[realField] = value;
+      hasFr = true;
+    } else if (field === "title") result.title = value;
     else if (field === "categories") result.categories = value;
     else if (META_FIELDS.has(field)) {
       (meta as any)[field] = value;
@@ -62,6 +68,7 @@ export function applyOverrides(feat: Feat, overrides: FeatOverrideMap): Feat {
   }
 
   result.meta = meta;
+  if (hasFr) result.fr = fr as any;
   return result;
 }
 
