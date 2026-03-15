@@ -91,6 +91,7 @@ function SectionNode({
   parentPlaylist?: PlaylistInfo | null;
   featsMap: Map<string, any> | undefined;
   tooltipLabels: TooltipLabels;
+  onPlayTrack?: (url: string) => void;
 }) {
   const [open, setOpen] = useState(true);
   const [hoveredFeat, setHoveredFeat] = useState<{ name: string; rect: DOMRect } | null>(null);
