@@ -121,7 +121,7 @@ const Dashboard = () => {
   };
 
   return (
-    <div className="min-h-screen bg-background">
+    <div className="fixed inset-0 bg-background flex flex-col">
       <PageHeader
         title={t("dashboard.appTitle")}
         rightActions={
