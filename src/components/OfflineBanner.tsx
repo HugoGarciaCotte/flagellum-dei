@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useNetworkStatus } from "@/hooks/useNetworkStatus";
 import { WifiOff, Loader2, Check } from "lucide-react";
 import { useTranslation } from "@/i18n/useTranslation";
@@ -8,13 +8,20 @@ export const OfflineBanner = () => {
   const { t } = useTranslation();
   const [syncing, setSyncing] = useState(false);
   const [justSynced, setJustSynced] = useState(false);
+  const syncStartRef = useRef<number>(0);
 
   useEffect(() => {
-    const onSyncing = () => setSyncing(true);
+    const onSyncing = () => {
+      syncStartRef.current = Date.now();
+      setSyncing(true);
+    };
     const onSynced = () => {
       setSyncing(false);
-      setJustSynced(true);
-      setTimeout(() => setJustSynced(false), 1500);
+      const elapsed = Date.now() - syncStartRef.current;
+      if (elapsed >= 2000) {
+        setJustSynced(true);
+        setTimeout(() => setJustSynced(false), 1500);
+      }
     };
     window.addEventListener("sync-syncing", onSyncing);
     window.addEventListener("sync-synced", onSynced);
