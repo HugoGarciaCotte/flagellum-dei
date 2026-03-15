@@ -272,6 +272,7 @@ const SpotifyPlayer = ({ position = "left", playlistUrl, playlistName, playTrack
     if (!accessToken) return { text: t("spotify.connectPrompt"), actionable: true };
     if (error) return { text: error, actionable: false };
     if (loading) return { text: "…", actionable: false };
+    if (!effectivePlaylistName && !isPlaying) return { text: t("spotify.noSection"), actionable: false };
     if (isPlaying && currentTrack) return { text: currentTrack.name, actionable: true };
     if (currentTrack) return { text: t("spotify.paused"), actionable: true };
     return { text: effectivePlaylistName, actionable: true };
