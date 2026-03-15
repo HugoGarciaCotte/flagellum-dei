@@ -10,7 +10,6 @@ import { useTranslation } from "@/i18n/useTranslation";
 import { supabase } from "@/integrations/supabase/client";
 import { initiateSpotifyLogin } from "@/lib/spotifyAuth";
 
-const DEFAULT_PLAYLIST_URL = "https://open.spotify.com/playlist/4GZgLYVRC7JG84Ftrmqu62";
 const SPOTIFY_SDK_URL = "https://sdk.scdn.co/spotify-player.js";
 
 /** Convert a Spotify open URL to a URI for the SDK */
