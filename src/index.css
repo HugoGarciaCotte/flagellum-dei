@@ -6,6 +6,18 @@
 
 @layer base {
   :root {
+    --min-body-font: 1rem;
+  }
+
+  [data-page="home"] {
+    --min-body-font: 0px;
+  }
+
+  p, li, label {
+    font-size: max(var(--min-body-font), inherit);
+  }
+
+  :root {
     --background: 0 0% 7%;
     --foreground: 0 0% 95%;
 
