@@ -211,6 +211,7 @@ export async function pullAll(userId?: string): Promise<void> {
 
 /** Pull a single table with optional filter, then merge into local store */
 export async function pullTable(table: TableName, filter?: Record<string, any>): Promise<void> {
+  if (!(await ensureSession())) return;
   try {
     let query = supabase.from(table as any).select("*");
     if (filter) {
