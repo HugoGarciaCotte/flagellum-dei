@@ -42,8 +42,8 @@ function FeatLinkTooltip({ featName, rect }: { featName: string; rect: DOMRect }
         )}
         {prerequisites && (
           <div>
-            <p className="text-xs font-medium text-muted-foreground">Prerequisites</p>
-            <p className="text-xs text-muted-foreground/80">{stripLinks(prerequisites)}</p>
+            <p className="text-sm font-medium text-muted-foreground">Prerequisites</p>
+            <p className="text-sm text-muted-foreground/80">{stripLinks(prerequisites)}</p>
           </div>
         )}
         {meta.blocking && meta.blocking.length > 0 && (
