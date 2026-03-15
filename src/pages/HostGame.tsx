@@ -191,6 +191,7 @@ const HostGame = () => {
       )}
       </div>
 
+      <SpotifyPlayer position="left" />
       <GameTimer ambianceTrack={resolvedAmbianceTrack} position="right" hasActiveSection={!!activeSection} />
       <DiceRoller gameId={gameId} userName={t("game.gameMaster")} isGameMaster={true} position="right" />
     </div>

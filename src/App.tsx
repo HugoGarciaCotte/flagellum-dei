@@ -49,6 +49,7 @@ const App = () => (
             <Route path="/admin/feats" element={<AdminFeats />} />
             <Route path="/admin/scenarios" element={<AdminScenarios />} />
             <Route path="/admin/translations" element={<AdminTranslations />} />
+            <Route path="/spotify-callback" element={<SpotifyCallback />} />
             <Route path="*" element={<NotFound />} />
           </Routes>
           <OfflineBanner />

@@ -24,6 +24,14 @@ Deno.serve(async (req) => {
     const body = await req.json();
     const { grant_type, code, redirect_uri, refresh_token, code_verifier } = body;
 
+    // Return client ID for frontend PKCE flow
+    if (grant_type === "client_id") {
+      return new Response(JSON.stringify({ client_id: SPOTIFY_CLIENT_ID }), {
+        status: 200,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
     // Build Spotify token request
     const params = new URLSearchParams();
     params.set("client_id", SPOTIFY_CLIENT_ID);
