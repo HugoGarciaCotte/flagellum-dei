@@ -48,7 +48,7 @@ const CharacterListItem = ({ character, actions }: CharacterListItemProps) => {
         <CardContent className="pt-0 pb-3">
           <ul className="list-disc list-inside text-base text-muted-foreground space-y-0.5">
             {feats.map((cf: any) => {
-              const featTitle = getFeatById(cf.feat_id)?.title || t("feats.unknownFeat");
+              const featTitle = getFeatById(cf.feat_id, locale)?.title || t("feats.unknownFeat");
               return (
                 <li key={cf.id}>
                   {featTitle}
