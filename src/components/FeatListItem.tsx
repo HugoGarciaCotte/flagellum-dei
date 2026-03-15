@@ -86,7 +86,7 @@ const FeatListItem = ({
             </div>
           </div>
           {feat.description && (
-            <p className="text-xs text-muted-foreground/70 mt-0.5">{feat.description}</p>
+            <p className="text-sm text-muted-foreground/70 mt-0.5">{feat.description}</p>
           )}
         </div>
         {hasSpecialities && onSpecialityChange && (
