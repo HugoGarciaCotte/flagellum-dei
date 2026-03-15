@@ -556,7 +556,16 @@ const en: Record<string, string> = {
   "adminScenarios.insertTagQueueTrack": "One-Time Music",
   "adminScenarios.spotifyUrlPrompt": "Paste a Spotify URL (playlist or track):",
    "adminScenarios.insertSectionBreak": "Section Break",
-  "adminScenarios.spotifyNameFallback": "Could not resolve name — using URL",
+   "adminScenarios.spotifyNameFallback": "Could not resolve name — using URL",
+
+  // ─── ADMIN: CONTENT TRANSLATIONS ───
+  "adminEditor.langToggle": "Content language",
+  "adminEditor.frTranslation": "🇫🇷 French translation",
+  "adminEditor.translationSaved": "Translation saved",
+  "adminEditor.generateTranslation": "Generate FR translation with AI",
+  "adminEditor.noTranslation": "No translation (defaults to English)",
+  "adminEditor.frBadge": "FR",
+  "adminEditor.back": "Back",
 };
 
 export default en;
