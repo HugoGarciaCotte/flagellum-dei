@@ -34,10 +34,10 @@ interface SpotifyPlayerProps {
   position?: "left" | "right";
   playlistUrl?: string;
   playlistName?: string;
-  queueTracks?: string[];
+  playTrackUrl?: string;
 }
 
-const SpotifyPlayer = ({ position = "left", playlistUrl, playlistName, queueTracks }: SpotifyPlayerProps) => {
+const SpotifyPlayer = ({ position = "left", playlistUrl, playlistName, playTrackUrl }: SpotifyPlayerProps) => {
   const isMobile = useIsMobile();
   const bannerOffset = useBottomOffset();
   const online = useNetworkStatus();
