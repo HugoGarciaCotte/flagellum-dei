@@ -582,6 +582,8 @@ const en: Record<string, string> = {
   "adminLegacy.searchFeats": "Search feats...",
   "adminLegacy.rawContent": "Raw content",
   "adminLegacy.incompatible": "Incompatible",
+  "dashboard.sendBeforeGame": "Send to players before the session",
+  "dashboard.teaserCopied": "Teaser copied!",
 };
 
 export default en;

@@ -304,7 +304,25 @@ const Dashboard = () => {
                     <Card key={scenario.id} className="aged-border hover:border-primary/40 transition-colors gold-glow-box">
                       <CardHeader className="pb-2">
                         <CardTitle className="font-display text-base">{scenario.title}</CardTitle>
-                        {scenario.teaser && <CardDescription className="text-sm">{scenario.teaser}</CardDescription>}
+                        {scenario.teaser && (
+                          <div className="mt-1 space-y-1.5">
+                            <p className="text-xs text-muted-foreground/70 italic">{t("dashboard.sendBeforeGame")}</p>
+                            <div className="relative group">
+                              <p className="whitespace-pre-line text-sm text-muted-foreground pr-8">{scenario.teaser}</p>
+                              <Button
+                                variant="ghost"
+                                size="icon"
+                                className="absolute top-0 right-0 h-6 w-6 opacity-60 hover:opacity-100"
+                                onClick={() => {
+                                  navigator.clipboard.writeText(scenario.teaser!);
+                                  toast({ title: t("dashboard.teaserCopied") });
+                                }}
+                              >
+                                <Copy className="h-3.5 w-3.5" />
+                              </Button>
+                            </div>
+                          </div>
+                        )}
                       </CardHeader>
                       <CardContent>
                         <Button onClick={() => handleCreateGame(scenario.id)} variant="outline" className="w-full gap-2 font-display" size="sm">
