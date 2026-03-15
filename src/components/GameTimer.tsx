@@ -2,7 +2,7 @@ import { useState, useEffect, useRef, useCallback } from "react";
 import { Timer, Play, Pause, RotateCcw } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Table, TableBody, TableRow, TableCell } from "@/components/ui/table";
-import { ScrollArea } from "@/components/ui/scroll-area";
+
 import { useTranslation } from "@/i18n/useTranslation";
 import { cn } from "@/lib/utils";
 import type { AmbianceEntry } from "@/lib/parseWikitext";
