@@ -203,7 +203,7 @@ const SpotifyPlayer = ({ position = "left", playlistUrl, playlistName, playTrack
     if (!deviceId || !accessToken || !effectivePlaylistUrl) return;
 
     const uri = urlToUri(effectivePlaylistUrl);
-    if (currentPlaylistRef.current === uri) return;
+    if (currentPlaylistRef.current === uri && isPlaying) return;
     currentPlaylistRef.current = uri;
 
     const startPlayback = async () => {
