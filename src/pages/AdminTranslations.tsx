@@ -296,7 +296,7 @@ const AdminTranslations = () => {
                             <div className="flex items-start justify-between gap-2">
                               <code className="text-xs text-muted-foreground break-all">{key}</code>
                               {isMissing && (
-                                <Badge variant="destructive" className="text-base shrink-0">{t("adminTranslations.missing")}</Badge>
+                                <Badge variant="destructive" className="text-[10px] shrink-0">{t("adminTranslations.missing")}</Badge>
                               )}
                             </div>
                             <p className="text-sm text-foreground/80 leading-relaxed break-words" dangerouslySetInnerHTML={{ __html: en[key] }} />
