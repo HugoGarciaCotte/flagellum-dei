@@ -12,6 +12,7 @@ import { loadFeatOverrides } from "@/lib/featOverrides";
 import { loadScenarioOverrides } from "@/lib/scenarioOverrides";
 import Index from "./pages/Index";
 import Auth from "./pages/Auth";
+import JoinGame from "./pages/JoinGame";
 import HostGame from "./pages/HostGame";
 import PlayGame from "./pages/PlayGame";
 import ResetPassword from "./pages/ResetPassword";
