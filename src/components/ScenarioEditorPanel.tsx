@@ -5,7 +5,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
-import { Download, ChevronDown, AlertTriangle, Check, Image, Loader2, Plus, Music, SeparatorHorizontal, ListMusic, Timer, Copy } from "lucide-react";
+import { Download, ChevronDown, AlertTriangle, Check, Image, Loader2, Plus, Music, SeparatorHorizontal, ListMusic, Timer, Copy, Sparkles } from "lucide-react";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import BackgroundInsertDialog from "@/components/BackgroundInsertDialog";
 import { getHardcodedScenarios, type Scenario } from "@/data/scenarios";
@@ -19,6 +19,8 @@ import { invalidateScenarioOverrides, type ScenarioOverrideMap } from "@/lib/sce
 import { useAuth } from "@/contexts/AuthContext";
 
 const SCENARIO_FIELDS = ["title", "teaser", "level", "content"] as const;
+const FR_TRANSLATABLE_FIELDS = ["title", "teaser", "content"] as const;
+type EditorLocale = "en" | "fr";
 
 /** Try to resolve a Spotify URL to a human-readable name */
 async function resolveSpotifyName(url: string): Promise<string | null> {
