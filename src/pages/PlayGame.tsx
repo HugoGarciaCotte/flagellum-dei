@@ -28,7 +28,7 @@ const PlayGame = () => {
   const { user, isGuest, syncReady } = useAuth();
   const navigate = useNavigate();
   const online = useNetworkStatus();
-  const { t } = useTranslation();
+  const { t, locale } = useTranslation();
 
   const [sheetExpanded, setSheetExpanded] = useState(false);
   const [creatingChar, setCreatingChar] = useState(false);
