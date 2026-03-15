@@ -6,6 +6,7 @@ import {
   HoverCardContent,
   HoverCardTrigger,
 } from "@/components/ui/hover-card";
+import { useTranslation } from "@/i18n/useTranslation";
 
 interface WikiLinkedTextProps {
   text: string;
