@@ -594,7 +594,7 @@ const CharacterCreationWizard = ({ onCreated, onCancel, gameId }: CharacterCreat
           <h3 className="font-display text-lg text-foreground">{t("wizard.archetype.title")}</h3>
           {skipButton}
         </div>
-        <p className="text-sm text-muted-foreground">
+        <p className="text-base text-muted-foreground">
           {t("wizard.archetype.desc")}
         </p>
         {renderSearchBar()}
