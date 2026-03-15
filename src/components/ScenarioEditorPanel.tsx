@@ -360,11 +360,30 @@ Upload the images from the scenario-backgrounds/ folder in the attached ZIP into
       {/* Full-screen editor overlay */}
       {editingScenario && editingHardcoded && (
         <div className="fixed inset-0 z-50 bg-background flex flex-col">
-          {/* Row 1: Back + Title + Level */}
+          {/* Row 1: Back + Locale Toggle + Title + Level */}
           <div className="flex items-start gap-3 px-4 pt-4 pb-2">
             <Button variant="ghost" size="sm" className="shrink-0 mt-0.5" onClick={() => setExpandedId(null)}>
-              ← {t("adminScenarios.back") || "Back"}
+              ← {t("adminEditor.back")}
             </Button>
+            {/* Locale toggle */}
+            <div className="flex items-center gap-1 shrink-0 mt-1">
+              <Button
+                variant={editorLocale === "en" ? "default" : "ghost"}
+                size="sm"
+                className="h-7 px-2 text-xs"
+                onClick={() => setEditorLocale("en")}
+              >
+                🇬🇧
+              </Button>
+              <Button
+                variant={editorLocale === "fr" ? "default" : "ghost"}
+                size="sm"
+                className="h-7 px-2 text-xs"
+                onClick={() => setEditorLocale("fr")}
+              >
+                🇫🇷
+              </Button>
+            </div>
             <div className="flex-1">
               <OverrideField
                 label={t("adminScenarios.fieldTitle")}
@@ -376,6 +395,19 @@ Upload the images from the scenario-backgrounds/ folder in the attached ZIP into
                 inline
                 t={t}
               />
+              {editorLocale === "fr" && (
+                <TranslationField
+                  label="🇫🇷"
+                  value={getEffective(editingHardcoded, "fr:title") ?? ""}
+                  isOverridden={isOverridden(editingScenario.id, "fr:title")}
+                  saving={savingFields.has(`${editingScenario.id}:fr:title`)}
+                  generating={generatingFr.has(`${editingScenario.id}:fr:title`)}
+                  onSave={(v) => saveField(editingScenario.id, "fr:title", v || null)}
+                  onRevert={() => revertField(editingScenario.id, "fr:title")}
+                  onGenerate={() => generateFrField(editingScenario.id, "title", getEffective(editingHardcoded, "title") ?? "")}
+                  t={t}
+                />
+              )}
             </div>
             <div className="w-24 shrink-0">
               <OverrideField
@@ -405,6 +437,20 @@ Upload the images from the scenario-backgrounds/ folder in the attached ZIP into
               inline
               t={t}
             />
+            {editorLocale === "fr" && (
+              <TranslationField
+                label="🇫🇷"
+                value={getEffective(editingHardcoded, "fr:teaser") ?? ""}
+                isOverridden={isOverridden(editingScenario.id, "fr:teaser")}
+                saving={savingFields.has(`${editingScenario.id}:fr:teaser`)}
+                generating={generatingFr.has(`${editingScenario.id}:fr:teaser`)}
+                onSave={(v) => saveField(editingScenario.id, "fr:teaser", v || null)}
+                onRevert={() => revertField(editingScenario.id, "fr:teaser")}
+                onGenerate={() => generateFrField(editingScenario.id, "teaser", getEffective(editingHardcoded, "teaser") ?? "")}
+                multiline
+                t={t}
+              />
+            )}
           </div>
 
           {/* Row 3+: Content editor fills remaining space */}
@@ -421,6 +467,22 @@ Upload the images from the scenario-backgrounds/ folder in the attached ZIP into
               fullScreen
               t={t}
             />
+            {editorLocale === "fr" && (
+              <div className="mt-2 border-t border-border pt-2">
+                <TranslationField
+                  label={`🇫🇷 ${t("adminScenarios.fieldContent")}`}
+                  value={getEffective(editingHardcoded, "fr:content") ?? ""}
+                  isOverridden={isOverridden(editingScenario.id, "fr:content")}
+                  saving={savingFields.has(`${editingScenario.id}:fr:content`)}
+                  generating={generatingFr.has(`${editingScenario.id}:fr:content`)}
+                  onSave={(v) => saveField(editingScenario.id, "fr:content", v || null)}
+                  onRevert={() => revertField(editingScenario.id, "fr:content")}
+                  onGenerate={() => generateFrField(editingScenario.id, "content", getEffective(editingHardcoded, "content") ?? "")}
+                  multiline
+                  t={t}
+                />
+              </div>
+            )}
           </div>
         </div>
       )}
