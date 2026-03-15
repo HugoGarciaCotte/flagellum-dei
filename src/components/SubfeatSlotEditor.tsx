@@ -18,7 +18,7 @@ const SubfeatSlotEditor = ({ slot, onChange, onRemove }: Props) => {
   return (
     <div className="border border-border rounded-md p-3 space-y-2 bg-muted/30">
       <div className="flex items-center justify-between">
-        <span className="text-xs font-medium text-muted-foreground">{t("adminFeats.slot").replace("{slot}", String(slot.slot))}</span>
+        <span className="text-sm font-medium text-muted-foreground">{t("adminFeats.slot").replace("{slot}", String(slot.slot))}</span>
         <Button variant="ghost" size="icon" className="h-6 w-6" onClick={onRemove}>
           <Trash2 className="h-3 w-3" />
         </Button>
