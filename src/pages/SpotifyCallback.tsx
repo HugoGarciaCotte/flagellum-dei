@@ -74,7 +74,7 @@ const SpotifyCallback = () => {
     );
   }
 
-  return <FullPageLoader message="Connecting to Spotify…" />;
+  return <FullPageLoader message={t("spotify.connecting")} />;
 };
 
 export default SpotifyCallback;

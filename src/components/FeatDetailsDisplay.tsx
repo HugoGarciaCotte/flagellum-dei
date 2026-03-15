@@ -155,7 +155,7 @@ const FeatDetailsDisplay = ({ content, rawContent, className = "" }: FeatDetails
       )}
       {blocking && blocking.length > 0 && (
         <div>
-          <div className="text-sm font-medium text-destructive">Incompatible with</div>
+          <div className="text-sm font-medium text-destructive">{t("wiki.incompatibleWith")}</div>
           <div className="text-sm text-destructive/80">
             {blocking.map((b, i) => (
               <span key={b}>

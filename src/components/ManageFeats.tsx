@@ -76,17 +76,17 @@ const ManageFeats = () => {
                 )}
                 {meta.prerequisites && (
                   <p className="text-sm text-muted-foreground">
-                    <span className="font-medium">Prerequisites:</span> {meta.prerequisites}
+                    <span className="font-medium">{t("wiki.prerequisites")}:</span> {meta.prerequisites}
                   </p>
                 )}
                 {meta.blocking && meta.blocking.length > 0 && (
                   <p className="text-sm text-destructive">
-                    <span className="font-medium">Incompatible:</span> {meta.blocking.join(", ")}
+                    <span className="font-medium">{t("adminLegacy.incompatible")}:</span> {meta.blocking.join(", ")}
                   </p>
                 )}
                 {feat.content && (
                   <details className="mt-1">
-                    <summary className="text-sm text-muted-foreground cursor-pointer">Raw content</summary>
+                    <summary className="text-sm text-muted-foreground cursor-pointer">{t("adminLegacy.rawContent")}</summary>
                     <pre className="text-sm text-muted-foreground/70 whitespace-pre-wrap mt-1 max-h-48 overflow-y-auto">
                       {feat.content}
                     </pre>
