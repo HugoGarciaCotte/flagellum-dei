@@ -602,7 +602,7 @@ function OverrideField({
           </Button>
         )}
         {isOverridden && (
-          <Badge variant="secondary" className="text-[10px] cursor-pointer hover:bg-destructive/20" onClick={onRevert}>
+          <Badge variant="secondary" className="text-base cursor-pointer hover:bg-destructive/20" onClick={onRevert}>
             {revertLabel ?? "DB override — click to revert"}
           </Badge>
         )}

@@ -573,7 +573,7 @@ const OverrideField = ({
           {isOverridden && (
             <button
               onClick={onRevert}
-              className="text-amber-600 dark:text-amber-400 hover:underline text-[10px]"
+              className="text-amber-600 dark:text-amber-400 hover:underline text-base"
               title={t("adminScenarios.dbOverrideRevert")}
             >
               ● {t("adminScenarios.revert")}
