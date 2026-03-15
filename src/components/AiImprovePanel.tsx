@@ -297,6 +297,44 @@ export default function AiImprovePanel({ content, onApply, onClose, t }: AiImpro
   );
 }
 
+/* ─── Word span renderer ─── */
+function WordSpans({ spans, side }: { spans: WordSpan[]; side: "old" | "new" }) {
+  return (
+    <>
+      {spans.map((s, i) => {
+        if (s.kind === "equal") return <span key={i}>{s.text}</span>;
+        if (side === "old" && s.kind === "removed")
+          return <span key={i} className="bg-destructive/25 line-through">{s.text}</span>;
+        if (side === "new" && s.kind === "added")
+          return <span key={i} className="bg-green-500/25">{s.text}</span>;
+        return null;
+      })}
+    </>
+  );
+}
+
+/* ─── Accept/Reject buttons ─── */
+function DecisionButtons({ idx, isAccepted, isRejected, onDecide }: { idx: number; isAccepted: boolean; isRejected: boolean; onDecide: (i: number, v: boolean) => void }) {
+  return (
+    <div className="flex gap-0.5 shrink-0 mt-0.5">
+      <button
+        className={`p-0.5 rounded hover:bg-green-500/20 ${isAccepted ? "text-green-600" : "text-muted-foreground"}`}
+        onClick={() => onDecide(idx, true)}
+        title="Accept"
+      >
+        <Check className="h-3 w-3" />
+      </button>
+      <button
+        className={`p-0.5 rounded hover:bg-destructive/20 ${isRejected ? "text-destructive" : "text-muted-foreground"}`}
+        onClick={() => onDecide(idx, false)}
+        title="Reject"
+      >
+        <X className="h-3 w-3" />
+      </button>
+    </div>
+  );
+}
+
 /* ─── Diff row ─── */
 function DiffRow({ line, idx, onDecide }: { line: DiffLine; idx: number; onDecide: (i: number, v: boolean) => void }) {
   if (line.kind === "equal") {
@@ -317,16 +355,29 @@ function DiffRow({ line, idx, onDecide }: { line: DiffLine; idx: number; onDecid
   else if (isAccepted) rowBg = "bg-green-500/10";
   else rowBg = "bg-muted/30 opacity-50";
 
+  if (line.kind === "modified") {
+    const { oldSpans, newSpans } = computeWordDiff(line.oldLine ?? "", line.newLine ?? "");
+    return (
+      <div className={`flex text-xs font-mono border-b border-border/50 ${rowBg}`}>
+        <div className="w-1/2 px-3 py-0.5 whitespace-pre-wrap break-all">
+          <WordSpans spans={oldSpans} side="old" />
+        </div>
+        <div className="w-1/2 px-3 py-0.5 whitespace-pre-wrap break-all flex items-start gap-1">
+          <span className="flex-1"><WordSpans spans={newSpans} side="new" /></span>
+          <DecisionButtons idx={idx} isAccepted={isAccepted} isRejected={isRejected} onDecide={onDecide} />
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className={`flex text-xs font-mono border-b border-border/50 ${rowBg}`}>
-      {/* Old side */}
       <div className="w-1/2 px-3 py-0.5 whitespace-pre-wrap break-all">
         {line.kind === "removed" && (
           <span className="bg-destructive/20 text-destructive-foreground">{line.oldLine}</span>
         )}
         {line.kind === "added" && <span className="text-muted-foreground/30">—</span>}
       </div>
-      {/* New side */}
       <div className="w-1/2 px-3 py-0.5 whitespace-pre-wrap break-all flex items-start gap-1">
         <span className="flex-1">
           {line.kind === "added" && (
@@ -334,23 +385,7 @@ function DiffRow({ line, idx, onDecide }: { line: DiffLine; idx: number; onDecid
           )}
           {line.kind === "removed" && <span className="text-muted-foreground/30">—</span>}
         </span>
-        {/* Accept / Reject buttons */}
-        <div className="flex gap-0.5 shrink-0 mt-0.5">
-          <button
-            className={`p-0.5 rounded hover:bg-green-500/20 ${isAccepted ? "text-green-600" : "text-muted-foreground"}`}
-            onClick={() => onDecide(idx, true)}
-            title="Accept"
-          >
-            <Check className="h-3 w-3" />
-          </button>
-          <button
-            className={`p-0.5 rounded hover:bg-destructive/20 ${isRejected ? "text-destructive" : "text-muted-foreground"}`}
-            onClick={() => onDecide(idx, false)}
-            title="Reject"
-          >
-            <X className="h-3 w-3" />
-          </button>
-        </div>
+        <DecisionButtons idx={idx} isAccepted={isAccepted} isRejected={isRejected} onDecide={onDecide} />
       </div>
     </div>
   );
