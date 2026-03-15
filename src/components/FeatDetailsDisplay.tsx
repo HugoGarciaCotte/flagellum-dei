@@ -3,6 +3,7 @@ import { createPortal } from "react-dom";
 import { buildFeatsMap, getFeatMeta, type Feat } from "@/data/feats";
 import { convertBodyToHtml } from "@/lib/parseWikitext";
 import WikiLinkedText from "@/components/WikiLinkedText";
+import { useTranslation } from "@/i18n/useTranslation";
 
 function stripLinks(text: string): string {
   return text
