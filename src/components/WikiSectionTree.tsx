@@ -77,6 +77,7 @@ function SectionNode({
   onActivateSection,
   depth = 0,
   parentBackground = null,
+  parentPlaylist = null,
   featsMap,
   tooltipLabels,
 }: {
@@ -85,6 +86,7 @@ function SectionNode({
   onActivateSection: (id: string) => void;
   depth?: number;
   parentBackground?: string | null;
+  parentPlaylist?: PlaylistInfo | null;
   featsMap: Map<string, any> | undefined;
   tooltipLabels: TooltipLabels;
 }) {
