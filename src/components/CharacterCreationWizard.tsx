@@ -563,7 +563,7 @@ const CharacterCreationWizard = ({ onCreated, onCancel, gameId }: CharacterCreat
         <div className="space-y-2">
           <Logo className="text-5xl mx-auto" />
           <h2 className="font-display text-2xl text-foreground">{t("wizard.welcome.title")}</h2>
-          <p className="text-muted-foreground text-sm max-w-sm mx-auto">
+          <p className="text-muted-foreground text-base max-w-sm mx-auto">
             {t("wizard.welcome.desc")}
           </p>
         </div>
