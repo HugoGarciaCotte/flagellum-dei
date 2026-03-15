@@ -16,12 +16,12 @@ interface BackgroundInsertDialogProps {
   onInsert: (url: string) => void;
   scenarioId: string;
   scenarioTitle: string;
-  scenarioDescription: string | null;
+  scenarioTeaser: string | null;
 }
 
 const BackgroundInsertDialog = ({
   open, onOpenChange, onInsert,
-  scenarioId, scenarioTitle, scenarioDescription,
+  scenarioId, scenarioTitle, scenarioTeaser,
 }: BackgroundInsertDialogProps) => {
   const { t } = useTranslation();
   const [bgMode, setBgMode] = useState<BgMode>("link");
@@ -105,7 +105,7 @@ const BackgroundInsertDialog = ({
         body: {
           scenarioId,
           scenarioTitle,
-          scenarioDescription,
+          scenarioDescription: scenarioTeaser,
           prompt: bgPrompt.trim() || undefined,
           referenceImageUrl,
         },

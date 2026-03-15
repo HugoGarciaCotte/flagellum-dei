@@ -5,7 +5,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
-import { Download, ChevronDown, AlertTriangle, Check, Image, Loader2, Plus, Music, SeparatorHorizontal, ListMusic, Timer } from "lucide-react";
+import { Download, ChevronDown, AlertTriangle, Check, Image, Loader2, Plus, Music, SeparatorHorizontal, ListMusic, Timer, Copy } from "lucide-react";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import BackgroundInsertDialog from "@/components/BackgroundInsertDialog";
 import { getHardcodedScenarios, type Scenario } from "@/data/scenarios";
@@ -18,7 +18,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { invalidateScenarioOverrides, type ScenarioOverrideMap } from "@/lib/scenarioOverrides";
 import { useAuth } from "@/contexts/AuthContext";
 
-const SCENARIO_FIELDS = ["title", "description", "level", "content"] as const;
+const SCENARIO_FIELDS = ["title", "teaser", "level", "content"] as const;
 
 /** Try to resolve a Spotify URL to a human-readable name */
 async function resolveSpotifyName(url: string): Promise<string | null> {
@@ -223,7 +223,7 @@ const ScenarioEditorPanel = () => {
       "export interface Scenario {",
       "  id: string;",
       "  title: string;",
-      "  description: string | null;",
+      "  teaser: string | null;",
       "  level: number | null;",
       "  content: string | null;",
       "}",
@@ -235,7 +235,7 @@ const ScenarioEditorPanel = () => {
       lines.push(`export const ${varName}: Scenario = {`);
       lines.push(`  id: ${JSON.stringify(s.id)},`);
       lines.push(`  title: ${JSON.stringify(s.title)},`);
-      lines.push(`  description: ${s.description ? JSON.stringify(s.description) : "null"},`);
+      lines.push(`  teaser: ${s.teaser ? JSON.stringify(s.teaser) : "null"},`);
       lines.push(`  level: ${s.level ?? "null"},`);
       lines.push(`  content: ${s.content ? JSON.stringify(s.content) : "null"},`);
       lines.push("};");
@@ -349,15 +349,15 @@ Upload the images from the scenario-backgrounds/ folder in the attached ZIP into
             </div>
           </div>
 
-          {/* Row 2: Description */}
+          {/* Row 2: Teaser */}
           <div className="px-4 pb-2">
             <OverrideField
-              label={t("adminScenarios.fieldDescription")}
-              value={getEffective(editingHardcoded, "description") ?? ""}
-              isOverridden={isOverridden(editingScenario.id, "description")}
-              saving={savingFields.has(`${editingScenario.id}:description`)}
-              onSave={(v) => saveField(editingScenario.id, "description", v || null)}
-              onRevert={() => revertField(editingScenario.id, "description")}
+              label={t("adminScenarios.fieldTeaser")}
+              value={getEffective(editingHardcoded, "teaser") ?? ""}
+              isOverridden={isOverridden(editingScenario.id, "teaser")}
+              saving={savingFields.has(`${editingScenario.id}:teaser`)}
+              onSave={(v) => saveField(editingScenario.id, "teaser", v || null)}
+              onRevert={() => revertField(editingScenario.id, "teaser")}
               multiline
               inline
               t={t}
@@ -369,7 +369,7 @@ Upload the images from the scenario-backgrounds/ folder in the attached ZIP into
             <ContentEditor
               scenarioId={editingScenario.id}
               scenarioTitle={editingScenario.title}
-              scenarioDescription={editingScenario.description}
+              scenarioTeaser={editingScenario.teaser}
               value={getEffective(editingHardcoded, "content") ?? ""}
               isOverridden={isOverridden(editingScenario.id, "content")}
               saving={savingFields.has(`${editingScenario.id}:content`)}
@@ -413,22 +413,41 @@ Upload the images from the scenario-backgrounds/ folder in the attached ZIP into
         </div>
       ) : (
         <div className="space-y-1 overflow-y-auto flex-1">
+          <p className="text-xs text-muted-foreground italic px-3 pb-1">{t("adminScenarios.teaserHint")}</p>
           {mergedScenarios.map((scenario) => {
             const scenarioHasOverrides = overrides.has(scenario.id) && (overrides.get(scenario.id)?.size ?? 0) > 0;
 
             return (
-              <button
-                key={scenario.id}
-                className="w-full text-left px-3 py-2 rounded-md hover:bg-muted/50 flex items-center gap-2 text-sm"
-                onClick={() => setExpandedId(scenario.id)}
-              >
-                <ChevronDown className="h-3.5 w-3.5 -rotate-90" />
-                <span className="font-medium flex-1">{scenario.title}</span>
-                {scenarioHasOverrides && <Badge variant="secondary" className="text-[10px]">{t("adminScenarios.modified")}</Badge>}
-                {scenario.level != null && (
-                  <Badge variant="secondary" className="text-xs">{t("adminScenarios.lvl").replace("{level}", String(scenario.level))}</Badge>
+              <div key={scenario.id} className="rounded-md hover:bg-muted/50">
+                <button
+                  className="w-full text-left px-3 py-2 flex items-center gap-2 text-sm"
+                  onClick={() => setExpandedId(scenario.id)}
+                >
+                  <ChevronDown className="h-3.5 w-3.5 -rotate-90 shrink-0" />
+                  <span className="font-medium flex-1">{scenario.title}</span>
+                  {scenarioHasOverrides && <Badge variant="secondary" className="text-[10px]">{t("adminScenarios.modified")}</Badge>}
+                  {scenario.level != null && (
+                    <Badge variant="secondary" className="text-xs">{t("adminScenarios.lvl").replace("{level}", String(scenario.level))}</Badge>
+                  )}
+                </button>
+                {scenario.teaser && (
+                  <div className="flex items-start gap-1.5 px-3 pb-2 pl-9">
+                    <p className="text-xs text-muted-foreground italic flex-1 line-clamp-2">{scenario.teaser}</p>
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      className="h-6 w-6 shrink-0"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        navigator.clipboard.writeText(scenario.teaser!);
+                        toast({ title: t("adminScenarios.copied") });
+                      }}
+                    >
+                      <Copy className="h-3 w-3" />
+                    </Button>
+                  </div>
                 )}
-              </button>
+              </div>
             );
           })}
         </div>
@@ -439,12 +458,12 @@ Upload the images from the scenario-backgrounds/ folder in the attached ZIP into
 
 /** Full content editor with integrated insert toolbar and cursor-aware insertion */
 const ContentEditor = ({
-  scenarioId, scenarioTitle, scenarioDescription,
+  scenarioId, scenarioTitle, scenarioTeaser,
   value, isOverridden, saving, onSave, onRevert, fullScreen, t
 }: {
   scenarioId: string;
   scenarioTitle: string;
-  scenarioDescription: string | null;
+  scenarioTeaser: string | null;
   value: string;
   isOverridden: boolean;
   saving: boolean;
@@ -616,7 +635,7 @@ const ContentEditor = ({
         onInsert={handleBgInsert}
         scenarioId={scenarioId}
         scenarioTitle={scenarioTitle}
-        scenarioDescription={scenarioDescription}
+        scenarioTeaser={scenarioTeaser}
       />
     </div>
   );

@@ -86,14 +86,14 @@ const StepCard = ({
 
 const ScenarioCard = ({
   title,
-  description,
+  teaser,
   level,
   image,
   chapterLabel,
   date,
 }: {
   title: string;
-  description: string;
+  teaser: string;
   level?: number | null;
   image?: string;
   chapterLabel: string;
@@ -130,7 +130,7 @@ const ScenarioCard = ({
         {title}
       </h3>
       <p className="text-sm leading-relaxed text-muted-foreground italic">
-        {description}
+        {teaser}
       </p>
     </div>
   </div>
@@ -148,9 +148,9 @@ const faqLinks: Record<number, { lovable?: string; github?: string }> = {
 const Home = () => {
   const { t } = useTranslation();
   const displayScenarios = [
-    { title: t("home.scenarios.s1.title"), description: t("home.scenarios.s1.desc"), level: 1, date: t("home.scenarios.s1.date") },
-    { title: t("home.scenarios.s2.title"), description: t("home.scenarios.s2.desc"), level: 5, date: t("home.scenarios.s2.date") },
-    { title: t("home.scenarios.s3.title"), description: t("home.scenarios.s3.desc"), level: 9, date: t("home.scenarios.s3.date") },
+    { title: t("home.scenarios.s1.title"), teaser: t("home.scenarios.s1.desc"), level: 1, date: t("home.scenarios.s1.date") },
+    { title: t("home.scenarios.s2.title"), teaser: t("home.scenarios.s2.desc"), level: 5, date: t("home.scenarios.s2.date") },
+    { title: t("home.scenarios.s3.title"), teaser: t("home.scenarios.s3.desc"), level: 9, date: t("home.scenarios.s3.date") },
   ];
 
   const faqCount = 12; // q0..q11
@@ -316,7 +316,7 @@ const Home = () => {
               <ScenarioCard
                 key={i}
                 title={s.title}
-                description={s.description ?? ""}
+                teaser={s.teaser ?? ""}
                 level={s.level}
                 image={scenarioImages[i]}
                 chapterLabel={t("home.scenarios.chapter")}

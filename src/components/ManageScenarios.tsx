@@ -26,7 +26,7 @@ const ManageScenarios = () => {
                 <TableRow>
                   <TableHead>{t("adminLegacy.tableTitle")}</TableHead>
                   <TableHead className="hidden sm:table-cell">{t("adminLegacy.tableLevel")}</TableHead>
-                  <TableHead className="hidden sm:table-cell">{t("adminLegacy.tableDescription")}</TableHead>
+                  <TableHead className="hidden sm:table-cell">{t("adminLegacy.tableTeaser")}</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
@@ -37,7 +37,7 @@ const ManageScenarios = () => {
                       {s.level ?? "—"}
                     </TableCell>
                     <TableCell className="hidden sm:table-cell text-muted-foreground text-sm max-w-[300px]">
-                      {s.description || "—"}
+                      {s.teaser || "—"}
                     </TableCell>
                   </TableRow>
                 ))}
