@@ -18,7 +18,9 @@ const GameTimer = ({ ambianceTrack, position = "left", hasActiveSection = false 
   const [running, setRunning] = useState(false);
   const [elapsed, setElapsed] = useState(0);
   const [newEvent, setNewEvent] = useState(false);
+  const [flashing, setFlashing] = useState(false);
   const intervalRef = useRef<ReturnType<typeof setInterval>>();
+  const flashTimeoutRef = useRef<ReturnType<typeof setTimeout>>();
   const prevAmbianceIdxRef = useRef<number>(-1);
   const prevTrackRef = useRef<AmbianceEntry[] | undefined>();
   const { t } = useTranslation();
@@ -61,6 +63,9 @@ const GameTimer = ({ ambianceTrack, position = "left", hasActiveSection = false 
   useEffect(() => {
     if (activeAmbianceIdx >= 0 && activeAmbianceIdx !== prevAmbianceIdxRef.current) {
       setNewEvent(true);
+      setFlashing(true);
+      clearTimeout(flashTimeoutRef.current);
+      flashTimeoutRef.current = setTimeout(() => setFlashing(false), 3000);
     }
     prevAmbianceIdxRef.current = activeAmbianceIdx;
   }, [activeAmbianceIdx]);
@@ -91,7 +96,10 @@ const GameTimer = ({ ambianceTrack, position = "left", hasActiveSection = false 
       <div className={cn("fixed bottom-14 sm:bottom-6 z-50", posClass)}>
         <button
           onClick={() => hasAmbiance && setExpanded(true)}
-          className="relative flex items-center gap-2 px-3 py-2 rounded-full bg-primary text-primary-foreground text-sm shadow-lg transition-all hover:shadow-xl"
+          className={cn(
+            "relative flex items-center gap-2 px-3 py-2 rounded-full bg-primary text-primary-foreground text-sm shadow-lg transition-all hover:shadow-xl",
+            flashing && "animate-pulse shadow-[0_0_12px_hsl(var(--destructive)/0.5)]"
+          )}
         >
           {newEvent && (
             <span className="absolute -top-1 -right-1 h-3 w-3 rounded-full bg-destructive border-2 border-primary" />
