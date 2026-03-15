@@ -10,7 +10,7 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import { toast } from "@/hooks/use-toast";
 import { useNavigate, Link } from "react-router-dom";
-import { LogOut, Plus, Settings, ChevronDown, Trash2, Pencil, WifiOff } from "lucide-react";
+import { LogOut, Plus, Settings, ChevronDown, Trash2, Pencil, WifiOff, X } from "lucide-react";
 
 import CharacterSheet from "@/components/CharacterSheet";
 import PageHeader from "@/components/PageHeader";
