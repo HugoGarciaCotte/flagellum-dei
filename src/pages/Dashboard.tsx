@@ -312,7 +312,7 @@ const Dashboard = () => {
                   ))}
                 </div>
               ) : (
-                <p className="text-sm text-muted-foreground text-center py-4">{t("dashboard.noScenarios")}</p>
+                <p className="text-base text-muted-foreground text-center py-4">{t("dashboard.noScenarios")}</p>
               )}
             </CollapsibleContent>
           </Collapsible>
