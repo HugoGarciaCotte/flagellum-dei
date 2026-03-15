@@ -583,6 +583,7 @@ const ContentEditor = ({
   const textareaRef = useRef<HTMLTextAreaElement | null>(null);
   const cursorPosRef = useRef<number>(0);
   const [bgDialogOpen, setBgDialogOpen] = useState(false);
+  const [aiPanelOpen, setAiPanelOpen] = useState(false);
 
   useEffect(() => { setLocal(value); }, [value]);
 
