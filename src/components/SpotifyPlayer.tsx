@@ -16,7 +16,7 @@ const SPOTIFY_SDK_URL = "https://sdk.scdn.co/spotify-player.js";
 function urlToUri(url: string): string {
   try {
     const u = new URL(url);
-    const parts = u.pathname.split("/").filter(Boolean); // e.g. ["playlist", "abc123"]
+    const parts = u.pathname.split("/").filter(p => p && !p.startsWith("intl-")); // e.g. ["playlist", "abc123"]
     if (parts.length >= 2) return `spotify:${parts[0]}:${parts[1]}`;
   } catch {}
   return url; // fallback
