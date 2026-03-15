@@ -420,7 +420,7 @@ const CharacterFeatPicker = ({ characterId, mode = "player", scenarioLevel }: Ch
           }
 
           return (
-            <div key={slotNum} className="flex items-center gap-2 text-xs ml-1">
+            <div key={slotNum} className="flex items-center gap-2 text-sm ml-1">
               <span className="text-muted-foreground">↳</span>
               <Button
                 variant="ghost"
