@@ -95,7 +95,7 @@ const FeatListItem = ({
               value={specialityValue || "__none__"}
               onValueChange={(val) => onSpecialityChange(val === "__none__" ? "" : val)}
             >
-              <SelectTrigger className="h-6 text-xs w-32">
+              <SelectTrigger className="h-7 text-sm w-36">
                 <SelectValue placeholder={t("feats.speciality")} />
               </SelectTrigger>
               <SelectContent>
