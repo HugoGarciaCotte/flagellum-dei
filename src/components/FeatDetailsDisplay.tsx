@@ -54,8 +54,8 @@ function FeatLinkTooltip({ featName, rect }: { featName: string; rect: DOMRect }
         )}
         {meta.special && (
           <div>
-            <p className="text-xs font-medium text-muted-foreground">Special</p>
-            <p className="text-xs text-muted-foreground/80 whitespace-pre-line">{stripLinks(meta.special)}</p>
+            <p className="text-sm font-medium text-muted-foreground">Special</p>
+            <p className="text-sm text-muted-foreground/80 whitespace-pre-line">{stripLinks(meta.special)}</p>
           </div>
         )}
       </div>
