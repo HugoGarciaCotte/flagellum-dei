@@ -184,7 +184,7 @@ function SectionNode({
                   ref={i === 0 ? contentRef : undefined}
                   onMouseOver={handleMouseOver}
                   onMouseOut={handleMouseOut}
-                  className={cn("px-8 pb-2 text-sm leading-relaxed prose prose-sm max-w-none overflow-x-auto", isActive ? "text-primary-foreground/80" : "text-muted-foreground",
+                  className={cn("px-8 pb-2 text-base leading-relaxed prose prose-base max-w-none overflow-x-auto", isActive ? "text-primary-foreground/80" : "text-muted-foreground",
                     "[&_ul]:list-disc [&_ul]:pl-5 [&_li]:mb-1 [&_hr]:my-3 [&_p]:mb-1.5 [&_pre]:whitespace-pre-wrap [&_pre]:break-words [&_pre]:overflow-x-auto")}
                   dangerouslySetInnerHTML={{ __html: seg }}
                 />

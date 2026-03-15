@@ -84,7 +84,7 @@ const GMPlayerList = () => {
                     }
                   />
                 ) : (
-                  <p className="text-xs text-muted-foreground italic px-1">{t("gm.noCharacterSelected")}</p>
+                  <p className="text-sm text-muted-foreground italic px-1">{t("gm.noCharacterSelected")}</p>
                 )}
               </div>
             ))}

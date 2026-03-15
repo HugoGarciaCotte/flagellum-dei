@@ -97,7 +97,7 @@ const PlayerListSheet = ({ players, characters, gameId }: PlayerListSheetProps) 
 
                       {otherChars.length > 0 && (
                         <Collapsible>
-                          <CollapsibleTrigger className="flex items-center gap-1 text-xs text-muted-foreground hover:text-foreground transition-colors px-1 cursor-pointer group">
+                          <CollapsibleTrigger className="flex items-center gap-1 text-sm text-muted-foreground hover:text-foreground transition-colors px-1 cursor-pointer group">
                             <ChevronDown className="h-3 w-3 transition-transform group-data-[state=open]:rotate-180" />
                             {t("gm.otherCharacters").replace("{count}", String(otherChars.length))}
                           </CollapsibleTrigger>
