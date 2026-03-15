@@ -3,7 +3,6 @@ import { useParams, useNavigate, Link } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
 import { getScenarioById } from "@/data/scenarios";
-import { loadScenarioOverrides } from "@/lib/scenarioOverrides";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { toast } from "@/hooks/use-toast";
@@ -33,11 +32,6 @@ const HostGame = () => {
   const { t } = useTranslation();
 
   const [localSection, setLocalSection] = useState<string | null>(null);
-  const [scenarioReady, setScenarioReady] = useState(false);
-
-  useEffect(() => {
-    loadScenarioOverrides().then(() => setScenarioReady(true)).catch(() => setScenarioReady(true));
-  }, []);
 
   const game = useLocalRow<any>("games", gameId);
   const allPlayers = useLocalRows<any>("game_players", gameId ? { game_id: gameId } : undefined);
@@ -54,10 +48,7 @@ const HostGame = () => {
   const playerUserIds = useMemo(() => [...new Set(allPlayers.map((p: any) => p.user_id as string))], [allPlayers]);
   const characters = useMemo(() => allCharacters.filter((c: any) => playerUserIds.includes(c.user_id)), [allCharacters, playerUserIds]);
 
-  const effectiveScenario = useMemo(() => {
-    if (!game || !scenarioReady) return null;
-    return getScenarioById(game.scenario_id);
-  }, [game, scenarioReady]);
+  const effectiveScenario = game ? getScenarioById(game.scenario_id) : null;
   const scenarioContent = effectiveScenario?.content || "";
   const parsed = useMemo(() => parseWikitext(scenarioContent), [scenarioContent]);
   const sections = parsed.sections;
@@ -174,7 +165,7 @@ const HostGame = () => {
     triggerPush();
   };
 
-  if (!syncReady || !game || !scenarioReady) return <FullPageLoader message={t("game.loadingQuest")} />;
+  if (!syncReady || !game) return <FullPageLoader message={t("game.loadingQuest")} />;
 
   return (
     <div className="fixed inset-0 bg-background flex flex-col">

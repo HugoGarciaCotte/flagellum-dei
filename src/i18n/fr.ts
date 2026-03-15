@@ -90,7 +90,7 @@ const fr: Record<string, string> = {
   "timer.noAmbiance": "Aucune pour cette section",
   "timer.paused": "Minuteur en pause",
   "timer.title": "Minuteur d'ambiance",
-  "adminScenarios.insertTagAmbiance": "Description d'ambiance",
+  "adminScenarios.insertTagAmbiance": "Piste d'ambiance",
   "game.joinCode": "Code d'invitation",
   "game.joinLinkCopied": "Lien d'invitation copié.",
   "game.joiningQuest": "Connexion à la quête…",

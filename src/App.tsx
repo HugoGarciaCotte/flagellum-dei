@@ -21,8 +21,7 @@ import Admin from "./pages/Admin";
 import AdminFeats from "./pages/AdminFeats";
 import AdminScenarios from "./pages/AdminScenarios";
 import AdminTranslations from "./pages/AdminTranslations";
-import SpotifyCallback from "./components/SpotifyCallback";
-
+import SpotifyCallback from "./pages/SpotifyCallback";
 import NotFound from "./pages/NotFound";
 
 // Auto-sync when connectivity returns
@@ -51,7 +50,6 @@ const App = () => (
             <Route path="/admin/scenarios" element={<AdminScenarios />} />
             <Route path="/admin/translations" element={<AdminTranslations />} />
             <Route path="/spotify-callback" element={<SpotifyCallback />} />
-            
             <Route path="*" element={<NotFound />} />
           </Routes>
           <OfflineBanner />

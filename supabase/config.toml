@@ -21,4 +21,3 @@ verify_jwt = false
 [functions.spotify-token-exchange]
 verify_jwt = false
 
-

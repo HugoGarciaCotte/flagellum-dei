@@ -1,8 +1,34 @@
-import { useState, useEffect, useRef, useCallback, useMemo } from "react";
-import { Music, X, ExternalLink, Play, Pause, LogIn, LogOut } from "lucide-react";
+import { useState, useEffect, useRef, useCallback } from "react";
+import { Music, Play, Pause, SkipForward, SkipBack, X, Loader2, WifiOff, ExternalLink } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { cn } from "@/lib/utils";
+import { useIsMobile } from "@/hooks/use-mobile";
+import { useBottomOffset } from "@/hooks/useBottomOffset";
 import { useNetworkStatus } from "@/hooks/useNetworkStatus";
-import { useSpotifyAuth } from "@/hooks/useSpotifyAuth";
+import { useAuth } from "@/contexts/AuthContext";
 import { useTranslation } from "@/i18n/useTranslation";
+import { supabase } from "@/integrations/supabase/client";
+import { initiateSpotifyLogin } from "@/lib/spotifyAuth";
+
+const DEFAULT_PLAYLIST_URL = "https://open.spotify.com/playlist/4GZgLYVRC7JG84Ftrmqu62";
+const SPOTIFY_SDK_URL = "https://sdk.scdn.co/spotify-player.js";
+
+/** Convert a Spotify open URL to a URI for the SDK */
+function urlToUri(url: string): string {
+  try {
+    const u = new URL(url);
+    const parts = u.pathname.split("/").filter(Boolean); // e.g. ["playlist", "abc123"]
+    if (parts.length >= 2) return `spotify:${parts[0]}:${parts[1]}`;
+  } catch {}
+  return url; // fallback
+}
+
+declare global {
+  interface Window {
+    onSpotifyWebPlaybackSDKReady: () => void;
+    Spotify: any;
+  }
+}
 
 interface SpotifyPlayerProps {
   position?: "left" | "right";
@@ -11,316 +37,371 @@ interface SpotifyPlayerProps {
   playTrackUrl?: string;
 }
 
-/** Convert a Spotify open URL to a spotify: URI */
-function toSpotifyUri(url: string): string | null {
-  try {
-    const u = new URL(url);
-    if (!u.hostname.includes("spotify.com")) return null;
-    const path = u.pathname.replace(/^\/intl-[a-z]+/, "");
-    const parts = path.split("/").filter(Boolean);
-    if (parts.length >= 2) return `spotify:${parts[0]}:${parts[1]}`;
-    return null;
-  } catch {
-    return null;
-  }
-}
-
-// Augment window for the Spotify Web Playback SDK
-declare global {
-  interface Window {
-    onSpotifyWebPlaybackSDKReady?: () => void;
-    Spotify?: any;
-  }
-}
-
-const SDK_URL = "https://sdk.scdn.co/spotify-player.js";
-
-const SpotifyPlayer = ({
-  position = "left",
-  playlistUrl,
-  playlistName,
-  playTrackUrl,
-}: SpotifyPlayerProps) => {
-  const [expanded, setExpanded] = useState(false);
+const SpotifyPlayer = ({ position = "left", playlistUrl, playlistName, playTrackUrl }: SpotifyPlayerProps) => {
+  const isMobile = useIsMobile();
+  const bannerOffset = useBottomOffset();
   const online = useNetworkStatus();
+  const { user, isGuest, session } = useAuth();
   const { t } = useTranslation();
-  const spotify = useSpotifyAuth();
 
-  const playerRef = useRef<any>(null);
-  const deviceIdRef = useRef<string | null>(null);
-  const [sdkReady, setSdkReady] = useState(false);
+  const [expanded, setExpanded] = useState(false);
+  const [accessToken, setAccessToken] = useState<string | null>(null);
+  const [player, setPlayer] = useState<any>(null);
+  const [deviceId, setDeviceId] = useState<string | null>(null);
   const [isPlaying, setIsPlaying] = useState(false);
-  const [trackName, setTrackName] = useState<string | null>(null);
-  const [artistName, setArtistName] = useState<string | null>(null);
-  const [premiumError, setPremiumError] = useState(false);
+  const [currentTrack, setCurrentTrack] = useState<any>(null);
+  const [sdkReady, setSdkReady] = useState(false);
+  const [loading, setLoading] = useState(false);
+  const [spotifyClientId, setSpotifyClientId] = useState<string | null>(null);
+  const [error, setError] = useState<string | null>(null);
+  const playerRef = useRef<any>(null);
+  const sdkScriptRef = useRef<boolean>(false);
 
-  const activeUrl = playTrackUrl || playlistUrl;
-  const spotifyUri = useMemo(() => (activeUrl ? toSpotifyUri(activeUrl) : null), [activeUrl]);
-  const displayName = trackName || playlistName || t("spotify.defaultPlaylist");
+  // Track which playlist is currently playing to detect changes
+  const currentPlaylistRef = useRef<string | null>(null);
+  // Track which single track was last requested
+  const lastPlayTrackRef = useRef<string | null>(null);
 
-  // Load Spotify Web Playback SDK script once
+  const effectivePlaylistUrl = playlistUrl || DEFAULT_PLAYLIST_URL;
+  const effectivePlaylistName = playlistName || t("spotify.defaultPlaylist");
+
+  const openInSpotifyUrl = effectivePlaylistUrl;
+
+  // Load SDK script once
   useEffect(() => {
-    if (window.Spotify) {
-      setSdkReady(true);
+    if (sdkScriptRef.current || typeof window === "undefined") return;
+    if (document.querySelector(`script[src="${SPOTIFY_SDK_URL}"]`)) {
+      sdkScriptRef.current = true;
+      if (window.Spotify) setSdkReady(true);
       return;
     }
-    if (document.querySelector(`script[src="${SDK_URL}"]`)) return;
 
     window.onSpotifyWebPlaybackSDKReady = () => setSdkReady(true);
-
     const script = document.createElement("script");
-    script.src = SDK_URL;
+    script.src = SPOTIFY_SDK_URL;
     script.async = true;
     document.body.appendChild(script);
+    sdkScriptRef.current = true;
   }, []);
 
-  // Create / recreate player when SDK ready and token available
+  // Check for stored token on mount / after callback redirect
   useEffect(() => {
-    if (!sdkReady || !spotify.isConnected) return;
+    const storedToken = sessionStorage.getItem("spotify_access_token");
+    const storedExpiry = sessionStorage.getItem("spotify_token_expires");
 
-    const initPlayer = async () => {
-      const token = await spotify.getValidToken();
-      if (!token) return;
+    if (storedToken && storedExpiry && Date.now() < Number(storedExpiry)) {
+      setAccessToken(storedToken);
+      return;
+    }
 
-      // Destroy previous player
-      if (playerRef.current) {
-        try { playerRef.current.disconnect(); } catch {}
-        playerRef.current = null;
-        deviceIdRef.current = null;
-      }
+    // Try to refresh from profile
+    if (!session?.access_token || isGuest) return;
+    refreshTokenFromProfile();
+  }, [session, isGuest]);
 
-      const player = new window.Spotify.Player({
-        name: "Flagellum Dei",
-        getOAuthToken: async (cb: (t: string) => void) => {
-          const t = await spotify.getValidToken();
-          cb(t || "");
-        },
-        volume: 0.5,
-      });
+  const refreshTokenFromProfile = useCallback(async () => {
+    if (!user) return;
+    try {
+      const { data: profile } = await supabase
+        .from("profiles")
+        .select("spotify_refresh_token, spotify_access_token, spotify_token_expires_at")
+        .eq("user_id", user.id)
+        .single();
 
-      player.addListener("ready", ({ device_id }: { device_id: string }) => {
-        deviceIdRef.current = device_id;
-        console.log("[Spotify SDK] Ready with device ID:", device_id);
-      });
+      if (!profile?.spotify_refresh_token) return;
 
-      player.addListener("not_ready", () => {
-        deviceIdRef.current = null;
-      });
-
-      player.addListener("player_state_changed", (state: any) => {
-        if (!state) {
-          setIsPlaying(false);
-          setTrackName(null);
-          setArtistName(null);
+      if (profile.spotify_access_token && profile.spotify_token_expires_at) {
+        const expiresAt = new Date(profile.spotify_token_expires_at).getTime();
+        if (Date.now() < expiresAt - 60000) {
+          setAccessToken(profile.spotify_access_token);
           return;
         }
-        setIsPlaying(!state.paused);
-        const current = state.track_window?.current_track;
-        if (current) {
-          setTrackName(current.name);
-          setArtistName(current.artists?.map((a: any) => a.name).join(", ") || null);
-        }
-      });
-
-      player.addListener("initialization_error", ({ message }: { message: string }) => {
-        console.error("[Spotify SDK] Init error:", message);
-      });
-
-      player.addListener("authentication_error", ({ message }: { message: string }) => {
-        console.error("[Spotify SDK] Auth error:", message);
-      });
-
-      player.addListener("account_error", ({ message }: { message: string }) => {
-        console.error("[Spotify SDK] Account error (Premium required?):", message);
-        setPremiumError(true);
-      });
-
-      const success = await player.connect();
-      if (success) {
-        playerRef.current = player;
       }
-    };
 
-    initPlayer();
+      const { data, error } = await supabase.functions.invoke("spotify-token-exchange", {
+        body: { grant_type: "refresh_token", refresh_token: profile.spotify_refresh_token },
+      });
+
+      if (data?.access_token) {
+        setAccessToken(data.access_token);
+        sessionStorage.setItem("spotify_access_token", data.access_token);
+        sessionStorage.setItem("spotify_token_expires", String(Date.now() + data.expires_in * 1000));
+      }
+    } catch {
+      // silent
+    }
+  }, [user]);
+
+  // Fetch client ID
+  useEffect(() => {
+    const fetchClientId = async () => {
+      try {
+        const { data } = await supabase.functions.invoke("spotify-token-exchange", {
+          body: { grant_type: "client_id" },
+        });
+        if (data?.client_id) setSpotifyClientId(data.client_id);
+      } catch {}
+    };
+    if (online && !spotifyClientId) fetchClientId();
+  }, [online, spotifyClientId]);
+
+  // Initialize Spotify Web Playback SDK
+  useEffect(() => {
+    if (!sdkReady || !accessToken || playerRef.current) return;
+
+    const spotifyPlayer = new window.Spotify.Player({
+      name: "Flagellum Dei",
+      getOAuthToken: (cb: (token: string) => void) => cb(accessToken),
+      volume: 0.5,
+    });
+
+    spotifyPlayer.addListener("ready", ({ device_id }: { device_id: string }) => {
+      setDeviceId(device_id);
+      setLoading(false);
+    });
+
+    spotifyPlayer.addListener("not_ready", () => {
+      setDeviceId(null);
+    });
+
+    spotifyPlayer.addListener("player_state_changed", (state: any) => {
+      if (!state) return;
+      setIsPlaying(!state.paused);
+      setCurrentTrack(state.track_window?.current_track ?? null);
+    });
+
+    spotifyPlayer.addListener("initialization_error", ({ message }: { message: string }) => {
+      console.error("Spotify init error:", message);
+      setError(t("spotify.premiumRequired"));
+    });
+
+    spotifyPlayer.addListener("authentication_error", ({ message }: { message: string }) => {
+      console.error("Spotify auth error:", message);
+      setAccessToken(null);
+      sessionStorage.removeItem("spotify_access_token");
+      sessionStorage.removeItem("spotify_token_expires");
+      if (user) {
+        supabase.from("profiles").update({
+          spotify_access_token: null,
+          spotify_refresh_token: null,
+          spotify_token_expires_at: null,
+        }).eq("user_id", user.id).then(() => {});
+      }
+    });
+
+    setLoading(true);
+    spotifyPlayer.connect();
+    playerRef.current = spotifyPlayer;
+    setPlayer(spotifyPlayer);
 
     return () => {
-      if (playerRef.current) {
-        try { playerRef.current.disconnect(); } catch {}
-        playerRef.current = null;
-        deviceIdRef.current = null;
-      }
+      spotifyPlayer.disconnect();
+      playerRef.current = null;
     };
-  }, [sdkReady, spotify.isConnected]);
+  }, [sdkReady, accessToken]);
 
-  // Play URI when it changes
+  // Start/switch playlist when device is ready or playlist changes
   useEffect(() => {
-    if (!spotifyUri || !deviceIdRef.current) return;
+    if (!deviceId || !accessToken) return;
 
-    const play = async () => {
-      const token = await spotify.getValidToken();
-      if (!token || !deviceIdRef.current) return;
+    const uri = urlToUri(effectivePlaylistUrl);
+    if (currentPlaylistRef.current === uri) return;
+    currentPlaylistRef.current = uri;
 
-      const body: any = {};
-      if (spotifyUri.includes(":track:")) {
-        body.uris = [spotifyUri];
-      } else {
-        body.context_uri = spotifyUri;
-      }
-
+    const startPlayback = async () => {
       try {
-        const res = await fetch(
-          `https://api.spotify.com/v1/me/player/play?device_id=${deviceIdRef.current}`,
-          {
-            method: "PUT",
-            headers: {
-              Authorization: `Bearer ${token}`,
-              "Content-Type": "application/json",
-            },
-            body: JSON.stringify(body),
-          }
-        );
-        if (!res.ok) {
-          console.error("[Spotify] Play failed:", res.status, await res.text());
-        }
-      } catch (err) {
-        console.error("[Spotify] Play error:", err);
+        await fetch(`https://api.spotify.com/v1/me/player/play?device_id=${deviceId}`, {
+          method: "PUT",
+          headers: {
+            Authorization: `Bearer ${accessToken}`,
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({ context_uri: uri }),
+        });
+      } catch (e) {
+        console.error("Failed to start playback:", e);
       }
     };
 
-    play();
-  }, [spotifyUri, spotify.getValidToken]);
+    startPlayback();
+  }, [deviceId, accessToken, effectivePlaylistUrl]);
 
-  const togglePlay = useCallback(async () => {
-    if (playerRef.current) {
-      await playerRef.current.togglePlay();
-    }
-  }, []);
+  // Play a single track on demand when playTrackUrl changes
+  useEffect(() => {
+    if (!deviceId || !accessToken || !playTrackUrl) return;
+    if (lastPlayTrackRef.current === playTrackUrl) return;
+    lastPlayTrackRef.current = playTrackUrl;
 
-  if (!online) return null;
+    const playTrack = async () => {
+      const uri = urlToUri(playTrackUrl);
+      try {
+        await fetch(`https://api.spotify.com/v1/me/player/play?device_id=${deviceId}`, {
+          method: "PUT",
+          headers: {
+            Authorization: `Bearer ${accessToken}`,
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({ uris: [uri] }),
+        });
+      } catch (e) {
+        console.error("Failed to play track:", e);
+      }
+    };
 
-  // Not connected — show connect button
-  if (!spotify.isConnected && !spotify.isLoading) {
-    const posClass = position === "left" ? "left-4" : "right-4";
+    playTrack();
+  }, [deviceId, accessToken, playTrackUrl]);
+
+  const handleConnect = () => {
+    if (!spotifyClientId) return;
+    const returnPath = window.location.pathname + window.location.search;
+    initiateSpotifyLogin(spotifyClientId, returnPath);
+  };
+
+  const togglePlay = () => player?.togglePlay();
+  const nextTrack = () => player?.nextTrack();
+  const prevTrack = () => player?.previousTrack();
+
+  const getPillStatus = (): { text: string; actionable: boolean } => {
+    if (!online) return { text: t("spotify.offline"), actionable: false };
+    if (isGuest) return { text: t("spotify.connectPrompt"), actionable: false };
+    if (!accessToken) return { text: t("spotify.connectPrompt"), actionable: true };
+    if (error) return { text: error, actionable: false };
+    if (loading) return { text: "…", actionable: false };
+    if (isPlaying && currentTrack) return { text: currentTrack.name, actionable: true };
+    if (currentTrack) return { text: t("spotify.paused"), actionable: true };
+    return { text: effectivePlaylistName, actionable: true };
+  };
+
+  const pillStatus = getPillStatus();
+  const mobileBottom = bannerOffset + 16;
+  const posClass = position === "right" ? "right-6" : "left-6";
+
+  // Collapsed pill
+  if (!expanded) {
     return (
-      <button
-        onClick={spotify.connect}
-        className={`fixed bottom-20 ${posClass} z-40 flex items-center gap-2 rounded-full bg-card/90 backdrop-blur border border-border shadow-lg px-4 py-2 hover:bg-accent transition-colors`}
-      >
-        <Music className="h-4 w-4 text-primary" />
-        <span className="text-sm font-medium text-foreground">
-          {t("spotify.connect")}
-        </span>
-      </button>
+      <div className={cn("fixed z-50", posClass)} style={{ bottom: isMobile ? mobileBottom : 24 }}>
+        <button
+          onClick={() => {
+            if (!online) return;
+            if (!accessToken && !isGuest) {
+              handleConnect();
+              return;
+            }
+            setExpanded(true);
+          }}
+          className={cn(
+            "flex items-center gap-2 px-3 py-2 rounded-full text-sm shadow-lg transition-all hover:shadow-xl",
+            accessToken && isPlaying
+              ? "bg-[#1DB954] text-white"
+              : "bg-secondary text-secondary-foreground",
+            !online && "opacity-60 cursor-default"
+          )}
+        >
+          {!online ? (
+            <WifiOff className="h-4 w-4 shrink-0" />
+          ) : loading ? (
+            <Loader2 className="h-4 w-4 shrink-0 animate-spin" />
+          ) : (
+            <Music className="h-4 w-4 shrink-0" />
+          )}
+          <span className="font-semibold shrink-0">{effectivePlaylistName}</span>
+          {pillStatus.text && pillStatus.text !== effectivePlaylistName && (
+            <span className="truncate max-w-[180px] opacity-90 text-xs">
+              {pillStatus.text}
+            </span>
+          )}
+        </button>
+      </div>
     );
   }
 
-  if (spotify.isLoading) return null;
-
-  const posClass = position === "left" ? "left-4" : "right-4";
-
+  // Expanded player panel
   return (
     <>
-      {/* Pill button (visible when collapsed) */}
-      {!expanded && (
-        <button
-          onClick={() => setExpanded(true)}
-          className={`fixed bottom-20 ${posClass} z-40 flex items-center gap-2 rounded-full bg-card/90 backdrop-blur border border-border shadow-lg px-4 py-2 hover:bg-accent transition-colors`}
-        >
-          {isPlaying ? (
-            <Pause className="h-4 w-4 text-primary" />
-          ) : (
-            <Music className="h-4 w-4 text-primary" />
-          )}
-          <span className="text-sm font-medium text-foreground truncate max-w-[140px]">
-            {premiumError ? t("spotify.premiumRequired") : displayName}
-          </span>
-        </button>
-      )}
-
-      {/* Expanded panel */}
-      {expanded && (
-        <div
-          className={`fixed bottom-20 ${posClass} z-40 w-[340px] rounded-xl bg-card/95 backdrop-blur border border-border shadow-2xl overflow-hidden`}
-        >
+      <div className="fixed inset-0 z-40" onClick={() => setExpanded(false)} />
+      <div
+        className={cn("fixed z-50", posClass)}
+        style={{ bottom: isMobile ? mobileBottom : 24 }}
+      >
+        <div className="bg-card border border-border rounded-xl shadow-2xl p-4 w-72 space-y-3">
           {/* Header */}
-          <div className="flex items-center justify-between px-3 py-2 border-b border-border">
-            <div className="flex items-center gap-2 min-w-0">
-              <Music className="h-4 w-4 text-primary shrink-0" />
-              <span className="text-sm font-medium text-foreground truncate">
-                {displayName}
-              </span>
-            </div>
-            <div className="flex items-center gap-1">
-              {activeUrl && (
-                <a
-                  href={activeUrl}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="p-1 rounded hover:bg-accent transition-colors"
-                  title={t("spotify.openInSpotify")}
-                >
-                  <ExternalLink className="h-3.5 w-3.5 text-muted-foreground" />
-                </a>
+          <div className="flex items-center justify-between">
+            <span className="font-display text-sm font-semibold text-foreground flex items-center gap-2">
+              <Music className="h-4 w-4 text-[#1DB954]" />
+              {effectivePlaylistName}
+            </span>
+            <Button variant="ghost" size="icon" className="h-6 w-6" onClick={() => setExpanded(false)}>
+              <X className="h-3 w-3" />
+            </Button>
+          </div>
+
+          {/* Track info */}
+          {currentTrack && (
+            <div className="flex items-center gap-3">
+              {currentTrack.album?.images?.[0]?.url && (
+                <img
+                  src={currentTrack.album.images[0].url}
+                  alt={currentTrack.album.name}
+                  className="w-12 h-12 rounded object-cover"
+                />
               )}
-              <button
-                onClick={() => setExpanded(false)}
-                className="p-1 rounded hover:bg-accent transition-colors"
-              >
-                <X className="h-4 w-4 text-muted-foreground" />
-              </button>
-            </div>
-          </div>
-
-          {/* Player controls */}
-          <div className="px-4 py-3 space-y-3">
-            {premiumError ? (
-              <p className="text-sm text-destructive text-center">
-                {t("spotify.premiumRequired")}
-              </p>
-            ) : (
-              <>
-                {/* Track info */}
-                {trackName && (
-                  <div className="text-center">
-                    <p className="text-sm font-medium text-foreground truncate">{trackName}</p>
-                    {artistName && (
-                      <p className="text-xs text-muted-foreground truncate">{artistName}</p>
-                    )}
-                  </div>
-                )}
-
-                {/* Play/Pause */}
-                <div className="flex items-center justify-center">
-                  <button
-                    onClick={togglePlay}
-                    className="p-3 rounded-full bg-primary text-primary-foreground hover:bg-primary/90 transition-colors"
-                  >
-                    {isPlaying ? (
-                      <Pause className="h-5 w-5" />
-                    ) : (
-                      <Play className="h-5 w-5" />
-                    )}
-                  </button>
-                </div>
-
-                {/* Status text */}
-                <p className="text-xs text-muted-foreground text-center">
-                  {isPlaying ? t("spotify.playing") : t("spotify.paused")}
+              <div className="min-w-0 flex-1">
+                <p className="text-sm font-medium text-foreground truncate">{currentTrack.name}</p>
+                <p className="text-xs text-muted-foreground truncate">
+                  {currentTrack.artists?.map((a: any) => a.name).join(", ")}
                 </p>
-              </>
-            )}
+              </div>
+            </div>
+          )}
 
-            {/* Disconnect */}
-            <button
-              onClick={spotify.disconnect}
-              className="flex items-center gap-1.5 mx-auto text-xs text-muted-foreground hover:text-destructive transition-colors"
+          {/* Controls */}
+          {accessToken && (
+            <div className="flex items-center justify-center gap-2">
+              <Button variant="ghost" size="icon" className="h-8 w-8" onClick={prevTrack}>
+                <SkipBack className="h-4 w-4" />
+              </Button>
+              <Button
+                variant="default"
+                size="icon"
+                className="h-10 w-10 rounded-full bg-[#1DB954] hover:bg-[#1ed760] text-white"
+                onClick={togglePlay}
+              >
+                {isPlaying ? <Pause className="h-5 w-5" /> : <Play className="h-5 w-5" />}
+              </Button>
+              <Button variant="ghost" size="icon" className="h-8 w-8" onClick={nextTrack}>
+                <SkipForward className="h-4 w-4" />
+              </Button>
+            </div>
+          )}
+
+          {/* Open in Spotify button — always visible */}
+          <a
+            href={openInSpotifyUrl}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="flex items-center justify-center gap-2 w-full py-2 rounded-md text-sm font-medium bg-[#1DB954]/10 text-[#1DB954] hover:bg-[#1DB954]/20 transition-colors"
+          >
+            <ExternalLink className="h-3.5 w-3.5" />
+            {t("spotify.openInSpotify")}
+          </a>
+
+          {!accessToken && !isGuest && (
+            <Button
+              variant="outline"
+              size="sm"
+              className="w-full gap-2"
+              onClick={handleConnect}
             >
-              <LogOut className="h-3 w-3" />
-              {t("spotify.disconnect")}
-            </button>
-          </div>
+              <Music className="h-3.5 w-3.5" />
+              {t("spotify.connect")}
+            </Button>
+          )}
+
+          {error && (
+            <p className="text-xs text-destructive text-center">{error}</p>
+          )}
         </div>
-      )}
+      </div>
     </>
   );
 };

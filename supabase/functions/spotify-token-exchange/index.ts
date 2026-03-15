@@ -6,139 +6,105 @@ const corsHeaders = {
     "authorization, x-client-info, apikey, content-type, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version",
 };
 
-const SPOTIFY_TOKEN_URL = "https://accounts.spotify.com/api/token";
-
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") {
     return new Response(null, { headers: corsHeaders });
   }
 
+  const SPOTIFY_CLIENT_ID = Deno.env.get("SPOTIFY_CLIENT_ID");
+  const SPOTIFY_CLIENT_SECRET = Deno.env.get("SPOTIFY_CLIENT_SECRET");
+  if (!SPOTIFY_CLIENT_ID || !SPOTIFY_CLIENT_SECRET) {
+    return new Response(JSON.stringify({ error: "Spotify credentials not configured" }), {
+      status: 500,
+      headers: { ...corsHeaders, "Content-Type": "application/json" },
+    });
+  }
+
   try {
-    // Authenticate user
-    const authHeader = req.headers.get("Authorization");
-    if (!authHeader?.startsWith("Bearer ")) {
-      return new Response(JSON.stringify({ error: "Unauthorized" }), {
-        status: 401,
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
-      });
-    }
-
-    const supabase = createClient(
-      Deno.env.get("SUPABASE_URL")!,
-      Deno.env.get("SUPABASE_ANON_KEY")!,
-      { global: { headers: { Authorization: authHeader } } }
-    );
-
-    const { data: { user }, error: authError } = await supabase.auth.getUser();
-    if (authError || !user) {
-      console.error("Auth error:", authError);
-      return new Response(JSON.stringify({ error: "Unauthorized" }), {
-        status: 401,
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
-      });
-    }
-    const userId = user.id;
-
     const body = await req.json();
-    const { grant_type } = body;
+    const { grant_type, code, redirect_uri, refresh_token, code_verifier } = body;
 
-    const clientId = Deno.env.get("SPOTIFY_CLIENT_ID")!;
-    const clientSecret = Deno.env.get("SPOTIFY_CLIENT_SECRET")!;
-    console.log("Spotify client_id being used:", clientId);
-    const basicAuth = btoa(`${clientId}:${clientSecret}`);
+    // Return client ID for frontend PKCE flow
+    if (grant_type === "client_id") {
+      return new Response(JSON.stringify({ client_id: SPOTIFY_CLIENT_ID }), {
+        status: 200,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
 
-    // Service-role client (shared across branches)
-    const serviceClient = createClient(
-      Deno.env.get("SUPABASE_URL")!,
-      Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!
-    );
-
-    let spotifyParams: URLSearchParams;
+    // Build Spotify token request
+    const params = new URLSearchParams();
+    params.set("client_id", SPOTIFY_CLIENT_ID);
+    params.set("client_secret", SPOTIFY_CLIENT_SECRET);
 
     if (grant_type === "authorization_code") {
-      const { code, redirect_uri, code_verifier } = body;
-      if (!code || !redirect_uri || !code_verifier) {
-        return new Response(
-          JSON.stringify({ error: "Missing code, redirect_uri, or code_verifier" }),
-          { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-        );
-      }
-      spotifyParams = new URLSearchParams({
-        grant_type: "authorization_code",
-        code,
-        redirect_uri,
-        code_verifier,
-      });
+      params.set("grant_type", "authorization_code");
+      params.set("code", code);
+      params.set("redirect_uri", redirect_uri);
+      if (code_verifier) params.set("code_verifier", code_verifier);
     } else if (grant_type === "refresh_token") {
-      const { data: profile } = await serviceClient
-        .from("profiles")
-        .select("spotify_refresh_token")
-        .eq("user_id", userId)
-        .single();
-
-      if (!profile?.spotify_refresh_token) {
-        return new Response(
-          JSON.stringify({ error: "No refresh token found" }),
-          { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-        );
-      }
-      spotifyParams = new URLSearchParams({
-        grant_type: "refresh_token",
-        refresh_token: profile.spotify_refresh_token,
-      });
+      params.set("grant_type", "refresh_token");
+      params.set("refresh_token", refresh_token);
     } else {
-      return new Response(
-        JSON.stringify({ error: "Invalid grant_type" }),
-        { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-      );
+      return new Response(JSON.stringify({ error: "Invalid grant_type" }), {
+        status: 400,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
     }
 
-    // Exchange with Spotify
-    const spotifyRes = await fetch(SPOTIFY_TOKEN_URL, {
+    const tokenRes = await fetch("https://accounts.spotify.com/api/token", {
       method: "POST",
-      headers: {
-        "Content-Type": "application/x-www-form-urlencoded",
-        Authorization: `Basic ${basicAuth}`,
-      },
-      body: spotifyParams.toString(),
+      headers: { "Content-Type": "application/x-www-form-urlencoded" },
+      body: params.toString(),
     });
 
-    const spotifyData = await spotifyRes.json();
+    const tokenData = await tokenRes.json();
 
-    if (!spotifyRes.ok) {
-      console.error("Spotify error:", JSON.stringify(spotifyData));
-      return new Response(
-        JSON.stringify({ error: spotifyData.error_description || spotifyData.error || "Spotify error" }),
-        { status: spotifyRes.status, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-      );
+    if (!tokenRes.ok) {
+      console.error("Spotify token error:", tokenData);
+      return new Response(JSON.stringify({ error: tokenData.error_description || "Token exchange failed" }), {
+        status: tokenRes.status,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
     }
 
-    const expiresAt = new Date(
-      Date.now() + spotifyData.expires_in * 1000
-    ).toISOString();
+    // Persist refresh_token in user's profile if present
+    const authHeader = req.headers.get("authorization");
+    if (authHeader && tokenData.refresh_token) {
+      const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
+      const serviceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
+      const supabase = createClient(supabaseUrl, serviceKey);
 
-    await serviceClient
-      .from("profiles")
-      .update({
-        spotify_access_token: spotifyData.access_token,
-        spotify_refresh_token:
-          spotifyData.refresh_token ?? undefined,
-        spotify_token_expires_at: expiresAt,
-      })
-      .eq("user_id", userId);
+      // Decode JWT to get user id
+      const anonClient = createClient(supabaseUrl, Deno.env.get("SUPABASE_ANON_KEY")!);
+      const { data: { user } } = await anonClient.auth.getUser(authHeader.replace("Bearer ", ""));
+
+      if (user) {
+        const expiresAt = new Date(Date.now() + tokenData.expires_in * 1000).toISOString();
+        await supabase
+          .from("profiles")
+          .update({
+            spotify_refresh_token: tokenData.refresh_token,
+            spotify_access_token: tokenData.access_token,
+            spotify_token_expires_at: expiresAt,
+          })
+          .eq("user_id", user.id);
+      }
+    }
 
     return new Response(
       JSON.stringify({
-        access_token: spotifyData.access_token,
-        expires_at: expiresAt,
+        access_token: tokenData.access_token,
+        expires_in: tokenData.expires_in,
+        refresh_token: tokenData.refresh_token,
       }),
       { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } }
     );
   } catch (err) {
     console.error("spotify-token-exchange error:", err);
-    return new Response(
-      JSON.stringify({ error: "Internal server error" }),
-      { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-    );
+    return new Response(JSON.stringify({ error: "Internal error" }), {
+      status: 500,
+      headers: { ...corsHeaders, "Content-Type": "application/json" },
+    });
   }
 });
