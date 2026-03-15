@@ -413,22 +413,41 @@ Upload the images from the scenario-backgrounds/ folder in the attached ZIP into
         </div>
       ) : (
         <div className="space-y-1 overflow-y-auto flex-1">
+          <p className="text-xs text-muted-foreground italic px-3 pb-1">{t("adminScenarios.teaserHint")}</p>
           {mergedScenarios.map((scenario) => {
             const scenarioHasOverrides = overrides.has(scenario.id) && (overrides.get(scenario.id)?.size ?? 0) > 0;
 
             return (
-              <button
-                key={scenario.id}
-                className="w-full text-left px-3 py-2 rounded-md hover:bg-muted/50 flex items-center gap-2 text-sm"
-                onClick={() => setExpandedId(scenario.id)}
-              >
-                <ChevronDown className="h-3.5 w-3.5 -rotate-90" />
-                <span className="font-medium flex-1">{scenario.title}</span>
-                {scenarioHasOverrides && <Badge variant="secondary" className="text-[10px]">{t("adminScenarios.modified")}</Badge>}
-                {scenario.level != null && (
-                  <Badge variant="secondary" className="text-xs">{t("adminScenarios.lvl").replace("{level}", String(scenario.level))}</Badge>
+              <div key={scenario.id} className="rounded-md hover:bg-muted/50">
+                <button
+                  className="w-full text-left px-3 py-2 flex items-center gap-2 text-sm"
+                  onClick={() => setExpandedId(scenario.id)}
+                >
+                  <ChevronDown className="h-3.5 w-3.5 -rotate-90 shrink-0" />
+                  <span className="font-medium flex-1">{scenario.title}</span>
+                  {scenarioHasOverrides && <Badge variant="secondary" className="text-[10px]">{t("adminScenarios.modified")}</Badge>}
+                  {scenario.level != null && (
+                    <Badge variant="secondary" className="text-xs">{t("adminScenarios.lvl").replace("{level}", String(scenario.level))}</Badge>
+                  )}
+                </button>
+                {scenario.teaser && (
+                  <div className="flex items-start gap-1.5 px-3 pb-2 pl-9">
+                    <p className="text-xs text-muted-foreground italic flex-1 line-clamp-2">{scenario.teaser}</p>
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      className="h-6 w-6 shrink-0"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        navigator.clipboard.writeText(scenario.teaser!);
+                        toast({ title: t("adminScenarios.copied") });
+                      }}
+                    >
+                      <Copy className="h-3 w-3" />
+                    </Button>
+                  </div>
                 )}
-              </button>
+              </div>
             );
           })}
         </div>

@@ -512,7 +512,7 @@ const en: Record<string, string> = {
   "adminLegacy.noScenarios": "No scenarios.",
   "adminLegacy.tableTitle": "Title",
   "adminLegacy.tableLevel": "Level",
-  "adminLegacy.tableDescription": "Description",
+  "adminLegacy.tableTeaser": "Teaser",
   "adminLegacy.importFeats": "Import Feats from Wiki",
   "adminLegacy.importFeatsDesc": "Feats are now hardcoded in the source code and ship with the app bundle. Wiki import/export is disabled.",
   "adminLegacy.checkUpdates": "Check for Updates",
