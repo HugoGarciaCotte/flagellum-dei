@@ -1,7 +1,7 @@
 import React, { useState, useRef, useEffect, useCallback, useMemo } from "react";
 import { createPortal } from "react-dom";
-import { ChevronRight, Play } from "lucide-react";
-import { WikiSection, resolveBackgroundImage } from "@/lib/parseWikitext";
+import { ChevronRight, Play, Music, ExternalLink } from "lucide-react";
+import { WikiSection, resolveBackgroundImage, resolvePlaylist, type PlaylistInfo } from "@/lib/parseWikitext";
 import { cn } from "@/lib/utils";
 import { buildFeatsMap, getFeatMeta } from "@/data/feats";
 import { useTranslation } from "@/i18n/useTranslation";
