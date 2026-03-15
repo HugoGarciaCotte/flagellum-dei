@@ -558,7 +558,7 @@ const CharacterFeatPicker = ({ characterId, mode = "player", scenarioLevel }: Ch
                     onToggleExpand={() => setExpandedAssignedFeatId(expandedAssignedFeatId === assigned!.id ? null : assigned!.id)}
                     actions={
                       <>
-                        <Button variant="ghost" size="sm" className="h-6 px-2 text-xs" onClick={() => openPicker({ type: "level", level })}>
+                        <Button variant="ghost" size="sm" className="h-6 px-2 text-sm" onClick={() => openPicker({ type: "level", level })}>
                           {t("feats.edit")}
                         </Button>
                         <Button
