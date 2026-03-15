@@ -5,6 +5,8 @@ import { Table, TableBody, TableRow, TableCell } from "@/components/ui/table";
 
 import { useTranslation } from "@/i18n/useTranslation";
 import { cn } from "@/lib/utils";
+import { useIsMobile } from "@/hooks/use-mobile";
+import { useBottomOffset } from "@/hooks/useBottomOffset";
 import type { AmbianceEntry } from "@/lib/parseWikitext";
 
 interface GameTimerProps {

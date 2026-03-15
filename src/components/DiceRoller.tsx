@@ -5,6 +5,8 @@ import { supabase } from "@/integrations/supabase/client";
 import { toast } from "@/hooks/use-toast";
 import diceRollSfx from "@/assets/dice-roll.mp3";
 import { useTranslation } from "@/i18n/useTranslation";
+import { useIsMobile } from "@/hooks/use-mobile";
+import { useBottomOffset } from "@/hooks/useBottomOffset";
 
 // Classic die dot patterns for faces 1-6
 const DOT_PATTERNS: Record<number, [number, number][]> = {
