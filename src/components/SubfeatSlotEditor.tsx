@@ -26,9 +26,9 @@ const SubfeatSlotEditor = ({ slot, onChange, onRemove }: Props) => {
 
       <div className="grid grid-cols-2 gap-2">
         <div>
-          <Label className="text-xs">{t("adminFeats.kind")}</Label>
+          <Label className="text-sm">{t("adminFeats.kind")}</Label>
           <Select value={slot.kind} onValueChange={(v) => onChange({ ...slot, kind: v as "fixed" | "list" | "type" })}>
-            <SelectTrigger className="h-8 text-xs">
+            <SelectTrigger className="h-8 text-sm">
               <SelectValue />
             </SelectTrigger>
             <SelectContent>
