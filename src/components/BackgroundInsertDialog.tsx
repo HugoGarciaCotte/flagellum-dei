@@ -21,7 +21,7 @@ interface BackgroundInsertDialogProps {
 
 const BackgroundInsertDialog = ({
   open, onOpenChange, onInsert,
-  scenarioId, scenarioTitle, scenarioDescription,
+  scenarioId, scenarioTitle, scenarioTeaser,
 }: BackgroundInsertDialogProps) => {
   const { t } = useTranslation();
   const [bgMode, setBgMode] = useState<BgMode>("link");
