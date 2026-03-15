@@ -86,14 +86,14 @@ const StepCard = ({
 
 const ScenarioCard = ({
   title,
-  description,
+  teaser,
   level,
   image,
   chapterLabel,
   date,
 }: {
   title: string;
-  description: string;
+  teaser: string;
   level?: number | null;
   image?: string;
   chapterLabel: string;
