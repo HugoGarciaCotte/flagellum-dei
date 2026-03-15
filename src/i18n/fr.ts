@@ -85,6 +85,8 @@ const fr: Record<string, string> = {
   "home.footer.install": "Installer l'application →",
   "timer.timer": "Minuteur",
   "timer.ambiance": "Ambiance",
+  "timer.startToBegin": "Lancez le minuteur pour commencer",
+  "timer.paused": "Minuteur en pause",
   "adminScenarios.insertTagAmbiance": "Piste d'ambiance",
 };
 

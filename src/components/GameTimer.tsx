@@ -8,6 +8,7 @@ import type { AmbianceEntry } from "@/lib/parseWikitext";
 
 interface GameTimerProps {
   ambianceTrack?: AmbianceEntry[];
+  position?: "left" | "right";
 }
 
 const GameTimer = ({ ambianceTrack }: GameTimerProps) => {
