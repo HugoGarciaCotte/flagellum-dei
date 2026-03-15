@@ -12,6 +12,7 @@ Deno.serve(async (req) => {
   }
 
   const SPOTIFY_CLIENT_ID = Deno.env.get("SPOTIFY_CLIENT_ID");
+  console.info(`Spotify client_id being used: ${SPOTIFY_CLIENT_ID?.slice(0, 8)}...`);
   const SPOTIFY_CLIENT_SECRET = Deno.env.get("SPOTIFY_CLIENT_SECRET");
   if (!SPOTIFY_CLIENT_ID || !SPOTIFY_CLIENT_SECRET) {
     return new Response(JSON.stringify({ error: "Spotify credentials not configured" }), {
