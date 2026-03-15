@@ -70,7 +70,7 @@ const Dashboard = () => {
     for (const g of allGames) {
       if (g.host_user_id === user?.id && g.status === "active") {
         seen.add(g.id);
-        const sc = getScenarioById(g.scenario_id);
+        const sc = getScenarioById(g.scenario_id, locale);
         games.push({ id: g.id, title: sc?.title || t("dashboard.untitled"), join_code: g.join_code, role: "hosting" });
       }
     }
