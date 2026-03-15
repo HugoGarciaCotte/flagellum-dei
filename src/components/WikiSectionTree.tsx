@@ -1,7 +1,7 @@
 import React, { useState, useRef, useEffect, useCallback, useMemo } from "react";
 import { createPortal } from "react-dom";
-import { ChevronRight, Play } from "lucide-react";
-import { WikiSection, resolveBackgroundImage } from "@/lib/parseWikitext";
+import { ChevronRight, Play, Music, ExternalLink } from "lucide-react";
+import { WikiSection, resolveBackgroundImage, resolvePlaylist, type PlaylistInfo } from "@/lib/parseWikitext";
 import { cn } from "@/lib/utils";
 import { buildFeatsMap, getFeatMeta } from "@/data/feats";
 import { useTranslation } from "@/i18n/useTranslation";
@@ -13,6 +13,7 @@ interface WikiSectionTreeProps {
   activeSection: string | null;
   onActivateSection: (sectionId: string) => void;
   parentBackground?: string | null;
+  parentPlaylist?: PlaylistInfo | null;
 }
 
 const TITLE_SIZES: Record<number, string> = {
@@ -77,6 +78,7 @@ function SectionNode({
   onActivateSection,
   depth = 0,
   parentBackground = null,
+  parentPlaylist = null,
   featsMap,
   tooltipLabels,
 }: {
@@ -85,6 +87,7 @@ function SectionNode({
   onActivateSection: (id: string) => void;
   depth?: number;
   parentBackground?: string | null;
+  parentPlaylist?: PlaylistInfo | null;
   featsMap: Map<string, any> | undefined;
   tooltipLabels: TooltipLabels;
 }) {
@@ -96,6 +99,7 @@ function SectionNode({
   const hasContent = section.content.trim().length > 0;
 
   const effectiveBg = resolveBackgroundImage(section, parentBackground);
+  const effectivePlaylist = resolvePlaylist(section, parentPlaylist);
 
   const bgStyle: React.CSSProperties = isActive && effectiveBg
     ? {
@@ -173,6 +177,26 @@ function SectionNode({
         <span className={cn("flex-1", isActive ? "text-primary-foreground" : "text-foreground", TITLE_SIZES[section.level] || "text-sm")}>
           {section.title}
         </span>
+
+        {effectivePlaylist && (
+          <a
+            href={effectivePlaylist.url}
+            target="_blank"
+            rel="noopener noreferrer"
+            onClick={(e) => e.stopPropagation()}
+            className={cn(
+              "flex items-center gap-1 text-xs shrink-0 px-1.5 py-0.5 rounded-full transition-colors",
+              isActive
+                ? "text-primary-foreground/70 hover:text-primary-foreground"
+                : "text-muted-foreground hover:text-foreground"
+            )}
+            title={effectivePlaylist.name}
+          >
+            <Music className="h-3 w-3" />
+            <span className="max-w-[100px] truncate hidden sm:inline">{effectivePlaylist.name}</span>
+            <ExternalLink className="h-2.5 w-2.5" />
+          </a>
+        )}
       </div>
 
       {open && (
@@ -212,6 +236,7 @@ function SectionNode({
                   onActivateSection={onActivateSection}
                   depth={depth + 1}
                   parentBackground={effectiveBg}
+                  parentPlaylist={effectivePlaylist}
                   featsMap={featsMap}
                   tooltipLabels={tooltipLabels}
                 />
@@ -224,7 +249,7 @@ function SectionNode({
   );
 }
 
-export default function WikiSectionTree({ sections, activeSection, onActivateSection, parentBackground = null }: WikiSectionTreeProps) {
+export default function WikiSectionTree({ sections, activeSection, onActivateSection, parentBackground = null, parentPlaylist = null }: WikiSectionTreeProps) {
   const { data: featsMap } = useFeatsMap();
   const { t } = useTranslation();
   const tooltipLabels = useMemo(() => ({
@@ -242,6 +267,7 @@ export default function WikiSectionTree({ sections, activeSection, onActivateSec
           activeSection={activeSection}
           onActivateSection={onActivateSection}
           parentBackground={parentBackground}
+          parentPlaylist={parentPlaylist}
           featsMap={featsMap}
           tooltipLabels={tooltipLabels}
         />

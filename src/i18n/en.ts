@@ -545,6 +545,14 @@ const en: Record<string, string> = {
   "spotify.connect": "Connect Spotify",
   "spotify.disconnect": "Disconnect",
   "spotify.premiumRequired": "Spotify Premium required",
+  "spotify.openInSpotify": "Open in Spotify",
+  "spotify.defaultPlaylist": "Campaign Playlist",
+
+  // ─── ADMIN SCENARIOS (playlist tags) ───
+  "adminScenarios.insertTagPlaylist": "Playlist",
+  "adminScenarios.insertTagQueueTrack": "Queue Track",
+  "adminScenarios.spotifyUrlPrompt": "Paste a Spotify URL (playlist or track):",
+  "adminScenarios.insertSectionBreak": "Section Break",
 };
 
 export default en;

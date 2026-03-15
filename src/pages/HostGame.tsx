@@ -9,7 +9,7 @@ import { toast } from "@/hooks/use-toast";
 import { ArrowLeft, Copy } from "lucide-react";
 
 import PlayerListSheet from "@/components/PlayerListSheet";
-import { parseWikitext, extractImageUrls, findSection, resolveAmbianceTrack } from "@/lib/parseWikitext";
+import { parseWikitext, extractImageUrls, findSection, resolveAmbianceTrack, resolvePlaylist, collectQueueTracks, type PlaylistInfo, type QueueTrackInfo } from "@/lib/parseWikitext";
 import { getBy } from "@/lib/localStore";
 import WikiSectionTree from "@/components/WikiSectionTree";
 import DiceRoller from "@/components/DiceRoller";
@@ -78,6 +78,35 @@ const HostGame = () => {
     }
     return walkAndResolve(sections, parsed.ambianceTrack) ?? parsed.ambianceTrack;
   }, [activeSection, sections, parsed.ambianceTrack]);
+
+  // Resolve effective playlist for the active section (inherits downward)
+  const resolvedPlaylist = useMemo((): PlaylistInfo | null => {
+    if (!activeSection) {
+      const scenarioPlaylist = parsed.metadata.playlist;
+      return scenarioPlaylist ? { url: scenarioPlaylist.split("|")[0].trim(), name: (scenarioPlaylist.split("|")[1] || scenarioPlaylist.split("|")[0]).trim() } : null;
+    }
+    function walkPlaylist(
+      secs: typeof sections,
+      parentPlaylist: PlaylistInfo | null
+    ): PlaylistInfo | null {
+      for (const s of secs) {
+        const effective = resolvePlaylist(s, parentPlaylist);
+        if (s.id === activeSection) return effective;
+        const found = walkPlaylist(s.children, effective);
+        if (found) return found;
+      }
+      return null;
+    }
+    return walkPlaylist(sections, null);
+  }, [activeSection, sections, parsed.metadata.playlist]);
+
+  // Collect queue tracks for the active section (not inherited)
+  const activeQueueTracks = useMemo((): string[] => {
+    if (!activeSection) return [];
+    const sec = findSection(sections, activeSection);
+    if (!sec) return [];
+    return collectQueueTracks(sec).map(qt => qt.url);
+  }, [activeSection, sections]);
 
   // Targeted pull if game missing after initial sync (e.g. direct URL navigation)
   useEffect(() => {
@@ -191,7 +220,7 @@ const HostGame = () => {
       )}
       </div>
 
-      <SpotifyPlayer position="left" />
+      <SpotifyPlayer position="left" playlistUrl={resolvedPlaylist?.url} playlistName={resolvedPlaylist?.name} queueTracks={activeQueueTracks} />
       <GameTimer ambianceTrack={resolvedAmbianceTrack} position="right" hasActiveSection={!!activeSection} />
       <DiceRoller gameId={gameId} userName={t("game.gameMaster")} isGameMaster={true} position="right" />
     </div>
