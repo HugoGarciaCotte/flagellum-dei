@@ -171,7 +171,7 @@ const DiceRoller = ({ gameId, userName, isGameMaster, position = "right" }: Dice
 
   return (
     <>
-      <div className={`fixed bottom-24 sm:bottom-[4.5rem] ${position === "left" ? "left-6" : "right-6"} z-40`}>
+      <div className={`fixed ${position === "left" ? "left-6" : "right-6"} z-40`} style={{ bottom: isMobile ? bannerOffset + 72 : 72 }}>
         <Button
           onClick={roll}
           disabled={rolling}
