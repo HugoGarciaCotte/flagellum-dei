@@ -354,6 +354,7 @@ const en: Record<string, string> = {
   // ─── TIMER ───
   "timer.min": "min",
   "timer.timer": "Timer",
+  "timer.title": "Ambiance Timer",
   "timer.ambiance": "Ambiance",
   "timer.startToBegin": "Start the timer to begin",
   "timer.paused": "Timer paused",
