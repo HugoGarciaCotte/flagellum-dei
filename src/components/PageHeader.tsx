@@ -16,9 +16,9 @@ const PageHeader = ({ title, icon, leftAction, rightActions, badge }: PageHeader
         <div className="flex items-center gap-3">
           {leftAction}
           <Logo className="text-xl text-primary" />
-          <h1 className="font-display text-lg font-bold text-foreground flex items-center gap-2 leading-none">
+          <h1 className="font-display text-xl font-bold text-foreground flex items-center gap-2 leading-none">
             {icon && icon}
-            <h1 className="font-display text-xl font-bold text-foreground flex items-center gap-2 leading-none">
+            {title}
           </h1>
           {badge}
         </div>

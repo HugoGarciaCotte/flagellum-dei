@@ -155,7 +155,7 @@ const PlayGame = () => {
             <div className="animate-pulse-glow text-primary font-display text-xl">
               {online ? t("game.waitingGM") : t("game.offlineLastState")}
             </div>
-            <p className="text-muted-foreground text-sm">
+            <p className="text-muted-foreground text-base">
               {online ? t("game.questBegin") : t("game.realtimeResume")}
             </p>
             <div className="ornamental-divider w-32 mx-auto" />
