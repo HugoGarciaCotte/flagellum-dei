@@ -149,27 +149,29 @@ const PlayGame = () => {
         badge={!online ? <span className="text-sm bg-destructive/20 text-destructive px-2 py-0.5 rounded-full">{t("game.offline")}</span> : undefined}
       />
 
-      <main className={`flex-1 container py-8 flex items-center justify-center max-w-3xl ${isGuest ? "pb-32" : "pb-24"}`}>
-        {!currentSectionId && (
-          <div className="text-center space-y-4">
-            <div className="animate-pulse-glow text-primary font-display text-xl">
-              {online ? t("game.waitingGM") : t("game.offlineLastState")}
+      <div className="flex-1 overflow-y-auto">
+        <main className={`container py-8 flex items-center justify-center max-w-3xl ${isGuest ? "pb-32" : "pb-24"}`}>
+          {!currentSectionId && (
+            <div className="text-center space-y-4">
+              <div className="animate-pulse-glow text-primary font-display text-xl">
+                {online ? t("game.waitingGM") : t("game.offlineLastState")}
+              </div>
+              <p className="text-muted-foreground text-base">
+                {online ? t("game.questBegin") : t("game.realtimeResume")}
+              </p>
+              <div className="ornamental-divider w-32 mx-auto" />
             </div>
-            <p className="text-muted-foreground text-base">
-              {online ? t("game.questBegin") : t("game.realtimeResume")}
-            </p>
-            <div className="ornamental-divider w-32 mx-auto" />
-          </div>
-        )}
-      </main>
+          )}
+        </main>
 
-      {!window.matchMedia('(display-mode: standalone)').matches && (
-        <p className="text-center py-4">
-          <Link to="/install" className="text-sm text-muted-foreground/50 hover:text-primary transition-colors font-display">
-            {t("dashboard.installApp")}
-          </Link>
-        </p>
-      )}
+        {!window.matchMedia('(display-mode: standalone)').matches && (
+          <p className="text-center py-4">
+            <Link to="/install" className="text-sm text-muted-foreground/50 hover:text-primary transition-colors font-display">
+              {t("dashboard.installApp")}
+            </Link>
+          </p>
+        )}
+      </div>
 
       <DiceRoller gameId={gameId} userName={selectedCharacter?.name ?? t("game.aPlayer")} isGameMaster={false} />
 
