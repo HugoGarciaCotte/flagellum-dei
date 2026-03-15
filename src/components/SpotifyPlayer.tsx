@@ -201,7 +201,7 @@ const SpotifyPlayer = ({ position = "left", playlistUrl, playlistName, playTrack
 
   // Start/switch playlist when device is ready or playlist changes
   useEffect(() => {
-    if (!deviceId || !accessToken) return;
+    if (!deviceId || !accessToken || !effectivePlaylistUrl) return;
 
     const uri = urlToUri(effectivePlaylistUrl);
     if (currentPlaylistRef.current === uri) return;
