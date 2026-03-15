@@ -548,23 +548,12 @@ const ContentEditor = ({
               onClick={async () => {
                 const url = prompt(t("adminScenarios.spotifyUrlPrompt"));
                 if (!url) return;
-                let name = url;
-                const token = sessionStorage.getItem("spotify_access_token");
-                if (token) {
-                  try {
-                    const u = new URL(url);
-                    const parts = u.pathname.split("/").filter(Boolean);
-                    if (parts.length >= 2) {
-                      const [type, id] = parts;
-                      const res = await fetch(`https://api.spotify.com/v1/${type}s/${id}`, {
-                        headers: { Authorization: `Bearer ${token}` },
-                      });
-                      if (res.ok) {
-                        const data = await res.json();
-                        if (data.name) name = data.name;
-                      }
-                    }
-                  } catch {}
+                const resolved = await resolveSpotifyName(url);
+                const name = resolved || url;
+                if (resolved) {
+                  toast({ title: `✓ ${resolved}` });
+                } else {
+                  toast({ title: t("adminScenarios.spotifyNameFallback") || "Could not resolve name — using URL", variant: "destructive" });
                 }
                 insertAtCursor(`<!--@ playlist: ${url.trim()} | ${name} @-->\n`);
               }}
@@ -577,23 +566,12 @@ const ContentEditor = ({
               onClick={async () => {
                 const url = prompt(t("adminScenarios.spotifyUrlPrompt"));
                 if (!url) return;
-                let name = url;
-                const token = sessionStorage.getItem("spotify_access_token");
-                if (token) {
-                  try {
-                    const u = new URL(url);
-                    const parts = u.pathname.split("/").filter(Boolean);
-                    if (parts.length >= 2) {
-                      const [type, id] = parts;
-                      const res = await fetch(`https://api.spotify.com/v1/${type}s/${id}`, {
-                        headers: { Authorization: `Bearer ${token}` },
-                      });
-                      if (res.ok) {
-                        const data = await res.json();
-                        if (data.name) name = data.name;
-                      }
-                    }
-                  } catch {}
+                const resolved = await resolveSpotifyName(url);
+                const name = resolved || url;
+                if (resolved) {
+                  toast({ title: `✓ ${resolved}` });
+                } else {
+                  toast({ title: t("adminScenarios.spotifyNameFallback") || "Could not resolve name — using URL", variant: "destructive" });
                 }
                 insertAtCursor(`<!--@ queue_track: ${url.trim()} | ${name} @-->\n`);
               }}
