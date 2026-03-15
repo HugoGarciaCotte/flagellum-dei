@@ -34,7 +34,7 @@ const CharacterListItem = ({ character, actions }: CharacterListItemProps) => {
               {character.portrait_url ? (
                 <AvatarImage src={character.portrait_url} alt={character.name} />
               ) : null}
-              <AvatarFallback className="text-xs font-display bg-muted">{initials}</AvatarFallback>
+              <AvatarFallback className="text-sm font-display bg-muted">{initials}</AvatarFallback>
             </Avatar>
             <CardTitle className="font-display text-lg">{character.name}</CardTitle>
           </div>
