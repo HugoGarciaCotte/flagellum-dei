@@ -30,7 +30,7 @@ const HostGame = () => {
   const { user, syncReady } = useAuth();
   const navigate = useNavigate();
   const online = useNetworkStatus();
-  const { t } = useTranslation();
+  const { t, locale } = useTranslation();
 
   const [localSection, setLocalSection] = useState<string | null>(null);
   const [overridesLoaded, setOverridesLoaded] = useState(false);
