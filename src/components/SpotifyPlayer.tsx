@@ -16,7 +16,7 @@ function toEmbedUrl(url: string): string | null {
     if (!u.hostname.includes("spotify.com")) return null;
     // Path like /playlist/ID or /track/ID — strip locale prefix if present
     const path = u.pathname.replace(/^\/intl-[a-z]+/, "");
-    return `https://open.spotify.com/embed${path}?utm_source=generator&theme=0`;
+    return `https://open.spotify.com/embed${path}?utm_source=generator&theme=0&autoplay=1`;
   } catch {
     return null;
   }
