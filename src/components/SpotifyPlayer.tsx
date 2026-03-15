@@ -316,10 +316,25 @@ const SpotifyPlayer = ({ position = "left", playlistUrl, playlistName, playTrack
   }
 
   // Expanded player panel
+  // Click-outside to close
+  useEffect(() => {
+    if (!expanded) return;
+    const handler = (e: MouseEvent | TouchEvent) => {
+      if (containerRef.current && !containerRef.current.contains(e.target as Node)) {
+        setExpanded(false);
+      }
+    };
+    document.addEventListener("mousedown", handler);
+    document.addEventListener("touchstart", handler);
+    return () => {
+      document.removeEventListener("mousedown", handler);
+      document.removeEventListener("touchstart", handler);
+    };
+  }, [expanded]);
+
   return (
-    <>
-      <div className="fixed inset-0 z-40" onClick={() => setExpanded(false)} />
       <div
+        ref={containerRef}
         className={cn("fixed z-50", posClass)}
         style={{ bottom: isMobile ? mobileBottom : 24 }}
       >
