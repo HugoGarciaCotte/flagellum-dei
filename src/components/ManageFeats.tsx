@@ -9,6 +9,7 @@ import { Badge } from "@/components/ui/badge";
 import { getAllFeats, getFeatMeta } from "@/data/feats";
 import { Input } from "@/components/ui/input";
 import { Search } from "lucide-react";
+import { useTranslation } from "@/i18n/useTranslation";
 
 type Feat = {
   id: string;
