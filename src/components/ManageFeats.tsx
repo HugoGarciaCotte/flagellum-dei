@@ -9,6 +9,7 @@ import { Badge } from "@/components/ui/badge";
 import { getAllFeats, getFeatMeta } from "@/data/feats";
 import { Input } from "@/components/ui/input";
 import { Search } from "lucide-react";
+import { useTranslation } from "@/i18n/useTranslation";
 
 type Feat = {
   id: string;
@@ -19,6 +20,7 @@ type Feat = {
 };
 
 const ManageFeats = () => {
+  const { t } = useTranslation();
   const [expandedId, setExpandedId] = useState<string | null>(null);
   const [searchTerm, setSearchTerm] = useState("");
 
@@ -36,19 +38,19 @@ const ManageFeats = () => {
     <div className="space-y-4">
       <div className="flex items-center justify-between">
         <h2 className="font-display text-2xl flex items-center gap-2">
-          <Swords className="h-6 w-6 text-primary" /> Feats Library
+          <Swords className="h-6 w-6 text-primary" /> {t("adminLegacy.featsLibrary")}
           <Badge variant="outline" className="text-xs">{feats.length} feats</Badge>
         </h2>
       </div>
 
       <p className="text-sm text-muted-foreground">
-        Feats are hardcoded in the source code. This is a read-only viewer.
+        {t("adminLegacy.featsReadOnly")}
       </p>
 
       <div className="relative">
         <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
         <Input
-          placeholder="Search feats..."
+          placeholder={t("adminLegacy.searchFeats")}
           value={searchTerm}
           onChange={(e) => setSearchTerm(e.target.value)}
           className="pl-9"
@@ -74,17 +76,17 @@ const ManageFeats = () => {
                 )}
                 {meta.prerequisites && (
                   <p className="text-sm text-muted-foreground">
-                    <span className="font-medium">Prerequisites:</span> {meta.prerequisites}
+                    <span className="font-medium">{t("wiki.prerequisites")}:</span> {meta.prerequisites}
                   </p>
                 )}
                 {meta.blocking && meta.blocking.length > 0 && (
                   <p className="text-sm text-destructive">
-                    <span className="font-medium">Incompatible:</span> {meta.blocking.join(", ")}
+                    <span className="font-medium">{t("adminLegacy.incompatible")}:</span> {meta.blocking.join(", ")}
                   </p>
                 )}
                 {feat.content && (
                   <details className="mt-1">
-                    <summary className="text-sm text-muted-foreground cursor-pointer">Raw content</summary>
+                    <summary className="text-sm text-muted-foreground cursor-pointer">{t("adminLegacy.rawContent")}</summary>
                     <pre className="text-sm text-muted-foreground/70 whitespace-pre-wrap mt-1 max-h-48 overflow-y-auto">
                       {feat.content}
                     </pre>

@@ -566,6 +566,22 @@ const en: Record<string, string> = {
   "adminEditor.noTranslation": "No translation (defaults to English)",
   "adminEditor.frBadge": "FR",
   "adminEditor.back": "Back",
+
+  // ─── WIKI / FEAT DETAILS ───
+  "wiki.incompatibleWith": "Incompatible with",
+  "wiki.featNotFound": "Feat not found:",
+
+  // ─── SPOTIFY CALLBACK ───
+  "spotify.connectionFailed": "Spotify connection failed",
+  "spotify.returnHome": "Return home",
+  "spotify.connecting": "Connecting to Spotify…",
+
+  // ─── ADMIN LEGACY (feats viewer) ───
+  "adminLegacy.featsLibrary": "Feats Library",
+  "adminLegacy.featsReadOnly": "Feats are hardcoded in the source code. This is a read-only viewer.",
+  "adminLegacy.searchFeats": "Search feats...",
+  "adminLegacy.rawContent": "Raw content",
+  "adminLegacy.incompatible": "Incompatible",
 };
 
 export default en;

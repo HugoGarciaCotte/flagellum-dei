@@ -125,6 +125,22 @@ const fr: Record<string, string> = {
   "adminEditor.noTranslation": "Pas de traduction (anglais par défaut)",
   "adminEditor.frBadge": "FR",
   "adminEditor.back": "Retour",
+
+  // ─── WIKI / FEAT DETAILS ───
+  "wiki.incompatibleWith": "Incompatible avec",
+  "wiki.featNotFound": "Talent introuvable :",
+
+  // ─── SPOTIFY CALLBACK ───
+  "spotify.connectionFailed": "Connexion à Spotify échouée",
+  "spotify.returnHome": "Retour à l'accueil",
+  "spotify.connecting": "Connexion à Spotify…",
+
+  // ─── ADMIN LEGACY (feats viewer) ───
+  "adminLegacy.featsLibrary": "Bibliothèque de talents",
+  "adminLegacy.featsReadOnly": "Les talents sont encodés en dur dans le code source. Ceci est un affichage en lecture seule.",
+  "adminLegacy.searchFeats": "Rechercher un talent…",
+  "adminLegacy.rawContent": "Contenu brut",
+  "adminLegacy.incompatible": "Incompatible",
 };
 
 export default fr;

@@ -2,9 +2,11 @@ import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import FullPageLoader from "@/components/FullPageLoader";
+import { useTranslation } from "@/i18n/useTranslation";
 
 const SpotifyCallback = () => {
   const navigate = useNavigate();
+  const { t } = useTranslation();
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
@@ -62,17 +64,17 @@ const SpotifyCallback = () => {
     return (
       <div className="min-h-screen flex items-center justify-center bg-background text-foreground p-4">
         <div className="text-center space-y-4">
-          <p className="text-destructive font-display text-lg">Spotify connection failed</p>
+          <p className="text-destructive font-display text-lg">{t("spotify.connectionFailed")}</p>
           <p className="text-muted-foreground text-sm">{error}</p>
           <button className="text-primary underline" onClick={() => navigate("/")}>
-            Return home
+            {t("spotify.returnHome")}
           </button>
         </div>
       </div>
     );
   }
 
-  return <FullPageLoader message="Connecting to Spotify…" />;
+  return <FullPageLoader message={t("spotify.connecting")} />;
 };
 
 export default SpotifyCallback;
