@@ -20,8 +20,8 @@ const TITLE_SIZES: Record<number, string> = {
   2: "text-xl font-bold",
   3: "text-lg font-semibold",
   4: "text-base font-semibold",
-  5: "text-sm font-medium",
-  6: "text-xs font-medium",
+  5: "text-base font-medium",
+  6: "text-sm font-medium",
 };
 
 function stripLinks(text: string): string {
