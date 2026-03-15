@@ -534,19 +534,34 @@ const FeatEditorPanel = () => {
                     {(["description", "prerequisites", "special", "synonyms"] as const).map(field => {
                       const isGeneratable = GENERATABLE_FIELDS.includes(field as any);
                       const labelKey = `adminFeats.field${field.charAt(0).toUpperCase() + field.slice(1)}` as string;
+                      const isTranslatable = FR_FEAT_FIELDS.includes(field as any);
                       return (
-                        <OverrideField
-                          key={field}
-                          label={t(labelKey)}
-                          value={getEffective(feat, field) ?? ""}
-                          isOverridden={isOverridden(feat.id, field)}
-                          saving={savingFields.has(`${feat.id}:${field}`)}
-                          generating={generatingFields.has(`${feat.id}:${field}`)}
-                          onSave={(v) => saveField(feat.id, field, v || null)}
-                          onRevert={() => revertField(feat.id, field)}
-                          onGenerate={isGeneratable ? () => handleGenerateField(feat, field as GeneratableField) : undefined}
-                          revertLabel={t("adminFeats.dbOverrideRevert")}
-                        />
+                        <div key={field}>
+                          <OverrideField
+                            label={t(labelKey)}
+                            value={getEffective(feat, field) ?? ""}
+                            isOverridden={isOverridden(feat.id, field)}
+                            saving={savingFields.has(`${feat.id}:${field}`)}
+                            generating={generatingFields.has(`${feat.id}:${field}`)}
+                            onSave={(v) => saveField(feat.id, field, v || null)}
+                            onRevert={() => revertField(feat.id, field)}
+                            onGenerate={isGeneratable ? () => handleGenerateField(feat, field as GeneratableField) : undefined}
+                            revertLabel={t("adminFeats.dbOverrideRevert")}
+                          />
+                          {editorLocale === "fr" && isTranslatable && (
+                            <FeatTranslationField
+                              label="🇫🇷"
+                              value={getEffective(feat, `fr:${field}`) ?? ""}
+                              isOverridden={isOverridden(feat.id, `fr:${field}`)}
+                              saving={savingFields.has(`${feat.id}:fr:${field}`)}
+                              generating={generatingFr.has(`${feat.id}:fr:${field}`)}
+                              onSave={(v) => saveField(feat.id, `fr:${field}`, v || null)}
+                              onRevert={() => revertField(feat.id, `fr:${field}`)}
+                              onGenerate={() => generateFrField(feat.id, field, getEffective(feat, field) ?? "")}
+                              t={t}
+                            />
+                          )}
+                        </div>
                       );
                     })}
 
