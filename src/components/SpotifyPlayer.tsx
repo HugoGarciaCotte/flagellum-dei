@@ -64,7 +64,7 @@ const SpotifyPlayer = ({ position = "left", playlistUrl, playlistName, playTrack
   const effectivePlaylistUrl = playlistUrl;
   const effectivePlaylistName = playlistName;
 
-  const openInSpotifyUrl = effectivePlaylistUrl;
+  const openInSpotifyUrl = effectivePlaylistUrl || playTrackUrl;
 
   // Load SDK script once
   useEffect(() => {
