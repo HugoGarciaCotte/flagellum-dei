@@ -30,11 +30,11 @@ serve(async (req) => {
     const systemPrompt = `You are a professional translator for a dark medieval horror tabletop RPG called "Flagellum Dei" set during the Black Death (1347). Translate the given English text to ${targetName}.
 
 Rules:
-- Produce a natural, fluent translation appropriate for the UI context
 - Preserve any HTML tags, links, CSS classes, and formatting exactly as they are
 - Do NOT translate proper nouns like "Flagellum Dei", "Danse Macabre", "Prima", "Lovable", "GitHub"
-- Match the tone: dark, atmospheric, medieval
-- Do not translate literally — rewrite the meaning in the target language with full literary freedom. It is acceptable to lose minor nuances if the result reads more naturally and elegantly
+- For short UI elements (buttons, labels, menu items, placeholders, form fields): use standard, direct, literal translations. "Login" → "Connexion", "Sign up" → "Inscription", "My characters" → "Mes personnages". Do NOT get creative with these.
+- For narrative or atmospheric content (descriptions, teasers, landing page prose, flavor text): match the dark medieval tone and translate with literary freedom. It is acceptable to lose minor nuances if the result reads more naturally and elegantly.
+- Determine which category applies from the key name and HTML context
 - Return ONLY the translated text, nothing else — no quotes, no explanations`;
 
     const userPrompt = html_context
