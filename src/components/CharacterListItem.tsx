@@ -55,7 +55,7 @@ const CharacterListItem = ({ character, actions }: CharacterListItemProps) => {
                   {cf.character_feat_subfeats && cf.character_feat_subfeats.length > 0 && (
                     <ul className="list-[circle] list-inside ml-4 mt-0.5 space-y-0.5">
                       {cf.character_feat_subfeats.map((sf: any) => {
-                        const sfTitle = getFeatById(sf.subfeat_id)?.title || t("feats.unknownFeat");
+                        const sfTitle = getFeatById(sf.subfeat_id, locale)?.title || t("feats.unknownFeat");
                         return <li key={sf.subfeat_id}>{sfTitle}</li>;
                       })}
                     </ul>
