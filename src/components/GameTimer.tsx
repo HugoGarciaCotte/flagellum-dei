@@ -146,7 +146,7 @@ const GameTimer = ({ ambianceTrack, position = "left" }: GameTimerProps) => {
   return (
     <>
       <div className="fixed inset-0 z-40" onClick={() => setOpen(false)} />
-      <div className="fixed bottom-6 left-6 z-50">
+      <div className={cn("fixed bottom-6 z-50", posClass)}>
         <div className="bg-card border border-border rounded-2xl shadow-xl p-4 flex flex-col items-center gap-3 min-w-[180px] relative">
           <button
             onClick={() => setOpen(false)}
