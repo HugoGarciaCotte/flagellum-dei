@@ -53,9 +53,9 @@ const SubfeatSlotEditor = ({ slot, onChange, onRemove }: Props) => {
 
       {slot.kind === "fixed" && (
         <div>
-          <Label className="text-xs">{t("adminFeats.featTitle")}</Label>
+          <Label className="text-sm">{t("adminFeats.featTitle")}</Label>
           <Input
-            className="h-8 text-xs"
+            className="h-8 text-sm"
             value={slot.feat_title ?? ""}
             onChange={(e) => onChange({ ...slot, feat_title: e.target.value })}
             placeholder={t("adminFeats.exactFeatTitle")}
