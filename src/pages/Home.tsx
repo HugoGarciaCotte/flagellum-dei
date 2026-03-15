@@ -316,7 +316,7 @@ const Home = () => {
               <ScenarioCard
                 key={i}
                 title={s.title}
-                description={s.description ?? ""}
+                teaser={s.teaser ?? ""}
                 level={s.level}
                 image={scenarioImages[i]}
                 chapterLabel={t("home.scenarios.chapter")}
