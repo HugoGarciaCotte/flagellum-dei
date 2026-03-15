@@ -6,6 +6,7 @@ import { useTranslation } from "@/i18n/useTranslation";
 
 const SpotifyCallback = () => {
   const navigate = useNavigate();
+  const { t } = useTranslation();
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
