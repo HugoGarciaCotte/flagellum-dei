@@ -55,6 +55,7 @@ const SpotifyPlayer = ({ position = "left", playlistUrl, playlistName, playTrack
   const [error, setError] = useState<string | null>(null);
   const playerRef = useRef<any>(null);
   const sdkScriptRef = useRef<boolean>(false);
+  const containerRef = useRef<HTMLDivElement>(null);
 
   // Track which playlist is currently playing to detect changes
   const currentPlaylistRef = useRef<string | null>(null);
@@ -275,6 +276,22 @@ const SpotifyPlayer = ({ position = "left", playlistUrl, playlistName, playTrack
   const mobileBottom = bannerOffset + 16;
   const posClass = position === "right" ? "right-6" : "left-6";
 
+  // Click-outside to close expanded panel
+  useEffect(() => {
+    if (!expanded) return;
+    const handler = (e: MouseEvent | TouchEvent) => {
+      if (containerRef.current && !containerRef.current.contains(e.target as Node)) {
+        setExpanded(false);
+      }
+    };
+    document.addEventListener("mousedown", handler);
+    document.addEventListener("touchstart", handler);
+    return () => {
+      document.removeEventListener("mousedown", handler);
+      document.removeEventListener("touchstart", handler);
+    };
+  }, [expanded]);
+
   // Collapsed pill
   if (!expanded) {
     return (
@@ -316,9 +333,8 @@ const SpotifyPlayer = ({ position = "left", playlistUrl, playlistName, playTrack
 
   // Expanded player panel
   return (
-    <>
-      <div className="fixed inset-0 z-40" onClick={() => setExpanded(false)} />
       <div
+        ref={containerRef}
         className={cn("fixed z-50", posClass)}
         style={{ bottom: isMobile ? mobileBottom : 24 }}
       >
@@ -401,7 +417,6 @@ const SpotifyPlayer = ({ position = "left", playlistUrl, playlistName, playTrack
           )}
         </div>
       </div>
-    </>
   );
 };
 
