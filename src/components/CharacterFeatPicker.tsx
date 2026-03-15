@@ -110,8 +110,26 @@ const CharacterFeatPicker = ({ characterId, mode = "player", scenarioLevel }: Ch
     setValidating(true);
     setValidationResult(null);
     try {
+      // Build targetFeat and allFeatsContext from local hardcoded data
+      const featMap = new Map(allFeats.map(f => [f.id, f]));
+      const targetFeat = featMap.get(featId);
+      const relevantFeatIds = new Set(characterFeats.map(cf => cf.feat_id));
+      relevantFeatIds.add(featId);
+      // Include subfeat ids too
+      characterSubfeats.forEach(cs => relevantFeatIds.add(cs.subfeat_id));
+      const allFeatsContext = Array.from(relevantFeatIds)
+        .map(id => featMap.get(id))
+        .filter(Boolean)
+        .map(f => ({ id: f!.id, title: f!.title, categories: f!.categories, content: f!.content }));
+
       const { data, error } = await supabase.functions.invoke("validate-feat", {
-        body: { characterId, featId, pickType, level: level ?? null, parentFeatTitle: parentFeatTitle ?? null },
+        body: {
+          characterId, featId, pickType,
+          level: level ?? null,
+          parentFeatTitle: parentFeatTitle ?? null,
+          targetFeat: targetFeat ? { title: targetFeat.title, categories: targetFeat.categories, content: targetFeat.content } : null,
+          allFeatsContext,
+        },
       });
       if (error) {
         console.error("AI validation error:", error);
