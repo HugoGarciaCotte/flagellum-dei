@@ -82,6 +82,8 @@ const GameTimer = ({ ambianceTrack, position = "left", hasActiveSection = false 
 
   
 
+  const mobileBottom = bannerOffset + 16; // 16px base spacing on mobile
+
   const posClass = position === "right" ? "right-6" : "left-6";
 
   // Current ambiance text for pill
