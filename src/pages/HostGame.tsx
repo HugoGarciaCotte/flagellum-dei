@@ -22,6 +22,7 @@ import { useLocalRow, useLocalRows } from "@/hooks/useLocalData";
 import { upsertRow } from "@/lib/localStore";
 import { triggerPush, pullTable } from "@/lib/syncManager";
 import { useTranslation } from "@/i18n/useTranslation";
+import SpotifyPlayer from "@/components/SpotifyPlayer";
 
 const HostGame = () => {
   const { gameId } = useParams<{ gameId: string }>();
