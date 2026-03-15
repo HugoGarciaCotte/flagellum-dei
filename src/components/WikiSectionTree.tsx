@@ -14,6 +14,7 @@ interface WikiSectionTreeProps {
   onActivateSection: (sectionId: string) => void;
   parentBackground?: string | null;
   parentPlaylist?: PlaylistInfo | null;
+  onPlayTrack?: (url: string) => void;
 }
 
 const TITLE_SIZES: Record<number, string> = {
