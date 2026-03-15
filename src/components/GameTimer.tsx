@@ -99,7 +99,7 @@ const GameTimer = ({ ambianceTrack, position = "left", hasActiveSection = false 
 
   if (!expanded) {
     return (
-      <div className={cn("fixed bottom-14 sm:bottom-6 z-50", posClass)}>
+      <div className={cn("fixed z-50", posClass)} style={{ bottom: isMobile ? mobileBottom : 24 }}>
         <button
           onClick={() => hasAmbiance && setExpanded(true)}
           className={cn(
