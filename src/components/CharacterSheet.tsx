@@ -81,7 +81,7 @@ const CharacterSheet = ({ characterId, mode = "player", scenarioLevel, onDone }:
     try {
       const characterFeats = useLocalRowsStatic("character_feats", { character_id: characterId });
       const featNames = characterFeats
-        .map((cf: any) => getFeatById(cf.feat_id)?.title)
+        .map((cf: any) => getFeatById(cf.feat_id, locale)?.title)
         .filter(Boolean);
 
       const { data, error } = await supabase.functions.invoke("generate-character-portrait", {

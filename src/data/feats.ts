@@ -100,9 +100,9 @@ export function getFeatMeta(feat: Feat): FeatMeta {
 /**
  * Build a Map<lowercase_title, Feat> with redirects resolved.
  */
-export function buildFeatsMap(): Map<string, Feat> {
+export function buildFeatsMap(locale?: string): Map<string, Feat> {
   const map = new Map<string, Feat>();
-  const all = getAllFeats();
+  const all = getAllFeats(locale);
   all.forEach((f) => map.set(f.title.toLowerCase(), f));
   typedRedirects.forEach((r) => {
     const target = map.get(r.to_title.toLowerCase());
