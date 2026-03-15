@@ -116,6 +116,15 @@ const fr: Record<string, string> = {
   "adminScenarios.spotifyUrlPrompt": "Collez une URL Spotify (playlist ou piste) :",
   "adminScenarios.insertSectionBreak": "Saut de section",
   "adminScenarios.spotifyNameFallback": "Impossible de résoudre le nom — URL utilisée",
+
+  // ─── ADMIN: CONTENT TRANSLATIONS ───
+  "adminEditor.langToggle": "Langue du contenu",
+  "adminEditor.frTranslation": "🇫🇷 Traduction française",
+  "adminEditor.translationSaved": "Traduction enregistrée",
+  "adminEditor.generateTranslation": "Générer la traduction FR avec l'IA",
+  "adminEditor.noTranslation": "Pas de traduction (anglais par défaut)",
+  "adminEditor.frBadge": "FR",
+  "adminEditor.back": "Retour",
 };
 
 export default fr;
