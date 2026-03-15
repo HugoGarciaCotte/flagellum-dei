@@ -88,10 +88,7 @@ const HostGame = () => {
 
   // Resolve effective playlist for the active section (inherits downward)
   const resolvedPlaylist = useMemo((): PlaylistInfo | null => {
-    if (!activeSection) {
-      const scenarioPlaylist = parsed.metadata.playlist;
-      return scenarioPlaylist ? { url: scenarioPlaylist.split("|")[0].trim(), name: (scenarioPlaylist.split("|")[1] || scenarioPlaylist.split("|")[0]).trim() } : null;
-    }
+    if (!activeSection) return null;
     function walkPlaylist(
       secs: typeof sections,
       parentPlaylist: PlaylistInfo | null
@@ -105,7 +102,7 @@ const HostGame = () => {
       return null;
     }
     return walkPlaylist(sections, null);
-  }, [activeSection, sections, parsed.metadata.playlist]);
+  }, [activeSection, sections]);
 
   // Single track playback triggered by inline buttons
   const [playTrackUrl, setPlayTrackUrl] = useState<string | null>(null);
