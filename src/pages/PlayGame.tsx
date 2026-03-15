@@ -39,6 +39,13 @@ const PlayGame = () => {
   }, []);
 
   const game = useLocalRow<any>("games", gameId);
+
+  // Targeted pull if game missing after initial sync (e.g. direct URL navigation)
+  useEffect(() => {
+    if (!syncReady || game || !gameId || !online) return;
+    pullTable("games", { id: gameId });
+    pullTable("game_players", { game_id: gameId });
+  }, [syncReady, game, gameId, online]);
   const allMyPlayers = useLocalRows<any>("game_players", gameId && user ? { game_id: gameId, user_id: user.id } : undefined);
   const myPlayer = allMyPlayers.length > 0 ? allMyPlayers[0] : null;
   const myCharacters = useLocalRows<any>("characters", user ? { user_id: user.id } : undefined);
