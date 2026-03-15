@@ -92,6 +92,7 @@ const fr: Record<string, string> = {
   "game.joinCode": "Code d'invitation",
   "game.joinLinkCopied": "Lien d'invitation copié.",
   "game.joiningQuest": "Connexion à la quête…",
+  "game.gmHint": "Appuyez sur \u25B6\uFE0E d'une section pour la révéler à vos joueurs. Utilisez les dés (en bas à gauche) et le minuteur (en bas à droite) pendant la partie.",
 };
 
 export default fr;
