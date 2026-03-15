@@ -293,26 +293,63 @@ const FeatEditorPanel = () => {
     }
   };
 
+  const generateFrField = async (featId: string, field: string, englishText: string) => {
+    const key = `${featId}:fr:${field}`;
+    setGeneratingFr(prev => new Set(prev).add(key));
+    try {
+      const { data, error } = await supabase.functions.invoke("generate-translation", {
+        body: { key: `feat.${field}`, english_text: englishText, target_locale: "fr", screen: "feat" },
+      });
+      if (error) throw error;
+      if (data?.translated_text) {
+        await saveField(featId, `fr:${field}`, data.translated_text);
+        toast({ title: t("adminEditor.translationSaved") });
+      }
+    } catch (e: any) {
+      toast({ title: t("adminTranslations.aiGenerationFailed"), description: e.message, variant: "destructive" });
+    }
+    setGeneratingFr(prev => { const s = new Set(prev); s.delete(key); return s; });
+  };
+
   const handleDownloadAndClear = async () => {
-    const exportFeats = mergedFeats.map(f => ({
-      id: f.id,
-      title: f.title,
-      categories: f.categories,
-      content: f.content,
-      raw_content: f.raw_content,
-      meta: Object.keys(f.meta).some(k => (f.meta as any)[k] != null)
-        ? {
-            description: f.meta.description || undefined,
-            prerequisites: f.meta.prerequisites || undefined,
-            special: f.meta.special || undefined,
-            specialities: f.meta.specialities?.length ? f.meta.specialities : undefined,
-            subfeats: f.meta.subfeats?.length ? f.meta.subfeats : undefined,
-            unlocks_categories: f.meta.unlocks_categories?.length ? f.meta.unlocks_categories : undefined,
-            blocking: f.meta.blocking?.length ? f.meta.blocking : undefined,
-            synonyms: f.meta.synonyms || undefined,
-          }
-        : null,
-    }));
+    const exportFeats = mergedFeats.map(f => {
+      // Collect fr overrides
+      const frFields = overrides.get(f.id);
+      const fr: Record<string, string> = {};
+      if (frFields) {
+        for (const [k, v] of frFields) {
+          if (k.startsWith("fr:") && v) fr[k.slice(3)] = v;
+        }
+      }
+      // Also include hardcoded fr
+      if ((f as any).fr) {
+        for (const [k, v] of Object.entries((f as any).fr)) {
+          if (v && !fr[k]) fr[k] = v as string;
+        }
+      }
+      const hasFr = Object.keys(fr).length > 0;
+
+      return {
+        id: f.id,
+        title: f.title,
+        categories: f.categories,
+        content: f.content,
+        raw_content: f.raw_content,
+        meta: Object.keys(f.meta).some(k => (f.meta as any)[k] != null)
+          ? {
+              description: f.meta.description || undefined,
+              prerequisites: f.meta.prerequisites || undefined,
+              special: f.meta.special || undefined,
+              specialities: f.meta.specialities?.length ? f.meta.specialities : undefined,
+              subfeats: f.meta.subfeats?.length ? f.meta.subfeats : undefined,
+              unlocks_categories: f.meta.unlocks_categories?.length ? f.meta.unlocks_categories : undefined,
+              blocking: f.meta.blocking?.length ? f.meta.blocking : undefined,
+              synonyms: f.meta.synonyms || undefined,
+            }
+          : null,
+        ...(hasFr ? { fr } : {}),
+      };
+    });
 
     const json = JSON.stringify({ feats: exportFeats, redirects }, null, 2);
     downloadFile("feats-data.json", json, "application/json");
