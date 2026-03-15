@@ -99,6 +99,7 @@ function SectionNode({
   const isActive = activeSection === section.id;
   const hasChildren = section.children.length > 0;
   const hasContent = section.content.trim().length > 0;
+  const queueTracks = useMemo(() => collectQueueTracks(section), [section]);
 
   const effectiveBg = resolveBackgroundImage(section, parentBackground);
   const effectivePlaylist = resolvePlaylist(section, parentPlaylist);
