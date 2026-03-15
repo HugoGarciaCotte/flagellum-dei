@@ -23,6 +23,23 @@ export interface Feat {
   content: string | null;
   raw_content: string | null;
   meta?: FeatMeta | null;
+  fr?: { title?: string; description?: string; prerequisites?: string; special?: string };
+}
+
+/** Apply locale to a feat — returns FR fields when available, else EN fallback. */
+export function localizeFeat(feat: Feat, locale?: string): Feat {
+  if (!locale || locale === "en" || !feat.fr) return feat;
+  const result = { ...feat };
+  if (feat.fr.title) result.title = feat.fr.title;
+  if (feat.meta && (feat.fr.description || feat.fr.prerequisites || feat.fr.special)) {
+    result.meta = {
+      ...feat.meta,
+      ...(feat.fr.description ? { description: feat.fr.description } : {}),
+      ...(feat.fr.prerequisites ? { prerequisites: feat.fr.prerequisites } : {}),
+      ...(feat.fr.special ? { special: feat.fr.special } : {}),
+    };
+  }
+  return result;
 }
 
 export interface FeatRedirect {
