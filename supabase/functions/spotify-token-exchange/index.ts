@@ -29,23 +29,29 @@ Deno.serve(async (req) => {
       { global: { headers: { Authorization: authHeader } } }
     );
 
-    const token = authHeader.replace("Bearer ", "");
-    const { data: claimsData, error: claimsError } =
-      await supabase.auth.getClaims(token);
-    if (claimsError || !claimsData?.claims) {
+    const { data: { user }, error: authError } = await supabase.auth.getUser();
+    if (authError || !user) {
+      console.error("Auth error:", authError);
       return new Response(JSON.stringify({ error: "Unauthorized" }), {
         status: 401,
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
-    const userId = claimsData.claims.sub as string;
+    const userId = user.id;
 
     const body = await req.json();
     const { grant_type } = body;
 
     const clientId = Deno.env.get("SPOTIFY_CLIENT_ID")!;
     const clientSecret = Deno.env.get("SPOTIFY_CLIENT_SECRET")!;
+    console.log("Spotify client_id being used:", clientId);
     const basicAuth = btoa(`${clientId}:${clientSecret}`);
+
+    // Service-role client (shared across branches)
+    const serviceClient = createClient(
+      Deno.env.get("SUPABASE_URL")!,
+      Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!
+    );
 
     let spotifyParams: URLSearchParams;
 
@@ -64,11 +70,6 @@ Deno.serve(async (req) => {
         code_verifier,
       });
     } else if (grant_type === "refresh_token") {
-      // Read refresh token from the user's profile
-      const serviceClient = createClient(
-        Deno.env.get("SUPABASE_URL")!,
-        Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!
-      );
       const { data: profile } = await serviceClient
         .from("profiles")
         .select("spotify_refresh_token")
@@ -105,17 +106,12 @@ Deno.serve(async (req) => {
     const spotifyData = await spotifyRes.json();
 
     if (!spotifyRes.ok) {
+      console.error("Spotify error:", JSON.stringify(spotifyData));
       return new Response(
         JSON.stringify({ error: spotifyData.error_description || spotifyData.error || "Spotify error" }),
         { status: spotifyRes.status, headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
     }
-
-    // Store tokens in profile using service role
-    const serviceClient = createClient(
-      Deno.env.get("SUPABASE_URL")!,
-      Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!
-    );
 
     const expiresAt = new Date(
       Date.now() + spotifyData.expires_in * 1000
@@ -126,7 +122,7 @@ Deno.serve(async (req) => {
       .update({
         spotify_access_token: spotifyData.access_token,
         spotify_refresh_token:
-          spotifyData.refresh_token ?? undefined, // Spotify may not return a new refresh token
+          spotifyData.refresh_token ?? undefined,
         spotify_token_expires_at: expiresAt,
       })
       .eq("user_id", userId);
