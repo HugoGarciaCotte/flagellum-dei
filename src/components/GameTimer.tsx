@@ -15,7 +15,9 @@ const GameTimer = ({ ambianceTrack }: GameTimerProps) => {
   const [open, setOpen] = useState(false);
   const [running, setRunning] = useState(false);
   const [elapsed, setElapsed] = useState(0); // seconds
+  const [newEvent, setNewEvent] = useState(false);
   const intervalRef = useRef<ReturnType<typeof setInterval>>();
+  const prevAmbianceIdxRef = useRef<number>(-1);
   const { t } = useTranslation();
 
   useEffect(() => {
@@ -39,13 +41,22 @@ const GameTimer = ({ ambianceTrack }: GameTimerProps) => {
   const showTime = running && elapsed > 0;
   const hasAmbiance = ambianceTrack && ambianceTrack.length > 0;
 
-  // Find the active ambiance entry: largest minutes <= elapsed minutes
   const activeAmbianceIdx = hasAmbiance
     ? ambianceTrack.reduce<number>((best, entry, idx) => {
         if (entry.minutes <= minutes) return idx;
         return best;
       }, -1)
     : -1;
+
+  useEffect(() => {
+    if (activeAmbianceIdx >= 0 && activeAmbianceIdx !== prevAmbianceIdxRef.current) {
+      setNewEvent(true);
+      const timer = setTimeout(() => setNewEvent(false), 3000);
+      prevAmbianceIdxRef.current = activeAmbianceIdx;
+      return () => clearTimeout(timer);
+    }
+    prevAmbianceIdxRef.current = activeAmbianceIdx;
+  }, [activeAmbianceIdx]);
 
   if (!open) {
     return (
