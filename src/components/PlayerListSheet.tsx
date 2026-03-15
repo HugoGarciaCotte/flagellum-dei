@@ -92,7 +92,7 @@ const PlayerListSheet = ({ players, characters, gameId }: PlayerListSheetProps) 
                       )}
 
                       {!selectedChar && (
-                        <p className="text-xs text-muted-foreground italic px-1">{t("gm.noCharacterSelected")}</p>
+                        <p className="text-sm text-muted-foreground italic px-1">{t("gm.noCharacterSelected")}</p>
                       )}
 
                       {otherChars.length > 0 && (
