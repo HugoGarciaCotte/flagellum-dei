@@ -546,7 +546,7 @@ const CharacterCreationWizard = ({ onCreated, onCancel, gameId }: CharacterCreat
           </div>
         ) : (
           <div className="space-y-3">
-            <p className="text-sm text-muted-foreground">{t("wizard.step.noChoices")}</p>
+            <p className="text-base text-muted-foreground">{t("wizard.step.noChoices")}</p>
             <Button onClick={() => goToNextStep(stepNum)} className="w-full font-display gap-2">
               <ChevronRight className="h-4 w-4" /> {t("wizard.continue")}
             </Button>
