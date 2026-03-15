@@ -160,7 +160,7 @@ const GameTimer = ({ ambianceTrack, position = "left", hasActiveSection = false 
                         idx === activeAmbianceIdx && "bg-primary/15 font-medium"
                       )}
                     >
-                      <TableCell className="py-1.5 px-2 text-xs tabular-nums whitespace-nowrap w-12 align-top text-muted-foreground">
+                      <TableCell className="py-1.5 px-2 text-sm tabular-nums whitespace-nowrap w-12 align-top text-muted-foreground">
                         {entry.minutes}m
                       </TableCell>
                       <TableCell className="py-1.5 px-2 text-xs leading-relaxed">
