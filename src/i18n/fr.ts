@@ -100,6 +100,7 @@ const fr: Record<string, string> = {
   "spotify.pill": "Playlist",
   "spotify.connectPrompt": "Connectez-vous pour activer la bande-son",
   "spotify.offline": "Indisponible hors-ligne",
+  "spotify.noSection": "Appuyez sur ▶ pour lancer la musique",
   "spotify.playing": "Lecture",
   "spotify.paused": "Pause",
   "spotify.connect": "Connecter Spotify",

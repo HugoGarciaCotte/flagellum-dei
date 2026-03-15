@@ -539,7 +539,8 @@ const en: Record<string, string> = {
   // ─── SPOTIFY ───
   "spotify.pill": "Playlist",
   "spotify.connectPrompt": "Connect to unlock the soundtrack",
-  "spotify.offline": "Not available offline",
+   "spotify.offline": "Not available offline",
+   "spotify.noSection": "Press ▶ on a section to start music",
   "spotify.playing": "Playing",
   "spotify.paused": "Paused",
   "spotify.connect": "Connect Spotify",
