@@ -86,7 +86,7 @@ const Install = () => {
                         <li dangerouslySetInnerHTML={{ __html: t("install.safariStep2") }} />
                         <li dangerouslySetInnerHTML={{ __html: t("install.safariStep3") }} />
                       </ol>
-                      <p className="text-xs text-muted-foreground/70 mt-3 italic">{t("install.safariNote")}</p>
+                      <p className="text-sm text-muted-foreground/70 mt-3 italic">{t("install.safariNote")}</p>
                     </AccordionContent>
                   </AccordionItem>
 
