@@ -753,6 +753,18 @@ const ContentEditor = ({
         scenarioTitle={scenarioTitle}
         scenarioTeaser={scenarioTeaser}
       />
+
+      {aiPanelOpen && (
+        <AiImprovePanel
+          content={local}
+          onApply={(newContent) => {
+            setLocal(newContent);
+            setAiPanelOpen(false);
+          }}
+          onClose={() => setAiPanelOpen(false)}
+          t={t}
+        />
+      )}
     </div>
   );
 };

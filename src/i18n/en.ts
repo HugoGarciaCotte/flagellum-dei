@@ -558,6 +558,22 @@ const en: Record<string, string> = {
    "adminScenarios.insertSectionBreak": "Section Break",
    "adminScenarios.spotifyNameFallback": "Could not resolve name — using URL",
 
+  // ─── ADMIN SCENARIOS: AI IMPROVE ───
+  "adminScenarios.improveWithAi": "Improve with AI",
+  "adminScenarios.improvePlaceholder": "Describe what to change… e.g. 'add more atmospheric descriptions', 'insert a background image for the cathedral scene'",
+  "adminScenarios.improve": "Improve",
+  "adminScenarios.improving": "Improving",
+  "adminScenarios.improveError": "AI improvement failed",
+  "adminScenarios.diffChanges": "{count} change(s)",
+  "adminScenarios.diffPending": "pending",
+  "adminScenarios.diffAcceptAll": "Accept all",
+  "adminScenarios.diffRejectAll": "Reject all",
+  "adminScenarios.diffNewPrompt": "New prompt",
+  "adminScenarios.diffOriginal": "Original",
+  "adminScenarios.diffProposed": "Proposed",
+  "adminScenarios.diffApply": "Apply changes",
+  "adminScenarios.diffCancel": "Cancel",
+
   // ─── ADMIN: CONTENT TRANSLATIONS ───
   "adminEditor.langToggle": "Content language",
   "adminEditor.frTranslation": "🇫🇷 French translation",
