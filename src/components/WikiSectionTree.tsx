@@ -174,6 +174,26 @@ function SectionNode({
         <span className={cn("flex-1", isActive ? "text-primary-foreground" : "text-foreground", TITLE_SIZES[section.level] || "text-sm")}>
           {section.title}
         </span>
+
+        {effectivePlaylist && (
+          <a
+            href={effectivePlaylist.url}
+            target="_blank"
+            rel="noopener noreferrer"
+            onClick={(e) => e.stopPropagation()}
+            className={cn(
+              "flex items-center gap-1 text-xs shrink-0 px-1.5 py-0.5 rounded-full transition-colors",
+              isActive
+                ? "text-primary-foreground/70 hover:text-primary-foreground"
+                : "text-muted-foreground hover:text-foreground"
+            )}
+            title={effectivePlaylist.name}
+          >
+            <Music className="h-3 w-3" />
+            <span className="max-w-[100px] truncate hidden sm:inline">{effectivePlaylist.name}</span>
+            <ExternalLink className="h-2.5 w-2.5" />
+          </a>
+        )}
       </div>
 
       {open && (
