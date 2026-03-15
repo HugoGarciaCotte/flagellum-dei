@@ -2,6 +2,23 @@ import { supabase } from "@/integrations/supabase/client";
 import * as store from "./localStore";
 import type { TableName } from "./localStore";
 
+const LOCAL_GUEST_KEY = "local-guest-user";
+
+async function ensureSession(): Promise<boolean> {
+  const { data: { session } } = await supabase.auth.getSession();
+  if (session) return true;
+
+  const localGuest = localStorage.getItem(LOCAL_GUEST_KEY);
+  if (!localGuest || !navigator.onLine) return false;
+
+  const { error } = await supabase.auth.signInAnonymously();
+  if (error) {
+    console.warn("Session retry failed:", error.message);
+    return false;
+  }
+  return true;
+}
+
 let _syncing = false;
 let _pushTimer: ReturnType<typeof setTimeout> | null = null;
 let _listenerAttached = false;
