@@ -71,7 +71,7 @@ const FeatListItem = ({
         <div className={`w-full text-left ${compact ? "" : "p-3"}`}>
           <div className="flex items-center gap-2">
             {titlePrefix}
-            <span className="text-sm font-medium text-foreground truncate">{feat.title}</span>
+            <span className="text-base font-medium text-foreground truncate">{feat.title}</span>
             <FeatCategoryBadges categories={feat.categories} />
             <div className="ml-auto flex gap-1 shrink-0" onClick={(e) => e.stopPropagation()}>
               {hasPicker && (
