@@ -369,7 +369,7 @@ Upload the images from the scenario-backgrounds/ folder in the attached ZIP into
             <ContentEditor
               scenarioId={editingScenario.id}
               scenarioTitle={editingScenario.title}
-              scenarioDescription={editingScenario.description}
+              scenarioTeaser={editingScenario.teaser}
               value={getEffective(editingHardcoded, "content") ?? ""}
               isOverridden={isOverridden(editingScenario.id, "content")}
               saving={savingFields.has(`${editingScenario.id}:content`)}
