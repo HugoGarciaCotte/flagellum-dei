@@ -18,7 +18,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { invalidateScenarioOverrides, type ScenarioOverrideMap } from "@/lib/scenarioOverrides";
 import { useAuth } from "@/contexts/AuthContext";
 
-const SCENARIO_FIELDS = ["title", "description", "level", "content"] as const;
+const SCENARIO_FIELDS = ["title", "teaser", "level", "content"] as const;
 
 /** Try to resolve a Spotify URL to a human-readable name */
 async function resolveSpotifyName(url: string): Promise<string | null> {
