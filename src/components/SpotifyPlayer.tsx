@@ -417,7 +417,6 @@ const SpotifyPlayer = ({ position = "left", playlistUrl, playlistName, playTrack
           )}
         </div>
       </div>
-    </>
   );
 };
 
