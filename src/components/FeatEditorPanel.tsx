@@ -416,7 +416,7 @@ const FeatEditorPanel = () => {
                 <CollapsibleTrigger className="w-full text-left px-3 py-2 rounded-md hover:bg-muted/50 flex items-center gap-2 text-sm">
                   <ChevronDown className={`h-3.5 w-3.5 transition-transform shrink-0 ${expandedId === feat.id ? "rotate-0" : "-rotate-90"}`} />
                   <span className="font-medium flex-1 truncate">{feat.title}</span>
-                  {featHasOverrides && <Badge variant="secondary" className="text-[10px]">{t("adminFeats.modified")}</Badge>}
+                  {featHasOverrides && <Badge variant="secondary" className="text-base">{t("adminFeats.modified")}</Badge>}
                   <FeatCategoryBadges categories={feat.categories} />
                 </CollapsibleTrigger>
                 <CollapsibleContent className="px-3 pb-3 pt-1">
