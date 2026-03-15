@@ -20,6 +20,7 @@ type Feat = {
 };
 
 const ManageFeats = () => {
+  const { t } = useTranslation();
   const [expandedId, setExpandedId] = useState<string | null>(null);
   const [searchTerm, setSearchTerm] = useState("");
 
