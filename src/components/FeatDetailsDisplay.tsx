@@ -36,8 +36,8 @@ function FeatLinkTooltip({ featName, rect }: { featName: string; rect: DOMRect }
         <p className="text-sm font-semibold">{feat.title}</p>
         {meta.description && (
           <div>
-            <p className="text-xs font-medium text-muted-foreground">Description</p>
-            <p className="text-xs text-muted-foreground/80 whitespace-pre-line">{stripLinks(meta.description)}</p>
+            <p className="text-sm font-medium text-muted-foreground">Description</p>
+            <p className="text-sm text-muted-foreground/80 whitespace-pre-line">{stripLinks(meta.description)}</p>
           </div>
         )}
         {prerequisites && (
