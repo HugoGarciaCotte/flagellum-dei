@@ -96,6 +96,7 @@ function SectionNode({
   const hasContent = section.content.trim().length > 0;
 
   const effectiveBg = resolveBackgroundImage(section, parentBackground);
+  const effectivePlaylist = resolvePlaylist(section, parentPlaylist);
 
   const bgStyle: React.CSSProperties = isActive && effectiveBg
     ? {
