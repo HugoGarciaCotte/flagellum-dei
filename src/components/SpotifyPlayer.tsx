@@ -61,8 +61,8 @@ const SpotifyPlayer = ({ position = "left", playlistUrl, playlistName, playTrack
   // Track which single track was last requested
   const lastPlayTrackRef = useRef<string | null>(null);
 
-  const effectivePlaylistUrl = playlistUrl || DEFAULT_PLAYLIST_URL;
-  const effectivePlaylistName = playlistName || t("spotify.defaultPlaylist");
+  const effectivePlaylistUrl = playlistUrl;
+  const effectivePlaylistName = playlistName;
 
   const openInSpotifyUrl = effectivePlaylistUrl;
 
