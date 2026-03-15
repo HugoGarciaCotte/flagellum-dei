@@ -195,7 +195,7 @@ const PlayGame = () => {
         <div className="fixed inset-0 z-50 bg-background flex flex-col animate-in slide-in-from-bottom duration-300 pt-[env(safe-area-inset-top)]">
           <div className="border-b border-border/50 bg-card/80 backdrop-blur">
             <div className="container max-w-2xl flex items-center justify-between py-3 px-4">
-              <span className="font-display text-sm font-medium text-foreground">{t("game.yourCharacters")}</span>
+              <span className="font-display text-base font-medium text-foreground">{t("game.yourCharacters")}</span>
               <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => setSheetExpanded(false)}><X className="h-4 w-4" /></Button>
             </div>
           </div>
