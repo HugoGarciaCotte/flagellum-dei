@@ -133,7 +133,7 @@ const Auth = () => {
                     <Button type="submit" className="w-full font-display" disabled={loading}>
                       {loading ? t("auth.entering") : t("auth.enterRealm")}
                     </Button>
-                    <button type="button" onClick={() => setShowForgotPassword(true)} className="text-sm text-primary hover:underline w-full text-center">
+                    <button type="button" onClick={() => setShowForgotPassword(true)} className="text-base text-primary hover:underline w-full text-center">
                       {t("auth.forgotPassword")}
                     </button>
                     {!isGuest && (
