@@ -117,7 +117,7 @@ const Auth = () => {
               <TabsContent value="login">
                 {showForgotPassword ? (
                   <form onSubmit={handleForgotPassword} className="space-y-4">
-                    <p className="text-sm text-muted-foreground">{t("auth.resetDesc")}</p>
+                    <p className="text-base text-muted-foreground">{t("auth.resetDesc")}</p>
                     <Input placeholder={t("auth.email")} type="email" value={resetEmail} onChange={(e) => setResetEmail(e.target.value)} required />
                     <Button type="submit" className="w-full font-display" disabled={loading}>
                       {loading ? t("auth.sending") : t("auth.resetTitle")}
