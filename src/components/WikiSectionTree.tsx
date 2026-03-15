@@ -150,7 +150,9 @@ function SectionNode({
     const target = (e.target as HTMLElement).closest(".wiki-queue-track") as HTMLElement | null;
     if (target) {
       e.preventDefault();
+      e.stopPropagation();
       const url = target.getAttribute("data-url");
+      console.log("[WikiSection] Track button clicked, url:", url);
       if (url) {
         if (onPlayTrack) {
           onPlayTrack(url);
