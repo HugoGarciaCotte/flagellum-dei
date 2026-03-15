@@ -33,6 +33,11 @@ const HostGame = () => {
   const { t } = useTranslation();
 
   const [localSection, setLocalSection] = useState<string | null>(null);
+  const [scenarioReady, setScenarioReady] = useState(false);
+
+  useEffect(() => {
+    loadScenarioOverrides().then(() => setScenarioReady(true)).catch(() => setScenarioReady(true));
+  }, []);
 
   const game = useLocalRow<any>("games", gameId);
   const allPlayers = useLocalRows<any>("game_players", gameId ? { game_id: gameId } : undefined);
