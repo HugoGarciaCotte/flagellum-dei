@@ -196,6 +196,7 @@ const en: Record<string, string> = {
   "game.joinLinkCopied": "Join link copied to clipboard.",
   "game.end": "End",
   "game.noContent": "No content available.",
+  "game.gmHint": "Tap \u25B6\uFE0E on a section to reveal it to your players. Use the dice (bottom-left) and timer (bottom-right) during play.",
 
   // ─── INSTALL ───
   "install.title": "Install Flagellum Dei TTRPG",
