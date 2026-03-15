@@ -105,7 +105,7 @@ const BackgroundInsertDialog = ({
         body: {
           scenarioId,
           scenarioTitle,
-          scenarioDescription,
+          scenarioDescription: scenarioTeaser,
           prompt: bgPrompt.trim() || undefined,
           referenceImageUrl,
         },
