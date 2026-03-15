@@ -813,4 +813,85 @@ const OverrideField = ({
   );
 };
 
+/** Translation field with AI generate button */
+const TranslationField = ({
+  label, value, isOverridden, saving, generating, onSave, onRevert, onGenerate, multiline, t
+}: {
+  label: string;
+  value: string;
+  isOverridden: boolean;
+  saving: boolean;
+  generating?: boolean;
+  onSave: (v: string) => void;
+  onRevert: () => void;
+  onGenerate?: () => void;
+  multiline?: boolean;
+  t: (k: string) => string;
+}) => {
+  const [local, setLocal] = useState(value);
+  const dirty = local !== value;
+
+  useEffect(() => { setLocal(value); }, [value]);
+
+  return (
+    <div className="mt-1">
+      <div className="flex items-center gap-1.5 mb-0.5">
+        <Label className="text-xs text-muted-foreground">{label}</Label>
+        {onGenerate && (
+          <Button
+            variant="ghost"
+            size="icon"
+            className="h-5 w-5"
+            disabled={generating}
+            onClick={onGenerate}
+            title={t("adminEditor.generateTranslation")}
+          >
+            {generating
+              ? <Loader2 className="h-3 w-3 animate-spin" />
+              : <Sparkles className="h-3 w-3 text-primary" />
+            }
+          </Button>
+        )}
+        {isOverridden && (
+          <button
+            onClick={onRevert}
+            className="text-amber-600 dark:text-amber-400 hover:underline text-[10px]"
+            title={t("adminScenarios.dbOverrideRevert")}
+          >
+            ● {t("adminScenarios.revert")}
+          </button>
+        )}
+      </div>
+      <div className="flex gap-1.5">
+        {multiline ? (
+          <Textarea
+            value={local}
+            onChange={(e) => setLocal(e.target.value)}
+            className="text-sm min-h-[60px] flex-1 border-primary/20"
+            placeholder={t("adminEditor.noTranslation")}
+          />
+        ) : (
+          <Input
+            value={local}
+            onChange={(e) => setLocal(e.target.value)}
+            className="h-8 text-sm flex-1 border-primary/20"
+            placeholder={t("adminEditor.noTranslation")}
+          />
+        )}
+        {dirty && (
+          <Button
+            variant="outline"
+            size="sm"
+            className="h-8 gap-1 shrink-0"
+            disabled={saving}
+            onClick={() => onSave(local)}
+          >
+            {saving ? <Loader2 className="h-3 w-3 animate-spin" /> : <Check className="h-3 w-3" />}
+          </Button>
+        )}
+      </div>
+    </div>
+  );
+};
+
 export default ScenarioEditorPanel;
