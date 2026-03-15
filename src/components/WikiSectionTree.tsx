@@ -166,6 +166,16 @@ function SectionNode({
     if (target) setHoveredFeat(null);
   }, []);
 
+  const handleContentClick = useCallback((e: React.MouseEvent) => {
+    const target = (e.target as HTMLElement).closest(".wiki-queue-track") as HTMLElement | null;
+    if (target) {
+      const url = decodeURIComponent(target.dataset.url || "");
+      if (url) {
+        onPlayTrack?.(url) ?? window.open(url, "_blank");
+      }
+    }
+  }, [onPlayTrack]);
+
   return (
     <div
       className={cn(
