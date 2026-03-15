@@ -5,12 +5,12 @@ import { getAllScenarios, getScenarioById } from "@/data/scenarios";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
-import { Dialog, DialogContent, DialogTrigger } from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogClose, DialogTrigger } from "@/components/ui/dialog";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import { toast } from "@/hooks/use-toast";
 import { useNavigate, Link } from "react-router-dom";
-import { LogOut, Plus, Settings, ChevronDown, Trash2, Pencil, WifiOff } from "lucide-react";
+import { LogOut, Plus, Settings, ChevronDown, Trash2, Pencil, WifiOff, X } from "lucide-react";
 
 import CharacterSheet from "@/components/CharacterSheet";
 import PageHeader from "@/components/PageHeader";
@@ -184,10 +184,11 @@ const Dashboard = () => {
                   <Plus className="h-4 w-4" /> {t("dashboard.newCharacter")}
                 </Button>
               </DialogTrigger>
-              <DialogContent className="fixed inset-0 max-w-none w-full h-full rounded-none p-0 translate-x-0 translate-y-0 left-0 top-0 border-none overflow-hidden">
+              <DialogContent className="fixed inset-0 max-w-none w-full h-full rounded-none p-0 translate-x-0 translate-y-0 left-0 top-0 border-none overflow-hidden [&>button:last-child]:hidden">
                 <div className="flex flex-col h-full min-h-0">
                   <div className="border-b border-border/50 bg-card/80 backdrop-blur px-4 py-3 flex items-center justify-between shrink-0 safe-top">
                     <span className="font-display text-base font-medium text-foreground">{t("dashboard.createCharacter")}</span>
+                    <DialogClose className="rounded-sm opacity-70 hover:opacity-100"><X className="h-5 w-5" /></DialogClose>
                   </div>
                   <ScrollArea className="flex-1">
                     <div className="container max-w-2xl py-6 px-4">
@@ -232,10 +233,11 @@ const Dashboard = () => {
           )}
 
           <Dialog open={!!editingCharId} onOpenChange={(open) => { if (!open) setEditingCharId(null); }}>
-            <DialogContent className="fixed inset-0 max-w-none w-full h-full rounded-none p-0 translate-x-0 translate-y-0 left-0 top-0 border-none overflow-hidden">
+            <DialogContent className="fixed inset-0 max-w-none w-full h-full rounded-none p-0 translate-x-0 translate-y-0 left-0 top-0 border-none overflow-hidden [&>button:last-child]:hidden">
               <div className="flex flex-col h-full min-h-0">
                 <div className="border-b border-border/50 bg-card/80 backdrop-blur px-4 py-3 flex items-center justify-between shrink-0 safe-top">
                   <span className="font-display text-base font-medium text-foreground">{t("dashboard.editCharacter")}</span>
+                  <DialogClose className="rounded-sm opacity-70 hover:opacity-100"><X className="h-5 w-5" /></DialogClose>
                 </div>
                 <ScrollArea className="flex-1">
                   <div className="container max-w-2xl py-6 px-4">
