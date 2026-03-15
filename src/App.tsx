@@ -21,6 +21,7 @@ import Admin from "./pages/Admin";
 import AdminFeats from "./pages/AdminFeats";
 import AdminScenarios from "./pages/AdminScenarios";
 import AdminTranslations from "./pages/AdminTranslations";
+import SpotifyCallback from "./pages/SpotifyCallback";
 import NotFound from "./pages/NotFound";
 
 // Auto-sync when connectivity returns
