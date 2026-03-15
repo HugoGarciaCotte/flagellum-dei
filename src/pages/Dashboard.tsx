@@ -59,7 +59,7 @@ const Dashboard = () => {
     toast({ title: t("dashboard.characterDeleted") });
   };
 
-  const scenarios = getAllScenarios();
+  const scenarios = getAllScenarios(locale);
 
   const allGames = useLocalRows<any>("games");
   const gamePlayers = useLocalRows<any>("game_players", user ? { user_id: user.id } : undefined);
