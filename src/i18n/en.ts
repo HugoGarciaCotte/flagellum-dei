@@ -231,7 +231,7 @@ const en: Record<string, string> = {
   // ─── ADMIN ───
   "admin.title": "Admin Panel",
   "admin.scenarios": "Scenario Manager",
-  "admin.scenariosDesc": "Edit scenario titles, descriptions, levels, and content. Download the updated source file.",
+  "admin.scenariosDesc": "Edit scenario titles, teasers, levels, and content. Download the updated source file.",
   "admin.feats": "Feat Editor",
   "admin.featsDesc": "Edit all feat details, categories, subfeats, and metadata. Download the updated JSON file.",
   "admin.translations": "Translations",
