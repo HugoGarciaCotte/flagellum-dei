@@ -50,7 +50,6 @@ const GameTimer = ({ ambianceTrack, position = "left", hasActiveSection = false 
   }, [running]);
 
   const reset = useCallback(() => {
-    setRunning(false);
     setElapsed(0);
   }, []);
 
