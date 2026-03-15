@@ -80,41 +80,28 @@ const SpotifyPlayer = ({
   }, []);
 
   // Create / recreate controller when URI changes or API becomes ready
-  const createController = useCallback((container: HTMLElement, uri: string) => {
-    if (!apiRef.current) return;
+  useEffect(() => {
+    if (!apiReady || !spotifyUri) return;
+    const container = hiddenContainerRef.current;
+    if (!container) return;
 
-    // Destroy previous controller's DOM content
+    // Destroy previous controller
     if (controllerRef.current) {
       try { controllerRef.current.destroy?.(); } catch {}
       controllerRef.current = null;
     }
-    // Clear container children (API appends an iframe)
     container.innerHTML = "";
 
     apiRef.current.createController(
       container,
-      { uri, height: 152, width: "100%" },
+      { uri: spotifyUri, height: 152, width: "100%" },
       (controller: any) => {
         controllerRef.current = controller;
-        // Auto-play once the embed is ready
         controller.addListener("ready", () => {
           controller.play();
         });
       }
     );
-  }, []);
-
-  // Active container depends on expanded state
-  useEffect(() => {
-    if (!apiReady || !spotifyUri) return;
-
-    const container = expanded
-      ? expandedContainerRef.current
-      : hiddenContainerRef.current;
-
-    if (!container) return;
-
-    createController(container, spotifyUri);
 
     return () => {
       if (controllerRef.current) {
@@ -122,8 +109,7 @@ const SpotifyPlayer = ({
         controllerRef.current = null;
       }
     };
-    // Re-create when uri or expanded state changes
-  }, [apiReady, spotifyUri, expanded, createController]);
+  }, [apiReady, spotifyUri]);
 
   if (!activeUrl || !online || !spotifyUri) return null;
 
@@ -174,19 +160,27 @@ const SpotifyPlayer = ({
               </button>
             </div>
           </div>
-          {/* API-managed embed container */}
-          <div ref={expandedContainerRef} className="block" />
         </div>
       )}
 
-      {/* Hidden container keeps playback alive when collapsed — off-screen but "visible" to browser */}
-      {!expanded && (
-        <div
-          ref={hiddenContainerRef}
-          className="fixed -z-50 opacity-0 pointer-events-none"
-          style={{ position: "absolute", left: "-9999px" }}
-        />
-      )}
+      {/* 
+        Single persistent container for the Spotify embed.
+        When expanded, positioned inside the panel area; when collapsed, off-screen.
+        Always mounted to avoid destroy/recreate on toggle.
+      */}
+      <div
+        ref={hiddenContainerRef}
+        className={
+          expanded
+            ? `fixed bottom-20 ${posClass} z-[41] w-[340px] rounded-b-xl overflow-hidden`
+            : "fixed -z-50 opacity-0 pointer-events-none"
+        }
+        style={
+          expanded
+            ? { marginTop: "42px" } // offset below the header bar
+            : { position: "absolute", left: "-9999px" }
+        }
+      />
     </>
   );
 };
