@@ -18,7 +18,7 @@ const SubfeatSlotEditor = ({ slot, onChange, onRemove }: Props) => {
   return (
     <div className="border border-border rounded-md p-3 space-y-2 bg-muted/30">
       <div className="flex items-center justify-between">
-        <span className="text-xs font-medium text-muted-foreground">{t("adminFeats.slot").replace("{slot}", String(slot.slot))}</span>
+        <span className="text-sm font-medium text-muted-foreground">{t("adminFeats.slot").replace("{slot}", String(slot.slot))}</span>
         <Button variant="ghost" size="icon" className="h-6 w-6" onClick={onRemove}>
           <Trash2 className="h-3 w-3" />
         </Button>
@@ -26,9 +26,9 @@ const SubfeatSlotEditor = ({ slot, onChange, onRemove }: Props) => {
 
       <div className="grid grid-cols-2 gap-2">
         <div>
-          <Label className="text-xs">{t("adminFeats.kind")}</Label>
+          <Label className="text-sm">{t("adminFeats.kind")}</Label>
           <Select value={slot.kind} onValueChange={(v) => onChange({ ...slot, kind: v as "fixed" | "list" | "type" })}>
-            <SelectTrigger className="h-8 text-xs">
+            <SelectTrigger className="h-8 text-sm">
               <SelectValue />
             </SelectTrigger>
             <SelectContent>
@@ -46,16 +46,16 @@ const SubfeatSlotEditor = ({ slot, onChange, onRemove }: Props) => {
               checked={slot.optional ?? false}
               onCheckedChange={(c) => onChange({ ...slot, optional: !!c })}
             />
-            <Label htmlFor={`optional-${slot.slot}`} className="text-xs">{t("adminFeats.optional")}</Label>
+            <Label htmlFor={`optional-${slot.slot}`} className="text-sm">{t("adminFeats.optional")}</Label>
           </div>
         </div>
       </div>
 
       {slot.kind === "fixed" && (
         <div>
-          <Label className="text-xs">{t("adminFeats.featTitle")}</Label>
+          <Label className="text-sm">{t("adminFeats.featTitle")}</Label>
           <Input
-            className="h-8 text-xs"
+            className="h-8 text-sm"
             value={slot.feat_title ?? ""}
             onChange={(e) => onChange({ ...slot, feat_title: e.target.value })}
             placeholder={t("adminFeats.exactFeatTitle")}
@@ -65,9 +65,9 @@ const SubfeatSlotEditor = ({ slot, onChange, onRemove }: Props) => {
 
       {slot.kind === "list" && (
         <div>
-          <Label className="text-xs">{t("adminFeats.optionsPipeSeparated")}</Label>
+          <Label className="text-sm">{t("adminFeats.optionsPipeSeparated")}</Label>
           <Input
-            className="h-8 text-xs"
+            className="h-8 text-sm"
             value={(slot.options ?? []).join(" | ")}
             onChange={(e) => onChange({ ...slot, options: e.target.value.split("|").map(s => s.trim()).filter(Boolean) })}
             placeholder={t("adminFeats.optionsPlaceholder")}
@@ -77,9 +77,9 @@ const SubfeatSlotEditor = ({ slot, onChange, onRemove }: Props) => {
 
       {slot.kind === "type" && (
         <div>
-          <Label className="text-xs">{t("adminFeats.filterCategory")}</Label>
+          <Label className="text-sm">{t("adminFeats.filterCategory")}</Label>
           <Input
-            className="h-8 text-xs"
+            className="h-8 text-sm"
             value={slot.filter ?? ""}
             onChange={(e) => onChange({ ...slot, filter: e.target.value })}
             placeholder={t("adminFeats.categoryFilter")}

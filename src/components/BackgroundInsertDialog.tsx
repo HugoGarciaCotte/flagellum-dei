@@ -138,13 +138,13 @@ const BackgroundInsertDialog = ({
             onValueChange={(v) => { if (v) { setBgMode(v as BgMode); setPreviewUrl(null); } }}
             className="justify-start"
           >
-            <ToggleGroupItem value="link" className="gap-1.5 text-xs">
+            <ToggleGroupItem value="link" className="gap-1.5 text-sm">
               <Link className="h-3.5 w-3.5" /> {t("adminScenarios.bgModeLink")}
             </ToggleGroupItem>
-            <ToggleGroupItem value="upload" className="gap-1.5 text-xs">
+            <ToggleGroupItem value="upload" className="gap-1.5 text-sm">
               <Upload className="h-3.5 w-3.5" /> {t("adminScenarios.bgModeUpload")}
             </ToggleGroupItem>
-            <ToggleGroupItem value="ai" className="gap-1.5 text-xs">
+            <ToggleGroupItem value="ai" className="gap-1.5 text-sm">
               <Sparkles className="h-3.5 w-3.5" /> {t("adminScenarios.bgModeAi")}
             </ToggleGroupItem>
           </ToggleGroup>
@@ -212,7 +212,7 @@ const BackgroundInsertDialog = ({
 
               {/* Reference image */}
               <div className="flex items-center gap-2">
-                <label className="flex items-center gap-1.5 text-xs text-muted-foreground cursor-pointer hover:text-foreground transition-colors">
+                <label className="flex items-center gap-1.5 text-sm text-muted-foreground cursor-pointer hover:text-foreground transition-colors">
                   <Upload className="h-3.5 w-3.5" />
                   {t("adminScenarios.bgRefImage")}
                   <input
@@ -238,7 +238,7 @@ const BackgroundInsertDialog = ({
                       className="h-8 w-8 rounded object-cover border border-border"
                     />
                     <button
-                      className="text-xs text-destructive hover:underline"
+                      className="text-sm text-destructive hover:underline"
                       onClick={() => {
                         setBgRefFile(null);
                         setBgRefPreview("");

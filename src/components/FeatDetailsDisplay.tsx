@@ -36,26 +36,26 @@ function FeatLinkTooltip({ featName, rect }: { featName: string; rect: DOMRect }
         <p className="text-sm font-semibold">{feat.title}</p>
         {meta.description && (
           <div>
-            <p className="text-xs font-medium text-muted-foreground">Description</p>
-            <p className="text-xs text-muted-foreground/80 whitespace-pre-line">{stripLinks(meta.description)}</p>
+            <p className="text-sm font-medium text-muted-foreground">Description</p>
+            <p className="text-sm text-muted-foreground/80 whitespace-pre-line">{stripLinks(meta.description)}</p>
           </div>
         )}
         {prerequisites && (
           <div>
-            <p className="text-xs font-medium text-muted-foreground">Prerequisites</p>
-            <p className="text-xs text-muted-foreground/80">{stripLinks(prerequisites)}</p>
+            <p className="text-sm font-medium text-muted-foreground">Prerequisites</p>
+            <p className="text-sm text-muted-foreground/80">{stripLinks(prerequisites)}</p>
           </div>
         )}
         {meta.blocking && meta.blocking.length > 0 && (
           <div>
-            <p className="text-xs font-medium text-destructive">Incompatible with</p>
-            <p className="text-xs text-destructive/80">{meta.blocking.join(", ")}</p>
+            <p className="text-sm font-medium text-destructive">Incompatible with</p>
+            <p className="text-sm text-destructive/80">{meta.blocking.join(", ")}</p>
           </div>
         )}
         {meta.special && (
           <div>
-            <p className="text-xs font-medium text-muted-foreground">Special</p>
-            <p className="text-xs text-muted-foreground/80 whitespace-pre-line">{stripLinks(meta.special)}</p>
+            <p className="text-sm font-medium text-muted-foreground">Special</p>
+            <p className="text-sm text-muted-foreground/80 whitespace-pre-line">{stripLinks(meta.special)}</p>
           </div>
         )}
       </div>
@@ -144,16 +144,16 @@ const FeatDetailsDisplay = ({ content, rawContent, className = "" }: FeatDetails
     <div className={`space-y-1.5 border-t border-border pt-1.5 mt-2 ${className}`}>
       {prerequisites && (
         <div>
-          <div className="text-xs font-medium text-muted-foreground">Prerequisites</div>
-          <div className="text-xs text-muted-foreground/80">
+          <div className="text-sm font-medium text-muted-foreground">Prerequisites</div>
+          <div className="text-sm text-muted-foreground/80">
             <WikiLinkedText text={prerequisites} />
           </div>
         </div>
       )}
       {blocking && blocking.length > 0 && (
         <div>
-          <div className="text-xs font-medium text-destructive">Incompatible with</div>
-          <div className="text-xs text-destructive/80">
+          <div className="text-sm font-medium text-destructive">Incompatible with</div>
+          <div className="text-sm text-destructive/80">
             {blocking.map((b, i) => (
               <span key={b}>
                 {i > 0 && ", "}
@@ -168,7 +168,7 @@ const FeatDetailsDisplay = ({ content, rawContent, className = "" }: FeatDetails
           ref={contentRef}
           onMouseOver={handleMouseOver}
           onMouseOut={handleMouseOut}
-          className="text-xs text-muted-foreground/80 prose prose-xs prose-invert max-w-none [&_ul]:list-disc [&_ul]:pl-4 [&_li]:my-0 [&_dt]:font-semibold [&_dt]:text-muted-foreground [&_dd]:ml-3 [&_dd]:text-muted-foreground/80"
+          className="text-sm text-muted-foreground/80 prose prose-sm prose-invert max-w-none [&_ul]:list-disc [&_ul]:pl-4 [&_li]:my-0 [&_dt]:font-semibold [&_dt]:text-muted-foreground [&_dd]:ml-3 [&_dd]:text-muted-foreground/80"
           dangerouslySetInnerHTML={{ __html: fullHtml }}
         />
       )}

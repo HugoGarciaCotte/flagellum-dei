@@ -35,7 +35,7 @@ const LanguagePicker = () => {
             key={l.code}
             variant={locale === l.code ? "secondary" : "ghost"}
             size="sm"
-            className="w-full justify-start gap-2 font-display text-xs"
+            className="w-full justify-start gap-2 font-display text-sm"
             onClick={() => setLocale(l.code)}
           >
             <span>{l.flag}</span>

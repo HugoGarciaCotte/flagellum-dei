@@ -241,8 +241,8 @@ const AdminTranslations = () => {
             </CollapsibleTrigger>
             <CollapsibleContent>
               <CardContent className="pt-0 space-y-3">
-                <p className="text-xs text-muted-foreground">{t("adminTranslations.auditPromptDesc")}</p>
-                <pre className="text-xs bg-muted rounded-md p-3 whitespace-pre-wrap leading-relaxed border border-border">
+                <p className="text-sm text-muted-foreground">{t("adminTranslations.auditPromptDesc")}</p>
+                <pre className="text-sm bg-muted rounded-md p-3 whitespace-pre-wrap leading-relaxed border border-border">
 {`Scan all .tsx files in src/pages/ and src/components/ (excluding src/components/ui/) for hardcoded user-facing text in JSX that is not wrapped in the t() translation function. Use search_files to find patterns like >Some English text< in JSX and string props like title=, description=, placeholder=, label= with literal values. For each hardcoded string found: 1) Add a new key to src/i18n/en.ts following the existing naming convention (screen.section.purpose), 2) Replace the hardcoded string with t('new.key') in the component. Skip className, variant, size, type, key, data-*, src, href attributes. Skip strings that are purely technical (e.g. channel names, event types).`}
                 </pre>
                 <Button
@@ -294,7 +294,7 @@ const AdminTranslations = () => {
                             className={`rounded-md border p-3 space-y-2 ${isMissing ? "border-destructive/30 bg-destructive/5" : "border-border"}`}
                           >
                             <div className="flex items-start justify-between gap-2">
-                              <code className="text-xs text-muted-foreground break-all">{key}</code>
+                              <code className="text-sm text-muted-foreground break-all">{key}</code>
                               {isMissing && (
                                 <Badge variant="destructive" className="text-[10px] shrink-0">{t("adminTranslations.missing")}</Badge>
                               )}

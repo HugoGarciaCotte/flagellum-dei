@@ -452,7 +452,7 @@ const ContentEditor = ({
   return (
     <div className={`space-y-1.5 ${fullScreen ? "flex-1 flex flex-col min-h-0" : ""}`}>
       <div className="flex items-center justify-between">
-        <Label className="text-xs flex items-center gap-1.5">
+        <Label className="text-sm flex items-center gap-1.5">
           {t("adminScenarios.fieldContent")}
           {isOverridden && (
             <button
@@ -473,7 +473,7 @@ const ContentEditor = ({
             <Button
               variant="outline"
               size="sm"
-              className="h-7 text-xs gap-1"
+              className="h-7 text-sm gap-1"
               onMouseDown={(e) => e.preventDefault()}
             >
               <Plus className="h-3 w-3" />
@@ -518,7 +518,7 @@ const ContentEditor = ({
           onSelect={handleSelect}
           onClick={handleSelect}
           onKeyUp={handleSelect}
-          className={`text-sm font-mono text-xs flex-1 ${fullScreen ? "h-full resize-none" : "min-h-[200px]"}`}
+          className={`font-mono text-sm flex-1 ${fullScreen ? "h-full resize-none" : "min-h-[200px]"}`}
         />
         {dirty && (
           <Button
@@ -568,7 +568,7 @@ const OverrideField = ({
   return (
     <div className={inline ? "flex items-center gap-1.5" : "space-y-1"}>
       {!inline && (
-        <Label className="text-xs flex items-center gap-1.5">
+        <Label className="text-sm flex items-center gap-1.5">
           {label}
           {isOverridden && (
             <button
