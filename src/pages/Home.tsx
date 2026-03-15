@@ -120,7 +120,7 @@ const ScenarioCard = ({
             {chapterLabel} {level}
           </span>
           {date && (
-            <span className="font-display text-[10px] tracking-wide text-muted-foreground/50 italic">
+            <span className="font-display text-base tracking-wide text-muted-foreground/50 italic">
               {date}
             </span>
           )}
