@@ -505,6 +505,19 @@ const FeatEditorPanel = () => {
                       onRevert={() => revertField(feat.id, "title")}
                       revertLabel={t("adminFeats.dbOverrideRevert")}
                     />
+                    {editorLocale === "fr" && (
+                      <FeatTranslationField
+                        label="🇫🇷"
+                        value={getEffective(feat, "fr:title") ?? ""}
+                        isOverridden={isOverridden(feat.id, "fr:title")}
+                        saving={savingFields.has(`${feat.id}:fr:title`)}
+                        generating={generatingFr.has(`${feat.id}:fr:title`)}
+                        onSave={(v) => saveField(feat.id, "fr:title", v || null)}
+                        onRevert={() => revertField(feat.id, "fr:title")}
+                        onGenerate={() => generateFrField(feat.id, "title", getEffective(feat, "title") ?? "")}
+                        t={t}
+                      />
+                    )}
 
                     {/* Categories */}
                     <OverrideField
