@@ -54,9 +54,10 @@ interface DiceRollerProps {
   gameId?: string;
   userName?: string;
   isGameMaster?: boolean;
+  position?: "left" | "right";
 }
 
-const DiceRoller = ({ gameId, userName, isGameMaster }: DiceRollerProps) => {
+const DiceRoller = ({ gameId, userName, isGameMaster, position = "right" }: DiceRollerProps) => {
   const [rolling, setRolling] = useState(false);
   const [result, setResult] = useState<number | null>(null);
   const [displayValue, setDisplayValue] = useState(1);
@@ -166,7 +167,7 @@ const DiceRoller = ({ gameId, userName, isGameMaster }: DiceRollerProps) => {
 
   return (
     <>
-      <div className="fixed bottom-20 right-6 z-50">
+      <div className={`fixed bottom-20 ${position === "left" ? "left-6" : "right-6"} z-50`}>
         <Button
           onClick={roll}
           disabled={rolling}

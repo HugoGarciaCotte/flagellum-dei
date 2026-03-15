@@ -8,9 +8,10 @@ import type { AmbianceEntry } from "@/lib/parseWikitext";
 
 interface GameTimerProps {
   ambianceTrack?: AmbianceEntry[];
+  position?: "left" | "right";
 }
 
-const GameTimer = ({ ambianceTrack }: GameTimerProps) => {
+const GameTimer = ({ ambianceTrack, position = "left" }: GameTimerProps) => {
   const [open, setOpen] = useState(false);
   const [ambianceOpen, setAmbianceOpen] = useState(false);
   const [running, setRunning] = useState(false);
@@ -58,9 +59,21 @@ const GameTimer = ({ ambianceTrack }: GameTimerProps) => {
     prevAmbianceIdxRef.current = activeAmbianceIdx;
   }, [activeAmbianceIdx]);
 
+  const posClass = position === "right" ? "right-6" : "left-6";
+  const alignClass = position === "right" ? "items-end" : "items-start";
+
+  // Ambiance pill text
+  const getAmbianceText = () => {
+    if (!running && elapsed === 0) return { text: t("timer.startToBegin"), muted: true };
+    if (!running && elapsed > 0) return { text: t("timer.paused"), muted: true };
+    if (running && activeAmbianceIdx >= 0) return { text: ambianceTrack![activeAmbianceIdx].text, muted: false };
+    return { text: "", muted: false };
+  };
+  const ambianceStatus = getAmbianceText();
+
   if (!open) {
     return (
-      <div className="fixed bottom-6 left-6 z-50 flex flex-col items-start gap-1">
+      <div className={cn("fixed bottom-6 z-50 flex flex-col gap-1", posClass, alignClass)}>
         <Button
           onClick={() => setOpen(true)}
           size={showTime ? undefined : "icon"}
@@ -82,14 +95,17 @@ const GameTimer = ({ ambianceTrack }: GameTimerProps) => {
             <button
               onClick={() => setAmbianceOpen(!ambianceOpen)}
               className={cn(
-                "flex items-center gap-1.5 px-3 py-1 rounded-full border border-amber-300 bg-amber-100 text-amber-900 text-xs shadow-sm transition-all",
-                newEvent && "animate-pulse shadow-[0_0_10px_rgba(251,191,36,0.5)]"
+                "flex items-center gap-1.5 px-3 py-1 rounded-full bg-primary text-primary-foreground text-xs shadow-sm transition-all",
+                newEvent && "animate-pulse shadow-[0_0_10px_hsl(var(--primary)/0.5)]"
               )}
             >
               <span className="font-semibold shrink-0">{t("timer.ambiance")} :</span>
-              {activeAmbianceIdx >= 0 && (
-                <span className="truncate max-w-[150px]">
-                  {ambianceTrack[activeAmbianceIdx].text}
+              {ambianceStatus.text && (
+                <span className={cn(
+                  "truncate max-w-[200px]",
+                  ambianceStatus.muted && "italic opacity-80"
+                )}>
+                  {ambianceStatus.text}
                 </span>
               )}
             </button>
@@ -130,7 +146,7 @@ const GameTimer = ({ ambianceTrack }: GameTimerProps) => {
   return (
     <>
       <div className="fixed inset-0 z-40" onClick={() => setOpen(false)} />
-      <div className="fixed bottom-6 left-6 z-50">
+      <div className={cn("fixed bottom-6 z-50", posClass)}>
         <div className="bg-card border border-border rounded-2xl shadow-xl p-4 flex flex-col items-center gap-3 min-w-[180px] relative">
           <button
             onClick={() => setOpen(false)}

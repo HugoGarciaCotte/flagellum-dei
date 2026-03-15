@@ -172,8 +172,8 @@ const HostGame = () => {
         </p>
       )}
 
-      <GameTimer ambianceTrack={resolvedAmbianceTrack} />
-      <DiceRoller gameId={gameId} userName={t("game.gameMaster")} isGameMaster={true} />
+      <GameTimer ambianceTrack={resolvedAmbianceTrack} position="right" />
+      <DiceRoller gameId={gameId} userName={t("game.gameMaster")} isGameMaster={true} position="left" />
     </div>
   );
 };
