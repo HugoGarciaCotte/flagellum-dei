@@ -241,6 +241,9 @@ export type Database = {
           deleted_at: string | null
           display_name: string | null
           id: string
+          spotify_access_token: string | null
+          spotify_refresh_token: string | null
+          spotify_token_expires_at: string | null
           updated_at: string
           user_id: string
         }
@@ -249,6 +252,9 @@ export type Database = {
           deleted_at?: string | null
           display_name?: string | null
           id?: string
+          spotify_access_token?: string | null
+          spotify_refresh_token?: string | null
+          spotify_token_expires_at?: string | null
           updated_at?: string
           user_id: string
         }
@@ -257,6 +263,9 @@ export type Database = {
           deleted_at?: string | null
           display_name?: string | null
           id?: string
+          spotify_access_token?: string | null
+          spotify_refresh_token?: string | null
+          spotify_token_expires_at?: string | null
           updated_at?: string
           user_id?: string
         }
