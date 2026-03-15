@@ -148,7 +148,7 @@ const GameTimer = ({ ambianceTrack, position = "left", hasActiveSection = false 
           </div>
 
           {/* Scrollable ambiance table */}
-          <ScrollArea className="flex-1 min-h-0">
+          <div className="flex-1 min-h-0 overflow-y-auto overscroll-contain">
             <div className="p-2">
               <Table>
                 <TableBody>
@@ -171,7 +171,7 @@ const GameTimer = ({ ambianceTrack, position = "left", hasActiveSection = false 
                 </TableBody>
               </Table>
             </div>
-          </ScrollArea>
+          </div>
         </div>
       </div>
     </>
