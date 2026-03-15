@@ -55,7 +55,7 @@ const Install = () => {
           </div>
           <div className="space-y-1.5">
             <Zap className="h-5 w-5 mx-auto text-primary" />
-            <p className="text-xs text-muted-foreground">{t("install.fasterLoading")}</p>
+            <p className="text-sm text-muted-foreground">{t("install.fasterLoading")}</p>
           </div>
         </div>
 
