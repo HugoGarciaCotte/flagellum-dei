@@ -71,7 +71,7 @@ const PlayerListSheet = ({ players, characters, gameId }: PlayerListSheetProps) 
                   <p className="text-sm font-medium text-muted-foreground px-1">{displayName}</p>
 
                   {playerChars.length === 0 ? (
-                    <p className="text-xs text-muted-foreground italic px-1">{t("gm.noCharacters")}</p>
+                    <p className="text-sm text-muted-foreground italic px-1">{t("gm.noCharacters")}</p>
                   ) : (
                     <>
                       {selectedChar && (
