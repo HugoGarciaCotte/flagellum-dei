@@ -145,7 +145,7 @@ const GameTimer = ({ ambianceTrack, position = "left" }: GameTimerProps) => {
           </div>
 
           {/* Scrollable ambiance table */}
-          <ScrollArea className="flex-1">
+          <ScrollArea className="flex-1 min-h-0">
             <div className="p-2">
               <Table>
                 <TableBody>
