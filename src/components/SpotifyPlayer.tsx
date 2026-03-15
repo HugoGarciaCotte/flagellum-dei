@@ -56,12 +56,9 @@ const SpotifyPlayer = ({ position = "left", playlistUrl, playlistName, playTrack
   const playerRef = useRef<any>(null);
   const sdkScriptRef = useRef<boolean>(false);
   const containerRef = useRef<HTMLDivElement>(null);
-  const containerRef = useRef<HTMLDivElement>(null);
 
   // Track which playlist is currently playing to detect changes
   const currentPlaylistRef = useRef<string | null>(null);
-  // Track which single track was last requested
-  const lastPlayTrackRef = useRef<string | null>(null);
 
   const effectivePlaylistUrl = playlistUrl;
   const effectivePlaylistName = playlistName;
