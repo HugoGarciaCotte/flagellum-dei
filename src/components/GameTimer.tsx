@@ -5,6 +5,8 @@ import { Table, TableBody, TableRow, TableCell } from "@/components/ui/table";
 
 import { useTranslation } from "@/i18n/useTranslation";
 import { cn } from "@/lib/utils";
+import { useIsMobile } from "@/hooks/use-mobile";
+import { useBottomOffset } from "@/hooks/useBottomOffset";
 import type { AmbianceEntry } from "@/lib/parseWikitext";
 
 interface GameTimerProps {
@@ -14,6 +16,8 @@ interface GameTimerProps {
 }
 
 const GameTimer = ({ ambianceTrack, position = "left", hasActiveSection = false }: GameTimerProps) => {
+  const isMobile = useIsMobile();
+  const bannerOffset = useBottomOffset();
   const [expanded, setExpanded] = useState(false);
   const [running, setRunning] = useState(false);
   const [elapsed, setElapsed] = useState(0);
@@ -78,6 +82,8 @@ const GameTimer = ({ ambianceTrack, position = "left", hasActiveSection = false 
 
   
 
+  const mobileBottom = bannerOffset + 16; // 16px base spacing on mobile
+
   const posClass = position === "right" ? "right-6" : "left-6";
 
   // Current ambiance text for pill
@@ -93,7 +99,7 @@ const GameTimer = ({ ambianceTrack, position = "left", hasActiveSection = false 
 
   if (!expanded) {
     return (
-      <div className={cn("fixed bottom-14 sm:bottom-6 z-50", posClass)}>
+      <div className={cn("fixed z-50", posClass)} style={{ bottom: isMobile ? mobileBottom : 24 }}>
         <button
           onClick={() => hasAmbiance && setExpanded(true)}
           className={cn(
@@ -122,7 +128,7 @@ const GameTimer = ({ ambianceTrack, position = "left", hasActiveSection = false 
   return (
     <>
       <div className="fixed inset-0 z-40" onClick={() => setExpanded(false)} />
-      <div className={cn("fixed bottom-14 sm:bottom-6 z-50", posClass)}>
+      <div className={cn("fixed z-50", posClass)} style={{ bottom: isMobile ? mobileBottom : 24 }}>
         <div className="bg-card border border-border rounded-2xl shadow-xl flex flex-col min-w-[260px] max-w-[360px] max-h-[60vh] overflow-hidden">
           {/* Sticky header: timer controls */}
           <div className="shrink-0 bg-card border-b border-border p-4 flex flex-col items-center gap-2">

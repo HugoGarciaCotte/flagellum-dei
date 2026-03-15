@@ -5,6 +5,8 @@ import { supabase } from "@/integrations/supabase/client";
 import { toast } from "@/hooks/use-toast";
 import diceRollSfx from "@/assets/dice-roll.mp3";
 import { useTranslation } from "@/i18n/useTranslation";
+import { useIsMobile } from "@/hooks/use-mobile";
+import { useBottomOffset } from "@/hooks/useBottomOffset";
 
 // Classic die dot patterns for faces 1-6
 const DOT_PATTERNS: Record<number, [number, number][]> = {
@@ -69,6 +71,8 @@ const DiceRoller = ({ gameId, userName, isGameMaster, position = "right" }: Dice
   const rollIdRef = useRef("");
   const channelRef = useRef<ReturnType<typeof supabase.channel> | null>(null);
   const { t } = useTranslation();
+  const isMobile = useIsMobile();
+  const bannerOffset = useBottomOffset();
 
   // Subscribe to broadcast channel
   useEffect(() => {
@@ -167,7 +171,7 @@ const DiceRoller = ({ gameId, userName, isGameMaster, position = "right" }: Dice
 
   return (
     <>
-      <div className={`fixed bottom-24 sm:bottom-[4.5rem] ${position === "left" ? "left-6" : "right-6"} z-40`}>
+      <div className={`fixed ${position === "left" ? "left-6" : "right-6"} z-40`} style={{ bottom: isMobile ? bannerOffset + 72 : 72 }}>
         <Button
           onClick={roll}
           disabled={rolling}
