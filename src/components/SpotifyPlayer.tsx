@@ -332,21 +332,6 @@ const SpotifyPlayer = ({ position = "left", playlistUrl, playlistName, playTrack
   }
 
   // Expanded player panel
-  useEffect(() => {
-    if (!expanded) return;
-    const handler = (e: MouseEvent | TouchEvent) => {
-      if (containerRef.current && !containerRef.current.contains(e.target as Node)) {
-        setExpanded(false);
-      }
-    };
-    document.addEventListener("mousedown", handler);
-    document.addEventListener("touchstart", handler);
-    return () => {
-      document.removeEventListener("mousedown", handler);
-      document.removeEventListener("touchstart", handler);
-    };
-  }, [expanded]);
-
   return (
       <div
         ref={containerRef}
