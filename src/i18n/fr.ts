@@ -88,6 +88,8 @@ const fr: Record<string, string> = {
   "timer.startToBegin": "Lancez le minuteur pour commencer",
   "timer.paused": "Minuteur en pause",
   "adminScenarios.insertTagAmbiance": "Piste d'ambiance",
+  "game.joinLinkCopied": "Lien d'invitation copié.",
+  "game.joiningQuest": "Connexion à la quête…",
 };
 
 export default fr;
