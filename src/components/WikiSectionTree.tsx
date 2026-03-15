@@ -13,6 +13,7 @@ interface WikiSectionTreeProps {
   activeSection: string | null;
   onActivateSection: (sectionId: string) => void;
   parentBackground?: string | null;
+  parentPlaylist?: PlaylistInfo | null;
 }
 
 const TITLE_SIZES: Record<number, string> = {
