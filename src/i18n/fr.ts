@@ -86,6 +86,8 @@ const fr: Record<string, string> = {
   "timer.timer": "Minuteur",
   "timer.ambiance": "Ambiance",
   "timer.startToBegin": "Lancez le minuteur pour commencer",
+  "timer.noSection": "Appuyez sur ▶ pour lancer une section",
+  "timer.noAmbiance": "Aucune pour cette section",
   "timer.paused": "Minuteur en pause",
   "timer.title": "Minuteur d'ambiance",
   "adminScenarios.insertTagAmbiance": "Piste d'ambiance",

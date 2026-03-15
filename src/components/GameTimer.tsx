@@ -10,9 +10,10 @@ import type { AmbianceEntry } from "@/lib/parseWikitext";
 interface GameTimerProps {
   ambianceTrack?: AmbianceEntry[];
   position?: "left" | "right";
+  hasActiveSection?: boolean;
 }
 
-const GameTimer = ({ ambianceTrack, position = "left" }: GameTimerProps) => {
+const GameTimer = ({ ambianceTrack, position = "left", hasActiveSection = false }: GameTimerProps) => {
   const [expanded, setExpanded] = useState(false);
   const [running, setRunning] = useState(false);
   const [elapsed, setElapsed] = useState(0);
@@ -67,15 +68,17 @@ const GameTimer = ({ ambianceTrack, position = "left" }: GameTimerProps) => {
     prevAmbianceIdxRef.current = activeAmbianceIdx;
   }, [activeAmbianceIdx]);
 
-  if (!hasAmbiance) return null;
+  
 
   const posClass = position === "right" ? "right-6" : "left-6";
 
   // Current ambiance text for pill
   const getAmbianceText = () => {
+    if (!hasActiveSection) return { text: t("timer.noSection"), muted: true };
+    if (!hasAmbiance) return { text: t("timer.noAmbiance"), muted: true };
     if (!running && elapsed === 0) return { text: t("timer.startToBegin"), muted: true };
     if (!running && elapsed > 0) return { text: t("timer.paused"), muted: true };
-    if (running && activeAmbianceIdx >= 0) return { text: ambianceTrack[activeAmbianceIdx].text, muted: false };
+    if (running && activeAmbianceIdx >= 0) return { text: ambianceTrack![activeAmbianceIdx].text, muted: false };
     return { text: "", muted: false };
   };
   const ambianceStatus = getAmbianceText();
@@ -84,7 +87,7 @@ const GameTimer = ({ ambianceTrack, position = "left" }: GameTimerProps) => {
     return (
       <div className={cn("fixed bottom-6 z-50", posClass)}>
         <button
-          onClick={() => setExpanded(true)}
+          onClick={() => hasAmbiance && setExpanded(true)}
           className={cn(
             "flex items-center gap-2 px-3 py-2 rounded-full bg-primary text-primary-foreground text-xs shadow-lg transition-all hover:shadow-xl",
             newEvent && "animate-pulse shadow-[0_0_12px_hsl(var(--primary)/0.5)]"
