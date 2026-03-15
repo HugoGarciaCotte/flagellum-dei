@@ -8,12 +8,43 @@ import { supabase } from "@/integrations/supabase/client";
 import { toast } from "@/hooks/use-toast";
 
 /* ─── Diff types ─── */
-type DiffLineKind = "equal" | "added" | "removed";
+type DiffLineKind = "equal" | "added" | "removed" | "modified";
 interface DiffLine {
   kind: DiffLineKind;
   oldLine?: string;
   newLine?: string;
   accepted: boolean | null; // null = pending, true = accepted, false = rejected
+}
+
+/* ─── Word-level diff for modified lines ─── */
+interface WordSpan { kind: "equal" | "added" | "removed"; text: string }
+
+function computeWordDiff(oldLine: string, newLine: string): { oldSpans: WordSpan[]; newSpans: WordSpan[] } {
+  const oldWords = oldLine.split(/(\s+)/);
+  const newWords = newLine.split(/(\s+)/);
+  const m = oldWords.length, n = newWords.length;
+  const dp: number[][] = Array.from({ length: m + 1 }, () => Array(n + 1).fill(0));
+  for (let i = 1; i <= m; i++)
+    for (let j = 1; j <= n; j++)
+      dp[i][j] = oldWords[i-1] === newWords[j-1] ? dp[i-1][j-1]+1 : Math.max(dp[i-1][j], dp[i][j-1]);
+
+  const oldSpans: WordSpan[] = [];
+  const newSpans: WordSpan[] = [];
+  let i = m, j = n;
+  while (i > 0 || j > 0) {
+    if (i > 0 && j > 0 && oldWords[i-1] === newWords[j-1]) {
+      oldSpans.unshift({ kind: "equal", text: oldWords[i-1] });
+      newSpans.unshift({ kind: "equal", text: newWords[j-1] });
+      i--; j--;
+    } else if (j > 0 && (i === 0 || dp[i][j-1] >= dp[i-1][j])) {
+      newSpans.unshift({ kind: "added", text: newWords[j-1] });
+      j--;
+    } else {
+      oldSpans.unshift({ kind: "removed", text: oldWords[i-1] });
+      i--;
+    }
+  }
+  return { oldSpans, newSpans };
 }
 
 /* ─── Simple LCS-based line diff ─── */
@@ -23,7 +54,6 @@ function computeDiff(oldText: string, newText: string): DiffLine[] {
   const m = oldLines.length;
   const n = newLines.length;
 
-  // Build LCS table
   const dp: number[][] = Array.from({ length: m + 1 }, () => Array(n + 1).fill(0));
   for (let i = 1; i <= m; i++) {
     for (let j = 1; j <= n; j++) {
@@ -35,19 +65,29 @@ function computeDiff(oldText: string, newText: string): DiffLine[] {
     }
   }
 
-  // Backtrack
-  const result: DiffLine[] = [];
+  const raw: DiffLine[] = [];
   let i = m, j = n;
   while (i > 0 || j > 0) {
     if (i > 0 && j > 0 && oldLines[i - 1] === newLines[j - 1]) {
-      result.unshift({ kind: "equal", oldLine: oldLines[i - 1], newLine: newLines[j - 1], accepted: null });
+      raw.unshift({ kind: "equal", oldLine: oldLines[i - 1], newLine: newLines[j - 1], accepted: null });
       i--; j--;
     } else if (j > 0 && (i === 0 || dp[i][j - 1] >= dp[i - 1][j])) {
-      result.unshift({ kind: "added", newLine: newLines[j - 1], accepted: null });
+      raw.unshift({ kind: "added", newLine: newLines[j - 1], accepted: null });
       j--;
     } else {
-      result.unshift({ kind: "removed", oldLine: oldLines[i - 1], accepted: null });
+      raw.unshift({ kind: "removed", oldLine: oldLines[i - 1], accepted: null });
       i--;
+    }
+  }
+
+  // Merge consecutive removed→added pairs into "modified" hunks
+  const result: DiffLine[] = [];
+  for (let k = 0; k < raw.length; k++) {
+    if (raw[k].kind === "removed" && k + 1 < raw.length && raw[k + 1].kind === "added") {
+      result.push({ kind: "modified", oldLine: raw[k].oldLine, newLine: raw[k + 1].newLine, accepted: null });
+      k++; // skip the added line
+    } else {
+      result.push(raw[k]);
     }
   }
   return result;
@@ -118,12 +158,12 @@ export default function AiImprovePanel({ content, onApply, onClose, t }: AiImpro
     for (const d of diff) {
       if (d.kind === "equal") {
         lines.push(d.oldLine!);
+      } else if (d.kind === "modified") {
+        lines.push(d.accepted === true ? d.newLine! : d.oldLine!);
       } else if (d.kind === "added") {
         if (d.accepted === true) lines.push(d.newLine!);
-        // rejected or pending additions are skipped
       } else if (d.kind === "removed") {
         if (d.accepted !== true) lines.push(d.oldLine!);
-        // accepted removals are skipped (line removed)
       }
     }
     onApply(lines.join("\n"));
@@ -257,6 +297,44 @@ export default function AiImprovePanel({ content, onApply, onClose, t }: AiImpro
   );
 }
 
+/* ─── Word span renderer ─── */
+function WordSpans({ spans, side }: { spans: WordSpan[]; side: "old" | "new" }) {
+  return (
+    <>
+      {spans.map((s, i) => {
+        if (s.kind === "equal") return <span key={i}>{s.text}</span>;
+        if (side === "old" && s.kind === "removed")
+          return <span key={i} className="bg-destructive/25 line-through">{s.text}</span>;
+        if (side === "new" && s.kind === "added")
+          return <span key={i} className="bg-green-500/25">{s.text}</span>;
+        return null;
+      })}
+    </>
+  );
+}
+
+/* ─── Accept/Reject buttons ─── */
+function DecisionButtons({ idx, isAccepted, isRejected, onDecide }: { idx: number; isAccepted: boolean; isRejected: boolean; onDecide: (i: number, v: boolean) => void }) {
+  return (
+    <div className="flex gap-0.5 shrink-0 mt-0.5">
+      <button
+        className={`p-0.5 rounded hover:bg-green-500/20 ${isAccepted ? "text-green-600" : "text-muted-foreground"}`}
+        onClick={() => onDecide(idx, true)}
+        title="Accept"
+      >
+        <Check className="h-3 w-3" />
+      </button>
+      <button
+        className={`p-0.5 rounded hover:bg-destructive/20 ${isRejected ? "text-destructive" : "text-muted-foreground"}`}
+        onClick={() => onDecide(idx, false)}
+        title="Reject"
+      >
+        <X className="h-3 w-3" />
+      </button>
+    </div>
+  );
+}
+
 /* ─── Diff row ─── */
 function DiffRow({ line, idx, onDecide }: { line: DiffLine; idx: number; onDecide: (i: number, v: boolean) => void }) {
   if (line.kind === "equal") {
@@ -277,16 +355,29 @@ function DiffRow({ line, idx, onDecide }: { line: DiffLine; idx: number; onDecid
   else if (isAccepted) rowBg = "bg-green-500/10";
   else rowBg = "bg-muted/30 opacity-50";
 
+  if (line.kind === "modified") {
+    const { oldSpans, newSpans } = computeWordDiff(line.oldLine ?? "", line.newLine ?? "");
+    return (
+      <div className={`flex text-xs font-mono border-b border-border/50 ${rowBg}`}>
+        <div className="w-1/2 px-3 py-0.5 whitespace-pre-wrap break-all">
+          <WordSpans spans={oldSpans} side="old" />
+        </div>
+        <div className="w-1/2 px-3 py-0.5 whitespace-pre-wrap break-all flex items-start gap-1">
+          <span className="flex-1"><WordSpans spans={newSpans} side="new" /></span>
+          <DecisionButtons idx={idx} isAccepted={isAccepted} isRejected={isRejected} onDecide={onDecide} />
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className={`flex text-xs font-mono border-b border-border/50 ${rowBg}`}>
-      {/* Old side */}
       <div className="w-1/2 px-3 py-0.5 whitespace-pre-wrap break-all">
         {line.kind === "removed" && (
           <span className="bg-destructive/20 text-destructive-foreground">{line.oldLine}</span>
         )}
         {line.kind === "added" && <span className="text-muted-foreground/30">—</span>}
       </div>
-      {/* New side */}
       <div className="w-1/2 px-3 py-0.5 whitespace-pre-wrap break-all flex items-start gap-1">
         <span className="flex-1">
           {line.kind === "added" && (
@@ -294,23 +385,7 @@ function DiffRow({ line, idx, onDecide }: { line: DiffLine; idx: number; onDecid
           )}
           {line.kind === "removed" && <span className="text-muted-foreground/30">—</span>}
         </span>
-        {/* Accept / Reject buttons */}
-        <div className="flex gap-0.5 shrink-0 mt-0.5">
-          <button
-            className={`p-0.5 rounded hover:bg-green-500/20 ${isAccepted ? "text-green-600" : "text-muted-foreground"}`}
-            onClick={() => onDecide(idx, true)}
-            title="Accept"
-          >
-            <Check className="h-3 w-3" />
-          </button>
-          <button
-            className={`p-0.5 rounded hover:bg-destructive/20 ${isRejected ? "text-destructive" : "text-muted-foreground"}`}
-            onClick={() => onDecide(idx, false)}
-            title="Reject"
-          >
-            <X className="h-3 w-3" />
-          </button>
-        </div>
+        <DecisionButtons idx={idx} isAccepted={isAccepted} isRejected={isRejected} onDecide={onDecide} />
       </div>
     </div>
   );
