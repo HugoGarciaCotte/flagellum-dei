@@ -467,7 +467,7 @@ const CharacterFeatPicker = ({ characterId, mode = "player", scenarioLevel }: Ch
           >
             <ArrowLeft className="h-4 w-4" />
           </Button>
-          <p className="text-sm font-semibold">{dialogTitle}</p>
+          <p className="text-base font-semibold">{dialogTitle}</p>
         </div>
 
         {validationResult && !validationResult.allowed && (
