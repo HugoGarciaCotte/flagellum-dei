@@ -51,24 +51,27 @@ const typedFeats: Feat[] = featsData.feats as Feat[];
 const typedRedirects: FeatRedirect[] = featsData.redirects as FeatRedirect[];
 
 /** Returns all feats, with DB overrides applied if loaded. */
-export const getAllFeats = (): Feat[] => {
+export const getAllFeats = (locale?: string): Feat[] => {
   const overrides = getCachedOverrides();
-  if (!overrides || overrides.size === 0) return typedFeats;
-  return typedFeats.map(f => applyOverrides(f, overrides));
+  let feats = typedFeats;
+  if (overrides && overrides.size > 0) feats = typedFeats.map(f => applyOverrides(f, overrides));
+  if (locale && locale !== "en") return feats.map(f => localizeFeat(f, locale));
+  return feats;
 };
 
 /** Returns the raw hardcoded feats without any overrides. */
 export const getHardcodedFeats = (): Feat[] => typedFeats;
 
-export const getFeatById = (id: string): Feat | undefined => {
+export const getFeatById = (id: string, locale?: string): Feat | undefined => {
   const overrides = getCachedOverrides();
   const feat = typedFeats.find((f) => f.id === id);
   if (!feat) return undefined;
-  return overrides ? applyOverrides(feat, overrides) : feat;
+  const withOverrides = overrides ? applyOverrides(feat, overrides) : feat;
+  return locale ? localizeFeat(withOverrides, locale) : withOverrides;
 };
 
-export const getFeatByTitle = (title: string): Feat | undefined => {
-  const all = getAllFeats();
+export const getFeatByTitle = (title: string, locale?: string): Feat | undefined => {
+  const all = getAllFeats(locale);
   return all.find((f) => f.title.toLowerCase() === title.toLowerCase());
 };
 

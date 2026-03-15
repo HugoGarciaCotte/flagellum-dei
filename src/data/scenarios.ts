@@ -98,10 +98,14 @@ export const scenario9: Scenario = {
 const hardcodedScenarios: Scenario[] = [scenario1, scenario2, scenario3, scenario4, scenario5, scenario6, scenario7, scenario8, scenario9];
 
 /** Returns all scenarios, with DB overrides applied if loaded. */
-export function getAllScenarios(): Scenario[] {
+export function getAllScenarios(locale?: string): Scenario[] {
   const overrides = getCachedScenarioOverrides();
-  if (!overrides || overrides.size === 0) return hardcodedScenarios;
-  return hardcodedScenarios.map(s => applyScenarioOverrides(s, overrides));
+  let scenarios = hardcodedScenarios;
+  if (overrides && overrides.size > 0) {
+    scenarios = hardcodedScenarios.map(s => applyScenarioOverrides(s, overrides));
+  }
+  if (locale && locale !== "en") return scenarios.map(s => localizeScenario(s, locale));
+  return scenarios;
 }
 
 /** Returns the raw hardcoded scenarios without any overrides. */
@@ -109,9 +113,10 @@ export function getHardcodedScenarios(): Scenario[] {
   return hardcodedScenarios;
 }
 
-export function getScenarioById(id: string): Scenario | undefined {
+export function getScenarioById(id: string, locale?: string): Scenario | undefined {
   const overrides = getCachedScenarioOverrides();
   const scenario = hardcodedScenarios.find(s => s.id === id);
   if (!scenario) return undefined;
-  return overrides ? applyScenarioOverrides(scenario, overrides) : scenario;
+  const withOverrides = overrides ? applyScenarioOverrides(scenario, overrides) : scenario;
+  return locale ? localizeScenario(withOverrides, locale) : withOverrides;
 }
