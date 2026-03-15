@@ -48,8 +48,8 @@ function FeatLinkTooltip({ featName, rect }: { featName: string; rect: DOMRect }
         )}
         {meta.blocking && meta.blocking.length > 0 && (
           <div>
-            <p className="text-xs font-medium text-destructive">Incompatible with</p>
-            <p className="text-xs text-destructive/80">{meta.blocking.join(", ")}</p>
+            <p className="text-sm font-medium text-destructive">Incompatible with</p>
+            <p className="text-sm text-destructive/80">{meta.blocking.join(", ")}</p>
           </div>
         )}
         {meta.special && (
