@@ -61,12 +61,15 @@ const GameTimer = ({ ambianceTrack, position = "left", hasActiveSection = false 
   useEffect(() => {
     if (activeAmbianceIdx >= 0 && activeAmbianceIdx !== prevAmbianceIdxRef.current) {
       setNewEvent(true);
-      const timer = setTimeout(() => setNewEvent(false), 3000);
-      prevAmbianceIdxRef.current = activeAmbianceIdx;
-      return () => clearTimeout(timer);
     }
     prevAmbianceIdxRef.current = activeAmbianceIdx;
   }, [activeAmbianceIdx]);
+
+  useEffect(() => {
+    if (expanded) {
+      setNewEvent(false);
+    }
+  }, [expanded]);
 
   
 
