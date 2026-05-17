@@ -197,6 +197,12 @@ const en: Record<string, string> = {
   "game.end": "End",
   "game.noContent": "No content available.",
   "game.gmHint": "Tap \u25B6\uFE0E on a section to reveal it to your players. Use the dice (bottom-left) and timer (bottom-right) during play.",
+  "game.notPublishedRetry": "Not published — Retry",
+  "game.notPublishedHint": "This quest exists only on your device. Players can't join until it's published.",
+  "game.publishing": "Publishing…",
+  "game.publishedToast": "Quest published — share the code.",
+  "game.publishFailed": "Publish failed",
+  "game.offlineRetry": "You're offline — players can join once you reconnect.",
 
   // ─── INSTALL ───
   "install.title": "Install Flagellum Dei TTRPG",
