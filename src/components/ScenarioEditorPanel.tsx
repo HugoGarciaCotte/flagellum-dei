@@ -759,6 +759,8 @@ const ContentEditor = ({
           content={local}
           onApply={(newContent) => {
             setLocal(newContent);
+            // Auto-persist AI-accepted changes to DB so they aren't lost
+            onSave(newContent);
             setAiPanelOpen(false);
           }}
           onClose={() => setAiPanelOpen(false)}
