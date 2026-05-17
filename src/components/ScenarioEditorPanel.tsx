@@ -578,7 +578,7 @@ Upload the images from the scenario-backgrounds/ folder in the attached ZIP into
 /** Full content editor with integrated insert toolbar and cursor-aware insertion */
 const ContentEditor = ({
   scenarioId, scenarioTitle, scenarioTeaser,
-  value, isOverridden, saving, onSave, onRevert, fullScreen, t
+  value, isOverridden, saving, onSave, onRevert, fullScreen, onDirtyChange, dirtyKey, t
 }: {
   scenarioId: string;
   scenarioTitle: string;
@@ -589,6 +589,8 @@ const ContentEditor = ({
   onSave: (v: string) => void;
   onRevert: () => void;
   fullScreen?: boolean;
+  onDirtyChange?: (key: string, dirty: boolean) => void;
+  dirtyKey?: string;
   t: (k: string) => string;
 }) => {
   const [local, setLocal] = useState(value);
@@ -599,6 +601,11 @@ const ContentEditor = ({
   const [aiPanelOpen, setAiPanelOpen] = useState(false);
 
   useEffect(() => { setLocal(value); }, [value]);
+  useEffect(() => {
+    if (!dirtyKey || !onDirtyChange) return;
+    onDirtyChange(dirtyKey, dirty);
+    return () => onDirtyChange(dirtyKey, false);
+  }, [dirty, dirtyKey, onDirtyChange]);
 
   const handleSelect = () => {
     if (textareaRef.current) {
