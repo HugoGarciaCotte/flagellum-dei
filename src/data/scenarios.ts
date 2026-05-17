@@ -2,6 +2,7 @@
 // Generated on 2026-05-17T18:13:26.052Z
 
 import { getCachedScenarioOverrides, applyScenarioOverrides } from "@/lib/scenarioOverrides";
+import { normalizeScenarioId } from "@/lib/scenarioIds";
 
 export interface Scenario {
   id: string;
@@ -48,7 +49,7 @@ export const scenario3: Scenario = {
 };
 
 export const scenario4: Scenario = {
-  id: "a2b3c4d5-e6f7-4890-ab12-cd34ef56gh78",
+  id: "a2b3c4d5-e6f7-4890-ab12-cd34ef56ab78",
   title: "Chapter 4 - Danse Macabre",
   teaser: "28th of October 1347, Marseilles (Provence, Holy Roman Empire)\nHis Magnum Opus cost him everything: his fortune, his family, his soul.\nUnder the unholy gaze frozen in clay of his demented masters he works tirelessly.\nThe end is near, his pact is formal.\nSoon he will be the richest man in Marseille and probably in the whole Empire !\n⚜️⚜️⚜️💀💀💀",
   level: 4,
@@ -56,7 +57,7 @@ export const scenario4: Scenario = {
 };
 
 export const scenario5: Scenario = {
-  id: "d4e5f6a7-b8c9-4d01-ef23-456789abcdef",
+  id: "d4e5f6a7-b8c9-4d01-af23-456789abcdef",
   title: "Chapter 5 - Flagellum Dei",
   teaser: "10th of November 1347, Marseilles (Provence, Holy Roman Empire)\nA strange curse has fallen on Marseilles in the last few days.\nMany shopkeepers have been found dead from a strange disease.\nDoctors are positive: it is a benign ague, but the population suspects that the wells have been poisoned.\nFortunately, the archbishop will soon organise a mass to calm the spirits.\n⚜️⚜️⚜️💀💀💀",
   level: 5,
@@ -64,7 +65,7 @@ export const scenario5: Scenario = {
 };
 
 export const scenario6: Scenario = {
-  id: "f6a7b8c9-d0e1-4f23-4567-89abcdef0123",
+  id: "f6a7b8c9-d0e1-4f23-8567-89abcdef0123",
   title: "Chapter 6 - Archivum Secretum Apostolicum Avenionensium",
   teaser: "10 January 1348, Avignon (Papal States)\nMost Holy Father, all your life you have served our Lord. \nThus, it is without mistrust that you followed death when it came for you.\nDid you not see the black claws hidden under her dress? \nWho will now be able to deliver you from this satanic trap? \n⚜️⚜️⚜️💀💀💀",
   level: 6,
@@ -80,7 +81,7 @@ export const scenario7: Scenario = {
 };
 
 export const scenario8: Scenario = {
-  id: "e8f9a0b1-c2d3-4e4f-5678-90abcdef1234",
+  id: "e8f9a0b1-c2d3-4e4f-9678-90abcdef1234",
   title: "Chapter 8 - Oie Voaldyn the Night of the Witch",
   teaser: "30th of April 1348 (Isle of Man, Kingdom of Man)\nSisters, sisters, rejoice !\nTonight we shall dance and sing and feast.\nThe little people, the giants and those of the sea will join us too.\nFor tonight is Oie Voaldyn, the Night of the Witch.\n⚜️⚜️⚜️💀💀💀",
   level: 8,
@@ -115,7 +116,8 @@ export function getHardcodedScenarios(): Scenario[] {
 
 export function getScenarioById(id: string, locale?: string): Scenario | undefined {
   const overrides = getCachedScenarioOverrides();
-  const scenario = hardcodedScenarios.find(s => s.id === id);
+  const normalizedId = normalizeScenarioId(id);
+  const scenario = hardcodedScenarios.find(s => s.id === normalizedId);
   if (!scenario) return undefined;
   const withOverrides = overrides ? applyScenarioOverrides(scenario, overrides) : scenario;
   return locale ? localizeScenario(withOverrides, locale) : withOverrides;
