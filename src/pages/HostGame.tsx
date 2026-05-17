@@ -7,7 +7,7 @@ import { loadScenarioOverrides } from "@/lib/scenarioOverrides";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { toast } from "@/hooks/use-toast";
-import { ArrowLeft, Copy } from "lucide-react";
+import { ArrowLeft, Copy, AlertTriangle, Loader2 } from "lucide-react";
 
 import PlayerListSheet from "@/components/PlayerListSheet";
 import { parseWikitext, extractImageUrls, findSection, resolveAmbianceTrack, resolvePlaylist, type PlaylistInfo } from "@/lib/parseWikitext";
@@ -34,6 +34,7 @@ const HostGame = () => {
 
   const [localSection, setLocalSection] = useState<string | null>(null);
   const [overridesLoaded, setOverridesLoaded] = useState(false);
+  const [retrying, setRetrying] = useState(false);
 
   // Load scenario overrides from DB so edited content is used
   useEffect(() => {
@@ -161,6 +162,40 @@ const HostGame = () => {
     }
   };
 
+  const retryPublish = useCallback(async (silent = false) => {
+    if (!game || !user) return;
+    if (!navigator.onLine) {
+      if (!silent) toast({ title: t("game.offlineRetry"), variant: "destructive" });
+      return;
+    }
+    setRetrying(true);
+    try {
+      const { error } = await supabase.from("games").upsert({
+        id: game.id, host_user_id: user.id, scenario_id: game.scenario_id,
+        join_code: game.join_code, status: game.status ?? "active",
+        current_section: game.current_section ?? null,
+      }, { onConflict: "id" });
+      if (error) {
+        if (!silent) toast({ title: t("game.publishFailed"), description: error.message, variant: "destructive" });
+        return;
+      }
+      upsertRow("games", { ...game, pending_sync: false });
+      if (!silent) toast({ title: t("game.publishedToast") });
+    } catch (e: any) {
+      if (!silent) toast({ title: t("game.publishFailed"), description: e?.message, variant: "destructive" });
+    } finally {
+      setRetrying(false);
+    }
+  }, [game, user, t]);
+
+  // Auto-retry silently when coming back online
+  useEffect(() => {
+    if (!game?.pending_sync) return;
+    const handler = () => { retryPublish(true); };
+    window.addEventListener("online", handler);
+    return () => window.removeEventListener("online", handler);
+  }, [game?.pending_sync, retryPublish]);
+
   const activateSection = async (sectionId: string) => {
     setLocalSection(sectionId);
     if (!game) return;
@@ -186,9 +221,23 @@ const HostGame = () => {
         }
         rightActions={
           <>
-            <Button variant="outline" size="sm" onClick={copyCode} className="gap-1 sm:gap-2 border-primary/30 font-mono tracking-widest">
-              <span className="hidden sm:inline font-sans font-medium tracking-normal">{t("game.joinCode")} :</span> {game.join_code} <Copy className="h-3 w-3" />
-            </Button>
+            {game.pending_sync ? (
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => retryPublish(false)}
+                disabled={retrying}
+                title={t("game.notPublishedHint")}
+                className="gap-1 sm:gap-2 border-destructive/60 text-destructive hover:text-destructive hover:bg-destructive/10"
+              >
+                {retrying ? <Loader2 className="h-3 w-3 animate-spin" /> : <AlertTriangle className="h-3 w-3" />}
+                <span>{retrying ? t("game.publishing") : t("game.notPublishedRetry")}</span>
+              </Button>
+            ) : (
+              <Button variant="outline" size="sm" onClick={copyCode} className="gap-1 sm:gap-2 border-primary/30 font-mono tracking-widest">
+                <span className="hidden sm:inline font-sans font-medium tracking-normal">{t("game.joinCode")} :</span> {game.join_code} <Copy className="h-3 w-3" />
+              </Button>
+            )}
             <PlayerListSheet players={players} characters={characters} gameId={gameId!} />
             <Button variant="destructive" size="sm" onClick={endGame} className="gap-1">
               <span className="text-sm" aria-hidden="true">🝎</span> <span className="hidden sm:inline">{t("game.end")}</span>

@@ -173,10 +173,22 @@ async function doPush() {
     const rows = allRows.filter((r: any) => ids.includes(r.id));
     if (rows.length === 0) continue;
 
+    // Strip local-only flags before sending to DB
+    const sanitized = rows.map((r: any) => {
+      const { pending_sync, ...rest } = r;
+      return rest;
+    });
+
     try {
-      for (let i = 0; i < rows.length; i += 100) {
-        const chunk = rows.slice(i, i + 100);
+      for (let i = 0; i < sanitized.length; i += 100) {
+        const chunk = sanitized.slice(i, i + 100);
         await (supabase.from(table as any).upsert(chunk as any, { onConflict: "id" }) as any);
+      }
+      // Clear pending_sync on rows that had it
+      if (table === "games") {
+        for (const r of rows) {
+          if (r.pending_sync) store.upsertRow("games", { ...r, pending_sync: false });
+        }
       }
     } catch (e) {
       console.warn(`Push ${table} failed:`, e);
