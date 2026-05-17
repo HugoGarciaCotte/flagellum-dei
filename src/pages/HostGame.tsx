@@ -221,9 +221,23 @@ const HostGame = () => {
         }
         rightActions={
           <>
-            <Button variant="outline" size="sm" onClick={copyCode} className="gap-1 sm:gap-2 border-primary/30 font-mono tracking-widest">
-              <span className="hidden sm:inline font-sans font-medium tracking-normal">{t("game.joinCode")} :</span> {game.join_code} <Copy className="h-3 w-3" />
-            </Button>
+            {game.pending_sync ? (
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => retryPublish(false)}
+                disabled={retrying}
+                title={t("game.notPublishedHint")}
+                className="gap-1 sm:gap-2 border-destructive/60 text-destructive hover:text-destructive hover:bg-destructive/10"
+              >
+                {retrying ? <Loader2 className="h-3 w-3 animate-spin" /> : <AlertTriangle className="h-3 w-3" />}
+                <span>{retrying ? t("game.publishing") : t("game.notPublishedRetry")}</span>
+              </Button>
+            ) : (
+              <Button variant="outline" size="sm" onClick={copyCode} className="gap-1 sm:gap-2 border-primary/30 font-mono tracking-widest">
+                <span className="hidden sm:inline font-sans font-medium tracking-normal">{t("game.joinCode")} :</span> {game.join_code} <Copy className="h-3 w-3" />
+              </Button>
+            )}
             <PlayerListSheet players={players} characters={characters} gameId={gameId!} />
             <Button variant="destructive" size="sm" onClick={endGame} className="gap-1">
               <span className="text-sm" aria-hidden="true">🝎</span> <span className="hidden sm:inline">{t("game.end")}</span>
