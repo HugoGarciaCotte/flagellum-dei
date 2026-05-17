@@ -190,6 +190,12 @@ const ScenarioEditorPanel = () => {
   };
 
   const handleDownloadAndClear = async () => {
+    const confirmed = window.confirm(
+      `This will download ${overriddenCount} scenario override(s) to a file and then ERASE them from the database. ` +
+      `Any unsaved edits still in an open textarea (not yet saved with the ✓ button) will NOT be included. ` +
+      `Continue?`
+    );
+    if (!confirmed) return;
     const scenarios = mergedScenarios;
 
     // 1. Collect all image URLs from scenario contents
