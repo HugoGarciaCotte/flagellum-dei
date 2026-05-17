@@ -139,7 +139,7 @@ const PlayGame = () => {
     <div
       className="fixed inset-0 bg-background flex flex-col transition-[background-image] duration-700"
       style={activeBg ? {
-        backgroundImage: `linear-gradient(to bottom, hsl(var(--background) / 0.3), hsl(var(--background) / 0.5)), url(${activeBg})`,
+        backgroundImage: `url(${activeBg})`,
         backgroundSize: "cover",
         backgroundPosition: "center",
       } : undefined}
@@ -172,13 +172,6 @@ const PlayGame = () => {
           )}
         </main>
 
-        {!window.matchMedia('(display-mode: standalone)').matches && (
-          <p className="text-center py-4">
-            <Link to="/install" className="text-sm text-muted-foreground/50 hover:text-primary transition-colors font-display">
-              {t("dashboard.installApp")}
-            </Link>
-          </p>
-        )}
       </div>
 
       {/* SpotifyPlayer removed — GM-only feature */}
