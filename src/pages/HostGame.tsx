@@ -162,6 +162,40 @@ const HostGame = () => {
     }
   };
 
+  const retryPublish = useCallback(async (silent = false) => {
+    if (!game || !user) return;
+    if (!navigator.onLine) {
+      if (!silent) toast({ title: t("game.offlineRetry"), variant: "destructive" });
+      return;
+    }
+    setRetrying(true);
+    try {
+      const { error } = await supabase.from("games").upsert({
+        id: game.id, host_user_id: user.id, scenario_id: game.scenario_id,
+        join_code: game.join_code, status: game.status ?? "active",
+        current_section: game.current_section ?? null,
+      }, { onConflict: "id" });
+      if (error) {
+        if (!silent) toast({ title: t("game.publishFailed"), description: error.message, variant: "destructive" });
+        return;
+      }
+      upsertRow("games", { ...game, pending_sync: false });
+      if (!silent) toast({ title: t("game.publishedToast") });
+    } catch (e: any) {
+      if (!silent) toast({ title: t("game.publishFailed"), description: e?.message, variant: "destructive" });
+    } finally {
+      setRetrying(false);
+    }
+  }, [game, user, t]);
+
+  // Auto-retry silently when coming back online
+  useEffect(() => {
+    if (!game?.pending_sync) return;
+    const handler = () => { retryPublish(true); };
+    window.addEventListener("online", handler);
+    return () => window.removeEventListener("online", handler);
+  }, [game?.pending_sync, retryPublish]);
+
   const activateSection = async (sectionId: string) => {
     setLocalSection(sectionId);
     if (!game) return;
