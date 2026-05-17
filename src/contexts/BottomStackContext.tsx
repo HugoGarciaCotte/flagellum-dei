@@ -1,36 +1,37 @@
-import { createContext, useCallback, useContext, useEffect, useRef, useState, type ReactNode } from "react";
-
-type LayerMap = Map<string, HTMLElement>;
+import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState, type ReactNode } from "react";
 
 interface BottomStackValue {
-  /** Total measured pixel height of all registered bottom-fixed layers (banners). */
+  /** Total measured pixel height of all registered bottom-fixed layers. */
   bottomStackHeight: number;
-  /** Register a fixed-to-bottom layer so its height contributes to the stack. */
+  /** Map of layer id → measured height (px). Use to position a layer above specific others. */
+  heights: Record<string, number>;
+  /** Register a fixed-to-bottom layer so its height is tracked. */
   registerBottomLayer: (id: string, el: HTMLElement | null) => void;
-  /** True when there is no banner currently registered — used to know if you are the bottom-most layer and should add safe-area padding yourself. */
-  isStackEmpty: boolean;
 }
 
 const BottomStackContext = createContext<BottomStackValue>({
   bottomStackHeight: 0,
+  heights: {},
   registerBottomLayer: () => {},
-  isStackEmpty: true,
 });
 
 export function BottomStackProvider({ children }: { children: ReactNode }) {
-  const layersRef = useRef<LayerMap>(new Map());
+  const layersRef = useRef<Map<string, HTMLElement>>(new Map());
   const observerRef = useRef<ResizeObserver | null>(null);
-  const [bottomStackHeight, setBottomStackHeight] = useState(0);
-  const [isStackEmpty, setIsStackEmpty] = useState(true);
+  const [heights, setHeights] = useState<Record<string, number>>({});
 
   const recompute = useCallback(() => {
-    let max = 0;
-    for (const el of layersRef.current.values()) {
-      const r = el.getBoundingClientRect();
-      if (r.height > max) max = r.height;
+    const next: Record<string, number> = {};
+    for (const [id, el] of layersRef.current.entries()) {
+      next[id] = Math.round(el.getBoundingClientRect().height);
     }
-    setBottomStackHeight(Math.round(max));
-    setIsStackEmpty(layersRef.current.size === 0);
+    setHeights((prev) => {
+      const keys = new Set([...Object.keys(prev), ...Object.keys(next)]);
+      for (const k of keys) {
+        if (prev[k] !== next[k]) return next;
+      }
+      return prev;
+    });
   }, []);
 
   useEffect(() => {
@@ -56,12 +57,23 @@ export function BottomStackProvider({ children }: { children: ReactNode }) {
     if (el) {
       layersRef.current.set(id, el);
       observerRef.current?.observe(el);
+    } else if (prev) {
+      setHeights((p) => {
+        if (!(id in p)) return p;
+        const { [id]: _, ...rest } = p;
+        return rest;
+      });
     }
     recompute();
   }, [recompute]);
 
+  const bottomStackHeight = useMemo(
+    () => Object.values(heights).reduce((a, b) => a + b, 0),
+    [heights]
+  );
+
   return (
-    <BottomStackContext.Provider value={{ bottomStackHeight, registerBottomLayer, isStackEmpty }}>
+    <BottomStackContext.Provider value={{ bottomStackHeight, heights, registerBottomLayer }}>
       {children}
     </BottomStackContext.Provider>
   );

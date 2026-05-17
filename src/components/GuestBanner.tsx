@@ -11,7 +11,7 @@ export const GuestBanner = () => {
   const online = useNetworkStatus();
   const { t } = useTranslation();
   const ref = useRef<HTMLDivElement>(null);
-  const { registerBottomLayer } = useBottomStack();
+  const { registerBottomLayer, heights } = useBottomStack();
 
   useEffect(() => {
     if (!isGuest) {
@@ -24,19 +24,18 @@ export const GuestBanner = () => {
 
   if (!isGuest) return null;
 
-  // When online, this banner is the bottom-most layer → it must respect the OS safe area.
-  // When offline, the OfflineBanner sits below it and handles the safe-area padding.
-  const isBottomMost = online;
+  // Sit above the offline banner when it's present; otherwise hug the bottom and add safe-area padding ourselves.
+  const offlineHeight = heights["offline-banner"] ?? 0;
+  const isBottomMost = offlineHeight === 0;
 
   return (
     <div
       ref={ref}
-      className="fixed left-0 right-0 z-30 bg-amber-900/90 text-amber-100 text-center py-2 px-4 text-base font-display flex items-center justify-center gap-2 backdrop-blur bottom-0"
-      style={
-        isBottomMost
-          ? { paddingBottom: `calc(0.5rem + env(safe-area-inset-bottom))` }
-          : undefined
-      }
+      className="fixed left-0 right-0 z-30 bg-amber-900/90 text-amber-100 text-center py-2 px-4 text-base font-display flex items-center justify-center gap-2 backdrop-blur"
+      style={{
+        bottom: offlineHeight,
+        paddingBottom: isBottomMost ? `calc(0.5rem + env(safe-area-inset-bottom))` : undefined,
+      }}
     >
       <User className="h-4 w-4" />
       {t("common.guestBanner")}
