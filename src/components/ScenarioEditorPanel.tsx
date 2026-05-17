@@ -867,7 +867,7 @@ const OverrideField = ({
 
 /** Translation field with AI generate button */
 const TranslationField = ({
-  label, value, isOverridden, saving, generating, onSave, onRevert, onGenerate, multiline, t
+  label, value, isOverridden, saving, generating, onSave, onRevert, onGenerate, multiline, onDirtyChange, dirtyKey, t
 }: {
   label: string;
   value: string;
@@ -878,12 +878,19 @@ const TranslationField = ({
   onRevert: () => void;
   onGenerate?: () => void;
   multiline?: boolean;
+  onDirtyChange?: (key: string, dirty: boolean) => void;
+  dirtyKey?: string;
   t: (k: string) => string;
 }) => {
   const [local, setLocal] = useState(value);
   const dirty = local !== value;
 
   useEffect(() => { setLocal(value); }, [value]);
+  useEffect(() => {
+    if (!dirtyKey || !onDirtyChange) return;
+    onDirtyChange(dirtyKey, dirty);
+    return () => onDirtyChange(dirtyKey, false);
+  }, [dirty, dirtyKey, onDirtyChange]);
 
   return (
     <div className="mt-1">
