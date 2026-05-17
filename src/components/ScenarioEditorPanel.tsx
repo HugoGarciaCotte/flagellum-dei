@@ -406,6 +406,8 @@ Upload the images from the scenario-backgrounds/ folder in the attached ZIP into
                 saving={savingFields.has(`${editingScenario.id}:title`)}
                 onSave={(v) => saveField(editingScenario.id, "title", v)}
                 onRevert={() => revertField(editingScenario.id, "title")}
+                dirtyKey={`${editingScenario.id}:title`}
+                onDirtyChange={reportDirty}
                 inline
                 t={t}
               />
@@ -418,6 +420,8 @@ Upload the images from the scenario-backgrounds/ folder in the attached ZIP into
                   generating={generatingFr.has(`${editingScenario.id}:fr:title`)}
                   onSave={(v) => saveField(editingScenario.id, "fr:title", v || null)}
                   onRevert={() => revertField(editingScenario.id, "fr:title")}
+                  dirtyKey={`${editingScenario.id}:fr:title`}
+                  onDirtyChange={reportDirty}
                   onGenerate={() => generateFrField(editingScenario.id, "title", getEffective(editingHardcoded, "title") ?? "")}
                   t={t}
                 />
@@ -431,6 +435,8 @@ Upload the images from the scenario-backgrounds/ folder in the attached ZIP into
                 saving={savingFields.has(`${editingScenario.id}:level`)}
                 onSave={(v) => saveField(editingScenario.id, "level", v === "" ? null : parseInt(v))}
                 onRevert={() => revertField(editingScenario.id, "level")}
+                dirtyKey={`${editingScenario.id}:level`}
+                onDirtyChange={reportDirty}
                 type="number"
                 inline
                 t={t}
@@ -447,6 +453,8 @@ Upload the images from the scenario-backgrounds/ folder in the attached ZIP into
               saving={savingFields.has(`${editingScenario.id}:teaser`)}
               onSave={(v) => saveField(editingScenario.id, "teaser", v || null)}
               onRevert={() => revertField(editingScenario.id, "teaser")}
+              dirtyKey={`${editingScenario.id}:teaser`}
+              onDirtyChange={reportDirty}
               multiline
               inline
               t={t}
@@ -460,6 +468,8 @@ Upload the images from the scenario-backgrounds/ folder in the attached ZIP into
                 generating={generatingFr.has(`${editingScenario.id}:fr:teaser`)}
                 onSave={(v) => saveField(editingScenario.id, "fr:teaser", v || null)}
                 onRevert={() => revertField(editingScenario.id, "fr:teaser")}
+                dirtyKey={`${editingScenario.id}:fr:teaser`}
+                onDirtyChange={reportDirty}
                 onGenerate={() => generateFrField(editingScenario.id, "teaser", getEffective(editingHardcoded, "teaser") ?? "")}
                 multiline
                 t={t}
@@ -478,6 +488,8 @@ Upload the images from the scenario-backgrounds/ folder in the attached ZIP into
               saving={savingFields.has(`${editingScenario.id}:content`)}
               onSave={(v) => saveField(editingScenario.id, "content", v || null)}
               onRevert={() => revertField(editingScenario.id, "content")}
+              dirtyKey={`${editingScenario.id}:content`}
+              onDirtyChange={reportDirty}
               fullScreen
               t={t}
             />
@@ -491,6 +503,8 @@ Upload the images from the scenario-backgrounds/ folder in the attached ZIP into
                   generating={generatingFr.has(`${editingScenario.id}:fr:content`)}
                   onSave={(v) => saveField(editingScenario.id, "fr:content", v || null)}
                   onRevert={() => revertField(editingScenario.id, "fr:content")}
+                  dirtyKey={`${editingScenario.id}:fr:content`}
+                  onDirtyChange={reportDirty}
                   onGenerate={() => generateFrField(editingScenario.id, "content", getEffective(editingHardcoded, "content") ?? "")}
                   multiline
                   t={t}
