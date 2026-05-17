@@ -34,6 +34,7 @@ const HostGame = () => {
 
   const [localSection, setLocalSection] = useState<string | null>(null);
   const [overridesLoaded, setOverridesLoaded] = useState(false);
+  const [retrying, setRetrying] = useState(false);
 
   // Load scenario overrides from DB so edited content is used
   useEffect(() => {
