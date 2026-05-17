@@ -1,6 +1,7 @@
 import { supabase } from "@/integrations/supabase/client";
 import * as store from "./localStore";
 import type { TableName } from "./localStore";
+import { normalizeScenarioId } from "./scenarioIds";
 
 const LOCAL_GUEST_KEY = "local-guest-user";
 
@@ -176,6 +177,7 @@ async function doPush() {
     // Strip local-only flags before sending to DB
     const sanitized = rows.map((r: any) => {
       const { pending_sync, ...rest } = r;
+      if (table === "games") rest.scenario_id = normalizeScenarioId(rest.scenario_id) ?? rest.scenario_id;
       return rest;
     });
 
