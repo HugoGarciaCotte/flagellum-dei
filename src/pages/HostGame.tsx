@@ -24,6 +24,7 @@ import { upsertRow } from "@/lib/localStore";
 import { triggerPush, pullTable } from "@/lib/syncManager";
 import { useTranslation } from "@/i18n/useTranslation";
 import SpotifyPlayer from "@/components/SpotifyPlayer";
+import { normalizeScenarioId } from "@/lib/scenarioIds";
 
 const HostGame = () => {
   const { gameId } = useParams<{ gameId: string }>();
@@ -170,8 +171,9 @@ const HostGame = () => {
     }
     setRetrying(true);
     try {
+      const normalizedScenarioId = normalizeScenarioId(game.scenario_id) ?? game.scenario_id;
       const { error } = await supabase.from("games").upsert({
-        id: game.id, host_user_id: user.id, scenario_id: game.scenario_id,
+        id: game.id, host_user_id: user.id, scenario_id: normalizedScenarioId,
         join_code: game.join_code, status: game.status ?? "active",
         current_section: game.current_section ?? null,
       }, { onConflict: "id" });
@@ -179,7 +181,7 @@ const HostGame = () => {
         if (!silent) toast({ title: t("game.publishFailed"), description: error.message, variant: "destructive" });
         return;
       }
-      upsertRow("games", { ...game, pending_sync: false });
+      upsertRow("games", { ...game, scenario_id: normalizedScenarioId, pending_sync: false });
       if (!silent) toast({ title: t("game.publishedToast") });
     } catch (e: any) {
       if (!silent) toast({ title: t("game.publishFailed"), description: e?.message, variant: "destructive" });
