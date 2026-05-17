@@ -793,7 +793,7 @@ const ContentEditor = ({
 
 /** Reusable field with override indicator and save/revert */
 const OverrideField = ({
-  label, value, isOverridden, saving, onSave, onRevert, type, multiline, inline, t
+  label, value, isOverridden, saving, onSave, onRevert, type, multiline, inline, onDirtyChange, dirtyKey, t
 }: {
   label: string;
   value: any;
@@ -804,10 +804,17 @@ const OverrideField = ({
   type?: string;
   multiline?: boolean;
   inline?: boolean;
+  onDirtyChange?: (key: string, dirty: boolean) => void;
+  dirtyKey?: string;
   t: (k: string) => string;
 }) => {
   const [local, setLocal] = useState(String(value ?? ""));
   const dirty = local !== String(value ?? "");
+  useEffect(() => {
+    if (!dirtyKey || !onDirtyChange) return;
+    onDirtyChange(dirtyKey, dirty);
+    return () => onDirtyChange(dirtyKey, false);
+  }, [dirty, dirtyKey, onDirtyChange]);
 
   useEffect(() => { setLocal(String(value ?? "")); }, [value]);
 
