@@ -26,6 +26,7 @@ import { useLocalRows } from "@/hooks/useLocalData";
 import { upsertRow, softDeleteRow, softDeleteBy } from "@/lib/localStore";
 import { triggerPush } from "@/lib/syncManager";
 import { useTranslation } from "@/i18n/useTranslation";
+import { normalizeScenarioId } from "@/lib/scenarioIds";
 
 const Dashboard = () => {
   const { user, signOut, isGuest } = useAuth();
@@ -88,17 +89,18 @@ const Dashboard = () => {
   }, [allGames, gamePlayers, user]);
 
   const handleCreateGame = async (scenarioId: string) => {
+    const normalizedScenarioId = normalizeScenarioId(scenarioId) ?? scenarioId;
     const tempGameId = crypto.randomUUID();
     const letters = "ABCDEFGHIJKLMNOPQRSTUVWXYZ";
     const code = Array.from({ length: 6 }, () => letters[Math.floor(Math.random() * 26)]).join("");
     const now = new Date().toISOString();
     const newGame = {
-      id: tempGameId, host_user_id: user!.id, scenario_id: scenarioId, join_code: code,
+      id: tempGameId, host_user_id: user!.id, scenario_id: normalizedScenarioId, join_code: code,
       status: "active", current_section: null, created_at: now, updated_at: now,
     };
     upsertRow("games", { ...newGame, pending_sync: true });
     try {
-      const { data, error } = await supabase.from("games").insert({ id: tempGameId, host_user_id: user!.id, scenario_id: scenarioId, join_code: code, status: "active" }).select().single();
+      const { data, error } = await supabase.from("games").insert({ id: tempGameId, host_user_id: user!.id, scenario_id: normalizedScenarioId, join_code: code, status: "active" }).select().single();
       if (!error && data) { upsertRow("games", { ...data, pending_sync: false }); navigate(`/game/${data.id}/host`); return; }
     } catch {}
     navigate(`/game/${tempGameId}/host`);
