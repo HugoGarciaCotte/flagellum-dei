@@ -96,11 +96,10 @@ const Dashboard = () => {
       id: tempGameId, host_user_id: user!.id, scenario_id: scenarioId, join_code: code,
       status: "active", current_section: null, created_at: now, updated_at: now,
     };
-    upsertRow("games", newGame);
-    triggerPush();
+    upsertRow("games", { ...newGame, pending_sync: true });
     try {
-      const { data, error } = await supabase.from("games").insert({ host_user_id: user!.id, scenario_id: scenarioId, join_code: code }).select().single();
-      if (!error && data) { deleteRow("games", tempGameId); upsertRow("games", data); navigate(`/game/${data.id}/host`); return; }
+      const { data, error } = await supabase.from("games").insert({ id: tempGameId, host_user_id: user!.id, scenario_id: scenarioId, join_code: code, status: "active" }).select().single();
+      if (!error && data) { upsertRow("games", { ...data, pending_sync: false }); navigate(`/game/${data.id}/host`); return; }
     } catch {}
     navigate(`/game/${tempGameId}/host`);
   };
