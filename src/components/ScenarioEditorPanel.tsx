@@ -72,6 +72,11 @@ const ScenarioEditorPanel = () => {
   const [savingFields, setSavingFields] = useState<Set<string>>(new Set());
   const [editorLocale, setEditorLocale] = useState<EditorLocale>("en");
   const [generatingFr, setGeneratingFr] = useState<Set<string>>(new Set());
+  const dirtyFieldsRef = useRef<Set<string>>(new Set());
+  const reportDirty = useCallback((key: string, dirty: boolean) => {
+    if (dirty) dirtyFieldsRef.current.add(key);
+    else dirtyFieldsRef.current.delete(key);
+  }, []);
 
   // Load overrides from DB
   useEffect(() => {
@@ -190,12 +195,14 @@ const ScenarioEditorPanel = () => {
   };
 
   const handleDownloadAndClear = async () => {
-    const confirmed = window.confirm(
-      `This will download ${overriddenCount} scenario override(s) to a file and then ERASE them from the database. ` +
-      `Any unsaved edits still in an open textarea (not yet saved with the ✓ button) will NOT be included. ` +
-      `Continue?`
-    );
-    if (!confirmed) return;
+    if (dirtyFieldsRef.current.size > 0) {
+      const confirmed = window.confirm(
+        `You have ${dirtyFieldsRef.current.size} unsaved field(s) (still showing the ✓ button). ` +
+        `These will NOT be included in the download and will be lost when the DB is cleared. ` +
+        `Continue anyway?`
+      );
+      if (!confirmed) return;
+    }
     const scenarios = mergedScenarios;
 
     // 1. Collect all image URLs from scenario contents
@@ -399,6 +406,8 @@ Upload the images from the scenario-backgrounds/ folder in the attached ZIP into
                 saving={savingFields.has(`${editingScenario.id}:title`)}
                 onSave={(v) => saveField(editingScenario.id, "title", v)}
                 onRevert={() => revertField(editingScenario.id, "title")}
+                dirtyKey={`${editingScenario.id}:title`}
+                onDirtyChange={reportDirty}
                 inline
                 t={t}
               />
@@ -411,6 +420,8 @@ Upload the images from the scenario-backgrounds/ folder in the attached ZIP into
                   generating={generatingFr.has(`${editingScenario.id}:fr:title`)}
                   onSave={(v) => saveField(editingScenario.id, "fr:title", v || null)}
                   onRevert={() => revertField(editingScenario.id, "fr:title")}
+                  dirtyKey={`${editingScenario.id}:fr:title`}
+                  onDirtyChange={reportDirty}
                   onGenerate={() => generateFrField(editingScenario.id, "title", getEffective(editingHardcoded, "title") ?? "")}
                   t={t}
                 />
@@ -424,6 +435,8 @@ Upload the images from the scenario-backgrounds/ folder in the attached ZIP into
                 saving={savingFields.has(`${editingScenario.id}:level`)}
                 onSave={(v) => saveField(editingScenario.id, "level", v === "" ? null : parseInt(v))}
                 onRevert={() => revertField(editingScenario.id, "level")}
+                dirtyKey={`${editingScenario.id}:level`}
+                onDirtyChange={reportDirty}
                 type="number"
                 inline
                 t={t}
@@ -440,6 +453,8 @@ Upload the images from the scenario-backgrounds/ folder in the attached ZIP into
               saving={savingFields.has(`${editingScenario.id}:teaser`)}
               onSave={(v) => saveField(editingScenario.id, "teaser", v || null)}
               onRevert={() => revertField(editingScenario.id, "teaser")}
+              dirtyKey={`${editingScenario.id}:teaser`}
+              onDirtyChange={reportDirty}
               multiline
               inline
               t={t}
@@ -453,6 +468,8 @@ Upload the images from the scenario-backgrounds/ folder in the attached ZIP into
                 generating={generatingFr.has(`${editingScenario.id}:fr:teaser`)}
                 onSave={(v) => saveField(editingScenario.id, "fr:teaser", v || null)}
                 onRevert={() => revertField(editingScenario.id, "fr:teaser")}
+                dirtyKey={`${editingScenario.id}:fr:teaser`}
+                onDirtyChange={reportDirty}
                 onGenerate={() => generateFrField(editingScenario.id, "teaser", getEffective(editingHardcoded, "teaser") ?? "")}
                 multiline
                 t={t}
@@ -471,6 +488,8 @@ Upload the images from the scenario-backgrounds/ folder in the attached ZIP into
               saving={savingFields.has(`${editingScenario.id}:content`)}
               onSave={(v) => saveField(editingScenario.id, "content", v || null)}
               onRevert={() => revertField(editingScenario.id, "content")}
+              dirtyKey={`${editingScenario.id}:content`}
+              onDirtyChange={reportDirty}
               fullScreen
               t={t}
             />
@@ -484,6 +503,8 @@ Upload the images from the scenario-backgrounds/ folder in the attached ZIP into
                   generating={generatingFr.has(`${editingScenario.id}:fr:content`)}
                   onSave={(v) => saveField(editingScenario.id, "fr:content", v || null)}
                   onRevert={() => revertField(editingScenario.id, "fr:content")}
+                  dirtyKey={`${editingScenario.id}:fr:content`}
+                  onDirtyChange={reportDirty}
                   onGenerate={() => generateFrField(editingScenario.id, "content", getEffective(editingHardcoded, "content") ?? "")}
                   multiline
                   t={t}
@@ -571,7 +592,7 @@ Upload the images from the scenario-backgrounds/ folder in the attached ZIP into
 /** Full content editor with integrated insert toolbar and cursor-aware insertion */
 const ContentEditor = ({
   scenarioId, scenarioTitle, scenarioTeaser,
-  value, isOverridden, saving, onSave, onRevert, fullScreen, t
+  value, isOverridden, saving, onSave, onRevert, fullScreen, onDirtyChange, dirtyKey, t
 }: {
   scenarioId: string;
   scenarioTitle: string;
@@ -582,6 +603,8 @@ const ContentEditor = ({
   onSave: (v: string) => void;
   onRevert: () => void;
   fullScreen?: boolean;
+  onDirtyChange?: (key: string, dirty: boolean) => void;
+  dirtyKey?: string;
   t: (k: string) => string;
 }) => {
   const [local, setLocal] = useState(value);
@@ -592,6 +615,11 @@ const ContentEditor = ({
   const [aiPanelOpen, setAiPanelOpen] = useState(false);
 
   useEffect(() => { setLocal(value); }, [value]);
+  useEffect(() => {
+    if (!dirtyKey || !onDirtyChange) return;
+    onDirtyChange(dirtyKey, dirty);
+    return () => onDirtyChange(dirtyKey, false);
+  }, [dirty, dirtyKey, onDirtyChange]);
 
   const handleSelect = () => {
     if (textareaRef.current) {
@@ -779,7 +807,7 @@ const ContentEditor = ({
 
 /** Reusable field with override indicator and save/revert */
 const OverrideField = ({
-  label, value, isOverridden, saving, onSave, onRevert, type, multiline, inline, t
+  label, value, isOverridden, saving, onSave, onRevert, type, multiline, inline, onDirtyChange, dirtyKey, t
 }: {
   label: string;
   value: any;
@@ -790,10 +818,17 @@ const OverrideField = ({
   type?: string;
   multiline?: boolean;
   inline?: boolean;
+  onDirtyChange?: (key: string, dirty: boolean) => void;
+  dirtyKey?: string;
   t: (k: string) => string;
 }) => {
   const [local, setLocal] = useState(String(value ?? ""));
   const dirty = local !== String(value ?? "");
+  useEffect(() => {
+    if (!dirtyKey || !onDirtyChange) return;
+    onDirtyChange(dirtyKey, dirty);
+    return () => onDirtyChange(dirtyKey, false);
+  }, [dirty, dirtyKey, onDirtyChange]);
 
   useEffect(() => { setLocal(String(value ?? "")); }, [value]);
 
@@ -846,7 +881,7 @@ const OverrideField = ({
 
 /** Translation field with AI generate button */
 const TranslationField = ({
-  label, value, isOverridden, saving, generating, onSave, onRevert, onGenerate, multiline, t
+  label, value, isOverridden, saving, generating, onSave, onRevert, onGenerate, multiline, onDirtyChange, dirtyKey, t
 }: {
   label: string;
   value: string;
@@ -857,12 +892,19 @@ const TranslationField = ({
   onRevert: () => void;
   onGenerate?: () => void;
   multiline?: boolean;
+  onDirtyChange?: (key: string, dirty: boolean) => void;
+  dirtyKey?: string;
   t: (k: string) => string;
 }) => {
   const [local, setLocal] = useState(value);
   const dirty = local !== value;
 
   useEffect(() => { setLocal(value); }, [value]);
+  useEffect(() => {
+    if (!dirtyKey || !onDirtyChange) return;
+    onDirtyChange(dirtyKey, dirty);
+    return () => onDirtyChange(dirtyKey, false);
+  }, [dirty, dirtyKey, onDirtyChange]);
 
   return (
     <div className="mt-1">
