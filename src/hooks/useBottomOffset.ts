@@ -1,14 +1,9 @@
-import { useAuth } from "@/contexts/AuthContext";
-import { useNetworkStatus } from "@/hooks/useNetworkStatus";
+import { useBottomStack } from "@/contexts/BottomStackContext";
 
-const BANNER_HEIGHT = 40;
-
+/**
+ * Returns the measured pixel height of all bottom-fixed banners (offline + guest).
+ * Use this to position floating UI (dice roller, character bar, timers) above them.
+ */
 export function useBottomOffset() {
-  const { isGuest } = useAuth();
-  const online = useNetworkStatus();
-
-  let offset = 0;
-  if (!online) offset += BANNER_HEIGHT;
-  if (isGuest) offset += BANNER_HEIGHT;
-  return offset;
+  return useBottomStack().bottomStackHeight;
 }

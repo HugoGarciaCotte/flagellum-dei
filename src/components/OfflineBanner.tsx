@@ -2,6 +2,7 @@ import { useState, useEffect, useRef } from "react";
 import { useNetworkStatus } from "@/hooks/useNetworkStatus";
 import { WifiOff, Loader2, Check } from "lucide-react";
 import { useTranslation } from "@/i18n/useTranslation";
+import { useBottomStack } from "@/contexts/BottomStackContext";
 
 export const OfflineBanner = () => {
   const online = useNetworkStatus();
@@ -9,6 +10,8 @@ export const OfflineBanner = () => {
   const [syncing, setSyncing] = useState(false);
   const [justSynced, setJustSynced] = useState(false);
   const syncStartRef = useRef<number>(0);
+  const bannerRef = useRef<HTMLDivElement>(null);
+  const { registerBottomLayer } = useBottomStack();
 
   useEffect(() => {
     const onSyncing = () => {
@@ -31,6 +34,17 @@ export const OfflineBanner = () => {
     };
   }, []);
 
+  const showOfflineBar = !online && !syncing && !(justSynced && online);
+
+  useEffect(() => {
+    if (!showOfflineBar) {
+      registerBottomLayer("offline-banner", null);
+      return;
+    }
+    registerBottomLayer("offline-banner", bannerRef.current);
+    return () => registerBottomLayer("offline-banner", null);
+  }, [showOfflineBar, registerBottomLayer]);
+
   if (justSynced && online) {
     return (
       <div className="fixed bottom-4 left-4 z-50 h-8 w-8 rounded-full bg-primary/80 text-primary-foreground flex items-center justify-center backdrop-blur animate-in fade-in duration-200">
@@ -50,7 +64,11 @@ export const OfflineBanner = () => {
   }
 
   return (
-    <div className="fixed bottom-0 left-0 right-0 z-50 bg-destructive/90 text-destructive-foreground text-center py-2 px-4 text-sm font-display flex items-center justify-center gap-2 backdrop-blur">
+    <div
+      ref={bannerRef}
+      className="fixed bottom-0 left-0 right-0 z-50 bg-destructive/90 text-destructive-foreground text-center py-2 px-4 text-sm font-display flex items-center justify-center gap-2 backdrop-blur"
+      style={{ paddingBottom: `calc(0.5rem + env(safe-area-inset-bottom))` }}
+    >
       <WifiOff className="h-4 w-4" />
       {t("common.offlineSavedLocally")}
     </div>
