@@ -72,6 +72,11 @@ const ScenarioEditorPanel = () => {
   const [savingFields, setSavingFields] = useState<Set<string>>(new Set());
   const [editorLocale, setEditorLocale] = useState<EditorLocale>("en");
   const [generatingFr, setGeneratingFr] = useState<Set<string>>(new Set());
+  const dirtyFieldsRef = useRef<Set<string>>(new Set());
+  const reportDirty = useCallback((key: string, dirty: boolean) => {
+    if (dirty) dirtyFieldsRef.current.add(key);
+    else dirtyFieldsRef.current.delete(key);
+  }, []);
 
   // Load overrides from DB
   useEffect(() => {
