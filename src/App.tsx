@@ -6,6 +6,7 @@ import { AuthProvider } from "@/contexts/AuthContext";
 import { I18nProvider } from "@/i18n/I18nContext";
 import { OfflineBanner } from "@/components/OfflineBanner";
 import { GuestBanner } from "@/components/GuestBanner";
+import { BottomStackProvider } from "@/contexts/BottomStackContext";
 import LanguagePicker from "@/components/LanguagePicker";
 import { attachOnlineListener } from "@/lib/syncManager";
 import { loadFeatOverrides } from "@/lib/featOverrides";
@@ -34,28 +35,30 @@ const App = () => (
   <AuthProvider>
     <I18nProvider>
       <TooltipProvider>
-        <Toaster />
-        <Sonner />
-        <BrowserRouter>
-          <Routes>
-            <Route path="/" element={<Index />} />
-            <Route path="/auth" element={<Auth />} />
-            <Route path="/join/:code" element={<JoinGame />} />
-            <Route path="/game/:gameId/host" element={<HostGame />} />
-            <Route path="/game/:gameId/play" element={<PlayGame />} />
-            <Route path="/reset-password" element={<ResetPassword />} />
-            <Route path="/install" element={<Install />} />
-            <Route path="/admin" element={<Admin />} />
-            <Route path="/admin/feats" element={<AdminFeats />} />
-            <Route path="/admin/scenarios" element={<AdminScenarios />} />
-            <Route path="/admin/translations" element={<AdminTranslations />} />
-            <Route path="/spotify-callback" element={<SpotifyCallback />} />
-            <Route path="*" element={<NotFound />} />
-          </Routes>
-          <OfflineBanner />
-          <GuestBanner />
-          <LanguagePicker />
-        </BrowserRouter>
+        <BottomStackProvider>
+          <Toaster />
+          <Sonner />
+          <BrowserRouter>
+            <Routes>
+              <Route path="/" element={<Index />} />
+              <Route path="/auth" element={<Auth />} />
+              <Route path="/join/:code" element={<JoinGame />} />
+              <Route path="/game/:gameId/host" element={<HostGame />} />
+              <Route path="/game/:gameId/play" element={<PlayGame />} />
+              <Route path="/reset-password" element={<ResetPassword />} />
+              <Route path="/install" element={<Install />} />
+              <Route path="/admin" element={<Admin />} />
+              <Route path="/admin/feats" element={<AdminFeats />} />
+              <Route path="/admin/scenarios" element={<AdminScenarios />} />
+              <Route path="/admin/translations" element={<AdminTranslations />} />
+              <Route path="/spotify-callback" element={<SpotifyCallback />} />
+              <Route path="*" element={<NotFound />} />
+            </Routes>
+            <OfflineBanner />
+            <GuestBanner />
+            <LanguagePicker />
+          </BrowserRouter>
+        </BottomStackProvider>
       </TooltipProvider>
     </I18nProvider>
   </AuthProvider>
