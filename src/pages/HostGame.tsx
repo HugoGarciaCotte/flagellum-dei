@@ -267,13 +267,6 @@ const HostGame = () => {
         )}
       </main>
 
-      {!window.matchMedia('(display-mode: standalone)').matches && (
-        <p className="text-center py-4">
-          <Link to="/install" className="text-sm text-muted-foreground/50 hover:text-primary transition-colors font-display">
-            {t("dashboard.installApp")}
-          </Link>
-        </p>
-      )}
       </div>
 
       <SpotifyPlayer position="left" playlistUrl={resolvedPlaylist?.url} playlistName={resolvedPlaylist?.name} playTrackUrl={playTrackUrl ?? undefined} />
