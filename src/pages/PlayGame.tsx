@@ -21,6 +21,7 @@ import { useLocalRow, useLocalRows } from "@/hooks/useLocalData";
 import { upsertRow } from "@/lib/localStore";
 import { triggerPush, pullTable } from "@/lib/syncManager";
 import { useTranslation } from "@/i18n/useTranslation";
+import { useBottomOffset } from "@/hooks/useBottomOffset";
 // SpotifyPlayer removed — GM-only feature
 
 const PlayGame = () => {
@@ -31,6 +32,7 @@ const PlayGame = () => {
   const { t, locale } = useTranslation();
 
   const [sheetExpanded, setSheetExpanded] = useState(false);
+  const bottomOffset = useBottomOffset();
   const [creatingChar, setCreatingChar] = useState(false);
   const [editingCharId, setEditingCharId] = useState<string | null>(null);
   const [scenarioReady, setScenarioReady] = useState(false);
@@ -158,7 +160,7 @@ const PlayGame = () => {
       />
 
       <div className="flex-1 overflow-y-auto">
-        <main className={`container py-8 flex items-center justify-center max-w-3xl ${isGuest ? "pb-32" : "pb-24"}`}>
+        <main className="container py-8 flex items-center justify-center max-w-3xl" style={{ paddingBottom: bottomOffset + 96 }}>
           {!currentSectionId && (
             <div className="text-center space-y-4">
               <div className="animate-pulse-glow text-primary font-display text-xl">
@@ -179,7 +181,11 @@ const PlayGame = () => {
 
       {!sheetExpanded && (
         <div
-          className={`fixed inset-x-0 z-40 bg-card border-t border-primary/10 backdrop-blur cursor-pointer gold-glow-box ${isGuest ? "bottom-10" : "bottom-0"}`}
+          className="fixed inset-x-0 z-40 bg-card border-t border-primary/10 backdrop-blur cursor-pointer gold-glow-box"
+          style={{
+            bottom: bottomOffset,
+            paddingBottom: bottomOffset === 0 ? `env(safe-area-inset-bottom)` : undefined,
+          }}
           onClick={() => setSheetExpanded(true)}
         >
           <div className="container max-w-3xl py-2 px-4">
