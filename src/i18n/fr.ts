@@ -98,6 +98,12 @@ const fr: Record<string, string> = {
   "game.joinLinkCopied": "Lien d'invitation copié.",
   "game.joiningQuest": "Connexion à la quête…",
   "game.gmHint": "Appuyez sur \u25B6\uFE0E d'une section pour la révéler à vos joueurs. Utilisez les dés (en bas à gauche) et le minuteur (en bas à droite) pendant la partie.",
+  "game.notPublishedRetry": "Non publié — Réessayer",
+  "game.notPublishedHint": "Cette quête n'existe que sur votre appareil. Les joueurs ne peuvent pas la rejoindre tant qu'elle n'est pas publiée.",
+  "game.publishing": "Publication…",
+  "game.publishedToast": "Quête publiée — partagez le code.",
+  "game.publishFailed": "Échec de la publication",
+  "game.offlineRetry": "Hors ligne — les joueurs pourront rejoindre dès la reconnexion.",
 
   // ─── SPOTIFY ───
   "spotify.pill": "Playlist",
