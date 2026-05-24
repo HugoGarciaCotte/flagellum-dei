@@ -113,8 +113,9 @@ const CharacterDetails = ({ characterId }: CharacterDetailsProps) => {
         onUse={
           !opts.compact && opts.onUse && exhaustion !== "infinite" ? opts.onUse : undefined
         }
-        onRecharge={!opts.compact && opts.onRecharge && exhaustion !== "infinite" && exhausted ? opts.onRecharge : undefined}
+        onRecharge={!opts.compact && opts.onRecharge && exhaustion !== "infinite" && exhaustion !== "transforms_on_use" && exhausted ? opts.onRecharge : undefined}
       />
+
     );
   };
 
