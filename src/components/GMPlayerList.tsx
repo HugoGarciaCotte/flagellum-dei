@@ -103,6 +103,7 @@ const GMPlayerList = () => {
     const profileMap = new Map(allProfiles.map((p: any) => [p.user_id, p]));
     const charsByUser = new Map<string, Character[]>();
     for (const c of allCharacters as Character[]) {
+      if ((c as any).deleted_at) continue;
       const list = charsByUser.get(c.user_id) ?? [];
       list.push(c);
       charsByUser.set(c.user_id, list);
