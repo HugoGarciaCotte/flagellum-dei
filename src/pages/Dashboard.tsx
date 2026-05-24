@@ -205,7 +205,6 @@ const Dashboard = () => {
             <div className="space-y-3">
               <CharacterListItem
                 character={currentCharacter}
-                onView={() => setViewingCharId(currentCharacter.id)}
                 actions={
                   <span className="text-[10px] uppercase tracking-wider text-primary font-display mr-1">{t("common.current")}</span>
                 }
@@ -222,7 +221,6 @@ const Dashboard = () => {
                       <CharacterListItem
                         key={c.id}
                         character={c}
-                        onView={() => setViewingCharId(c.id)}
                       />
                     ))}
                   </CollapsibleContent>
