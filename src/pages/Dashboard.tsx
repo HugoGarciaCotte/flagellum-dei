@@ -203,22 +203,13 @@ const Dashboard = () => {
 
           {currentCharacter ? (
             <div className="space-y-3">
-              <div className="relative">
-                <CharacterListItem
-                  character={currentCharacter}
-                  actions={
-                    <>
-                      <span className="text-[10px] uppercase tracking-wider text-primary font-display mr-1">{t("common.current")}</span>
-                      <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => setEditingCharId(currentCharacter.id)}>
-                        <Pencil className="h-3.5 w-3.5" />
-                      </Button>
-                      <Button variant="ghost" size="icon" className="h-7 w-7 text-destructive" onClick={() => setDeleteCharTarget({ id: currentCharacter.id, name: currentCharacter.name })}>
-                        <Trash2 className="h-3.5 w-3.5" />
-                      </Button>
-                    </>
-                  }
-                />
-              </div>
+              <CharacterListItem
+                character={currentCharacter}
+                onView={() => setViewingCharId(currentCharacter.id)}
+                actions={
+                  <span className="text-[10px] uppercase tracking-wider text-primary font-display mr-1">{t("common.current")}</span>
+                }
+              />
 
               {otherCharacters.length > 0 && (
                 <Collapsible defaultOpen>
@@ -231,16 +222,7 @@ const Dashboard = () => {
                       <CharacterListItem
                         key={c.id}
                         character={c}
-                        actions={
-                          <>
-                            <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => setEditingCharId(c.id)}>
-                              <Pencil className="h-3.5 w-3.5" />
-                            </Button>
-                            <Button variant="ghost" size="icon" className="h-7 w-7 text-destructive" onClick={() => setDeleteCharTarget({ id: c.id, name: c.name })}>
-                              <Trash2 className="h-3.5 w-3.5" />
-                            </Button>
-                          </>
-                        }
+                        onView={() => setViewingCharId(c.id)}
                       />
                     ))}
                   </CollapsibleContent>
@@ -257,23 +239,14 @@ const Dashboard = () => {
             </Card>
           )}
 
-          <Dialog open={!!editingCharId} onOpenChange={(open) => { if (!open) setEditingCharId(null); }}>
-            <DialogContent className="fixed inset-0 max-w-none w-full h-full rounded-none p-0 translate-x-0 translate-y-0 left-0 top-0 border-none overflow-hidden [&>button:last-child]:hidden">
-              <div className="flex flex-col h-full min-h-0">
-                <div className="border-b border-border/50 bg-card/80 backdrop-blur px-4 py-3 flex items-center justify-between shrink-0 safe-top">
-                  <span className="font-display text-base font-medium text-foreground">{t("dashboard.editCharacter")}</span>
-                  <DialogClose className="rounded-sm opacity-70 hover:opacity-100"><X className="h-5 w-5" /></DialogClose>
-                </div>
-                <ScrollArea className="flex-1">
-                  <div className="container max-w-2xl py-6 px-4">
-                    {editingCharId && (
-                      <CharacterSheet characterId={editingCharId} mode="player" onDone={() => setEditingCharId(null)} />
-                    )}
-                  </div>
-                </ScrollArea>
-              </div>
-            </DialogContent>
-          </Dialog>
+          <CharacterDetailsDialog
+            characterId={viewingCharId}
+            open={!!viewingCharId}
+            onOpenChange={(o) => { if (!o) setViewingCharId(null); }}
+            canEdit
+            canDelete
+            editMode="player"
+          />
         </section>
 
         <div className="ornamental-divider" />
