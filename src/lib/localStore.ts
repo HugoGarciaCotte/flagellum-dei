@@ -196,6 +196,22 @@ export function setTable(table: TableName, rows: Row[]) {
   persist(table);
 }
 
+/**
+ * Snapshot-replace `table` with `rows`, but preserve any locally-dirty rows
+ * (unpushed offline edits) so a pull never wipes pending writes.
+ */
+export function setTableKeepDirty(table: TableName, rows: Row[]) {
+  const existing = cache.get(table) ?? [];
+  const incoming = new Map(rows.map((r) => [r.id, r]));
+  for (const row of existing) {
+    if (_dirtyRows.has(`${table}:${row.id}`) && !incoming.has(row.id)) {
+      incoming.set(row.id, row);
+    }
+  }
+  cache.set(table, [...incoming.values()]);
+  persist(table);
+}
+
 /** Merge incoming rows into existing cache by id (upsert, no replace) */
 export function mergeTable(table: TableName, rows: Row[]) {
   const existing = cache.get(table) ?? [];
