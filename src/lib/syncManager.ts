@@ -90,7 +90,7 @@ async function doPull(userId?: string) {
   if (profileRes.data) merge("profiles", profileRes.data);
 
 
-  const activeGameIds = (gamesRes.data ?? []).map((g: any) => g.id);
+  const activeGameIds = gamesData.map((g: any) => g.id);
   // For incremental, also include games already in local store
   if (isIncremental) {
     const localGames = store.getTable("games");
