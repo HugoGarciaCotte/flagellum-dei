@@ -167,6 +167,8 @@ const fr: Record<string, string> = {
   "adminScenarios.diffProposed": "Proposé",
   "adminScenarios.diffApply": "Appliquer",
   "adminScenarios.diffCancel": "Annuler",
+  "dashboard.otherCharacters": "{count} autre(s) personnage(s)",
+  "common.current": "Actuel",
 };
 
 export default fr;

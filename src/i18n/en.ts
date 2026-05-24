@@ -141,6 +141,8 @@ const en: Record<string, string> = {
   "dashboard.editCharacter": "Edit Character",
   "dashboard.noCharacters": "No characters yet",
   "dashboard.createToStart": "Create a character to get started.",
+  "dashboard.otherCharacters": "{count} other character(s)",
+  "common.current": "Current",
   "dashboard.activeGames": "Your Active Games",
   "dashboard.hosting": "Hosting",
   "dashboard.playing": "Playing",

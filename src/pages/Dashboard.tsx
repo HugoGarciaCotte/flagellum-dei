@@ -45,9 +45,16 @@ const Dashboard = () => {
 
   const characters = useLocalRows<any>("characters", user ? { user_id: user.id } : undefined);
   const sortedCharacters = useMemo(() =>
-    [...characters].sort((a, b) => (b.created_at || "").localeCompare(a.created_at || "")),
+    [...characters].sort((a, b) => {
+      const au = a.updated_at || a.created_at || "";
+      const bu = b.updated_at || b.created_at || "";
+      if (au !== bu) return bu.localeCompare(au);
+      return (b.created_at || "").localeCompare(a.created_at || "");
+    }),
     [characters]
   );
+  const currentCharacter = sortedCharacters[0] ?? null;
+  const otherCharacters = sortedCharacters.slice(1);
 
   const handleDeleteChar = (id: string) => {
     setDeleting(true);
@@ -204,24 +211,51 @@ const Dashboard = () => {
             </Dialog>
           </div>
 
-          {sortedCharacters.length > 0 ? (
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-              {sortedCharacters.map((c) => (
+          {currentCharacter ? (
+            <div className="space-y-3">
+              <div className="relative">
                 <CharacterListItem
-                  key={c.id}
-                  character={c}
+                  character={currentCharacter}
                   actions={
                     <>
-                      <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => setEditingCharId(c.id)}>
+                      <span className="text-[10px] uppercase tracking-wider text-primary font-display mr-1">{t("common.current")}</span>
+                      <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => setEditingCharId(currentCharacter.id)}>
                         <Pencil className="h-3.5 w-3.5" />
                       </Button>
-                      <Button variant="ghost" size="icon" className="h-7 w-7 text-destructive" onClick={() => setDeleteCharTarget({ id: c.id, name: c.name })}>
+                      <Button variant="ghost" size="icon" className="h-7 w-7 text-destructive" onClick={() => setDeleteCharTarget({ id: currentCharacter.id, name: currentCharacter.name })}>
                         <Trash2 className="h-3.5 w-3.5" />
                       </Button>
                     </>
                   }
                 />
-              ))}
+              </div>
+
+              {otherCharacters.length > 0 && (
+                <Collapsible>
+                  <CollapsibleTrigger className="flex items-center gap-1 text-sm text-muted-foreground hover:text-foreground transition-colors px-1 cursor-pointer group">
+                    <ChevronDown className="h-3 w-3 transition-transform group-data-[state=open]:rotate-180" />
+                    {t("dashboard.otherCharacters").replace("{count}", String(otherCharacters.length))}
+                  </CollapsibleTrigger>
+                  <CollapsibleContent className="mt-2 space-y-2">
+                    {otherCharacters.map((c) => (
+                      <CharacterListItem
+                        key={c.id}
+                        character={c}
+                        actions={
+                          <>
+                            <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => setEditingCharId(c.id)}>
+                              <Pencil className="h-3.5 w-3.5" />
+                            </Button>
+                            <Button variant="ghost" size="icon" className="h-7 w-7 text-destructive" onClick={() => setDeleteCharTarget({ id: c.id, name: c.name })}>
+                              <Trash2 className="h-3.5 w-3.5" />
+                            </Button>
+                          </>
+                        }
+                      />
+                    ))}
+                  </CollapsibleContent>
+                </Collapsible>
+              )}
             </div>
           ) : (
             <Card className="border-dashed border-muted-foreground/30">

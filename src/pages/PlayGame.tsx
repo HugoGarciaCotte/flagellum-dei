@@ -19,6 +19,7 @@ import CharacterCreationWizard from "@/components/CharacterCreationWizard";
 import CharacterListItem from "@/components/CharacterListItem";
 import PortraitViewer from "@/components/PortraitViewer";
 import { ScrollArea } from "@/components/ui/scroll-area";
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import { useLocalRow, useLocalRows } from "@/hooks/useLocalData";
 import { upsertRow } from "@/lib/localStore";
 import { triggerPush, pullTable } from "@/lib/syncManager";
@@ -55,28 +56,28 @@ const PlayGame = () => {
   const myPlayer = allMyPlayers.length > 0 ? allMyPlayers[0] : null;
   const myCharacters = useLocalRows<any>("characters", user ? { user_id: user.id } : undefined);
   const sortedCharacters = useMemo(() =>
-    [...myCharacters].sort((a, b) => (b.created_at || "").localeCompare(a.created_at || "")),
+    [...myCharacters].sort((a, b) => {
+      const au = a.updated_at || a.created_at || "";
+      const bu = b.updated_at || b.created_at || "";
+      if (au !== bu) return bu.localeCompare(au);
+      return (b.created_at || "").localeCompare(a.created_at || "");
+    }),
     [myCharacters]
   );
 
-  const selectedCharacter = useMemo(
-    () => myCharacters.find((c) => c.id === myPlayer?.character_id) ?? null,
-    [myCharacters, myPlayer]
-  );
+  const currentCharacter = sortedCharacters[0] ?? null;
+  const otherCharacters = sortedCharacters.slice(1);
+  const selectedCharacter = currentCharacter;
 
+  // Silently mirror the current character into game_players.character_id
+  // so GM view, dice broadcasts, and history keep working — without any user action.
   useEffect(() => {
-    if (myPlayer && !myPlayer.character_id && sortedCharacters.length > 0) {
-      selectCharacter(sortedCharacters[0].id);
-    }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [myPlayer?.character_id, sortedCharacters]);
-
-  const selectCharacter = (characterId: string) => {
-    if (!myPlayer) return;
-    upsertRow("game_players", { ...myPlayer, character_id: characterId });
+    if (!myPlayer || !currentCharacter) return;
+    if (myPlayer.character_id === currentCharacter.id) return;
+    upsertRow("game_players", { ...myPlayer, character_id: currentCharacter.id });
     triggerPush();
-    toast({ title: t("game.characterSelected") });
-  };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [currentCharacter?.id, myPlayer?.id, myPlayer?.character_id]);
   const currentSectionId = game?.current_section ?? null;
 
   // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -259,25 +260,42 @@ const PlayGame = () => {
                   </div>
                 ) : (
                   <>
-                    {sortedCharacters.map((char) => (
-                      <div
-                        key={char.id}
-                        onClick={() => selectCharacter(char.id)}
-                        className={`cursor-pointer rounded-lg transition-colors ${char.id === myPlayer?.character_id ? "ring-2 ring-primary" : "hover:ring-1 hover:ring-primary/50"}`}
-                      >
-                        <CharacterListItem
-                          character={char}
-                          actions={
-                            <div className="flex items-center gap-1">
-                              {char.id === myPlayer?.character_id && <Check className="h-4 w-4 text-primary" />}
-                              <Button variant="ghost" size="icon" className="h-8 w-8" onClick={(e) => { e.stopPropagation(); setEditingCharId(char.id); }}>
-                                <Pencil className="h-3.5 w-3.5" />
-                              </Button>
-                            </div>
-                          }
-                        />
-                      </div>
-                    ))}
+                    {currentCharacter && (
+                      <CharacterListItem
+                        character={currentCharacter}
+                        actions={
+                          <div className="flex items-center gap-1">
+                            <span className="text-[10px] uppercase tracking-wider text-primary font-display">{t("common.current")}</span>
+                            <Button variant="ghost" size="icon" className="h-8 w-8" onClick={(e) => { e.stopPropagation(); setEditingCharId(currentCharacter.id); }}>
+                              <Pencil className="h-3.5 w-3.5" />
+                            </Button>
+                          </div>
+                        }
+                      />
+                    )}
+
+                    {otherCharacters.length > 0 && (
+                      <Collapsible>
+                        <CollapsibleTrigger className="flex items-center gap-1 text-sm text-muted-foreground hover:text-foreground transition-colors px-1 cursor-pointer group">
+                          <ChevronDown className="h-3 w-3 transition-transform group-data-[state=open]:rotate-180" />
+                          {t("dashboard.otherCharacters").replace("{count}", String(otherCharacters.length))}
+                        </CollapsibleTrigger>
+                        <CollapsibleContent className="mt-2 space-y-2">
+                          {otherCharacters.map((char) => (
+                            <CharacterListItem
+                              key={char.id}
+                              character={char}
+                              actions={
+                                <Button variant="ghost" size="icon" className="h-8 w-8" onClick={(e) => { e.stopPropagation(); setEditingCharId(char.id); }}>
+                                  <Pencil className="h-3.5 w-3.5" />
+                                </Button>
+                              }
+                            />
+                          ))}
+                        </CollapsibleContent>
+                      </Collapsible>
+                    )}
+
                     <Button variant="outline" size="sm" className="gap-2 w-full" onClick={() => setCreatingChar(true)}>
                       <Plus className="h-3 w-3" /> {t("game.newCharacter")}
                     </Button>
@@ -298,7 +316,7 @@ const PlayGame = () => {
           </div>
           <ScrollArea className="flex-1">
             <div className="container max-w-2xl py-6 px-4">
-              <CharacterCreationWizard gameId={gameId} onCreated={(id) => { selectCharacter(id); setCreatingChar(false); }} onCancel={() => setCreatingChar(false)} />
+              <CharacterCreationWizard gameId={gameId} onCreated={() => { setCreatingChar(false); }} onCancel={() => setCreatingChar(false)} />
             </div>
           </ScrollArea>
         </div>
