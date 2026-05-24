@@ -6,10 +6,9 @@ import { pullTable } from "@/lib/syncManager";
 import { supabase } from "@/integrations/supabase/client";
 import { useNetworkStatus } from "@/hooks/useNetworkStatus";
 import { Button } from "@/components/ui/button";
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
-import { Users, ChevronDown, Pencil } from "lucide-react";
-import CharacterSheet from "@/components/CharacterSheet";
+import { Users, ChevronDown } from "lucide-react";
+import CharacterDetailsDialog from "@/components/CharacterDetailsDialog";
 import CharacterListItem from "@/components/CharacterListItem";
 import { useTranslation } from "@/i18n/useTranslation";
 
