@@ -110,12 +110,29 @@ async function doPull(userId?: string) {
 
   // Phase 4: characters (feats live in characters.feats jsonb — no per-feat tables to pull)
   const charUserIdArr = [...charUserIds];
-  const [charsRes] = await Promise.all([
-    withSince(supabase.from("characters").select("*").in("user_id", charUserIdArr), since),
-  ]);
 
-  if (charsRes.data) {
-    merge("characters", charsRes.data);
+  // Identify user_ids we've never pulled characters for — for those, do a full
+  // (non-incremental) fetch so newly-joined players' existing characters land
+  // in cache even if their updated_at is older than our lastSync.
+  const localChars = store.getTable("characters");
+  const knownUserIds = new Set<string>(localChars.map((c: any) => c.user_id));
+  const newUserIds = charUserIdArr.filter((uid) => !knownUserIds.has(uid));
+  const knownUserIdsToPull = charUserIdArr.filter((uid) => knownUserIds.has(uid));
+
+  const charPulls: Promise<any>[] = [];
+  if (knownUserIdsToPull.length > 0) {
+    charPulls.push(
+      withSince(supabase.from("characters").select("*").in("user_id", knownUserIdsToPull), since),
+    );
+  }
+  if (newUserIds.length > 0) {
+    // Full pull (no `since`) for first-time user_ids
+    charPulls.push(supabase.from("characters").select("*").in("user_id", newUserIds));
+  }
+
+  const charResults = await Promise.all(charPulls);
+  for (const res of charResults) {
+    if (res?.data) merge("characters", res.data);
   }
 
   store.setLastSync(now);
