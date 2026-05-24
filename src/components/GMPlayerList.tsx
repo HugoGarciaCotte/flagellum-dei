@@ -1,8 +1,10 @@
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect } from "react";
 import { useAuth } from "@/contexts/AuthContext";
 import { useLocalRows } from "@/hooks/useLocalData";
 import { getBy } from "@/lib/localStore";
 import { pullTable } from "@/lib/syncManager";
+import { supabase } from "@/integrations/supabase/client";
+import { useNetworkStatus } from "@/hooks/useNetworkStatus";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";

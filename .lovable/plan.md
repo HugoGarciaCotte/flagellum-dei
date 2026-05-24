@@ -1,34 +1,26 @@
-Two fixes in one go:
+## Plan
 
-## 1. Reliable GM character sync
+Fix the GM player sheet showing player names with empty character slots, and make sure the GM view stays in sync when players edit their own data.
 
-- When the viewer is a host/DM, always full-pull characters for every player `user_id` in their games (not only first-time user IDs). Keep the viewer's own characters on the incremental path.
-- This guarantees a player's existing characters show up on the GM dashboard even if their `updated_at` is older than the GM's `lastSync`.
+### Root cause
 
-## 2. Toast every sync error
+The host page relies on local cache for `characters` and `profiles`. On page load it does not always pull every joined player's characters, so players appear without any character info ("No character selected"). The existing realtime subscription only refreshes on `game_players` changes plus `characters` INSERT/UPDATE — but if the initial pull missed them, the cache stays empty until someone re-joins.
 
-Today many sync failures are only `console.warn`/`console.error`. Surface them all as toasts via `sonner` so the user actually sees them.
+### Fix
 
-Wrap and toast errors in:
-- `localStore.persist()` — currently swallows `QuotaExceededError`. Toast it (with a clear "Local storage full" message) and dispatch a `sync-error` event so the global listener also catches it.
-- `localStore.setLastSync` / `appendSyncError` / `clearSyncErrors` `try/catch` blocks.
-- `syncManager.doPull` — `catch (e)` in `pullAll` currently only warns. Toast it.
-- `syncManager.pullTable` — `catch (e)` only warns. Toast it.
-- `syncManager.doPush` — already records `sync-error` events; ensure each one produces a toast.
-- `ensureSession` — anonymous sign-in failure toast.
+1. **Pull every player's data on host load and when the player list changes**
+   - In `HostGame.tsx`, when `syncReady` + `online` + `gameId` + `allPlayers` are ready, pull:
+     - `profiles` for each player `user_id`
+     - `characters` for each player `user_id`
+     - the specific `character_id` row when set
+   - Re-run when `allPlayers` changes (new joiner, character link change).
 
-Add a single global `sync-error` event listener (e.g. in `App.tsx` or an existing sync-status component) that calls `toast.error(...)` so we have one consistent surface and no duplicates. Throttle/dedupe identical messages within a short window to avoid spam (e.g. same message within 3s collapses).
+2. **Live refresh when a player edits their character or profile**
+   - The current realtime subscription on `characters` already exists, but verify it actually triggers a re-pull for the changed `user_id` and that `profiles` updates are also subscribed.
+   - Add a `profiles` realtime subscription scoped to the player `user_id`s so display name changes appear immediately on the GM side.
+   - Ensure the `characters` subscription does not silently drop events for players who joined after the host opened the page (refresh the player-id set when `allPlayers` changes).
 
-Keep messages user-friendly and translated where a key already exists; fall back to the raw error message otherwise.
+3. **Display safeguard in `PlayerListSheet` / `GMPlayerList`**
+   - If a player has a `character_id` but the row isn't in local cache yet, show a "loading…" state instead of "No character selected" to avoid false empties.
 
-## Files
-
-- `src/lib/syncManager.ts` — full-pull characters for non-self user IDs when host; toast on caught errors.
-- `src/lib/localStore.ts` — toast on `persist` quota failures and other `try/catch` swallowed errors; emit `sync-error` events.
-- `src/App.tsx` (or existing sync status component) — global `sync-error` listener that fires `toast.error` with dedupe.
-
-## Validation
-
-- Reload preview, confirm GM still sees players' current characters.
-- Simulate a quota error by filling localStorage in devtools; confirm a toast appears.
-- Confirm no duplicate toast storms during a single sync cycle.
+4. **No schema or RLS changes.** Pure client sync + display fix.
