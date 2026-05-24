@@ -10,7 +10,8 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import { toast } from "@/hooks/use-toast";
 import { useNavigate, Link } from "react-router-dom";
-import { LogOut, Plus, Settings, ChevronDown, WifiOff, X, Copy } from "lucide-react";
+import { LogOut, Plus, Settings, ChevronDown, WifiOff, Copy } from "lucide-react";
+import CloseButton from "@/components/nav/CloseButton";
 
 import PageHeader from "@/components/PageHeader";
 import CharacterCreationWizard from "@/components/CharacterCreationWizard";
@@ -186,7 +187,7 @@ const Dashboard = () => {
                 <div className="flex flex-col h-full min-h-0">
                   <div className="border-b border-border/50 bg-card/80 backdrop-blur px-4 py-3 flex items-center justify-between shrink-0 safe-top">
                     <span className="font-display text-base font-medium text-foreground">{t("dashboard.createCharacter")}</span>
-                    <DialogClose className="rounded-sm opacity-70 hover:opacity-100"><X className="h-5 w-5" /></DialogClose>
+                    <DialogClose asChild><CloseButton onClose={() => setNewCharDialogOpen(false)} /></DialogClose>
                   </div>
                   <ScrollArea className="flex-1">
                     <div className="container max-w-2xl py-6 px-4">

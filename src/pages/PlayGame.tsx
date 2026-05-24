@@ -7,7 +7,9 @@ import { loadScenarioOverrides } from "@/lib/scenarioOverrides";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { parseWikitext, findSection, resolveBackgroundImage, extractImageUrls, WikiSection } from "@/lib/parseWikitext";
-import { ArrowLeft, Plus, Check, X, ChevronUp, ChevronDown, Copy } from "lucide-react";
+import { Plus, Check, X, ChevronUp, ChevronDown, Copy } from "lucide-react";
+import BackButton from "@/components/nav/BackButton";
+import CloseButton from "@/components/nav/CloseButton";
 import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
 import CharacterDetailsDialog from "@/components/CharacterDetailsDialog";
 import { useNetworkStatus } from "@/hooks/useNetworkStatus";
@@ -153,7 +155,7 @@ const PlayGame = () => {
     >
       <PageHeader
         title={effectiveScenario?.title ?? ""}
-        leftAction={<Button variant="ghost" size="icon" onClick={() => navigate("/")}><ArrowLeft className="h-4 w-4" /></Button>}
+        leftAction={<BackButton to="/" />}
         rightActions={
           game?.join_code ? (
             <Button variant="outline" size="sm" onClick={copyCode} className="font-mono text-sm gap-1.5">
@@ -245,9 +247,7 @@ const PlayGame = () => {
                   <Button variant="ghost" size="icon" className="h-8 w-8" aria-label="Collapse" onClick={() => setSheetExpanded(false)}>
                     <ChevronDown className="h-4 w-4" />
                   </Button>
-                  <Button variant="ghost" size="icon" className="h-8 w-8" aria-label="Close" onClick={() => setSheetExpanded(false)}>
-                    <X className="h-4 w-4" />
-                  </Button>
+                  <CloseButton onClose={() => setSheetExpanded(false)} />
                 </div>
               </div>
             </div>
@@ -306,7 +306,7 @@ const PlayGame = () => {
         <div className="fixed inset-0 z-50 bg-background flex flex-col animate-in fade-in duration-200 pt-[env(safe-area-inset-top)]">
           <div className="border-b border-border/50 bg-card/80 backdrop-blur px-4 py-3 flex items-center justify-between shrink-0">
             <span className="font-display text-base font-medium text-foreground">{t("dashboard.createCharacter")}</span>
-            <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => setCreatingChar(false)}><X className="h-4 w-4" /></Button>
+            <CloseButton onClose={() => setCreatingChar(false)} />
           </div>
           <ScrollArea className="flex-1">
             <div className="container max-w-2xl py-6 px-4">

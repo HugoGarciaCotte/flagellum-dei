@@ -1,7 +1,8 @@
 import { useNavigate } from "react-router-dom";
 import { useIsOwner } from "@/hooks/useIsOwner";
 import { Button } from "@/components/ui/button";
-import { ArrowLeft, Swords } from "lucide-react";
+import { Swords } from "lucide-react";
+import BackButton from "@/components/nav/BackButton";
 import FeatEditorPanel from "@/components/FeatEditorPanel";
 import FullPageLoader from "@/components/FullPageLoader";
 import PageHeader from "@/components/PageHeader";
@@ -28,11 +29,7 @@ const AdminFeats = () => {
       <PageHeader
         title={t("admin.feats")}
         icon={<Swords className="h-5 w-5 text-primary" />}
-        leftAction={
-          <Button variant="ghost" size="icon" onClick={() => navigate("/admin")}>
-            <ArrowLeft className="h-4 w-4" />
-          </Button>
-        }
+        leftAction={<BackButton to="/admin" />}
       />
       <main className="container flex-1 overflow-hidden py-4 max-w-5xl flex flex-col">
         <FeatEditorPanel />

@@ -4,6 +4,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Sparkles, Loader2, Check, X, RotateCcw, Plus, Image, Timer, SeparatorHorizontal, ListMusic, Music } from "lucide-react";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { ScrollArea } from "@/components/ui/scroll-area";
+import CloseButton from "@/components/nav/CloseButton";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "@/hooks/use-toast";
 
@@ -180,9 +181,7 @@ export default function AiImprovePanel({ content, onApply, onClose, t }: AiImpro
       <div className="flex items-center gap-2 px-4 pt-3 pb-2 border-b border-border">
         <Sparkles className="h-4 w-4 text-primary shrink-0" />
         <h3 className="font-display text-sm font-semibold flex-1">{t("adminScenarios.improveWithAi")}</h3>
-        <Button variant="ghost" size="sm" onClick={onClose}>
-          <X className="h-4 w-4" />
-        </Button>
+        <CloseButton onClose={onClose} />
       </div>
 
       {/* Instruction input */}

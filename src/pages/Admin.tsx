@@ -3,7 +3,8 @@ import { useIsOwner } from "@/hooks/useIsOwner";
 import { Button } from "@/components/ui/button";
 import { Card, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
-import { ArrowLeft, FileText, Swords, Archive, ChevronDown, Languages } from "lucide-react";
+import { FileText, Swords, Archive, ChevronDown, Languages } from "lucide-react";
+import BackButton from "@/components/nav/BackButton";
 import ManageScenarios from "@/components/ManageScenarios";
 import ImportFeatsCard from "@/components/ImportFeatsCard";
 import ManageRedirects from "@/components/ManageRedirects";
@@ -33,11 +34,7 @@ const Admin = () => {
     <div className="min-h-screen bg-background">
       <PageHeader
         title={t("admin.title")}
-        leftAction={
-          <Button variant="ghost" size="icon" onClick={() => navigate("/")}>
-            <ArrowLeft className="h-4 w-4" />
-          </Button>
-        }
+        leftAction={<BackButton to="/" />}
       />
 
       <main className="container py-8 max-w-5xl space-y-6">

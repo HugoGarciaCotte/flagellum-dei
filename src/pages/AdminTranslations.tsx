@@ -8,7 +8,8 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import { Badge } from "@/components/ui/badge";
-import { ArrowLeft, Download, Sparkles, AlertTriangle, Loader2, Check, Copy, ChevronDown } from "lucide-react";
+import { Download, Sparkles, AlertTriangle, Loader2, Check, Copy, ChevronDown } from "lucide-react";
+import BackButton from "@/components/nav/BackButton";
 import { toast } from "@/hooks/use-toast";
 import FullPageLoader from "@/components/FullPageLoader";
 import PageHeader from "@/components/PageHeader";
@@ -186,11 +187,7 @@ const AdminTranslations = () => {
     <div className="min-h-screen bg-background">
       <PageHeader
         title={t("admin.translations")}
-        leftAction={
-          <Button variant="ghost" size="icon" onClick={() => navigate("/admin")}>
-            <ArrowLeft className="h-4 w-4" />
-          </Button>
-        }
+        leftAction={<BackButton to="/admin" />}
       />
 
       <main className="container py-8 max-w-5xl space-y-6">
