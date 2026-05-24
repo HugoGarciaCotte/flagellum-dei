@@ -74,29 +74,8 @@ const CharacterDetails = ({ characterId }: CharacterDetailsProps) => {
     triggerPush();
   };
 
-  const handleUse = (featId: string, isFree: boolean, level?: number, exhaustion?: string) => {
-    const patch: Partial<FeatRow> =
-      exhaustion === "once_forever"
-        ? { used_forever: true, exhausted_at: new Date().toISOString(), exhausted_scenario_id: currentScenarioId ?? null }
-        : { exhausted_at: new Date().toISOString(), exhausted_scenario_id: currentScenarioId ?? null };
-    updateEntry(
-      (f) =>
-        f.feat_id === featId &&
-        !!f.is_free === isFree &&
-        (isFree ? true : f.level === level),
-      patch,
-    );
-  };
 
-  const handleRecharge = (featId: string, isFree: boolean, level?: number) => {
-    updateEntry(
-      (f) =>
-        f.feat_id === featId &&
-        !!f.is_free === isFree &&
-        (isFree ? true : f.level === level),
-      { exhausted_at: null, exhausted_scenario_id: null, used_forever: false },
-    );
-  };
+
 
   const renderFeat = (
     featId: string,
