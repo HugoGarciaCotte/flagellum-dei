@@ -1,58 +1,34 @@
-## Goal
+Two fixes in one go:
 
-Drop the explicit "selected character" concept everywhere. The **current character** is implicit: the player's most recently updated one. Three surfaces show it the same way — current is prominent, others are tucked behind a collapsible "Other characters" toggle.
+## 1. Reliable GM character sync
 
-## Rule
+- When the viewer is a host/DM, always full-pull characters for every player `user_id` in their games (not only first-time user IDs). Keep the viewer's own characters on the incremental path.
+- This guarantees a player's existing characters show up on the GM dashboard even if their `updated_at` is older than the GM's `lastSync`.
 
-`currentCharacter = characters.filter(not deleted).sort by updated_at desc, then created_at desc)[0]`
+## 2. Toast every sync error
 
-Editing any character bumps `updated_at`, which naturally promotes it to current. No user action ever "selects" a character anymore.
+Today many sync failures are only `console.warn`/`console.error`. Surface them all as toasts via `sonner` so the user actually sees them.
 
-## Surfaces
+Wrap and toast errors in:
+- `localStore.persist()` — currently swallows `QuotaExceededError`. Toast it (with a clear "Local storage full" message) and dispatch a `sync-error` event so the global listener also catches it.
+- `localStore.setLastSync` / `appendSyncError` / `clearSyncErrors` `try/catch` blocks.
+- `syncManager.doPull` — `catch (e)` in `pullAll` currently only warns. Toast it.
+- `syncManager.pullTable` — `catch (e)` only warns. Toast it.
+- `syncManager.doPush` — already records `sync-error` events; ensure each one produces a toast.
+- `ensureSession` — anonymous sign-in failure toast.
 
-### 1. `src/pages/PlayGame.tsx` (player in-game)
+Add a single global `sync-error` event listener (e.g. in `App.tsx` or an existing sync-status component) that calls `toast.error(...)` so we have one consistent surface and no duplicates. Throttle/dedupe identical messages within a short window to avoid spam (e.g. same message within 3s collapses).
 
-- Replace `selectedCharacter` (derived from `myPlayer.character_id`) with `currentCharacter` derived from `myCharacters` by recency.
-- Pass `currentCharacter` to `DiceRoller` and the collapsed sheet header.
-- In the expanded sheet:
-  - Top block: current character (existing `CharacterListItem`) with a small "Current" badge and the Edit (pencil) button.
-  - Below: `Collapsible` showing `{count} other characters`, listing the rest with only Edit actions. No ring, no click-to-select, no `selectCharacter` handler, no toast.
-- Remove the auto-select effect and the click-to-select handler.
-- Add one `useEffect` that silently mirrors `currentCharacter.id` into `game_players.character_id` whenever they diverge, so existing GM-side data, dice broadcast, and history keep working without UI ceremony.
-
-### 2. `src/pages/Dashboard.tsx` (my characters list)
-
-- Replace the flat grid with the same pattern:
-  - Prominent: current character (most recently updated) with Edit + Delete actions.
-  - Below: `Collapsible` "Other characters ({count})", same `CharacterListItem` rows with Edit + Delete.
-- "New character" button stays in the section header.
-- Keep the empty state as-is.
-
-### 3. `src/components/GMPlayerList.tsx` (DM dashboard widget)
-
-- Already has the prominent + collapsible "other characters" structure — only the data source changes.
-- Replace `selectedCharId = gp.character_id` with: for each player, `currentChar = that player's characters sorted by updated_at desc`. Ignore `game_players.character_id` for display.
-- `otherChars` = the rest.
-- Everything else (edit dialog, pull-on-open) stays.
-
-## Notes
-
-- `CharacterListItem` already exists and is reused across all three surfaces — no component changes needed beyond a tiny optional "Current" badge passed via a new `badge?: ReactNode` prop (or rendered inline next to the name in the parents — TBD during implementation, prefer parent-side to avoid coupling).
-- No schema change. `game_players.character_id` stays as a back-compat field, written silently from PlayGame.
-- New translation keys (FR + EN):
-  - `common.current` ("Current" / "Actuel")
-  - `dashboard.otherCharacters` ("{count} other characters" / "{count} autres personnages")
-  - Reuse existing `gm.otherCharacters` for the GM widget.
-
-## Out of scope
-
-- `HostGame` page (it already shows all players via `GMPlayerList`).
-- Dice/GM broadcast logic — relies on `game_players.character_id` which we keep in sync.
-- Character creation wizard / character sheet internals.
+Keep messages user-friendly and translated where a key already exists; fall back to the raw error message otherwise.
 
 ## Files
 
-- edit: `src/pages/PlayGame.tsx`
-- edit: `src/pages/Dashboard.tsx`
-- edit: `src/components/GMPlayerList.tsx`
-- edit: `src/i18n/locales/en.ts`, `src/i18n/locales/fr.ts` (2 new keys)
+- `src/lib/syncManager.ts` — full-pull characters for non-self user IDs when host; toast on caught errors.
+- `src/lib/localStore.ts` — toast on `persist` quota failures and other `try/catch` swallowed errors; emit `sync-error` events.
+- `src/App.tsx` (or existing sync status component) — global `sync-error` listener that fires `toast.error` with dedupe.
+
+## Validation
+
+- Reload preview, confirm GM still sees players' current characters.
+- Simulate a quota error by filling localStorage in devtools; confirm a toast appears.
+- Confirm no duplicate toast storms during a single sync cycle.
