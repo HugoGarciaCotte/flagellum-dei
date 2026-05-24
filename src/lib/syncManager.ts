@@ -183,36 +183,60 @@ async function doPush() {
       return rest;
     });
 
+    // Tables where rows are user-owned and the INSERT policy is `auth.uid() = user_id`.
+    // For these tables, foreign rows can never be inserted by the current user.
+    // - `characters` has a host UPDATE policy → foreign rows go through .update()
+    // - `profiles`, `game_players`, `user_roles` have no host-write policy → drop the
+    //   dirty flag for foreign rows so we don't retry-spam, and surface one sync-error.
+    const ownedTables: Partial<Record<TableName, "update" | "drop">> = {
+      characters: "update",
+      profiles: "drop",
+      game_players: "drop",
+      user_roles: "drop",
+    };
+
     for (let i = 0; i < sanitized.length; i += 100) {
       const chunk = sanitized.slice(i, i + 100);
       const chunkIds = chunk.map((r: any) => r.id);
       try {
-        // For `characters`, split owned rows (upsert) vs foreign rows
-        // (host editing a player's character → UPDATE only, to avoid the
-        // INSERT WITH CHECK policy `auth.uid() = user_id` rejecting the upsert).
-        if (table === "characters" && _currentUserId) {
+        const foreignMode = ownedTables[table];
+        if (foreignMode && _currentUserId) {
           const own = chunk.filter((r: any) => r.user_id === _currentUserId);
           const foreign = chunk.filter((r: any) => r.user_id !== _currentUserId);
+
           if (own.length > 0) {
-            const { error } = await (supabase.from("characters").upsert(own as any, { onConflict: "id" }) as any);
+            const ownIds = own.map((r: any) => r.id);
+            const { error } = await (supabase.from(table as any).upsert(own as any, { onConflict: "id" }) as any);
             if (error) {
-              const ids = own.map((r: any) => r.id);
-              console.error(`Push characters (own) failed:`, error.message, { ids });
-              store.appendSyncError({ table, ids, message: error.message });
-              window.dispatchEvent(new CustomEvent("sync-error", { detail: { table, ids, message: error.message } }));
+              console.error(`Push ${table} (own) failed:`, error.message, { ids: ownIds });
+              store.appendSyncError({ table, ids: ownIds, message: error.message });
+              window.dispatchEvent(new CustomEvent("sync-error", { detail: { table, ids: ownIds, message: error.message } }));
             } else {
               for (const r of own) succeeded.push({ table, id: r.id });
             }
           }
-          for (const row of foreign) {
-            const { id, user_id, created_at, ...patch } = row as any;
-            const { error } = await (supabase.from("characters").update(patch).eq("id", id) as any);
-            if (error) {
-              console.error(`Push characters (foreign) failed:`, error.message, { ids: [id] });
-              store.appendSyncError({ table, ids: [id], message: error.message });
-              window.dispatchEvent(new CustomEvent("sync-error", { detail: { table, ids: [id], message: error.message } }));
+
+          if (foreign.length > 0) {
+            if (foreignMode === "update") {
+              for (const row of foreign) {
+                const { id, user_id, created_at, ...patch } = row as any;
+                const { error } = await (supabase.from(table as any).update(patch).eq("id", id) as any);
+                if (error) {
+                  console.error(`Push ${table} (foreign) failed:`, error.message, { ids: [id] });
+                  store.appendSyncError({ table, ids: [id], message: error.message });
+                  window.dispatchEvent(new CustomEvent("sync-error", { detail: { table, ids: [id], message: error.message } }));
+                } else {
+                  succeeded.push({ table, id });
+                }
+              }
             } else {
-              succeeded.push({ table, id });
+              // "drop": no policy permits this write — clear dirty flag so we don't loop.
+              const foreignIds = foreign.map((r: any) => r.id);
+              const msg = `Skipped pushing ${foreign.length} foreign ${table} row(s) — no write permission`;
+              console.warn(msg, { ids: foreignIds });
+              store.appendSyncError({ table, ids: foreignIds, message: msg });
+              window.dispatchEvent(new CustomEvent("sync-error", { detail: { table, ids: foreignIds, message: msg } }));
+              for (const id of foreignIds) succeeded.push({ table, id }); // succeeded → clearDirtyFor will drop it
             }
           }
         } else {
@@ -233,6 +257,7 @@ async function doPush() {
         store.appendSyncError({ table, ids: chunkIds, message: msg });
         window.dispatchEvent(new CustomEvent("sync-error", {
           detail: { table, ids: chunkIds, message: msg },
+
         }));
       }
     }
