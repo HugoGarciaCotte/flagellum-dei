@@ -3,6 +3,7 @@ import { useNetworkStatus } from "@/hooks/useNetworkStatus";
 import { WifiOff, Loader2, Check } from "lucide-react";
 import { useTranslation } from "@/i18n/useTranslation";
 import { useBottomStack } from "@/contexts/BottomStackContext";
+import { toast } from "sonner";
 
 export const OfflineBanner = () => {
   const online = useNetworkStatus();
