@@ -14,9 +14,10 @@ interface CharacterListItemProps {
   onView?: (id: string) => void;
 }
 
-const CharacterListItem = ({ character, actions }: CharacterListItemProps) => {
+const CharacterListItem = ({ character, actions, onView }: CharacterListItemProps) => {
   const { t, locale } = useTranslation();
   const charRow = useLocalRow<any>("characters", character.id);
+  const clickable = !!onView;
 
   const feats = useMemo(() => {
     const doc: any[] = Array.isArray(charRow?.feats) ? charRow.feats : [];
@@ -33,7 +34,13 @@ const CharacterListItem = ({ character, actions }: CharacterListItemProps) => {
   const initials = character.name.slice(0, 2).toUpperCase();
 
   return (
-    <Card className="border-border hover:border-primary/40 transition-colors gold-glow-box">
+    <Card
+      className={`border-border hover:border-primary/40 transition-colors gold-glow-box ${clickable ? "cursor-pointer" : ""}`}
+      onClick={clickable ? () => onView(character.id) : undefined}
+      role={clickable ? "button" : undefined}
+      tabIndex={clickable ? 0 : undefined}
+      onKeyDown={clickable ? (e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); onView(character.id); } } : undefined}
+    >
       <CardHeader className="pb-2">
         <div className="flex items-start justify-between">
           <div className="flex items-center gap-3">
