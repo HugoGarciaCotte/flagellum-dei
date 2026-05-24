@@ -213,7 +213,20 @@ const CharacterDetails = ({ characterId }: CharacterDetailsProps) => {
                         };
                         return (
                           <li key={sf.slot} className="pl-2">
-                            {renderFeat(sf.feat_id, `${f.key}-s${sf.slot}`, { compact: true, state: sfState })}
+                            {renderFeat(sf.feat_id, `${f.key}-s${sf.slot}`, {
+                              compact: true,
+                              state: sfState,
+                              onUse: () => {
+                                const sFeat = getFeatById(sf.feat_id, locale);
+                                const sExh = sFeat ? getFeatExhaustion(sFeat) : undefined;
+                                updateSubfeat(f.docIndex, sf.slot, sExh === "once_forever"
+                                  ? { used_forever: true, exhausted_at: new Date().toISOString(), exhausted_scenario_id: currentScenarioId ?? null }
+                                  : { exhausted_at: new Date().toISOString(), exhausted_scenario_id: currentScenarioId ?? null });
+                              },
+                              onRecharge: () => {
+                                updateSubfeat(f.docIndex, sf.slot, { exhausted_at: null, exhausted_scenario_id: null, used_forever: false });
+                              },
+                            })}
                           </li>
                         );
                       })}
