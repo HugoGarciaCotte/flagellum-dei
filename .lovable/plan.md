@@ -1,20 +1,30 @@
-## Problem
+## Diagnosis
 
-Measured from desktop screenshots (1440×900):
+Data is correct — all 42 prowesses have an `exhaustion` value (41 = `once_per_scenario`, 1 = `once_forever`), and Faith / Dark Faith / Whispers of Madness / Abuse of Power all have the right meta.
 
-- Dashboard "Sign Out" / "Flagellum Dei" bar: 56px tall, title centered to within 1px. ✅
-- Edit Character dialog bar: 44px tall, title glyphs centered at row ~16 while bar center is at row ~22 → title sits **~6px above center**. ❌
+The bug is rendering: when these feats sit as **subfeats under an Archetype** (Aristocrat's Faith slot, Wiki Contributor's Dark Faith slot, etc.), both `CharacterDetails.tsx` and `CharacterFeatPicker.tsx` render them with `compact: true`. `FeatListItem` then hides Use and Recharge unconditionally for any compact row:
 
-Cause: in `src/components/CharacterDetailsDialog.tsx` the title `<span>` lacks `leading-none`, so the display serif inherits default line-height and its visible glyphs ride high inside the flex row. The dashboard `PageHeader` avoids this because its h1 uses `leading-none`.
+```tsx
+{!compact && onUse && !exhaustionLabel && <Use />}
+{!compact && onRecharge && <Recharge />}
+```
 
-Mobile looks fine because `safe-top` adds top inset padding that compensates, and the misalignment is less perceptible at small sizes.
+So the buttons disappear, even though the underlying exhaustion state is wired up.
 
-## Change
+## Fix
 
-Single file: `src/components/CharacterDetailsDialog.tsx`, header block (lines 70–82).
+Subfeats should get the buttons, but other compact contexts (e.g. compact character-sheet previews on the dashboard, the GM player list, etc.) must stay button-less. So I won't strip the `!compact` guard — I'll let the caller opt in.
 
-1. Add `leading-none` to the title `<span>` so the glyph box sits in the true center of the flex row.
-2. Add `leading-none` to the back-arrow `<span>` for consistency (same reason).
-3. Give the header row a stable height (`min-h-12`) so it doesn't depend on inner content metrics — matches the pattern used by `PageHeader`.
+1. **`src/components/FeatListItem.tsx`** — keep the `compact` prop's visual role (padding, density), but stop using it to gate Use/Recharge. Instead show those buttons whenever `onUse` / `onRecharge` are passed. Other compact callers already pass `undefined` for both, so they stay unchanged.
 
-No other files, no behavior changes, no logic changes. After the edit I'll re-screenshot the edit dialog at desktop width, re-measure the title's pixel center against the bar center, and confirm the offset is ≤1px.
+2. **`src/components/CharacterDetails.tsx`** — in the subfeats loop (around line 195–206), pass `onUse` and `onRecharge` handlers for each subfeat. They patch the parent feat's `subfeats[]` array at the matching slot via a new `updateSubfeatState(docIndex, slot, patch)` helper that mirrors `updateEntry` but targets the nested entry. Keep `compact: true` so the row stays dense.
+
+3. **`src/components/CharacterFeatPicker.tsx`** — in `renderSubfeats` (around line 585), do the same: pass `onUse` / `onRecharge` that persist per-subfeat state. The per-subfeat columns (`exhausted_at`, `exhausted_scenario_id`, `used_forever`) already exist on `character_feat_subfeats` and on the embedded `subfeats[]` entries.
+
+4. **Audit other compact callers** (`CharacterListItem`, dashboard previews, GM player list, etc.) — they already pass no `onUse`/`onRecharge`, so they keep showing no buttons. I'll grep to confirm before finishing.
+
+## Verification
+
+- Open a character whose Archetype has Faith / Dark Faith / Whispers of Madness slotted. Confirm Use flips the tag to `(exhausted)`, Recharge clears it, both on read-only Details and in the Edit picker.
+- Reload the compact character cards on the dashboard and GM player list to confirm no Use/Recharge buttons appear there.
+- Re-test at 970-wide desktop and at mobile width — buttons stay tappable in the tight subfeat row.
