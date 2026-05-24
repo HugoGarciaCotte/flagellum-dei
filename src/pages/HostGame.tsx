@@ -240,7 +240,7 @@ const HostGame = () => {
     <div className="fixed inset-0 bg-background flex flex-col">
       <PageHeader
         title={effectiveScenario?.title ?? ""}
-        leftAction={<Button variant="ghost" size="icon" onClick={() => navigate("/")}><ArrowLeft className="h-4 w-4" /></Button>}
+        leftAction={<BackButton to="/" />}
         badge={
           <>
             {scenarioMeta.scenario_level && (
