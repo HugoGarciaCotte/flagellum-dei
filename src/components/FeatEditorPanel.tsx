@@ -6,7 +6,7 @@ import { Badge } from "@/components/ui/badge";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Download, Plus, Trash2, ChevronDown, Search, Loader2, AlertTriangle, Check, Sparkles } from "lucide-react";
-import { getHardcodedFeats, getFeatMeta, getAllFeatRedirects, type Feat, type FeatMeta, type FeatRedirect } from "@/data/feats";
+import { getHardcodedFeats, getFeatMeta, getAllFeatRedirects, EXHAUSTION_TYPES, type Feat, type FeatMeta, type FeatRedirect, type ExhaustionType } from "@/data/feats";
 import type { SubfeatSlot } from "@/lib/parseEmbeddedFeatMeta";
 import SubfeatSlotEditor from "@/components/SubfeatSlotEditor";
 import FeatCategoryBadges from "@/components/FeatCategoryBadges";
