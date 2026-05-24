@@ -5,6 +5,12 @@ import { normalizeScenarioId } from "./scenarioIds";
 
 const LOCAL_GUEST_KEY = "local-guest-user";
 
+function emitSyncError(table: string, message: string) {
+  try {
+    window.dispatchEvent(new CustomEvent("sync-error", { detail: { table, ids: [], message } }));
+  } catch {}
+}
+
 async function ensureSession(): Promise<boolean> {
   const { data: { session } } = await supabase.auth.getSession();
   if (session) return true;
@@ -15,6 +21,7 @@ async function ensureSession(): Promise<boolean> {
   const { error } = await supabase.auth.signInAnonymously();
   if (error) {
     console.warn("Session retry failed:", error.message);
+    emitSyncError("session", error.message);
     return false;
   }
   return true;
@@ -111,27 +118,26 @@ async function doPull(userId?: string) {
   // Phase 4: characters (feats live in characters.feats jsonb — no per-feat tables to pull)
   const charUserIdArr = [...charUserIds];
 
-  // Identify user_ids we've never pulled characters for — for those, do a full
-  // (non-incremental) fetch so newly-joined players' existing characters land
-  // in cache even if their updated_at is older than our lastSync.
-  const localChars = store.getTable("characters");
-  const knownUserIds = new Set<string>(localChars.map((c: any) => c.user_id));
-  const newUserIds = charUserIdArr.filter((uid) => !knownUserIds.has(uid));
-  const knownUserIdsToPull = charUserIdArr.filter((uid) => knownUserIds.has(uid));
+  // For OTHER users (game players, not self), always full-pull. Their characters
+  // may have updated_at older than our lastSync (e.g. created before they joined
+  // our game), so an incremental pull would miss them.
+  // For SELF, use incremental to save bandwidth.
+  const otherUserIds = charUserIdArr.filter((uid) => uid !== userId);
+  const selfUserIds = charUserIdArr.filter((uid) => uid === userId);
 
   const charPulls: Promise<any>[] = [];
-  if (knownUserIdsToPull.length > 0) {
+  if (selfUserIds.length > 0) {
     charPulls.push(
-      Promise.resolve(withSince(supabase.from("characters").select("*").in("user_id", knownUserIdsToPull), since)),
+      Promise.resolve(withSince(supabase.from("characters").select("*").in("user_id", selfUserIds), since)),
     );
   }
-  if (newUserIds.length > 0) {
-    // Full pull (no `since`) for first-time user_ids
-    charPulls.push(Promise.resolve(supabase.from("characters").select("*").in("user_id", newUserIds)));
+  if (otherUserIds.length > 0) {
+    charPulls.push(Promise.resolve(supabase.from("characters").select("*").in("user_id", otherUserIds)));
   }
 
   const charResults = await Promise.all(charPulls);
   for (const res of charResults) {
+    if (res?.error) emitSyncError("characters", res.error.message);
     if (res?.data) merge("characters", res.data);
   }
 
@@ -228,8 +234,9 @@ export async function pullAll(userId?: string): Promise<void> {
   notify("syncing");
   try {
     await doPull(userId ?? _currentUserId);
-  } catch (e) {
+  } catch (e: any) {
     console.warn("Pull failed:", e);
+    emitSyncError("pull", e?.message ?? String(e));
   } finally {
     _syncing = false;
     notify("synced");
@@ -246,13 +253,15 @@ export async function pullTable(table: TableName, filter?: Record<string, any>):
         query = (query as any).eq(key, val);
       }
     }
-    const { data } = await query;
+    const { data, error } = await query;
+    if (error) emitSyncError(table, error.message);
     if (data) {
       if (filter) store.replaceBy(table, filter, data as any);
       else store.mergeTable(table, data as any);
     }
-  } catch (e) {
+  } catch (e: any) {
     console.warn(`pullTable ${table} failed:`, e);
+    emitSyncError(table, e?.message ?? String(e));
   }
 }
 
@@ -263,8 +272,9 @@ export async function pushAll(): Promise<void> {
   notify("syncing");
   try {
     await doPush();
-  } catch (e) {
+  } catch (e: any) {
     console.warn("Sync failed:", e);
+    emitSyncError("push", e?.message ?? String(e));
   } finally {
     _syncing = false;
     notify("synced");
