@@ -137,9 +137,10 @@ async function doPush() {
   }
 
   // Push in FK-dependency order
+  // Push in FK-dependency order. character_feats / character_feat_subfeats
+  // are no longer synced — feats now live in characters.feats (jsonb).
   const pushOrder: TableName[] = [
-    "profiles", "user_roles", "characters", "character_feats",
-    "character_feat_subfeats", "games", "game_players",
+    "profiles", "user_roles", "characters", "games", "game_players",
   ];
 
   const succeeded: { table: TableName; id: string }[] = [];
