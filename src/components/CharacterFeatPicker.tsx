@@ -52,7 +52,11 @@ type CharacterFeatSubfeat = {
   character_feat_id: string;
   slot: number;
   subfeat_id: string;
+  exhausted_at?: string | null;
+  exhausted_scenario_id?: string | null;
+  used_forever?: boolean;
 };
+
 
 const MAX_LEVEL = 10;
 const MAX_SUBFEATS = 4;
