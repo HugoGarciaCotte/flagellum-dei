@@ -10,12 +10,12 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import { toast } from "@/hooks/use-toast";
 import { useNavigate, Link } from "react-router-dom";
-import { LogOut, Plus, Settings, ChevronDown, Trash2, Pencil, WifiOff, X, Copy } from "lucide-react";
+import { LogOut, Plus, Settings, ChevronDown, WifiOff, X, Copy } from "lucide-react";
 
-import CharacterSheet from "@/components/CharacterSheet";
 import PageHeader from "@/components/PageHeader";
 import CharacterCreationWizard from "@/components/CharacterCreationWizard";
 import CharacterListItem from "@/components/CharacterListItem";
+import CharacterDetailsDialog from "@/components/CharacterDetailsDialog";
 
 import { useIsOwner } from "@/hooks/useIsOwner";
 import { useIsGameMaster } from "@/hooks/useIsGameMaster";
@@ -23,7 +23,7 @@ import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, 
 import GMPlayerList from "@/components/GMPlayerList";
 import { useNetworkStatus } from "@/hooks/useNetworkStatus";
 import { useLocalRows } from "@/hooks/useLocalData";
-import { upsertRow, softDeleteRow } from "@/lib/localStore";
+import { upsertRow } from "@/lib/localStore";
 import { triggerPush } from "@/lib/syncManager";
 import { useTranslation } from "@/i18n/useTranslation";
 import { normalizeScenarioId } from "@/lib/scenarioIds";
@@ -36,35 +36,25 @@ const Dashboard = () => {
   const [joinCode, setJoinCode] = useState("");
   const [hostOpen, setHostOpen] = useState(false);
   const [newCharDialogOpen, setNewCharDialogOpen] = useState(false);
-  const [editingCharId, setEditingCharId] = useState<string | null>(null);
+  const [viewingCharId, setViewingCharId] = useState<string | null>(null);
   const { isOwner } = useIsOwner();
   const { isGameMaster, setGuestGameMaster } = useIsGameMaster();
   const [gmDialogOpen, setGmDialogOpen] = useState(false);
-  const [deleteCharTarget, setDeleteCharTarget] = useState<{ id: string; name: string } | null>(null);
-  const [deleting, setDeleting] = useState(false);
 
   const characters = useLocalRows<any>("characters", user ? { user_id: user.id } : undefined);
   const sortedCharacters = useMemo(() =>
-    [...characters].sort((a, b) => {
-      const au = a.updated_at || a.created_at || "";
-      const bu = b.updated_at || b.created_at || "";
-      if (au !== bu) return bu.localeCompare(au);
-      return (b.created_at || "").localeCompare(a.created_at || "");
-    }),
+    [...characters]
+      .filter((c) => !c.deleted_at)
+      .sort((a, b) => {
+        const au = a.updated_at || a.created_at || "";
+        const bu = b.updated_at || b.created_at || "";
+        if (au !== bu) return bu.localeCompare(au);
+        return (b.created_at || "").localeCompare(a.created_at || "");
+      }),
     [characters]
   );
   const currentCharacter = sortedCharacters[0] ?? null;
   const otherCharacters = sortedCharacters.slice(1);
-
-  const handleDeleteChar = (id: string) => {
-    setDeleting(true);
-    // Feats live on characters.feats — soft-deleting the character row is enough.
-    softDeleteRow("characters", id);
-    triggerPush();
-    setDeleteCharTarget(null);
-    setDeleting(false);
-    toast({ title: t("dashboard.characterDeleted") });
-  };
 
   const scenarios = getAllScenarios(locale);
 
