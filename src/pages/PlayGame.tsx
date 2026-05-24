@@ -55,28 +55,28 @@ const PlayGame = () => {
   const myPlayer = allMyPlayers.length > 0 ? allMyPlayers[0] : null;
   const myCharacters = useLocalRows<any>("characters", user ? { user_id: user.id } : undefined);
   const sortedCharacters = useMemo(() =>
-    [...myCharacters].sort((a, b) => (b.created_at || "").localeCompare(a.created_at || "")),
+    [...myCharacters].sort((a, b) => {
+      const au = a.updated_at || a.created_at || "";
+      const bu = b.updated_at || b.created_at || "";
+      if (au !== bu) return bu.localeCompare(au);
+      return (b.created_at || "").localeCompare(a.created_at || "");
+    }),
     [myCharacters]
   );
 
-  const selectedCharacter = useMemo(
-    () => myCharacters.find((c) => c.id === myPlayer?.character_id) ?? null,
-    [myCharacters, myPlayer]
-  );
+  const currentCharacter = sortedCharacters[0] ?? null;
+  const otherCharacters = sortedCharacters.slice(1);
+  const selectedCharacter = currentCharacter;
 
+  // Silently mirror the current character into game_players.character_id
+  // so GM view, dice broadcasts, and history keep working — without any user action.
   useEffect(() => {
-    if (myPlayer && !myPlayer.character_id && sortedCharacters.length > 0) {
-      selectCharacter(sortedCharacters[0].id);
-    }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [myPlayer?.character_id, sortedCharacters]);
-
-  const selectCharacter = (characterId: string) => {
-    if (!myPlayer) return;
-    upsertRow("game_players", { ...myPlayer, character_id: characterId });
+    if (!myPlayer || !currentCharacter) return;
+    if (myPlayer.character_id === currentCharacter.id) return;
+    upsertRow("game_players", { ...myPlayer, character_id: currentCharacter.id });
     triggerPush();
-    toast({ title: t("game.characterSelected") });
-  };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [currentCharacter?.id, myPlayer?.id, myPlayer?.character_id]);
   const currentSectionId = game?.current_section ?? null;
 
   // eslint-disable-next-line react-hooks/exhaustive-deps
