@@ -44,15 +44,10 @@ const CharacterDetails = ({ characterId }: CharacterDetailsProps) => {
   const renderFeat = (featId: string) => {
     const feat = getFeatById(featId, locale);
     if (!feat) return <span className="text-muted-foreground italic">{t("feats.unknownFeat")}</span>;
-    const meta = getFeatMeta(feat);
     return (
-      <div className="space-y-0.5">
+      <div className="space-y-1">
         <p className="font-display text-base text-foreground">{feat.title}</p>
-        {meta.description && (
-          <p className="text-sm text-muted-foreground/90 leading-relaxed whitespace-pre-line">
-            {meta.description}
-          </p>
-        )}
+        <FeatDetailsDisplay content={feat.content} rawContent={feat.raw_content} />
       </div>
     );
   };
