@@ -50,7 +50,7 @@ async function doPull(userId?: string) {
 
   if (!userId) {
     const { data } = await supabase.from("user_roles").select("*");
-    store.setTable("user_roles", data ?? []);
+    store.setTableKeepDirty("user_roles", data ?? []);
     store.setLastSync(now);
     return;
   }
@@ -63,7 +63,7 @@ async function doPull(userId?: string) {
     supabase.from("profiles").select("*").eq("user_id", userId),
   ]);
 
-  store.setTable("user_roles", rolesRes.data ?? []);
+  store.setTableKeepDirty("user_roles", rolesRes.data ?? []);
 
   const playedGameIds = (playerRefsRes.data ?? []).map((r: any) => r.game_id);
   const hostedGames = hostedRes.data ?? [];
@@ -76,7 +76,7 @@ async function doPull(userId?: string) {
   const gamesById = new Map<string, any>();
   for (const g of hostedGames) gamesById.set(g.id, g);
   for (const g of playedGamesRes.data ?? []) gamesById.set(g.id, g);
-  store.setTable("games", [...gamesById.values()]);
+  store.setTableKeepDirty("games", [...gamesById.values()]);
 
   const allGameIds = [...gamesById.keys()];
 
@@ -85,7 +85,7 @@ async function doPull(userId?: string) {
     ? await supabase.from("game_players").select("*").in("game_id", allGameIds)
     : { data: [] as any[] };
 
-  store.setTable("game_players", gpRes.data ?? []);
+  store.setTableKeepDirty("game_players", gpRes.data ?? []);
 
   // Step 4: characters + profiles for self + every game member
   const memberUserIds = new Set<string>([userId]);
@@ -100,12 +100,12 @@ async function doPull(userId?: string) {
   if (charsRes.error) emitSyncError("characters", charsRes.error.message);
   if (profilesRes.error) emitSyncError("profiles", profilesRes.error.message);
 
-  store.setTable("characters", charsRes.data ?? []);
+  store.setTableKeepDirty("characters", charsRes.data ?? []);
 
   const profilesById = new Map<string, any>();
   if (profileRes.data) for (const p of profileRes.data) profilesById.set(p.user_id, p);
   for (const p of profilesRes.data ?? []) profilesById.set(p.user_id, p);
-  store.setTable("profiles", [...profilesById.values()]);
+  store.setTableKeepDirty("profiles", [...profilesById.values()]);
 
   store.setLastSync(now);
 }
