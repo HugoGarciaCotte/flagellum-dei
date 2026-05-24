@@ -1,46 +1,28 @@
-## Diagnosis
+## Context
 
-GM-side data is stale because realtime only refreshes a subset of the player's tables:
+- `HostGame` (in-game) uses `PlayerListSheet` which already shows each player's selected character **plus** a collapsible "other characters" list with edit buttons.
+- `Dashboard` (main GM screen) uses `GMPlayerList` which only shows the currently-selected character per player — no access to the player's other characters.
 
-- `HostGame.tsx`'s `game-players-{gameId}` channel re-pulls `game_players`, `characters`, `profiles` when game_players change, but **never pulls `character_feats` or `character_feat_subfeats`**.
-- There are **no realtime subscriptions on `characters`, `character_feats`, or `character_feat_subfeats`**. So if a player picks/changes their character or edits feats after the GM's initial sync, the GM never sees the update until a full app reload.
-- `GMPlayerList` only reads the local store — it has no fetch-on-open path, so opening the edit dialog also shows stale data.
+## Fix
 
-## Fix (host-side only)
+Bring `GMPlayerList` to parity with `PlayerListSheet`:
 
-### 1. Extend the existing `game_players` realtime handler in `src/pages/HostGame.tsx`
-After pulling `characters` for each player `user_id`, also pull that user's feats and subfeats:
-- For each player's current `character_id`, `pullTable("character_feats", { character_id })`.
-- For each resulting feat id, `pullTable("character_feat_subfeats", { character_feat_id })`.
+### `src/components/GMPlayerList.tsx`
+1. Stop deduplicating per `user_id`. Instead build, per game-player row:
+   - `display_name`
+   - the player's `selected character` (if any)
+   - all of that player's **other** characters (from `allCharacters` filtered by `user_id`, excluding the selected one)
+2. Render each player card as:
+   - Player name header
+   - Selected character via `CharacterListItem` with a Pencil button (same as today)
+   - If there are other characters → a `Collapsible` "N other character(s)" trigger (reuse `gm.otherCharacters` key) listing each as a compact row with name + Pencil button
+   - If the player has no selected character → keep the existing "no character selected" italic line, and still show the collapsible if they have any characters
+3. Edit click on any character (selected or other) opens the existing `CharacterSheet` dialog with `mode="gm"`, and runs the same pull-on-open refresh already in place (characters / character_feats / character_feat_subfeats by character id). Extract that into a small `openEdit(characterId)` helper so it works for both lists.
 
-This guarantees the GM has fresh feats whenever a player selects/changes a character.
-
-### 2. Add a new realtime channel `game-chars-{gameId}` in `HostGame.tsx`
-Subscribes to `postgres_changes` on three tables (no server-side filter, filter client-side):
-- `characters` — on event, if `new.user_id` (or `old.user_id`) is in the current game's player set, pull `characters { user_id }`.
-- `character_feats` — on event, look up the parent `character_id` locally; if it belongs to a game player, pull `character_feats { character_id }` and refresh that character's subfeats.
-- `character_feat_subfeats` — on event, look up `character_feat_id` locally; if its character belongs to a game player, pull `character_feat_subfeats { character_feat_id }`.
-
-This way the GM stays in sync whenever players add/remove feats or specialities, not just when they swap character.
-
-### 3. Pull-on-open in `src/components/GMPlayerList.tsx`
-When opening the edit dialog for a player:
-- `pullTable("characters", { id: editPlayer.character_id })`
-- `pullTable("character_feats", { character_id: editPlayer.character_id })`
-- For each returned feat id, `pullTable("character_feat_subfeats", { character_feat_id })`
-
-This guarantees a fresh sheet even if realtime missed an event (offline gap, reconnect, etc.).
-
-## Out of scope
-- No RLS changes — the existing `Host can view…` policies already grant the GM SELECT on the player's characters/feats/subfeats.
-- No changes to player-side code, sync schedule, or the bottom character bar UI.
-- No schema changes.
+### Out of scope
+- No changes to `HostGame`, `PlayerListSheet`, sync, RLS, or any other screen.
+- No new i18n keys (reuse existing `gm.otherCharacters`, `gm.noCharacterSelected`).
+- Layout stays as a `Collapsible` panel on the dashboard; only the per-player block grows.
 
 ## Files to change
-- `src/pages/HostGame.tsx` — extend `game_players` handler; add new `game-chars-{gameId}` channel.
-- `src/components/GMPlayerList.tsx` — pull characters + feats + subfeats when opening the edit dialog.
-
-## Technical notes
-- `pullTable` only supports `.eq()` filters; we loop per id rather than `.in(...)`, which is fine for the small per-game cardinality.
-- Realtime payload shape: handlers use `payload.new` for INSERT/UPDATE and `payload.old` for DELETE to resolve the affected `user_id` / `character_id` / `character_feat_id`.
-- Client-side filtering against the local store avoids any need for per-id Supabase channel filters.
+- `src/components/GMPlayerList.tsx`
