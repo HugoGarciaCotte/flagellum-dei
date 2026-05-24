@@ -7,9 +7,9 @@ import { loadScenarioOverrides } from "@/lib/scenarioOverrides";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { parseWikitext, findSection, resolveBackgroundImage, extractImageUrls, WikiSection } from "@/lib/parseWikitext";
-import { ArrowLeft, Plus, Check, X, ChevronUp, ChevronDown, Pencil, Copy } from "lucide-react";
+import { ArrowLeft, Plus, Check, X, ChevronUp, ChevronDown, Copy } from "lucide-react";
 import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
-import CharacterSheet from "@/components/CharacterSheet";
+import CharacterDetailsDialog from "@/components/CharacterDetailsDialog";
 import { useNetworkStatus } from "@/hooks/useNetworkStatus";
 import { toast } from "@/hooks/use-toast";
 import DiceRoller from "@/components/DiceRoller";
@@ -37,7 +37,7 @@ const PlayGame = () => {
   const [sheetExpanded, setSheetExpanded] = useState(false);
   const bottomOffset = useBottomOffset();
   const [creatingChar, setCreatingChar] = useState(false);
-  const [editingCharId, setEditingCharId] = useState<string | null>(null);
+  const [viewingCharId, setViewingCharId] = useState<string | null>(null);
   const [scenarioReady, setScenarioReady] = useState(false);
 
   useEffect(() => {
@@ -56,12 +56,14 @@ const PlayGame = () => {
   const myPlayer = allMyPlayers.length > 0 ? allMyPlayers[0] : null;
   const myCharacters = useLocalRows<any>("characters", user ? { user_id: user.id } : undefined);
   const sortedCharacters = useMemo(() =>
-    [...myCharacters].sort((a, b) => {
-      const au = a.updated_at || a.created_at || "";
-      const bu = b.updated_at || b.created_at || "";
-      if (au !== bu) return bu.localeCompare(au);
-      return (b.created_at || "").localeCompare(a.created_at || "");
-    }),
+    [...myCharacters]
+      .filter((c) => !c.deleted_at)
+      .sort((a, b) => {
+        const au = a.updated_at || a.created_at || "";
+        const bu = b.updated_at || b.created_at || "";
+        if (au !== bu) return bu.localeCompare(au);
+        return (b.created_at || "").localeCompare(a.created_at || "");
+      }),
     [myCharacters]
   );
 
@@ -263,13 +265,9 @@ const PlayGame = () => {
                     {currentCharacter && (
                       <CharacterListItem
                         character={currentCharacter}
+                        onView={() => setViewingCharId(currentCharacter.id)}
                         actions={
-                          <div className="flex items-center gap-1">
-                            <span className="text-[10px] uppercase tracking-wider text-primary font-display">{t("common.current")}</span>
-                            <Button variant="ghost" size="icon" className="h-8 w-8" onClick={(e) => { e.stopPropagation(); setEditingCharId(currentCharacter.id); }}>
-                              <Pencil className="h-3.5 w-3.5" />
-                            </Button>
-                          </div>
+                          <span className="text-[10px] uppercase tracking-wider text-primary font-display">{t("common.current")}</span>
                         }
                       />
                     )}
@@ -285,11 +283,7 @@ const PlayGame = () => {
                             <CharacterListItem
                               key={char.id}
                               character={char}
-                              actions={
-                                <Button variant="ghost" size="icon" className="h-8 w-8" onClick={(e) => { e.stopPropagation(); setEditingCharId(char.id); }}>
-                                  <Pencil className="h-3.5 w-3.5" />
-                                </Button>
-                              }
+                              onView={() => setViewingCharId(char.id)}
                             />
                           ))}
                         </CollapsibleContent>
@@ -322,19 +316,15 @@ const PlayGame = () => {
         </div>
       )}
 
-      {editingCharId && (
-        <div className="fixed inset-0 z-50 bg-background flex flex-col animate-in fade-in duration-200 pt-[env(safe-area-inset-top)]">
-          <div className="border-b border-border/50 bg-card/80 backdrop-blur px-4 py-3 flex items-center justify-between shrink-0">
-            <span className="font-display text-base font-medium text-foreground">{t("dashboard.editCharacter")}</span>
-            <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => setEditingCharId(null)}><X className="h-4 w-4" /></Button>
-          </div>
-          <ScrollArea className="flex-1">
-            <div className="container max-w-2xl py-6 px-4">
-              <CharacterSheet characterId={editingCharId} mode="player" scenarioLevel={(effectiveScenario as any)?.level ?? undefined} onDone={() => setEditingCharId(null)} />
-            </div>
-          </ScrollArea>
-        </div>
-      )}
+      <CharacterDetailsDialog
+        characterId={viewingCharId}
+        open={!!viewingCharId}
+        onOpenChange={(o) => { if (!o) setViewingCharId(null); }}
+        canEdit
+        canDelete={false}
+        editMode="player"
+        scenarioLevel={(effectiveScenario as any)?.level ?? undefined}
+      />
     </div>
   );
 };

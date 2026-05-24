@@ -10,12 +10,12 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import { toast } from "@/hooks/use-toast";
 import { useNavigate, Link } from "react-router-dom";
-import { LogOut, Plus, Settings, ChevronDown, Trash2, Pencil, WifiOff, X, Copy } from "lucide-react";
+import { LogOut, Plus, Settings, ChevronDown, WifiOff, X, Copy } from "lucide-react";
 
-import CharacterSheet from "@/components/CharacterSheet";
 import PageHeader from "@/components/PageHeader";
 import CharacterCreationWizard from "@/components/CharacterCreationWizard";
 import CharacterListItem from "@/components/CharacterListItem";
+import CharacterDetailsDialog from "@/components/CharacterDetailsDialog";
 
 import { useIsOwner } from "@/hooks/useIsOwner";
 import { useIsGameMaster } from "@/hooks/useIsGameMaster";
@@ -23,7 +23,7 @@ import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, 
 import GMPlayerList from "@/components/GMPlayerList";
 import { useNetworkStatus } from "@/hooks/useNetworkStatus";
 import { useLocalRows } from "@/hooks/useLocalData";
-import { upsertRow, softDeleteRow } from "@/lib/localStore";
+import { upsertRow } from "@/lib/localStore";
 import { triggerPush } from "@/lib/syncManager";
 import { useTranslation } from "@/i18n/useTranslation";
 import { normalizeScenarioId } from "@/lib/scenarioIds";
@@ -36,35 +36,25 @@ const Dashboard = () => {
   const [joinCode, setJoinCode] = useState("");
   const [hostOpen, setHostOpen] = useState(false);
   const [newCharDialogOpen, setNewCharDialogOpen] = useState(false);
-  const [editingCharId, setEditingCharId] = useState<string | null>(null);
+  const [viewingCharId, setViewingCharId] = useState<string | null>(null);
   const { isOwner } = useIsOwner();
   const { isGameMaster, setGuestGameMaster } = useIsGameMaster();
   const [gmDialogOpen, setGmDialogOpen] = useState(false);
-  const [deleteCharTarget, setDeleteCharTarget] = useState<{ id: string; name: string } | null>(null);
-  const [deleting, setDeleting] = useState(false);
 
   const characters = useLocalRows<any>("characters", user ? { user_id: user.id } : undefined);
   const sortedCharacters = useMemo(() =>
-    [...characters].sort((a, b) => {
-      const au = a.updated_at || a.created_at || "";
-      const bu = b.updated_at || b.created_at || "";
-      if (au !== bu) return bu.localeCompare(au);
-      return (b.created_at || "").localeCompare(a.created_at || "");
-    }),
+    [...characters]
+      .filter((c) => !c.deleted_at)
+      .sort((a, b) => {
+        const au = a.updated_at || a.created_at || "";
+        const bu = b.updated_at || b.created_at || "";
+        if (au !== bu) return bu.localeCompare(au);
+        return (b.created_at || "").localeCompare(a.created_at || "");
+      }),
     [characters]
   );
   const currentCharacter = sortedCharacters[0] ?? null;
   const otherCharacters = sortedCharacters.slice(1);
-
-  const handleDeleteChar = (id: string) => {
-    setDeleting(true);
-    // Feats live on characters.feats — soft-deleting the character row is enough.
-    softDeleteRow("characters", id);
-    triggerPush();
-    setDeleteCharTarget(null);
-    setDeleting(false);
-    toast({ title: t("dashboard.characterDeleted") });
-  };
 
   const scenarios = getAllScenarios(locale);
 
@@ -213,22 +203,13 @@ const Dashboard = () => {
 
           {currentCharacter ? (
             <div className="space-y-3">
-              <div className="relative">
-                <CharacterListItem
-                  character={currentCharacter}
-                  actions={
-                    <>
-                      <span className="text-[10px] uppercase tracking-wider text-primary font-display mr-1">{t("common.current")}</span>
-                      <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => setEditingCharId(currentCharacter.id)}>
-                        <Pencil className="h-3.5 w-3.5" />
-                      </Button>
-                      <Button variant="ghost" size="icon" className="h-7 w-7 text-destructive" onClick={() => setDeleteCharTarget({ id: currentCharacter.id, name: currentCharacter.name })}>
-                        <Trash2 className="h-3.5 w-3.5" />
-                      </Button>
-                    </>
-                  }
-                />
-              </div>
+              <CharacterListItem
+                character={currentCharacter}
+                onView={() => setViewingCharId(currentCharacter.id)}
+                actions={
+                  <span className="text-[10px] uppercase tracking-wider text-primary font-display mr-1">{t("common.current")}</span>
+                }
+              />
 
               {otherCharacters.length > 0 && (
                 <Collapsible defaultOpen>
@@ -241,16 +222,7 @@ const Dashboard = () => {
                       <CharacterListItem
                         key={c.id}
                         character={c}
-                        actions={
-                          <>
-                            <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => setEditingCharId(c.id)}>
-                              <Pencil className="h-3.5 w-3.5" />
-                            </Button>
-                            <Button variant="ghost" size="icon" className="h-7 w-7 text-destructive" onClick={() => setDeleteCharTarget({ id: c.id, name: c.name })}>
-                              <Trash2 className="h-3.5 w-3.5" />
-                            </Button>
-                          </>
-                        }
+                        onView={() => setViewingCharId(c.id)}
                       />
                     ))}
                   </CollapsibleContent>
@@ -267,23 +239,14 @@ const Dashboard = () => {
             </Card>
           )}
 
-          <Dialog open={!!editingCharId} onOpenChange={(open) => { if (!open) setEditingCharId(null); }}>
-            <DialogContent className="fixed inset-0 max-w-none w-full h-full rounded-none p-0 translate-x-0 translate-y-0 left-0 top-0 border-none overflow-hidden [&>button:last-child]:hidden">
-              <div className="flex flex-col h-full min-h-0">
-                <div className="border-b border-border/50 bg-card/80 backdrop-blur px-4 py-3 flex items-center justify-between shrink-0 safe-top">
-                  <span className="font-display text-base font-medium text-foreground">{t("dashboard.editCharacter")}</span>
-                  <DialogClose className="rounded-sm opacity-70 hover:opacity-100"><X className="h-5 w-5" /></DialogClose>
-                </div>
-                <ScrollArea className="flex-1">
-                  <div className="container max-w-2xl py-6 px-4">
-                    {editingCharId && (
-                      <CharacterSheet characterId={editingCharId} mode="player" onDone={() => setEditingCharId(null)} />
-                    )}
-                  </div>
-                </ScrollArea>
-              </div>
-            </DialogContent>
-          </Dialog>
+          <CharacterDetailsDialog
+            characterId={viewingCharId}
+            open={!!viewingCharId}
+            onOpenChange={(o) => { if (!o) setViewingCharId(null); }}
+            canEdit
+            canDelete
+            editMode="player"
+          />
         </section>
 
         <div className="ornamental-divider" />
@@ -414,27 +377,7 @@ const Dashboard = () => {
 
         {isGameMaster && <GMPlayerList />}
 
-        {/* Delete Character Confirmation */}
-        <AlertDialog open={!!deleteCharTarget} onOpenChange={(open) => { if (!open) setDeleteCharTarget(null); }}>
-          <AlertDialogContent>
-            <AlertDialogHeader>
-              <AlertDialogTitle>{t("dashboard.deleteTitle")} "{deleteCharTarget?.name}"?</AlertDialogTitle>
-              <AlertDialogDescription>
-                {t("dashboard.deleteDesc")}
-              </AlertDialogDescription>
-            </AlertDialogHeader>
-            <AlertDialogFooter>
-              <AlertDialogCancel disabled={deleting}>{t("dashboard.cancel")}</AlertDialogCancel>
-              <AlertDialogAction
-                onClick={() => deleteCharTarget && handleDeleteChar(deleteCharTarget.id)}
-                disabled={deleting}
-                className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
-              >
-                {deleting ? t("dashboard.deleting") : t("dashboard.delete")}
-              </AlertDialogAction>
-            </AlertDialogFooter>
-          </AlertDialogContent>
-        </AlertDialog>
+        {/* Character delete now lives inside the details dialog */}
 
         {!window.matchMedia('(display-mode: standalone)').matches && (
           <p className="text-center py-6">
