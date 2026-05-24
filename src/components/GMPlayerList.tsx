@@ -17,13 +17,15 @@ interface Character {
   description: string | null;
   portrait_url?: string | null;
   user_id: string;
+  updated_at?: string | null;
+  created_at?: string | null;
 }
 
 interface PlayerEntry {
   user_id: string;
   display_name: string | null;
-  selectedCharId: string | null;
-  characters: Character[];
+  currentChar: Character | null;
+  otherChars: Character[];
 }
 
 const GMPlayerList = () => {
@@ -48,26 +50,28 @@ const GMPlayerList = () => {
       charsByUser.set(c.user_id, list);
     }
 
-    const map = new Map<string, PlayerEntry>();
+    const seen = new Set<string>();
+    const out: PlayerEntry[] = [];
     for (const gp of allGamePlayers) {
       if (!myGameIds.has((gp as any).game_id)) continue;
-      if ((gp as any).user_id === user.id) continue;
       const uid = (gp as any).user_id;
+      if (uid === user.id || seen.has(uid)) continue;
+      seen.add(uid);
       const profile = profileMap.get(uid);
-      const existing = map.get(uid);
-      const selectedCharId = (gp as any).character_id ?? null;
-      if (!existing) {
-        map.set(uid, {
-          user_id: uid,
-          display_name: (profile as any)?.display_name ?? null,
-          selectedCharId,
-          characters: charsByUser.get(uid) ?? [],
-        });
-      } else if (selectedCharId && !existing.selectedCharId) {
-        existing.selectedCharId = selectedCharId;
-      }
+      const chars = [...(charsByUser.get(uid) ?? [])].sort((a, b) => {
+        const au = a.updated_at || a.created_at || "";
+        const bu = b.updated_at || b.created_at || "";
+        if (au !== bu) return bu.localeCompare(au);
+        return (b.created_at || "").localeCompare(a.created_at || "");
+      });
+      out.push({
+        user_id: uid,
+        display_name: (profile as any)?.display_name ?? null,
+        currentChar: chars[0] ?? null,
+        otherChars: chars.slice(1),
+      });
     }
-    return Array.from(map.values());
+    return out;
   }, [user, games, allGamePlayers, allCharacters, allProfiles]);
 
   const openEdit = async (characterId: string, playerName: string) => {
