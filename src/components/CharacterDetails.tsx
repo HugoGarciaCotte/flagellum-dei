@@ -2,7 +2,8 @@ import { useMemo } from "react";
 import { useLocalRow } from "@/hooks/useLocalData";
 import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
 import PortraitViewer from "@/components/PortraitViewer";
-import { getFeatById, getFeatMeta } from "@/data/feats";
+import { getFeatById } from "@/data/feats";
+import FeatDetailsDisplay from "@/components/FeatDetailsDisplay";
 import { useTranslation } from "@/i18n/useTranslation";
 
 interface CharacterDetailsProps {
