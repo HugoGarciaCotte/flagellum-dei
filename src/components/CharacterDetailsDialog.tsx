@@ -111,34 +111,35 @@ const CharacterDetailsDialog = ({
             <div className="border-b border-border bg-card px-4 py-3 flex items-center justify-between shrink-0 safe-top gap-2 min-h-12">
               <div className="flex items-center gap-2 min-w-0 overflow-hidden">
                 <HeaderIconButton
-                  glyph="←"
                   label={editing ? t("character.dialog.backToDetails") : t("character.dialog.close")}
                   onClick={() => editing ? setEditing(false) : onOpenChange(false)}
-                />
+                >
+                  <Glyph char="←" />
+                </HeaderIconButton>
                 <span className="font-display text-base font-medium text-foreground truncate leading-none translate-y-[1px]">{title}</span>
               </div>
               <div className="flex items-center gap-1 shrink-0">
                 {!editing && canEdit && (
                   <HeaderIconButton
-                    glyph="✎"
                     label={t("character.edit")}
                     onClick={() => setEditing(true)}
-                  />
+                  >
+                    <Glyph char="✎" />
+                  </HeaderIconButton>
                 )}
                 {!editing && canDelete && (
                   <HeaderIconButton
-                    glyph={"\uD83D\uDDD1\uFE0E"}
                     label={t("character.delete.cta")}
                     tone="destructive"
                     onClick={() => setConfirmDelete(true)}
-                  />
+                  >
+                    <TrashGlyph />
+                  </HeaderIconButton>
                 )}
                 <DialogClose asChild>
-                  <HeaderIconButton
-                    glyph="✕"
-                    label={t("character.dialog.close")}
-                    onClick={() => { /* DialogClose handles it */ }}
-                  />
+                  <HeaderIconButton label={t("character.dialog.close")}>
+                    <Glyph char="✕" />
+                  </HeaderIconButton>
                 </DialogClose>
               </div>
             </div>
