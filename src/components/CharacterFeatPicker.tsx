@@ -778,12 +778,19 @@ const CharacterFeatPicker = ({ characterId, mode = "player", scenarioLevel }: Ch
           {freeFeats.map((cf) => {
             const feat = featMap.get(cf.feat_id);
             if (!feat) return null;
+            const exhaustion = getFeatExhaustion(feat);
+            const { state, freeIdx } = getStateForCf(cf);
+            const exhausted = isFeatExhausted(state, exhaustion, scenarioHistory);
+            const label = exhaustionLabelKind(state, exhaustion, exhausted);
             return (
               <FeatListItem
                 key={cf.id}
                 feat={{ ...feat, description: descriptionMap.get(feat.id) ?? undefined }}
                 expanded={expandedAssignedFeatId === cf.id}
                 onToggleExpand={() => setExpandedAssignedFeatId(expandedAssignedFeatId === cf.id ? null : cf.id)}
+                exhaustionLabel={label}
+                onUse={exhaustion !== "infinite" ? () => useFeat(0, true, freeIdx, exhaustion) : undefined}
+                onRecharge={() => rechargeFeat(0, true, freeIdx)}
                 actions={mode === "gm" ? (
                   <DropdownMenu>
                     <DropdownMenuTrigger asChild>
@@ -799,10 +806,10 @@ const CharacterFeatPicker = ({ characterId, mode = "player", scenarioLevel }: Ch
                   </DropdownMenu>
                 ) : undefined}
                 collapsedContent={renderSubfeats(cf, feat)}
-                compact
               />
             );
           })}
+
 
           {mode === "gm" && (
             <Button variant="ghost" size="sm" className="text-sm text-muted-foreground" onClick={() => openPicker({ type: "free" })}>
