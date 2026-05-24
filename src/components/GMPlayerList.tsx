@@ -80,7 +80,17 @@ const GMPlayerList = () => {
                   <CharacterListItem
                     character={{ id: p.character_id, name: p.character_name || "Unnamed", description: p.character_description }}
                     actions={
-                      <Button variant="ghost" size="icon" className="h-7 w-7 shrink-0" onClick={() => setEditPlayer(p)}>
+                      <Button variant="ghost" size="icon" className="h-7 w-7 shrink-0" onClick={async () => {
+                        setEditPlayer(p);
+                        if (p.character_id) {
+                          await pullTable("characters", { id: p.character_id });
+                          await pullTable("character_feats", { character_id: p.character_id });
+                          const feats = getBy("character_feats", { character_id: p.character_id });
+                          for (const f of feats) {
+                            await pullTable("character_feat_subfeats", { character_feat_id: (f as any).id });
+                          }
+                        }
+                      }}>
                         <Pencil className="h-3.5 w-3.5" />
                       </Button>
                     }
