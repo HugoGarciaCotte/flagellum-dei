@@ -2,7 +2,8 @@ import { useMemo } from "react";
 import { useLocalRow } from "@/hooks/useLocalData";
 import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
 import PortraitViewer from "@/components/PortraitViewer";
-import { getFeatById, getFeatMeta } from "@/data/feats";
+import { getFeatById } from "@/data/feats";
+import FeatDetailsDisplay from "@/components/FeatDetailsDisplay";
 import { useTranslation } from "@/i18n/useTranslation";
 
 interface CharacterDetailsProps {
@@ -43,15 +44,10 @@ const CharacterDetails = ({ characterId }: CharacterDetailsProps) => {
   const renderFeat = (featId: string) => {
     const feat = getFeatById(featId, locale);
     if (!feat) return <span className="text-muted-foreground italic">{t("feats.unknownFeat")}</span>;
-    const meta = getFeatMeta(feat);
     return (
-      <div className="space-y-0.5">
+      <div className="space-y-1">
         <p className="font-display text-base text-foreground">{feat.title}</p>
-        {meta.description && (
-          <p className="text-sm text-muted-foreground/90 leading-relaxed whitespace-pre-line">
-            {meta.description}
-          </p>
-        )}
+        <FeatDetailsDisplay content={feat.content} rawContent={feat.raw_content} />
       </div>
     );
   };
