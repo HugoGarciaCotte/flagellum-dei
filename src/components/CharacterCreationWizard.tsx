@@ -5,6 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
+import PortraitViewer from "@/components/PortraitViewer";
 import { toast } from "@/hooks/use-toast";
 import { type SubfeatSlot } from "@/lib/parseEmbeddedFeatMeta";
 import FeatListItem from "@/components/FeatListItem";
@@ -658,12 +659,14 @@ const CharacterCreationWizard = ({ onCreated, onCancel, gameId }: CharacterCreat
         </div>
 
         <div className="flex flex-col items-center gap-3">
-          <Avatar className="h-24 w-24 border-2 border-primary/30">
-            {portraitUrl ? <AvatarImage src={portraitUrl} /> : null}
-            <AvatarFallback className="text-xl font-display bg-muted">
-              {generatingPortrait ? <Loader2 className="h-6 w-6 animate-spin" /> : initials}
-            </AvatarFallback>
-          </Avatar>
+          <PortraitViewer src={portraitUrl} alt={"Portrait"} fileName={"portrait"}>
+            <Avatar className="h-24 w-24 border-2 border-primary/30">
+              {portraitUrl ? <AvatarImage src={portraitUrl} /> : null}
+              <AvatarFallback className="text-xl font-display bg-muted">
+                {generatingPortrait ? <Loader2 className="h-6 w-6 animate-spin" /> : initials}
+              </AvatarFallback>
+            </Avatar>
+          </PortraitViewer>
           <div className="flex gap-2">
             <input ref={fileInputRef} type="file" accept="image/*" className="hidden" onChange={handleUpload} />
             <Button variant="outline" size="sm" className="gap-1.5" onClick={() => fileInputRef.current?.click()} disabled={generatingPortrait || !online}>
