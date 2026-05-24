@@ -27,8 +27,9 @@ export function isFeatExhausted(
   scenarioHistory: string[],
 ): boolean {
   if (!state) return false;
-  if (type === "infinite") return false;
+  if (type === "infinite" || type === "transforms_on_use") return false;
   if (type === "once_forever") return !!state.used_forever;
+
   if (!state.exhausted_at) return false;
   const span = exhaustionScenarioSpan(type);
   if (span <= 0) return false;
