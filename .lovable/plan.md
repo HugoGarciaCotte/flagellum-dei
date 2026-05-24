@@ -1,43 +1,60 @@
-## Goal
+# Why Outlaw Wisdom appears twice (and Trickster shouldn't be there)
 
-Let anyone click a character portrait to open it large in a popup, with **Download** and **Dismiss** buttons.
+In the DB, Lily has exactly these feats (one row each):
 
-## Scope
+```
+Bone Triptych (used once)  free
+Whispers of Madness        free
+Repented Heretic           lvl 1
+Outlaw Wisdom              lvl 2
+Disguise                   lvl 3 (soft-deleted)
+⭐ Miracle                  lvl 4
+```
 
-All places that render a character portrait avatar:
-- `CharacterListItem` (used in PlayGame sheet, GMPlayerList, PlayerListSheet)
-- `PlayGame` collapsed bottom bar avatar
-- `CharacterSheet` portrait (edit view)
-- `CharacterCreationWizard` preview portrait
-- `GMPlayerList` / `PlayerListSheet` direct avatars (if any beyond CharacterListItem)
+But the DM's screen shows a second `Outlaw Wisdom` and a `Trickster` that don't exist server-side. They're stale rows left over in the DM's `localStorage`.
 
-## Approach
+## Root cause
 
-1. **New shared component** `src/components/PortraitViewer.tsx`
-   - Small wrapper that takes `src`, `alt`, `fileName`, and `children` (the trigger, typically the `<Avatar>`).
-   - Renders children wrapped in a button with `cursor-zoom-in`; on click opens a `Dialog`.
-   - Dialog content: large image (max 80vh, contain), title = character name, footer with two buttons:
-     - **Download** — fetches the image as blob and uses `downloadFile`-style anchor (`a.download = \`${fileName}.jpg\``) so it saves locally instead of opening in browser.
-     - **Dismiss** — `DialogClose`.
-   - No-op (renders children directly with no click handler) when `src` is empty/null, so fallback initials stay non-interactive.
+`pullTable(table, filter)` in `src/lib/syncManager.ts` does:
 
-2. **Wire into each portrait site**
-   - Replace the bare `<Avatar>` with `<PortraitViewer src={...} alt={name} fileName={name}><Avatar>...</Avatar></PortraitViewer>` in:
-     - `CharacterListItem.tsx`
-     - `PlayGame.tsx` (collapsed bar avatar)
-     - `CharacterSheet.tsx` (edit portrait — keep existing "regenerate" controls untouched, just make the image itself clickable)
-     - `CharacterCreationWizard.tsx` (preview)
-   - In `GMPlayerList` and `PlayerListSheet`, portraits are already rendered through `CharacterListItem`, so they inherit the behavior automatically — verify and skip if already covered.
+```ts
+const { data } = await query;
+if (data) store.mergeTable(table, data as any);
+```
 
-3. **i18n** — add 2 keys: `common.download`, `common.dismiss` (reuse existing if present; check `en.ts`/`fr.ts` first and only add if missing).
+`mergeTable` only **upserts by id** — it never removes local rows that the server no longer returns. So when a scoped pull asks "give me all `character_feats` where `character_id = X`", any row that was deleted (hard delete or re-created with a new id) on the server side stays in the DM's local cache, and the UI shows the union of old + new.
 
-4. **Styling** — Dialog uses existing `DialogContent`; image centered with `object-contain`, rounded, subtle gold border to match theme. Stop propagation on the trigger click so wrapping rows (e.g. selectable character row in PlayGame) don't also toggle selection.
+This affects every `pullTable(...)` call that scopes by something other than primary key — feats, subfeats, characters under a user, game players, etc.
+
+## Fix
+
+Make scoped pulls reconcile by replacing the slice they queried.
+
+1. Add `replaceBy(table, filter, rows)` to `src/lib/localStore.ts`:
+   - Drop every existing row matching `filter`.
+   - Insert the new `rows` (already filtered by the same predicate on the server side).
+   - Persist once.
+
+   Important: rows mutated locally and not yet pushed (`isDirty(table, id)`) must be preserved — otherwise we'd erase the DM's in-flight edits. So keep dirty rows whose id is not in the incoming set.
+
+2. In `pullTable`, when a `filter` is provided, call `replaceBy(table, filter, data)` instead of `mergeTable`. With no filter, keep `mergeTable` (full pulls without `since` already use `setTable`, scoped without filter is rare).
+
+3. Sanity check the same pattern in `doPull` for the per-character / per-game scoped pulls — those already replace entire tables with `setTable([])` then merge, so they're fine. The bug is specifically in the on-demand `pullTable` path used by `GMPlayerList.openEdit` and friends.
+
+## Verify
+
+- Hard-refresh the DM browser to force a fresh pull.
+- Re-open Lily as GM. Expect: only Outlaw Wisdom once, no Trickster.
+- As a regression check: delete a feat as the player, then re-open as GM — the deletion should propagate (already worked via `deleted_at`), and a *hard*-deleted row should disappear too.
+- Add a feat as the player, re-open as GM — the new feat should appear (still works because `replaceBy` writes everything the server returned).
 
 ## Out of scope
 
-No changes to upload/generation flow, sync, RLS, or data model. No new routes.
+- No schema changes, no RLS changes.
+- No change to push logic or to the local-first writes (the offending screen reads, doesn't write).
+- Not touching the broader incremental-sync `since` path — only the on-demand scoped `pullTable`.
 
 ## Files
 
-- **New:** `src/components/PortraitViewer.tsx`
-- **Edit:** `src/components/CharacterListItem.tsx`, `src/pages/PlayGame.tsx`, `src/components/CharacterSheet.tsx`, `src/components/CharacterCreationWizard.tsx`, possibly `src/i18n/en.ts` + `src/i18n/fr.ts`
+- `src/lib/localStore.ts` — add `replaceBy`.
+- `src/lib/syncManager.ts` — switch `pullTable` to `replaceBy` when a `filter` is supplied.
