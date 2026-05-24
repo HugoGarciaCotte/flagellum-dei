@@ -377,27 +377,7 @@ const Dashboard = () => {
 
         {isGameMaster && <GMPlayerList />}
 
-        {/* Delete Character Confirmation */}
-        <AlertDialog open={!!deleteCharTarget} onOpenChange={(open) => { if (!open) setDeleteCharTarget(null); }}>
-          <AlertDialogContent>
-            <AlertDialogHeader>
-              <AlertDialogTitle>{t("dashboard.deleteTitle")} "{deleteCharTarget?.name}"?</AlertDialogTitle>
-              <AlertDialogDescription>
-                {t("dashboard.deleteDesc")}
-              </AlertDialogDescription>
-            </AlertDialogHeader>
-            <AlertDialogFooter>
-              <AlertDialogCancel disabled={deleting}>{t("dashboard.cancel")}</AlertDialogCancel>
-              <AlertDialogAction
-                onClick={() => deleteCharTarget && handleDeleteChar(deleteCharTarget.id)}
-                disabled={deleting}
-                className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
-              >
-                {deleting ? t("dashboard.deleting") : t("dashboard.delete")}
-              </AlertDialogAction>
-            </AlertDialogFooter>
-          </AlertDialogContent>
-        </AlertDialog>
+        {/* Character delete now lives inside the details dialog */}
 
         {!window.matchMedia('(display-mode: standalone)').matches && (
           <p className="text-center py-6">
