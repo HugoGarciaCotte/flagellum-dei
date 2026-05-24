@@ -53,16 +53,16 @@ const CharacterListItem = ({ character, actions }: CharacterListItemProps) => {
       {feats && feats.length > 0 && (
         <CardContent className="pt-0 pb-3">
           <ul className="list-disc list-inside text-base text-muted-foreground space-y-0.5">
-            {feats.map((cf: any) => {
+            {feats.map((cf) => {
               const featTitle = getFeatById(cf.feat_id, locale)?.title || t("feats.unknownFeat");
               return (
-                <li key={cf.id}>
+                <li key={cf.key}>
                   {featTitle}
-                  {cf.character_feat_subfeats && cf.character_feat_subfeats.length > 0 && (
+                  {cf.subfeats.length > 0 && (
                     <ul className="list-[circle] list-inside ml-4 mt-0.5 space-y-0.5">
-                      {cf.character_feat_subfeats.map((sf: any) => {
-                        const sfTitle = getFeatById(sf.subfeat_id, locale)?.title || t("feats.unknownFeat");
-                        return <li key={sf.subfeat_id}>{sfTitle}</li>;
+                      {cf.subfeats.map((sf) => {
+                        const sfTitle = getFeatById(sf.feat_id, locale)?.title || t("feats.unknownFeat");
+                        return <li key={sf.slot}>{sfTitle}</li>;
                       })}
                     </ul>
                   )}
