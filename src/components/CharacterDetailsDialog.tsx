@@ -125,7 +125,7 @@ const CharacterDetailsDialog = ({
                 )}
                 <DialogClose asChild>
                   <HeaderIconButton label={t("character.dialog.close")}>
-                    <Glyph char="✕" />
+                    <X className="h-4 w-4" />
                   </HeaderIconButton>
                 </DialogClose>
               </div>
