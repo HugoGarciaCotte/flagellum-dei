@@ -33,6 +33,7 @@ interface PlayerEntry {
 const GMPlayerList = () => {
   const { user } = useAuth();
   const { t } = useTranslation();
+  const online = useNetworkStatus();
   const [open, setOpen] = useState(false);
   const [editing, setEditing] = useState<{ characterId: string; playerName: string } | null>(null);
 
@@ -40,6 +41,61 @@ const GMPlayerList = () => {
   const allGamePlayers = useLocalRows("game_players");
   const allCharacters = useLocalRows<Character>("characters");
   const allProfiles = useLocalRows("profiles");
+
+  // Collect every user_id that plays in one of my hosted games
+  const playerUserIds = useMemo(() => {
+    if (!user) return [] as string[];
+    const myGameIds = new Set(games.map((g: any) => g.id));
+    const ids = new Set<string>();
+    for (const gp of allGamePlayers) {
+      const gid = (gp as any).game_id;
+      const uid = (gp as any).user_id;
+      if (myGameIds.has(gid) && uid && uid !== user.id) ids.add(uid);
+    }
+    return [...ids];
+  }, [user, games, allGamePlayers]);
+
+  const playerIdsKey = playerUserIds.join(",");
+
+  // Pull characters + profiles for every player whenever the player set changes
+  useEffect(() => {
+    if (!online || playerUserIds.length === 0) return;
+    let cancelled = false;
+    (async () => {
+      for (const uid of playerUserIds) {
+        if (cancelled) return;
+        await Promise.all([
+          pullTable("characters", { user_id: uid }),
+          pullTable("profiles", { user_id: uid }),
+        ]);
+      }
+    })();
+    return () => { cancelled = true; };
+  }, [playerIdsKey, online]);
+
+  // Realtime: refresh a player's characters/profile when they edit on their side
+  useEffect(() => {
+    if (!online || playerUserIds.length === 0) return;
+    const idSet = new Set(playerUserIds);
+    const channel = supabase.channel(`gm-players-${user?.id ?? "anon"}`)
+      .on("postgres_changes", { event: "*", schema: "public", table: "characters" }, (payload: any) => {
+        const uid = payload.new?.user_id ?? payload.old?.user_id;
+        if (uid && idSet.has(uid)) pullTable("characters", { user_id: uid });
+      })
+      .on("postgres_changes", { event: "*", schema: "public", table: "profiles" }, (payload: any) => {
+        const uid = payload.new?.user_id ?? payload.old?.user_id;
+        if (uid && idSet.has(uid)) pullTable("profiles", { user_id: uid });
+      })
+      .on("postgres_changes", { event: "*", schema: "public", table: "game_players" }, (payload: any) => {
+        const gid = payload.new?.game_id ?? payload.old?.game_id;
+        const myGameIds = new Set(games.map((g: any) => g.id));
+        if (gid && myGameIds.has(gid)) {
+          pullTable("game_players", { game_id: gid });
+        }
+      })
+      .subscribe();
+    return () => { supabase.removeChannel(channel); };
+  }, [playerIdsKey, online, user?.id]);
 
   const players = useMemo<PlayerEntry[]>(() => {
     if (!user) return [];
