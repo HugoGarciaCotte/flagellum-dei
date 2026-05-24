@@ -59,6 +59,11 @@ export function clearDirty() {
   _dirtyRows.clear();
 }
 
+/** Clear dirty markers for a specific set of (table,id) rows (successful push). */
+export function clearDirtyFor(rows: { table: TableName; id: string }[]) {
+  for (const { table, id } of rows) _dirtyRows.delete(`${table}:${id}`);
+}
+
 // --- Last-sync timestamp ---
 
 const LAST_SYNC_KEY = "ls_last_sync";
