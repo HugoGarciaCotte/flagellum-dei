@@ -606,6 +606,10 @@ const en: Record<string, string> = {
   "adminLegacy.incompatible": "Incompatible",
   "dashboard.sendBeforeGame": "Send to players before the session",
   "dashboard.teaserCopied": "Teaser copied!",
+  "portrait.view": "View portrait",
+  "portrait.download": "Download",
+  "portrait.dismiss": "Dismiss",
+  "portrait.downloadFailed": "Could not download — opened in a new tab",
 };
 
 export default en;
