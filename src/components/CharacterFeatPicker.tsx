@@ -52,7 +52,11 @@ type CharacterFeatSubfeat = {
   character_feat_id: string;
   slot: number;
   subfeat_id: string;
+  exhausted_at?: string | null;
+  exhausted_scenario_id?: string | null;
+  used_forever?: boolean;
 };
+
 
 const MAX_LEVEL = 10;
 const MAX_SUBFEATS = 4;
@@ -196,12 +200,26 @@ const CharacterFeatPicker = ({ characterId, mode = "player", scenarioLevel }: Ch
     writeFeats(next);
   };
 
-  const useFeat = (level: number, isFree: boolean, freeIdx: number, exhaustion: string) => {
+  const useFeat = (level: number, isFree: boolean, freeIdx: number, exhaustion: string, featId?: string) => {
+    if (exhaustion === "transforms_on_use" && featId) {
+      const feat = featMap.get(featId);
+      const target = feat ? getFeatMeta(feat).transforms_to : undefined;
+      if (target) {
+        setExhaustionForLevel(level, isFree, freeIdx, {
+          feat_id: target,
+          exhausted_at: null,
+          exhausted_scenario_id: null,
+          used_forever: false,
+        });
+      }
+      return;
+    }
     const patch = exhaustion === "once_forever"
       ? { used_forever: true, exhausted_at: new Date().toISOString(), exhausted_scenario_id: currentScenarioId ?? null }
       : { exhausted_at: new Date().toISOString(), exhausted_scenario_id: currentScenarioId ?? null };
     setExhaustionForLevel(level, isFree, freeIdx, patch);
   };
+
 
   const rechargeFeat = (level: number, isFree: boolean, freeIdx: number) => {
     setExhaustionForLevel(level, isFree, freeIdx, { exhausted_at: null, exhausted_scenario_id: null, used_forever: false });
@@ -552,6 +570,14 @@ const CharacterFeatPicker = ({ characterId, mode = "player", scenarioLevel }: Ch
           const subfeatKey = `${cf.id}-${slotNum}`;
 
           if (assignedFeat) {
+            const sfExhaustion = getFeatExhaustion(assignedFeat);
+            const sfState: FeatExhaustionState = {
+              exhausted_at: assigned?.exhausted_at ?? null,
+              exhausted_scenario_id: assigned?.exhausted_scenario_id ?? null,
+              used_forever: !!assigned?.used_forever,
+            };
+            const sfExhausted = isFeatExhausted(sfState, sfExhaustion, scenarioHistory);
+            const sfLabel = exhaustionLabelKind(sfState, sfExhaustion, sfExhausted);
             return (
               <div key={slotNum} className="flex items-center gap-1">
                 <span className="text-muted-foreground text-xs">↳</span>
@@ -561,7 +587,9 @@ const CharacterFeatPicker = ({ characterId, mode = "player", scenarioLevel }: Ch
                     expanded={expandedSubfeatKey === subfeatKey}
                     onToggleExpand={() => setExpandedSubfeatKey(expandedSubfeatKey === subfeatKey ? null : subfeatKey)}
                     compact
+                    exhaustionLabel={sfLabel}
                     actions={
+
                       <>
                         <Button
                           variant="ghost"
@@ -730,8 +758,9 @@ const CharacterFeatPicker = ({ characterId, mode = "player", scenarioLevel }: Ch
                     expanded={expandedAssignedFeatId === assigned!.id}
                     onToggleExpand={() => setExpandedAssignedFeatId(expandedAssignedFeatId === assigned!.id ? null : assigned!.id)}
                     exhaustionLabel={label}
-                    onUse={exhaustion !== "infinite" ? () => useFeat(level, false, freeIdx, exhaustion) : undefined}
-                    onRecharge={exhaustion !== "infinite" ? () => rechargeFeat(level, false, freeIdx) : undefined}
+                    onUse={exhaustion !== "infinite" ? () => useFeat(level, false, freeIdx, exhaustion, assignedFeat.id) : undefined}
+                    onRecharge={exhaustion !== "infinite" && exhaustion !== "transforms_on_use" && exhausted ? () => rechargeFeat(level, false, freeIdx) : undefined}
+
                     actions={
                       <DropdownMenu>
                         <DropdownMenuTrigger asChild>
@@ -789,8 +818,9 @@ const CharacterFeatPicker = ({ characterId, mode = "player", scenarioLevel }: Ch
                 expanded={expandedAssignedFeatId === cf.id}
                 onToggleExpand={() => setExpandedAssignedFeatId(expandedAssignedFeatId === cf.id ? null : cf.id)}
                 exhaustionLabel={label}
-                onUse={exhaustion !== "infinite" ? () => useFeat(0, true, freeIdx, exhaustion) : undefined}
-                onRecharge={exhaustion !== "infinite" ? () => rechargeFeat(0, true, freeIdx) : undefined}
+                onUse={exhaustion !== "infinite" ? () => useFeat(0, true, freeIdx, exhaustion, feat.id) : undefined}
+                onRecharge={exhaustion !== "infinite" && exhaustion !== "transforms_on_use" && exhausted ? () => rechargeFeat(0, true, freeIdx) : undefined}
+
                 actions={mode === "gm" ? (
                   <DropdownMenu>
                     <DropdownMenuTrigger asChild>
