@@ -60,17 +60,6 @@ const CharacterListItem = ({ character, actions, onView }: CharacterListItemProp
           </div>
           <div className="flex items-center gap-1 shrink-0" onClick={(e) => e.stopPropagation()}>
             {actions}
-            {clickable && (
-              <button
-                type="button"
-                onClick={(e) => { e.stopPropagation(); onView!(); }}
-                aria-label={t("character.view")}
-                className="h-7 w-7 inline-flex items-center justify-center rounded-md text-muted-foreground hover:text-primary hover:bg-accent transition-colors"
-                title={t("character.view")}
-              >
-                <span className="text-base" aria-hidden="true">🜍</span>
-              </button>
-            )}
           </div>
         </div>
         {character.description && (
