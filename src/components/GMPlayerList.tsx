@@ -11,52 +11,74 @@ import CharacterSheet from "@/components/CharacterSheet";
 import CharacterListItem from "@/components/CharacterListItem";
 import { useTranslation } from "@/i18n/useTranslation";
 
-interface PlayerRow {
+interface Character {
+  id: string;
+  name: string;
+  description: string | null;
+  portrait_url?: string | null;
+  user_id: string;
+}
+
+interface PlayerEntry {
   user_id: string;
   display_name: string | null;
-  character_id: string | null;
-  character_name: string | null;
-  character_description: string | null;
+  selectedCharId: string | null;
+  characters: Character[];
 }
 
 const GMPlayerList = () => {
   const { user } = useAuth();
   const { t } = useTranslation();
   const [open, setOpen] = useState(false);
-  const [editPlayer, setEditPlayer] = useState<PlayerRow | null>(null);
+  const [editing, setEditing] = useState<{ characterId: string; playerName: string } | null>(null);
 
   const games = useLocalRows("games", { host_user_id: user?.id });
   const allGamePlayers = useLocalRows("game_players");
-  const allCharacters = useLocalRows("characters");
+  const allCharacters = useLocalRows<Character>("characters");
   const allProfiles = useLocalRows("profiles");
 
-  const players = useMemo(() => {
+  const players = useMemo<PlayerEntry[]>(() => {
     if (!user) return [];
     const myGameIds = new Set(games.map((g: any) => g.id));
     const profileMap = new Map(allProfiles.map((p: any) => [p.user_id, p]));
-    const charMap = new Map(allCharacters.map((c: any) => [c.id, c]));
+    const charsByUser = new Map<string, Character[]>();
+    for (const c of allCharacters as Character[]) {
+      const list = charsByUser.get(c.user_id) ?? [];
+      list.push(c);
+      charsByUser.set(c.user_id, list);
+    }
 
-    const map = new Map<string, PlayerRow>();
+    const map = new Map<string, PlayerEntry>();
     for (const gp of allGamePlayers) {
       if (!myGameIds.has((gp as any).game_id)) continue;
       if ((gp as any).user_id === user.id) continue;
       const uid = (gp as any).user_id;
-      const existing = map.get(uid);
-      const char = (gp as any).character_id ? charMap.get((gp as any).character_id) : null;
       const profile = profileMap.get(uid);
-      const entry: PlayerRow = {
-        user_id: uid,
-        display_name: (profile as any)?.display_name ?? null,
-        character_id: char?.id ?? null,
-        character_name: char?.name ?? null,
-        character_description: char?.description ?? null,
-      };
-      if (!existing || (entry.character_id && !existing.character_id)) {
-        map.set(uid, entry);
+      const existing = map.get(uid);
+      const selectedCharId = (gp as any).character_id ?? null;
+      if (!existing) {
+        map.set(uid, {
+          user_id: uid,
+          display_name: (profile as any)?.display_name ?? null,
+          selectedCharId,
+          characters: charsByUser.get(uid) ?? [],
+        });
+      } else if (selectedCharId && !existing.selectedCharId) {
+        existing.selectedCharId = selectedCharId;
       }
     }
     return Array.from(map.values());
   }, [user, games, allGamePlayers, allCharacters, allProfiles]);
+
+  const openEdit = async (characterId: string, playerName: string) => {
+    setEditing({ characterId, playerName });
+    await pullTable("characters", { id: characterId });
+    await pullTable("character_feats", { character_id: characterId });
+    const feats = getBy("character_feats", { character_id: characterId });
+    for (const f of feats) {
+      await pullTable("character_feat_subfeats", { character_feat_id: (f as any).id });
+    }
+  };
 
   if (!players || players.length === 0) return null;
 
@@ -73,49 +95,64 @@ const GMPlayerList = () => {
         </CollapsibleTrigger>
         <CollapsibleContent className="mt-4 space-y-3">
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-            {players.map((p) => (
-              <div key={p.user_id} className="space-y-1">
-                <p className="text-sm font-medium text-muted-foreground px-1">{p.display_name || t("gm.unknown")}</p>
-                {p.character_id ? (
-                  <CharacterListItem
-                    character={{ id: p.character_id, name: p.character_name || "Unnamed", description: p.character_description }}
-                    actions={
-                      <Button variant="ghost" size="icon" className="h-7 w-7 shrink-0" onClick={async () => {
-                        setEditPlayer(p);
-                        if (p.character_id) {
-                          await pullTable("characters", { id: p.character_id });
-                          await pullTable("character_feats", { character_id: p.character_id });
-                          const feats = getBy("character_feats", { character_id: p.character_id });
-                          for (const f of feats) {
-                            await pullTable("character_feat_subfeats", { character_feat_id: (f as any).id });
-                          }
-                        }
-                      }}>
-                        <Pencil className="h-3.5 w-3.5" />
-                      </Button>
-                    }
-                  />
-                ) : (
-                  <p className="text-sm text-muted-foreground italic px-1">{t("gm.noCharacterSelected")}</p>
-                )}
-              </div>
-            ))}
+            {players.map((p) => {
+              const displayName = p.display_name || t("gm.unknown");
+              const selectedChar = p.characters.find((c) => c.id === p.selectedCharId) ?? null;
+              const otherChars = p.characters.filter((c) => c.id !== p.selectedCharId);
+              return (
+                <div key={p.user_id} className="space-y-2">
+                  <p className="text-sm font-medium text-muted-foreground px-1">{displayName}</p>
+
+                  {selectedChar ? (
+                    <CharacterListItem
+                      character={{ id: selectedChar.id, name: selectedChar.name, description: selectedChar.description, portrait_url: selectedChar.portrait_url }}
+                      actions={
+                        <Button variant="ghost" size="icon" className="h-7 w-7 shrink-0" onClick={() => openEdit(selectedChar.id, displayName)}>
+                          <Pencil className="h-3.5 w-3.5" />
+                        </Button>
+                      }
+                    />
+                  ) : (
+                    <p className="text-sm text-muted-foreground italic px-1">{t("gm.noCharacterSelected")}</p>
+                  )}
+
+                  {otherChars.length > 0 && (
+                    <Collapsible>
+                      <CollapsibleTrigger className="flex items-center gap-1 text-sm text-muted-foreground hover:text-foreground transition-colors px-1 cursor-pointer group">
+                        <ChevronDown className="h-3 w-3 transition-transform group-data-[state=open]:rotate-180" />
+                        {t("gm.otherCharacters").replace("{count}", String(otherChars.length))}
+                      </CollapsibleTrigger>
+                      <CollapsibleContent className="mt-1 space-y-1 pl-1">
+                        {otherChars.map((char) => (
+                          <div key={char.id} className="flex items-center justify-between rounded-md border border-border px-3 py-1.5 text-sm">
+                            <span className="text-muted-foreground truncate">{char.name}</span>
+                            <Button variant="ghost" size="icon" className="h-6 w-6 shrink-0" onClick={() => openEdit(char.id, displayName)}>
+                              <Pencil className="h-3 w-3" />
+                            </Button>
+                          </div>
+                        ))}
+                      </CollapsibleContent>
+                    </Collapsible>
+                  )}
+                </div>
+              );
+            })}
           </div>
         </CollapsibleContent>
       </Collapsible>
 
-      <Dialog open={!!editPlayer} onOpenChange={(o) => { if (!o) setEditPlayer(null); }}>
+      <Dialog open={!!editing} onOpenChange={(o) => { if (!o) setEditing(null); }}>
         <DialogContent className="max-h-[85vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle className="font-display">
-              {t("gm.editCharacter").replace("{name}", editPlayer?.display_name || t("gm.unknown"))}
+              {t("gm.editCharacter").replace("{name}", editing?.playerName || t("gm.unknown"))}
             </DialogTitle>
           </DialogHeader>
-          {editPlayer?.character_id && (
+          {editing?.characterId && (
             <CharacterSheet
-              characterId={editPlayer.character_id}
+              characterId={editing.characterId}
               mode="gm"
-              onDone={() => setEditPlayer(null)}
+              onDone={() => setEditing(null)}
             />
           )}
         </DialogContent>
