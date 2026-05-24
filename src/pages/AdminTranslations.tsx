@@ -187,11 +187,7 @@ const AdminTranslations = () => {
     <div className="min-h-screen bg-background">
       <PageHeader
         title={t("admin.translations")}
-        leftAction={
-          <Button variant="ghost" size="icon" onClick={() => navigate("/admin")}>
-            <ArrowLeft className="h-4 w-4" />
-          </Button>
-        }
+        leftAction={<BackButton to="/admin" />}
       />
 
       <main className="container py-8 max-w-5xl space-y-6">
