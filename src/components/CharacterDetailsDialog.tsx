@@ -78,7 +78,7 @@ const CharacterDetailsDialog = ({
                     aria-label={t("character.edit")}
                     onClick={() => setEditing(true)}
                   >
-                    <span className="text-base" aria-hidden="true">🜛</span>
+                    <span className="text-base" aria-hidden="true">✎</span>
                   </Button>
                 )}
                 {!editing && canDelete && (
