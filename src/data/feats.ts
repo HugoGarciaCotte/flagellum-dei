@@ -33,6 +33,8 @@ export interface FeatMeta {
   blocking?: string[];
   synonyms?: string;
   exhaustion?: ExhaustionType;
+  transforms_to?: string;
+
 }
 
 /** Get the exhaustion type for a feat (defaults to "infinite"). */
