@@ -79,7 +79,7 @@ const CharacterDetailsDialog = ({
       size="icon"
       className={`h-8 w-8 shrink-0 flex items-center justify-center ${
         tone === "destructive"
-          ? "text-muted-foreground hover:text-destructive"
+          ? "text-destructive hover:text-destructive/80"
           : "text-muted-foreground hover:text-foreground"
       }`}
       aria-label={label}
