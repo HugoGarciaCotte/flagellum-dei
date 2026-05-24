@@ -3,6 +3,7 @@ import { useNetworkStatus } from "@/hooks/useNetworkStatus";
 import { WifiOff, Loader2, Check } from "lucide-react";
 import { useTranslation } from "@/i18n/useTranslation";
 import { useBottomStack } from "@/contexts/BottomStackContext";
+import { toast } from "sonner";
 
 export const OfflineBanner = () => {
   const online = useNetworkStatus();
@@ -26,11 +27,17 @@ export const OfflineBanner = () => {
         setTimeout(() => setJustSynced(false), 1500);
       }
     };
+    const onError = (e: Event) => {
+      const detail = (e as CustomEvent).detail as { table?: string; message?: string } | undefined;
+      toast.error(`Couldn't sync ${detail?.table ?? "change"}: ${detail?.message ?? "unknown error"}`);
+    };
     window.addEventListener("sync-syncing", onSyncing);
     window.addEventListener("sync-synced", onSynced);
+    window.addEventListener("sync-error", onError as EventListener);
     return () => {
       window.removeEventListener("sync-syncing", onSyncing);
       window.removeEventListener("sync-synced", onSynced);
+      window.removeEventListener("sync-error", onError as EventListener);
     };
   }, []);
 
