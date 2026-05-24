@@ -718,12 +718,20 @@ const CharacterFeatPicker = ({ characterId, mode = "player", scenarioLevel }: Ch
                 {level}
               </span>
 
-              {assignedFeat ? (
+              {assignedFeat ? (() => {
+                const exhaustion = getFeatExhaustion(assignedFeat);
+                const { state, freeIdx } = getStateForCf(assigned!);
+                const exhausted = isFeatExhausted(state, exhaustion, scenarioHistory);
+                const label = exhaustionLabelKind(state, exhaustion, exhausted);
+                return (
                 <div className="flex-1 min-w-0">
                    <FeatListItem
                     feat={{ ...assignedFeat, description: descriptionMap.get(assignedFeat.id) ?? undefined }}
                     expanded={expandedAssignedFeatId === assigned!.id}
                     onToggleExpand={() => setExpandedAssignedFeatId(expandedAssignedFeatId === assigned!.id ? null : assigned!.id)}
+                    exhaustionLabel={label}
+                    onUse={exhaustion !== "infinite" ? () => useFeat(level, false, freeIdx, exhaustion) : undefined}
+                    onRecharge={() => rechargeFeat(level, false, freeIdx)}
                     actions={
                       <DropdownMenu>
                         <DropdownMenuTrigger asChild>
@@ -742,10 +750,11 @@ const CharacterFeatPicker = ({ characterId, mode = "player", scenarioLevel }: Ch
                       </DropdownMenu>
                     }
                     collapsedContent={assigned && assignedFeat ? renderSubfeats(assigned, assignedFeat) : undefined}
-                    compact
                   />
                 </div>
-              ) : (
+                );
+              })() : (
+
                 <Button variant="ghost" size="sm" className="text-sm text-muted-foreground" onClick={() => openPicker({ type: "level", level })}>
                   {t("feats.chooseFeat")}
                 </Button>
