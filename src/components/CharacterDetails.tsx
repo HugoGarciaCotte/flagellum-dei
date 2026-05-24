@@ -59,7 +59,7 @@ const CharacterDetails = ({ characterId }: CharacterDetailsProps) => {
         expanded={expandedKey === key}
         onToggleExpand={() => setExpandedKey(expandedKey === key ? null : key)}
         specialityValue={speciality || undefined}
-        specialities={feat.specialities ?? null}
+        specialities={meta.specialities ?? null}
         compact
       />
     );
