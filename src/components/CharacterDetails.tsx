@@ -1,9 +1,9 @@
-import { useMemo } from "react";
+import { useMemo, useState } from "react";
 import { useLocalRow } from "@/hooks/useLocalData";
 import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
 import PortraitViewer from "@/components/PortraitViewer";
-import { getFeatById } from "@/data/feats";
-import FeatDetailsDisplay from "@/components/FeatDetailsDisplay";
+import { getFeatById, getFeatMeta } from "@/data/feats";
+import FeatListItem from "@/components/FeatListItem";
 import { useTranslation } from "@/i18n/useTranslation";
 
 interface CharacterDetailsProps {
@@ -21,6 +21,7 @@ interface FeatRow {
 const CharacterDetails = ({ characterId }: CharacterDetailsProps) => {
   const { t, locale } = useTranslation();
   const char = useLocalRow<any>("characters", characterId);
+  const [expandedKey, setExpandedKey] = useState<string | null>(null);
 
   const feats = useMemo(() => {
     const doc: FeatRow[] = Array.isArray(char?.feats) ? char.feats : [];
@@ -41,14 +42,26 @@ const CharacterDetails = ({ characterId }: CharacterDetailsProps) => {
 
   const initials = (char.name || "?").slice(0, 2).toUpperCase();
 
-  const renderFeat = (featId: string) => {
+  const renderFeat = (featId: string, key: string, speciality?: string | null) => {
     const feat = getFeatById(featId, locale);
     if (!feat) return <span className="text-muted-foreground italic">{t("feats.unknownFeat")}</span>;
+    const meta = getFeatMeta(feat);
     return (
-      <div className="space-y-1">
-        <p className="font-display text-base text-foreground">{feat.title}</p>
-        <FeatDetailsDisplay content={feat.content} rawContent={feat.raw_content} />
-      </div>
+      <FeatListItem
+        feat={{
+          id: feat.id,
+          title: feat.title,
+          categories: feat.categories ?? [],
+          description: meta.description ?? null,
+          content: feat.content,
+          raw_content: feat.raw_content,
+        }}
+        expanded={expandedKey === key}
+        onToggleExpand={() => setExpandedKey(expandedKey === key ? null : key)}
+        specialityValue={speciality || undefined}
+        specialities={feat.specialities ?? null}
+        compact
+      />
     );
   };
 
@@ -82,24 +95,18 @@ const CharacterDetails = ({ characterId }: CharacterDetailsProps) => {
         ) : (
           <ul className="space-y-3">
             {feats.map((f) => (
-              <li
-                key={f.key}
-                className="rounded-md border border-border/60 bg-card/50 p-3 space-y-2 gold-glow-box"
-              >
-                <div className="flex items-start justify-between gap-3">
-                  <div className="flex-1 min-w-0">{renderFeat(f.feat_id)}</div>
+              <li key={f.key} className="space-y-2">
+                <div className="flex items-center gap-2">
                   <span className="text-xs uppercase tracking-wider text-primary font-display shrink-0">
                     {f.label}
                   </span>
                 </div>
-                {f.speciality && (
-                  <p className="text-sm text-muted-foreground italic">({f.speciality})</p>
-                )}
+                {renderFeat(f.feat_id, f.key, f.speciality)}
                 {f.subfeats.length > 0 && (
                   <ul className="pl-3 mt-1 space-y-2 border-l border-border/60">
                     {f.subfeats.map((sf) => (
                       <li key={sf.slot} className="pl-2">
-                        {renderFeat(sf.feat_id)}
+                        {renderFeat(sf.feat_id, `${f.key}-s${sf.slot}`)}
                       </li>
                     ))}
                   </ul>
