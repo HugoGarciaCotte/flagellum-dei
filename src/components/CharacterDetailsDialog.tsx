@@ -68,7 +68,18 @@ const CharacterDetailsDialog = ({
         <DialogContent className="fixed inset-0 max-w-none w-full h-full rounded-none p-0 translate-x-0 translate-y-0 left-0 top-0 border-none overflow-hidden [&>button:last-child]:hidden">
           <div className="flex flex-col h-full min-h-0">
             <div className="border-b border-border/50 bg-card/80 backdrop-blur px-4 py-3 flex items-center justify-between shrink-0 safe-top gap-2">
-              <span className="font-display text-base font-medium text-foreground truncate">{title}</span>
+              <div className="flex items-center gap-2 min-w-0 overflow-hidden">
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  className="h-8 w-8 shrink-1"
+                  aria-label={editing ? t("character.dialog.backToDetails") : t("character.dialog.close")}
+                  onClick={() => editing ? setEditing(false) : onOpenChange(false)}
+                >
+                  <span className="text-base" aria-hidden="true">←</span>
+                </Button>
+                <span className="font-display text-base font-medium text-foreground truncate">{title}</span>
+              </div>
               <div className="flex items-center gap-1 shrink-0">
                 {!editing && canEdit && (
                   <Button
@@ -90,16 +101,6 @@ const CharacterDetailsDialog = ({
                     onClick={() => setConfirmDelete(true)}
                   >
                     <Trash2 className="h-4 w-4" aria-hidden="true" />
-                  </Button>
-                )}
-                {editing && (
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    className="font-display"
-                    onClick={() => setEditing(false)}
-                  >
-                    {t("character.dialog.backToDetails")}
                   </Button>
                 )}
                 <DialogClose className="rounded-sm opacity-70 hover:opacity-100 p-1">
