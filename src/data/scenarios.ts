@@ -2,6 +2,7 @@
 // Generated on 2026-05-17T19:14:00.979Z
 
 import { getCachedScenarioOverrides, applyScenarioOverrides } from "@/lib/scenarioOverrides";
+import { normalizeScenarioId } from "@/lib/scenarioIds";
 
 export interface Scenario {
   id: string;
