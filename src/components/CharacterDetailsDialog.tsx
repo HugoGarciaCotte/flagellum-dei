@@ -6,7 +6,7 @@ import {
   AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
 import { Button } from "@/components/ui/button";
-import { X, Trash2 } from "lucide-react";
+
 import CharacterDetails from "@/components/CharacterDetails";
 import CharacterSheet from "@/components/CharacterSheet";
 import { useLocalRow } from "@/hooks/useLocalData";
@@ -62,6 +62,47 @@ const CharacterDetailsDialog = ({
     ? t("character.dialog.editTitle")
     : (char?.name || t("character.details.title"));
 
+  const HeaderIconButton = ({
+    children,
+    label,
+    onClick,
+    tone = "default",
+  }: {
+    children: React.ReactNode;
+    label: string;
+    onClick?: () => void;
+    tone?: "default" | "destructive";
+  }) => (
+    <Button
+      variant="ghost"
+      size="icon"
+      className={`h-8 w-8 shrink-0 flex items-center justify-center ${
+        tone === "destructive"
+          ? "text-muted-foreground hover:text-destructive"
+          : "text-muted-foreground hover:text-foreground"
+      }`}
+      aria-label={label}
+      onClick={onClick}
+    >
+      {children}
+    </Button>
+  );
+
+  const Glyph = ({ char }: { char: string }) => (
+    <span className="text-lg leading-none translate-y-[1px]" aria-hidden="true">{char}</span>
+  );
+
+  const TrashGlyph = () => (
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"
+      strokeLinecap="round" strokeLinejoin="round" className="h-[18px] w-[18px]" aria-hidden="true">
+      <path d="M3 6h18" />
+      <path d="M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2" />
+      <path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6" />
+      <path d="M10 11v6" />
+      <path d="M14 11v6" />
+    </svg>
+  );
+
   return (
     <>
       <Dialog open={open} onOpenChange={onOpenChange}>
@@ -69,45 +110,40 @@ const CharacterDetailsDialog = ({
           <div className="flex flex-col h-full min-h-0">
             <div className="border-b border-border bg-card px-4 py-3 flex items-center justify-between shrink-0 safe-top gap-2 min-h-12">
               <div className="flex items-center gap-2 min-w-0 overflow-hidden">
-                <Button
-                  variant="ghost"
-                  size="icon"
-                  className="h-8 w-8 shrink-1"
-                  aria-label={editing ? t("character.dialog.backToDetails") : t("character.dialog.close")}
+                <HeaderIconButton
+                  label={editing ? t("character.dialog.backToDetails") : t("character.dialog.close")}
                   onClick={() => editing ? setEditing(false) : onOpenChange(false)}
                 >
-                  <span className="text-base leading-none" aria-hidden="true">←</span>
-                </Button>
-                <span className="font-display text-base font-medium text-foreground truncate leading-none relative top-[6px]">{title}</span>
+                  <Glyph char="←" />
+                </HeaderIconButton>
+                <span className="font-display text-base font-medium text-foreground truncate leading-none translate-y-[1px]">{title}</span>
               </div>
               <div className="flex items-center gap-1 shrink-0">
                 {!editing && canEdit && (
-                  <Button
-                    variant="ghost"
-                    size="icon"
-                    className="h-8 w-8"
-                    aria-label={t("character.edit")}
+                  <HeaderIconButton
+                    label={t("character.edit")}
                     onClick={() => setEditing(true)}
                   >
-                    <span className="text-base" aria-hidden="true">✎</span>
-                  </Button>
+                    <Glyph char="✎" />
+                  </HeaderIconButton>
                 )}
                 {!editing && canDelete && (
-                  <Button
-                    variant="ghost"
-                    size="icon"
-                    className="h-8 w-8 text-destructive hover:text-destructive"
-                    aria-label={t("character.delete.cta")}
+                  <HeaderIconButton
+                    label={t("character.delete.cta")}
+                    tone="destructive"
                     onClick={() => setConfirmDelete(true)}
                   >
-                    <Trash2 className="h-4 w-4" aria-hidden="true" />
-                  </Button>
+                    <TrashGlyph />
+                  </HeaderIconButton>
                 )}
-                <DialogClose className="rounded-sm opacity-70 hover:opacity-100 p-1">
-                  <X className="h-5 w-5" />
+                <DialogClose asChild>
+                  <HeaderIconButton label={t("character.dialog.close")}>
+                    <Glyph char="✕" />
+                  </HeaderIconButton>
                 </DialogClose>
               </div>
             </div>
+
 
             <ScrollArea className="flex-1">
               <div className="container max-w-2xl py-6 px-4">
