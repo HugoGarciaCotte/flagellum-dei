@@ -3,8 +3,10 @@ import { useLocalRow } from "@/hooks/useLocalData";
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
 import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
 import PortraitViewer from "@/components/PortraitViewer";
-import { getFeatById } from "@/data/feats";
+import { getFeatById, getFeatExhaustion } from "@/data/feats";
 import { useTranslation } from "@/i18n/useTranslation";
+import { useUserScenarioHistory } from "@/hooks/useUserScenarioHistory";
+import { isFeatExhausted, exhaustionLabelKind, type FeatExhaustionState } from "@/lib/featExhaustion";
 
 interface CharacterListItemProps {
   character: { id: string; name: string; description?: string | null; portrait_url?: string | null };
@@ -14,9 +16,12 @@ interface CharacterListItemProps {
   onView?: (id: string) => void;
 }
 
+type SubfeatEntry = { slot: number; feat_id: string } & Partial<FeatExhaustionState>;
+
 const CharacterListItem = ({ character, actions, onView }: CharacterListItemProps) => {
   const { t, locale } = useTranslation();
   const charRow = useLocalRow<any>("characters", character.id);
+  const scenarioHistory = useUserScenarioHistory(charRow?.user_id);
   const clickable = !!onView;
 
   const feats = useMemo(() => {
@@ -26,10 +31,30 @@ const CharacterListItem = ({ character, actions, onView }: CharacterListItemProp
       .map((f, i) => ({
         key: f.is_free ? `F${i}` : `L${f.level}`,
         feat_id: f.feat_id,
-        subfeats: (f.subfeats ?? []) as { slot: number; feat_id: string }[],
+        subfeats: (f.subfeats ?? []) as SubfeatEntry[],
+        exhausted_at: f.exhausted_at ?? null,
+        exhausted_scenario_id: f.exhausted_scenario_id ?? null,
+        used_forever: !!f.used_forever,
       }));
   }, [charRow?.feats]);
 
+  const computeLabel = (
+    featId: string,
+    state: FeatExhaustionState,
+  ): "used" | "exhausted" | null => {
+    const feat = getFeatById(featId, locale);
+    if (!feat) return null;
+    const exhaustion = getFeatExhaustion(feat);
+    const exhausted = isFeatExhausted(state, exhaustion, scenarioHistory);
+    return exhaustionLabelKind(state, exhaustion, exhausted);
+  };
+
+  const renderTag = (kind: "used" | "exhausted" | null) =>
+    kind ? (
+      <span className="ml-1 italic text-destructive/80">
+        ({kind === "used" ? t("feats.usedTag") : t("feats.exhaustedTag")})
+      </span>
+    ) : null;
 
   const initials = character.name.slice(0, 2).toUpperCase();
 
@@ -69,14 +94,30 @@ const CharacterListItem = ({ character, actions, onView }: CharacterListItemProp
           <ul className="list-disc list-inside text-base text-muted-foreground space-y-0.5">
             {feats.map((cf) => {
               const featTitle = getFeatById(cf.feat_id, locale)?.title || t("feats.unknownFeat");
+              const labelKind = computeLabel(cf.feat_id, {
+                exhausted_at: cf.exhausted_at,
+                exhausted_scenario_id: cf.exhausted_scenario_id,
+                used_forever: cf.used_forever,
+              });
               return (
-                <li key={cf.key}>
+                <li key={cf.key} className={labelKind ? "opacity-70" : undefined}>
                   {featTitle}
+                  {renderTag(labelKind)}
                   {cf.subfeats.length > 0 && (
                     <ul className="list-[circle] list-inside ml-4 mt-0.5 space-y-0.5">
                       {cf.subfeats.map((sf) => {
                         const sfTitle = getFeatById(sf.feat_id, locale)?.title || t("feats.unknownFeat");
-                        return <li key={sf.slot}>{sfTitle}</li>;
+                        const sfLabel = computeLabel(sf.feat_id, {
+                          exhausted_at: sf.exhausted_at ?? null,
+                          exhausted_scenario_id: sf.exhausted_scenario_id ?? null,
+                          used_forever: !!sf.used_forever,
+                        });
+                        return (
+                          <li key={sf.slot} className={sfLabel ? "opacity-70" : undefined}>
+                            {sfTitle}
+                            {renderTag(sfLabel)}
+                          </li>
+                        );
                       })}
                     </ul>
                   )}
