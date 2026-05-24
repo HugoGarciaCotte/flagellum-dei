@@ -166,6 +166,8 @@ async function doPush() {
     "character_feat_subfeats", "games", "game_players",
   ];
 
+  const succeeded: { table: TableName; id: string }[] = [];
+
   for (const table of pushOrder) {
     const ids = byTable.get(table);
     if (!ids || ids.length === 0) continue;
@@ -181,23 +183,38 @@ async function doPush() {
       return rest;
     });
 
-    try {
-      for (let i = 0; i < sanitized.length; i += 100) {
-        const chunk = sanitized.slice(i, i + 100);
-        await (supabase.from(table as any).upsert(chunk as any, { onConflict: "id" }) as any);
-      }
-      // Clear pending_sync on rows that had it
-      if (table === "games") {
-        for (const r of rows) {
-          if (r.pending_sync) store.upsertRow("games", { ...r, pending_sync: false });
+    for (let i = 0; i < sanitized.length; i += 100) {
+      const chunk = sanitized.slice(i, i + 100);
+      const chunkIds = chunk.map((r: any) => r.id);
+      try {
+        const { error } = await (supabase.from(table as any).upsert(chunk as any, { onConflict: "id" }) as any);
+        if (error) {
+          console.error(`Push ${table} failed:`, error.message, { ids: chunkIds });
+          window.dispatchEvent(new CustomEvent("sync-error", {
+            detail: { table, ids: chunkIds, message: error.message },
+          }));
+          continue; // leave dirty, retry later
         }
+        for (const id of chunkIds) succeeded.push({ table, id });
+      } catch (e: any) {
+        const msg = e?.message ?? String(e);
+        console.error(`Push ${table} threw:`, msg, { ids: chunkIds });
+        window.dispatchEvent(new CustomEvent("sync-error", {
+          detail: { table, ids: chunkIds, message: msg },
+        }));
       }
-    } catch (e) {
-      console.warn(`Push ${table} failed:`, e);
+    }
+
+    // Clear pending_sync on rows that pushed successfully
+    if (table === "games") {
+      const okIds = new Set(succeeded.filter(s => s.table === "games").map(s => s.id));
+      for (const r of rows) {
+        if (r.pending_sync && okIds.has(r.id)) store.upsertRow("games", { ...r, pending_sync: false });
+      }
     }
   }
 
-  store.clearDirty();
+  store.clearDirtyFor(succeeded);
 }
 
 // --- Public API ---
