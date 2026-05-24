@@ -2,6 +2,7 @@ import { ReactNode, useMemo } from "react";
 import { useLocalRows } from "@/hooks/useLocalData";
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
 import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
+import PortraitViewer from "@/components/PortraitViewer";
 import { getFeatById } from "@/data/feats";
 import { useTranslation } from "@/i18n/useTranslation";
 
@@ -30,12 +31,14 @@ const CharacterListItem = ({ character, actions }: CharacterListItemProps) => {
       <CardHeader className="pb-2">
         <div className="flex items-start justify-between">
           <div className="flex items-center gap-3">
-            <Avatar className="h-9 w-9 border border-primary/20">
-              {character.portrait_url ? (
-                <AvatarImage src={character.portrait_url} alt={character.name} />
-              ) : null}
-              <AvatarFallback className="text-sm font-display bg-muted">{initials}</AvatarFallback>
-            </Avatar>
+            <PortraitViewer src={character.portrait_url} alt={character.name} fileName={character.name}>
+              <Avatar className="h-9 w-9 border border-primary/20">
+                {character.portrait_url ? (
+                  <AvatarImage src={character.portrait_url} alt={character.name} />
+                ) : null}
+                <AvatarFallback className="text-sm font-display bg-muted">{initials}</AvatarFallback>
+              </Avatar>
+            </PortraitViewer>
             <CardTitle className="font-display text-lg">{character.name}</CardTitle>
           </div>
           {actions && <div className="flex gap-1 shrink-0">{actions}</div>}
