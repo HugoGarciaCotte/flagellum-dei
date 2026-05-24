@@ -345,6 +345,7 @@ const FeatEditorPanel = () => {
               unlocks_categories: f.meta.unlocks_categories?.length ? f.meta.unlocks_categories : undefined,
               blocking: f.meta.blocking?.length ? f.meta.blocking : undefined,
               synonyms: f.meta.synonyms || undefined,
+              exhaustion: f.meta.exhaustion || undefined,
             }
           : null,
         ...(hasFr ? { fr } : {}),
