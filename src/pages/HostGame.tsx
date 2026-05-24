@@ -7,7 +7,8 @@ import { loadScenarioOverrides } from "@/lib/scenarioOverrides";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { toast } from "@/hooks/use-toast";
-import { ArrowLeft, Copy, AlertTriangle, Loader2 } from "lucide-react";
+import { Copy, AlertTriangle, Loader2 } from "lucide-react";
+import BackButton from "@/components/nav/BackButton";
 
 import PlayerListSheet from "@/components/PlayerListSheet";
 import { parseWikitext, extractImageUrls, findSection, resolveAmbianceTrack, resolvePlaylist, type PlaylistInfo } from "@/lib/parseWikitext";
