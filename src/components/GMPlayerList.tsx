@@ -118,10 +118,10 @@ const GMPlayerList = () => {
                   )}
 
                   {otherChars.length > 0 && (
-                    <Collapsible>
-                      <CollapsibleTrigger className="flex items-center gap-1 text-sm text-muted-foreground hover:text-foreground transition-colors px-1 cursor-pointer group">
-                        <ChevronDown className="h-3 w-3 transition-transform group-data-[state=open]:rotate-180" />
-                        {t("gm.otherCharacters").replace("{count}", String(otherChars.length))}
+                    <Collapsible defaultOpen>
+                      <CollapsibleTrigger className="flex items-center gap-2 text-sm font-display text-foreground bg-card/60 border border-border/60 rounded-md px-3 py-2 hover:bg-card transition-colors cursor-pointer group w-full">
+                        <ChevronDown className="h-3.5 w-3.5 transition-transform group-data-[state=open]:rotate-180 shrink-0" />
+                        <span className="flex-1 text-left">{t("gm.otherCharacters").replace("{count}", String(otherChars.length))}</span>
                       </CollapsibleTrigger>
                       <CollapsibleContent className="mt-1 space-y-1 pl-1">
                         {otherChars.map((char) => (
