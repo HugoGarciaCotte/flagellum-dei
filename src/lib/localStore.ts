@@ -31,11 +31,19 @@ for (const table of TABLES) {
   }
 }
 
+function emitSyncError(table: string, message: string, ids: string[] = []) {
+  try {
+    window.dispatchEvent(new CustomEvent("sync-error", { detail: { table, ids, message } }));
+  } catch {}
+}
+
 function persist(table: TableName) {
   try {
     localStorage.setItem(LS_PREFIX + table, JSON.stringify(cache.get(table) ?? []));
-  } catch (e) {
+  } catch (e: any) {
     console.warn("localStorage persist failed:", e);
+    const isQuota = e?.name === "QuotaExceededError" || /quota/i.test(e?.message ?? "");
+    emitSyncError(table, isQuota ? "Local storage full — clear cache or sign out unused devices" : (e?.message ?? "persist failed"));
   }
   window.dispatchEvent(new CustomEvent("localstore-change", { detail: { table } }));
 }

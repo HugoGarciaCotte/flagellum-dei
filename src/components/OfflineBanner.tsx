@@ -27,9 +27,16 @@ export const OfflineBanner = () => {
         setTimeout(() => setJustSynced(false), 1500);
       }
     };
+    const recent = new Map<string, number>();
     const onError = (e: Event) => {
       const detail = (e as CustomEvent).detail as { table?: string; message?: string } | undefined;
-      toast.error(`Couldn't sync ${detail?.table ?? "change"}: ${detail?.message ?? "unknown error"}`);
+      const message = detail?.message ?? "unknown error";
+      const key = `${detail?.table ?? "sync"}:${message}`;
+      const now = Date.now();
+      const last = recent.get(key) ?? 0;
+      if (now - last < 3000) return;
+      recent.set(key, now);
+      toast.error(`Couldn't sync ${detail?.table ?? "change"}: ${message}`);
     };
     window.addEventListener("sync-syncing", onSyncing);
     window.addEventListener("sync-synced", onSynced);
