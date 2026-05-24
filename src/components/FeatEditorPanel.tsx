@@ -584,6 +584,31 @@ const FeatEditorPanel = () => {
                       );
                     })}
 
+                    {/* Exhaustion */}
+                    <div>
+                      <div className="flex items-center gap-2 mb-0.5">
+                        <Label className="text-xs">{t("adminFeats.fieldExhaustion")}</Label>
+                        {isOverridden(feat.id, "exhaustion") && (
+                          <Badge variant="secondary" className="text-[10px] cursor-pointer hover:bg-destructive/20" onClick={() => revertField(feat.id, "exhaustion")}>
+                            {t("adminFeats.dbOverrideRevert")}
+                          </Badge>
+                        )}
+                      </div>
+                      <Select
+                        value={(getEffective(feat, "exhaustion") as ExhaustionType) ?? "infinite"}
+                        onValueChange={(v) => saveField(feat.id, "exhaustion", v === "infinite" ? null : v)}
+                      >
+                        <SelectTrigger className="h-8 text-sm">
+                          <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {EXHAUSTION_TYPES.map((opt) => (
+                            <SelectItem key={opt} value={opt}>{t(`adminFeats.exhaustion.${opt}`)}</SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    </div>
+
                     {/* Subfeats */}
                     <div className="space-y-2">
                       <div className="flex items-center justify-between">
