@@ -570,6 +570,14 @@ const CharacterFeatPicker = ({ characterId, mode = "player", scenarioLevel }: Ch
           const subfeatKey = `${cf.id}-${slotNum}`;
 
           if (assignedFeat) {
+            const sfExhaustion = getFeatExhaustion(assignedFeat);
+            const sfState: FeatExhaustionState = {
+              exhausted_at: assigned?.exhausted_at ?? null,
+              exhausted_scenario_id: assigned?.exhausted_scenario_id ?? null,
+              used_forever: !!assigned?.used_forever,
+            };
+            const sfExhausted = isFeatExhausted(sfState, sfExhaustion, scenarioHistory);
+            const sfLabel = exhaustionLabelKind(sfState, sfExhaustion, sfExhausted);
             return (
               <div key={slotNum} className="flex items-center gap-1">
                 <span className="text-muted-foreground text-xs">↳</span>
@@ -579,7 +587,9 @@ const CharacterFeatPicker = ({ characterId, mode = "player", scenarioLevel }: Ch
                     expanded={expandedSubfeatKey === subfeatKey}
                     onToggleExpand={() => setExpandedSubfeatKey(expandedSubfeatKey === subfeatKey ? null : subfeatKey)}
                     compact
+                    exhaustionLabel={sfLabel}
                     actions={
+
                       <>
                         <Button
                           variant="ghost"
