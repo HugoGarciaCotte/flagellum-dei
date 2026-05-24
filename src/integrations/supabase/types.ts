@@ -95,6 +95,7 @@ export type Database = {
           created_at: string
           deleted_at: string | null
           description: string | null
+          feats: Json
           id: string
           name: string
           portrait_url: string | null
@@ -105,6 +106,7 @@ export type Database = {
           created_at?: string
           deleted_at?: string | null
           description?: string | null
+          feats?: Json
           id?: string
           name: string
           portrait_url?: string | null
@@ -115,6 +117,7 @@ export type Database = {
           created_at?: string
           deleted_at?: string | null
           description?: string | null
+          feats?: Json
           id?: string
           name?: string
           portrait_url?: string | null

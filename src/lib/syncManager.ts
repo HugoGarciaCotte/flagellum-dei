@@ -108,7 +108,7 @@ async function doPull(userId?: string) {
     store.setTable("game_players", []);
   }
 
-  // Phase 4: characters + feats + subfeats
+  // Phase 4: characters (feats live in characters.feats jsonb — no per-feat tables to pull)
   const charUserIdArr = [...charUserIds];
   const [charsRes] = await Promise.all([
     withSince(supabase.from("characters").select("*").in("user_id", charUserIdArr), since),
@@ -116,30 +116,6 @@ async function doPull(userId?: string) {
 
   if (charsRes.data) {
     merge("characters", charsRes.data);
-  }
-
-  // Get all character IDs (from cache for incremental)
-  const allChars = store.getTable("characters");
-  const charIds = allChars.map((c: any) => c.id);
-
-  if (charIds.length > 0) {
-    const [featsRes, subfeatsRes] = await Promise.all([
-      withSince(supabase.from("character_feats").select("*").in("character_id", charIds), since),
-      // For subfeats, we need feat IDs — fetch all and filter client-side for simplicity
-      withSince(supabase.from("character_feat_subfeats").select("*"), since),
-    ]);
-
-    if (featsRes.data) merge("character_feats", featsRes.data);
-    if (subfeatsRes.data) {
-      // Filter to only relevant character feats
-      const allFeats = store.getTableRaw("character_feats");
-      const featIdSet = new Set(allFeats.map((f: any) => f.id));
-      const relevantSubfeats = subfeatsRes.data.filter((s: any) => featIdSet.has(s.character_feat_id));
-      merge("character_feat_subfeats", relevantSubfeats);
-    }
-  } else if (!isIncremental) {
-    store.setTable("character_feats", []);
-    store.setTable("character_feat_subfeats", []);
   }
 
   store.setLastSync(now);
@@ -161,9 +137,10 @@ async function doPush() {
   }
 
   // Push in FK-dependency order
+  // Push in FK-dependency order. character_feats / character_feat_subfeats
+  // are no longer synced — feats now live in characters.feats (jsonb).
   const pushOrder: TableName[] = [
-    "profiles", "user_roles", "characters", "character_feats",
-    "character_feat_subfeats", "games", "game_players",
+    "profiles", "user_roles", "characters", "games", "game_players",
   ];
 
   const succeeded: { table: TableName; id: string }[] = [];
@@ -190,6 +167,7 @@ async function doPush() {
         const { error } = await (supabase.from(table as any).upsert(chunk as any, { onConflict: "id" }) as any);
         if (error) {
           console.error(`Push ${table} failed:`, error.message, { ids: chunkIds });
+          store.appendSyncError({ table, ids: chunkIds, message: error.message });
           window.dispatchEvent(new CustomEvent("sync-error", {
             detail: { table, ids: chunkIds, message: error.message },
           }));
@@ -199,6 +177,7 @@ async function doPush() {
       } catch (e: any) {
         const msg = e?.message ?? String(e);
         console.error(`Push ${table} threw:`, msg, { ids: chunkIds });
+        store.appendSyncError({ table, ids: chunkIds, message: msg });
         window.dispatchEvent(new CustomEvent("sync-error", {
           detail: { table, ids: chunkIds, message: msg },
         }));

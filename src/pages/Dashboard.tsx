@@ -23,7 +23,7 @@ import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, 
 import GMPlayerList from "@/components/GMPlayerList";
 import { useNetworkStatus } from "@/hooks/useNetworkStatus";
 import { useLocalRows } from "@/hooks/useLocalData";
-import { upsertRow, softDeleteRow, softDeleteBy } from "@/lib/localStore";
+import { upsertRow, softDeleteRow } from "@/lib/localStore";
 import { triggerPush } from "@/lib/syncManager";
 import { useTranslation } from "@/i18n/useTranslation";
 import { normalizeScenarioId } from "@/lib/scenarioIds";
@@ -51,9 +51,8 @@ const Dashboard = () => {
 
   const handleDeleteChar = (id: string) => {
     setDeleting(true);
+    // Feats live on characters.feats — soft-deleting the character row is enough.
     softDeleteRow("characters", id);
-    softDeleteBy("character_feats", { character_id: id });
-    softDeleteBy("character_feat_subfeats", {});
     triggerPush();
     setDeleteCharTarget(null);
     setDeleting(false);

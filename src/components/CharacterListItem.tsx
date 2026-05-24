@@ -1,5 +1,5 @@
 import { ReactNode, useMemo } from "react";
-import { useLocalRows } from "@/hooks/useLocalData";
+import { useLocalRow } from "@/hooks/useLocalData";
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
 import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
 import PortraitViewer from "@/components/PortraitViewer";
@@ -13,16 +13,19 @@ interface CharacterListItemProps {
 
 const CharacterListItem = ({ character, actions }: CharacterListItemProps) => {
   const { t, locale } = useTranslation();
-  const allFeats = useLocalRows("character_feats", { character_id: character.id });
-  const allSubfeats = useLocalRows("character_feat_subfeats");
+  const charRow = useLocalRow<any>("characters", character.id);
 
   const feats = useMemo(() => {
-    const sorted = [...allFeats].sort((a: any, b: any) => (a.level ?? 0) - (b.level ?? 0));
-    return sorted.map((cf: any) => ({
-      ...cf,
-      character_feat_subfeats: allSubfeats.filter((sf: any) => sf.character_feat_id === cf.id),
-    }));
-  }, [allFeats, allSubfeats]);
+    const doc: any[] = Array.isArray(charRow?.feats) ? charRow.feats : [];
+    return [...doc]
+      .sort((a, b) => (a.is_free === b.is_free ? (a.level ?? 0) - (b.level ?? 0) : a.is_free ? 1 : -1))
+      .map((f, i) => ({
+        key: f.is_free ? `F${i}` : `L${f.level}`,
+        feat_id: f.feat_id,
+        subfeats: (f.subfeats ?? []) as { slot: number; feat_id: string }[],
+      }));
+  }, [charRow?.feats]);
+
 
   const initials = character.name.slice(0, 2).toUpperCase();
 
@@ -50,16 +53,16 @@ const CharacterListItem = ({ character, actions }: CharacterListItemProps) => {
       {feats && feats.length > 0 && (
         <CardContent className="pt-0 pb-3">
           <ul className="list-disc list-inside text-base text-muted-foreground space-y-0.5">
-            {feats.map((cf: any) => {
+            {feats.map((cf) => {
               const featTitle = getFeatById(cf.feat_id, locale)?.title || t("feats.unknownFeat");
               return (
-                <li key={cf.id}>
+                <li key={cf.key}>
                   {featTitle}
-                  {cf.character_feat_subfeats && cf.character_feat_subfeats.length > 0 && (
+                  {cf.subfeats.length > 0 && (
                     <ul className="list-[circle] list-inside ml-4 mt-0.5 space-y-0.5">
-                      {cf.character_feat_subfeats.map((sf: any) => {
-                        const sfTitle = getFeatById(sf.subfeat_id, locale)?.title || t("feats.unknownFeat");
-                        return <li key={sf.subfeat_id}>{sfTitle}</li>;
+                      {cf.subfeats.map((sf) => {
+                        const sfTitle = getFeatById(sf.feat_id, locale)?.title || t("feats.unknownFeat");
+                        return <li key={sf.slot}>{sfTitle}</li>;
                       })}
                     </ul>
                   )}

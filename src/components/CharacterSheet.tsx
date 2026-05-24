@@ -8,6 +8,7 @@ import PortraitViewer from "@/components/PortraitViewer";
 import { toast } from "@/hooks/use-toast";
 import { Upload, Sparkles, Loader2, WifiOff } from "lucide-react";
 import CharacterFeatPicker from "@/components/CharacterFeatPicker";
+import SyncIssuesPanel from "@/components/SyncIssuesPanel";
 import { useNetworkStatus } from "@/hooks/useNetworkStatus";
 import { getFeatById } from "@/data/feats";
 
@@ -89,9 +90,9 @@ const CharacterSheet = ({ characterId, mode = "player", scenarioLevel, onDone }:
         return;
       }
 
-      const characterFeats = useLocalRowsStatic("character_feats", { character_id: characterId });
-      const featNames = characterFeats
-        .map((cf: any) => getFeatById(cf.feat_id, locale)?.title)
+      const featDoc: any[] = Array.isArray((character as any).feats) ? (character as any).feats : [];
+      const featNames = featDoc
+        .map((f: any) => getFeatById(f.feat_id, locale)?.title)
         .filter(Boolean);
 
       const { data, error } = await supabase.functions.invoke("generate-character-portrait", {
@@ -135,6 +136,8 @@ const CharacterSheet = ({ characterId, mode = "player", scenarioLevel, onDone }:
 
   return (
     <div className="space-y-4">
+      <SyncIssuesPanel />
+
       {/* Portrait */}
       <div className="flex flex-col items-center gap-3">
         <PortraitViewer src={portraitUrl} alt={character.name} fileName={character.name}>
@@ -224,10 +227,5 @@ const CharacterSheet = ({ characterId, mode = "player", scenarioLevel, onDone }:
   );
 };
 
-// Non-hook helper for reading local rows inside async functions
-import { getBy } from "@/lib/localStore";
-function useLocalRowsStatic(table: any, filter: any) {
-  return getBy(table, filter);
-}
 
 export default CharacterSheet;

@@ -72,13 +72,10 @@ const GMPlayerList = () => {
 
   const openEdit = async (characterId: string, playerName: string) => {
     setEditing({ characterId, playerName });
+    // Feats now live on characters.feats — one pull is enough.
     await pullTable("characters", { id: characterId });
-    await pullTable("character_feats", { character_id: characterId });
-    const feats = getBy("character_feats", { character_id: characterId });
-    for (const f of feats) {
-      await pullTable("character_feat_subfeats", { character_feat_id: (f as any).id });
-    }
   };
+
 
   if (!players || players.length === 0) return null;
 

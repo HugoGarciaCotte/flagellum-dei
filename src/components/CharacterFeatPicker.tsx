@@ -17,8 +17,8 @@ import { Alert, AlertTitle, AlertDescription } from "@/components/ui/alert";
 
 import { type SubfeatSlot } from "@/lib/parseEmbeddedFeatMeta";
 
-import { useLocalRows } from "@/hooks/useLocalData";
-import { upsertRow, softDeleteRow, softDeleteBy, getBy } from "@/lib/localStore";
+import { useLocalRow, useLocalRows } from "@/hooks/useLocalData";
+import { upsertRow, getBy } from "@/lib/localStore";
 import { triggerPush } from "@/lib/syncManager";
 import { getAllFeats, getFeatMeta } from "@/data/feats";
 
@@ -97,15 +97,87 @@ const CharacterFeatPicker = ({ characterId, mode = "player", scenarioLevel }: Ch
     return map;
   }, [metaMap]);
 
-  // Local-first data
-  const characterFeats = useLocalRows<CharacterFeat>("character_feats", { character_id: characterId });
-  const allSubfeats = useLocalRows<CharacterFeatSubfeat>("character_feat_subfeats");
-  const characterSubfeats = useMemo(() => {
-    const cfIds = new Set(characterFeats.map(cf => cf.id));
-    return allSubfeats.filter(cs => cfIds.has(cs.character_feat_id));
-  }, [allSubfeats, characterFeats]);
+  // --- Local-first data: character.feats is the document ---
+  const character = useLocalRow<any>("characters", characterId);
+
+  // Legacy fallback: if character.feats is empty/missing but old per-feat rows
+  // still exist locally (pre-migration cache), build the array on the fly.
+  // This avoids a "blank feats" flash before the server-side backfill is pulled.
+  const legacyFeats = useLocalRows<any>("character_feats", { character_id: characterId });
+  const legacyAllSubfeats = useLocalRows<any>("character_feat_subfeats");
+
+  const featsDoc: any[] = useMemo(() => {
+    const fromDoc = Array.isArray(character?.feats) ? character.feats : [];
+    if (fromDoc.length > 0) return fromDoc;
+    if (legacyFeats.length === 0) return [];
+    const cfIds = new Set(legacyFeats.map((cf: any) => cf.id));
+    const subsByCfId = new Map<string, any[]>();
+    for (const cs of legacyAllSubfeats) {
+      if (!cfIds.has(cs.character_feat_id)) continue;
+      const arr = subsByCfId.get(cs.character_feat_id) ?? [];
+      arr.push({ slot: cs.slot, feat_id: cs.subfeat_id });
+      subsByCfId.set(cs.character_feat_id, arr);
+    }
+    return legacyFeats.map((cf: any) => ({
+      level: cf.level,
+      feat_id: cf.feat_id,
+      is_free: cf.is_free,
+      note: cf.note ?? null,
+      subfeats: (subsByCfId.get(cf.id) ?? []).sort((a, b) => a.slot - b.slot),
+    }));
+  }, [character?.feats, legacyFeats, legacyAllSubfeats]);
+
+  // Derive the shapes the JSX below already consumes (synthetic stable IDs).
+  // - paid level feat:  id = `L${level}`
+  // - free feat:        id = `F${index}` (index in is_free=true list)
+  // - subfeat:          id = `${parentId}-S${slot}`
+  const characterFeats: CharacterFeat[] = useMemo(() => {
+    const out: CharacterFeat[] = [];
+    let freeIdx = 0;
+    for (const f of featsDoc) {
+      const id = f.is_free ? `F${freeIdx++}` : `L${f.level}`;
+      out.push({
+        id,
+        character_id: characterId,
+        level: f.level,
+        feat_id: f.feat_id,
+        is_free: !!f.is_free,
+        note: f.note ?? null,
+      });
+    }
+    return out;
+  }, [featsDoc, characterId]);
+
+  const characterSubfeats: CharacterFeatSubfeat[] = useMemo(() => {
+    const out: CharacterFeatSubfeat[] = [];
+    let freeIdx = 0;
+    for (const f of featsDoc) {
+      const parentId = f.is_free ? `F${freeIdx++}` : `L${f.level}`;
+      for (const s of f.subfeats ?? []) {
+        out.push({
+          id: `${parentId}-S${s.slot}`,
+          character_feat_id: parentId,
+          slot: s.slot,
+          subfeat_id: s.feat_id,
+        });
+      }
+    }
+    return out;
+  }, [featsDoc]);
+
+  // Persist a new feats array to the character document.
+  const writeFeats = (next: any[]) => {
+    if (!character) return;
+    upsertRow("characters", {
+      ...character,
+      feats: next,
+      updated_at: new Date().toISOString(),
+    });
+    triggerPush();
+  };
 
   // AI validation helper
+
   const validateWithAI = async (
     featId: string,
     action: () => void,
@@ -159,87 +231,85 @@ const CharacterFeatPicker = ({ characterId, mode = "player", scenarioLevel }: Ch
     }
   };
 
-  // --- Mutations as plain functions ---
+  // --- Mutations: pure transforms on character.feats ---
 
-  const upsertFeat = (level: number, featId: string) => {
-    // Reuse existing row at this level (avoids DB unique-constraint conflict on
-    // character_feats_level_unique when replacing a paid feat).
-    const existing = characterFeats.filter(cf => cf.level === level && !cf.is_free);
-    const [reuse, ...extras] = existing;
-    // Soft-delete any extras (shouldn't normally exist) and clear their subfeats
-    for (const cf of extras) {
-      softDeleteRow("character_feats", cf.id);
-      softDeleteBy("character_feat_subfeats", { character_feat_id: cf.id });
+  // Resolve a synthetic parent id back to its index in featsDoc.
+  const findDocIndex = (parentId: string): number => {
+    if (parentId.startsWith("L")) {
+      const lvl = parseInt(parentId.slice(1), 10);
+      return featsDoc.findIndex((f) => !f.is_free && f.level === lvl);
     }
-
-    let targetId: string;
-    if (reuse) {
-      targetId = reuse.id;
-      // Clear subfeats of the previous feat occupying this row
-      softDeleteBy("character_feat_subfeats", { character_feat_id: reuse.id });
-      upsertRow("character_feats", {
-        ...reuse,
-        feat_id: featId,
-        is_free: false,
-        note: null,
-        deleted_at: null,
-        updated_at: new Date().toISOString(),
-      });
-    } else {
-      targetId = crypto.randomUUID();
-      upsertRow("character_feats", { id: targetId, character_id: characterId, level, feat_id: featId, is_free: false, note: null });
-    }
-
-    // Auto-insert fixed subfeats
-    const meta = metaMap.get(featId);
-    if (meta?.subfeats) {
-      const fixedSlots = meta.subfeats.filter(s => s.kind === "fixed" && s.feat_title);
-      for (const slot of fixedSlots) {
-        const subfeat = featByTitle.get(slot.feat_title!);
-        if (subfeat) {
-          upsertRow("character_feat_subfeats", { id: crypto.randomUUID(), character_feat_id: targetId, slot: slot.slot, subfeat_id: subfeat.id });
+    if (parentId.startsWith("F")) {
+      const targetIdx = parseInt(parentId.slice(1), 10);
+      let seen = 0;
+      for (let i = 0; i < featsDoc.length; i++) {
+        if (featsDoc[i].is_free) {
+          if (seen === targetIdx) return i;
+          seen++;
         }
       }
     }
+    return -1;
+  };
 
-    triggerPush();
+  const upsertFeat = (level: number, featId: string) => {
+    // Build the new feat entry (with any auto-inserted fixed subfeats).
+    const meta = metaMap.get(featId);
+    const fixedSubfeats: { slot: number; feat_id: string }[] = [];
+    if (meta?.subfeats) {
+      for (const s of meta.subfeats) {
+        if (s.kind === "fixed" && s.feat_title) {
+          const sub = featByTitle.get(s.feat_title);
+          if (sub) fixedSubfeats.push({ slot: s.slot, feat_id: sub.id });
+        }
+      }
+    }
+    const entry = { level, feat_id: featId, is_free: false, note: null, subfeats: fixedSubfeats };
+
+    // Replace any existing paid feat at this level; preserve order.
+    const next = featsDoc.filter((f) => !(f.level === level && !f.is_free));
+    next.push(entry);
+    writeFeats(next);
     setPickerTarget(null);
     setSearchTerm("");
   };
 
   const deleteFeat = (level: number, isFree: boolean, id?: string) => {
+    let next: any[];
     if (isFree && id) {
-      softDeleteRow("character_feats", id);
+      const idx = findDocIndex(id);
+      if (idx < 0) return;
+      next = featsDoc.filter((_, i) => i !== idx);
     } else {
-      const existing = characterFeats.filter(cf => cf.level === level && !cf.is_free);
-      for (const cf of existing) {
-        softDeleteRow("character_feats", cf.id);
-        softDeleteBy("character_feat_subfeats", { character_feat_id: cf.id });
-      }
+      next = featsDoc.filter((f) => !(f.level === level && !f.is_free));
     }
-    triggerPush();
+    writeFeats(next);
   };
 
   const addFreeFeat = (featId: string) => {
-    upsertRow("character_feats", { id: crypto.randomUUID(), character_id: characterId, level: 0, feat_id: featId, is_free: true, note: null });
-    triggerPush();
+    const next = [
+      ...featsDoc,
+      { level: 0, feat_id: featId, is_free: true, note: null, subfeats: [] },
+    ];
+    writeFeats(next);
     setPickerTarget(null);
     setSearchTerm("");
   };
 
   const setSubfeat = (characterFeatId: string, slot: number, subfeatId: string | null) => {
-    // Delete existing at this slot
-    const existing = characterSubfeats.filter(cs => cs.character_feat_id === characterFeatId && cs.slot === slot);
-    for (const cs of existing) {
-      softDeleteRow("character_feat_subfeats", cs.id);
-    }
-    if (subfeatId) {
-      upsertRow("character_feat_subfeats", { id: crypto.randomUUID(), character_feat_id: characterFeatId, slot, subfeat_id: subfeatId });
-    }
-    triggerPush();
+    const idx = findDocIndex(characterFeatId);
+    if (idx < 0) return;
+    const parent = featsDoc[idx];
+    const subs = (parent.subfeats ?? []).filter((s: any) => s.slot !== slot);
+    if (subfeatId) subs.push({ slot, feat_id: subfeatId });
+    subs.sort((a: any, b: any) => a.slot - b.slot);
+    const next = featsDoc.map((f, i) => (i === idx ? { ...parent, subfeats: subs } : f));
+    writeFeats(next);
     setPickerTarget(null);
     setSearchTerm("");
   };
+
+
 
   const featMap = useMemo(() => {
     const map = new Map<string, Feat>();
