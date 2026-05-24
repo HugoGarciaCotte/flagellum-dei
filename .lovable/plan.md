@@ -1,35 +1,26 @@
 ## Diagnosis
 
-I tested it and confirmed the bug. `CharacterListItem.tsx` (the compact character card shown on the home page) renders feats as a bullet list but **never reads exhaustion state at all**. It only pulls `feat_id` and `subfeats[].feat_id` from `charRow.feats`, dropping `exhausted_at` / `used_forever` / `exhausted_scenario_id`. So even when "Abuse of Power" is exhausted in the detailed view, the compact card still shows just "Abuse of Power".
+The dialog header in `src/components/CharacterDetailsDialog.tsx` is rendering correctly — items are vertically centered in a short `py-3` bar. The perception of "poor centering" comes from the bar being visually indistinguishable from the dialog body:
 
-The detailed view in `CharacterDetails.tsx` computes the label like this (lines 91-96):
-
-```ts
-const exhaustion = getFeatExhaustion(feat);
-const exhausted = isFeatExhausted(state, exhaustion, scenarioHistory);
-const labelKind = exhaustionLabelKind(state, exhaustion, exhausted); // "exhausted" | "used" | null
-```
-
-…using `scenarioHistory` from `useUserScenarioHistory(char?.user_id)`.
+- Bar background: `bg-card/80` over page `bg-background` (`#0B0B0B`). `--card` in your theme is nearly identical to background → no surface contrast.
+- Bar separator: `border-b border-border/50` → 1px line at 50% opacity → invisible against dark.
+- Net effect: icons appear to float alone at the top of a huge dark area, which reads as "wrongly centered" even though the bar itself is fine.
 
 ## Fix
 
-Edit `src/components/CharacterListItem.tsx` only:
+Make the bar a visible surface so its actual extent is obvious. Edit only line 70 of `src/components/CharacterDetailsDialog.tsx`:
 
-1. Import `useUserScenarioHistory`, `getFeatExhaustion`, `getFeatMeta`, `isFeatExhausted`, `exhaustionLabelKind`.
-2. Pull `scenarioHistory` from `useUserScenarioHistory(charRow?.user_id)`.
-3. Widen the `feats` memo to preserve exhaustion fields on both feats and subfeats:
-   ```ts
-   { feat_id, subfeats, exhausted_at, exhausted_scenario_id, used_forever }
-   ```
-4. For each top-level feat and each subfeat, compute `labelKind` using the same helpers, and render the tag inline after the title:
-   ```tsx
-   {labelKind && (
-     <span className="ml-1 italic text-destructive/80">
-       ({labelKind === "used" ? t("feats.usedTag") : t("feats.exhaustedTag")})
-     </span>
-   )}
-   ```
-5. Apply `opacity-70` to the `<li>` when `labelKind` is set, matching `FeatListItem`'s visual treatment.
+```tsx
+<div className="border-b border-border bg-card px-4 py-3 flex items-center justify-between shrink-0 safe-top gap-2">
+```
 
-No other files touched. Translation keys `feats.exhaustedTag` and `feats.usedTag` already exist (used by `FeatListItem`).
+Changes:
+- `bg-card/80 backdrop-blur` → `bg-card` (full opacity, real surface)
+- `border-border/50` → `border-border` (full-strength divider)
+
+That's it — no layout change, no centering change, no other files touched. Items will visibly sit inside a contained bar.
+
+## Not in scope
+
+- The published-site trash icon rendering as `01F5D1` is from an older deploy. A republish will pick up current code. No code change needed.
+- `.safe-top` notch behavior is correct on desktop; iOS-PWA notch defensiveness can be a separate follow-up if needed.
