@@ -6,6 +6,8 @@ import en from "./en";
 
 const fr: Record<string, string> = {
   ...en,
+  "nav.back": "Retour",
+  "nav.close": "Fermer",
   "feats.use": "Utiliser",
   "feats.recharge": "Recharger",
   "feats.exhaustedTag": "(épuisé)",
