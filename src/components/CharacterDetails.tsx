@@ -2,15 +2,26 @@ import { useMemo, useState } from "react";
 import { useLocalRow } from "@/hooks/useLocalData";
 import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
 import PortraitViewer from "@/components/PortraitViewer";
-import { getFeatById, getFeatMeta } from "@/data/feats";
+import { getFeatById, getFeatMeta, getFeatExhaustion } from "@/data/feats";
 import FeatListItem from "@/components/FeatListItem";
 import { useTranslation } from "@/i18n/useTranslation";
+import { upsertRow } from "@/lib/localStore";
+import { triggerPush } from "@/lib/syncManager";
+import {
+  isFeatExhausted,
+  exhaustionLabelKind,
+  type FeatExhaustionState,
+} from "@/lib/featExhaustion";
+import {
+  useUserScenarioHistory,
+  useCurrentScenarioId,
+} from "@/hooks/useUserScenarioHistory";
 
 interface CharacterDetailsProps {
   characterId: string;
 }
 
-interface FeatRow {
+interface FeatRow extends FeatExhaustionState {
   feat_id: string;
   level?: number;
   is_free?: boolean;
@@ -23,6 +34,9 @@ const CharacterDetails = ({ characterId }: CharacterDetailsProps) => {
   const char = useLocalRow<any>("characters", characterId);
   const [expandedKey, setExpandedKey] = useState<string | null>(null);
 
+  const scenarioHistory = useUserScenarioHistory(char?.user_id);
+  const currentScenarioId = useCurrentScenarioId(char?.user_id);
+
   const feats = useMemo(() => {
     const doc: FeatRow[] = Array.isArray(char?.feats) ? char.feats : [];
     return [...doc]
@@ -31,10 +45,16 @@ const CharacterDetails = ({ characterId }: CharacterDetailsProps) => {
         key: f.is_free ? `F${i}` : `L${f.level}`,
         label: f.is_free ? t("character.details.free") : `${t("character.details.level")} ${f.level}`,
         feat_id: f.feat_id,
+        is_free: !!f.is_free,
+        level: f.level,
         speciality: f.speciality || null,
         subfeats: (f.subfeats ?? []) as { slot: number; feat_id: string }[],
+        exhausted_at: f.exhausted_at ?? null,
+        exhausted_scenario_id: f.exhausted_scenario_id ?? null,
+        used_forever: !!f.used_forever,
       }));
   }, [char?.feats, locale, t]);
+
 
   if (!char) {
     return <div className="text-base text-muted-foreground py-4 text-center">{t("character.loading")}</div>;
@@ -42,10 +62,38 @@ const CharacterDetails = ({ characterId }: CharacterDetailsProps) => {
 
   const initials = (char.name || "?").slice(0, 2).toUpperCase();
 
-  const renderFeat = (featId: string, key: string, speciality?: string | null) => {
+  /** Mutate feats doc at the entry matching predicate. */
+  const updateEntry = (
+    predicate: (f: FeatRow, i: number) => boolean,
+    patch: Partial<FeatRow>,
+  ) => {
+    if (!char) return;
+    const doc: FeatRow[] = Array.isArray(char.feats) ? char.feats : [];
+    const next = doc.map((f, i) => (predicate(f, i) ? { ...f, ...patch } : f));
+    upsertRow("characters", { ...char, feats: next, updated_at: new Date().toISOString() });
+    triggerPush();
+  };
+
+
+
+
+  const renderFeat = (
+    featId: string,
+    key: string,
+    opts: {
+      speciality?: string | null;
+      compact?: boolean;
+      state?: FeatExhaustionState;
+      onUse?: () => void;
+      onRecharge?: () => void;
+    },
+  ) => {
     const feat = getFeatById(featId, locale);
     if (!feat) return <span className="text-muted-foreground italic">{t("feats.unknownFeat")}</span>;
     const meta = getFeatMeta(feat);
+    const exhaustion = getFeatExhaustion(feat);
+    const exhausted = isFeatExhausted(opts.state, exhaustion, scenarioHistory);
+    const labelKind = exhaustionLabelKind(opts.state, exhaustion, exhausted);
     return (
       <FeatListItem
         feat={{
@@ -58,9 +106,14 @@ const CharacterDetails = ({ characterId }: CharacterDetailsProps) => {
         }}
         expanded={expandedKey === key}
         onToggleExpand={() => setExpandedKey(expandedKey === key ? null : key)}
-        specialityValue={speciality || undefined}
+        specialityValue={opts.speciality || undefined}
         specialities={meta.specialities ?? null}
-        compact
+        compact={opts.compact}
+        exhaustionLabel={labelKind}
+        onUse={
+          !opts.compact && opts.onUse && exhaustion !== "infinite" ? opts.onUse : undefined
+        }
+        onRecharge={!opts.compact && opts.onRecharge ? opts.onRecharge : undefined}
       />
     );
   };
@@ -94,25 +147,49 @@ const CharacterDetails = ({ characterId }: CharacterDetailsProps) => {
           <p className="text-base text-muted-foreground italic">{t("character.details.noFeats")}</p>
         ) : (
           <ul className="space-y-3">
-            {feats.map((f) => (
-              <li key={f.key} className="space-y-2">
-                <div className="flex items-center gap-2">
-                  <span className="text-xs uppercase tracking-wider text-primary font-display shrink-0">
-                    {f.label}
-                  </span>
-                </div>
-                {renderFeat(f.feat_id, f.key, f.speciality)}
-                {f.subfeats.length > 0 && (
-                  <ul className="pl-3 mt-1 space-y-2 border-l border-border/60">
-                    {f.subfeats.map((sf) => (
-                      <li key={sf.slot} className="pl-2">
-                        {renderFeat(sf.feat_id, `${f.key}-s${sf.slot}`)}
-                      </li>
-                    ))}
-                  </ul>
-                )}
-              </li>
-            ))}
+            {feats.map((f) => {
+              const state: FeatExhaustionState = {
+                exhausted_at: f.exhausted_at,
+                exhausted_scenario_id: f.exhausted_scenario_id,
+                used_forever: f.used_forever,
+              };
+              const matchSelf = (x: FeatRow) =>
+                x.feat_id === f.feat_id && !!x.is_free === f.is_free && (f.is_free ? true : x.level === f.level);
+              return (
+                <li key={f.key} className="space-y-2">
+                  <div className="flex items-center gap-2">
+                    <span className="text-xs uppercase tracking-wider text-primary font-display shrink-0">
+                      {f.label}
+                    </span>
+                  </div>
+                  {renderFeat(f.feat_id, f.key, {
+                    speciality: f.speciality,
+                    compact: false,
+                    state,
+                    onUse: () => {
+                      const feat = getFeatById(f.feat_id, locale);
+                      const exhaustion = feat ? getFeatExhaustion(feat) : undefined;
+                      updateEntry(matchSelf, exhaustion === "once_forever"
+                        ? { used_forever: true, exhausted_at: new Date().toISOString(), exhausted_scenario_id: currentScenarioId ?? null }
+                        : { exhausted_at: new Date().toISOString(), exhausted_scenario_id: currentScenarioId ?? null });
+                    },
+                    onRecharge: () => {
+                      updateEntry(matchSelf, { exhausted_at: null, exhausted_scenario_id: null, used_forever: false });
+                    },
+                  })}
+                  {f.subfeats.length > 0 && (
+                    <ul className="pl-3 mt-1 space-y-2 border-l border-border/60">
+                      {f.subfeats.map((sf) => (
+                        <li key={sf.slot} className="pl-2">
+                          {renderFeat(sf.feat_id, `${f.key}-s${sf.slot}`, { compact: true })}
+                        </li>
+                      ))}
+                    </ul>
+                  )}
+                </li>
+              );
+            })}
+
           </ul>
         )}
       </section>

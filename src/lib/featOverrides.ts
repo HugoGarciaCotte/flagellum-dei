@@ -9,7 +9,7 @@ let _loading: Promise<FeatOverrideMap> | null = null;
 
 const META_FIELDS = new Set([
   "description", "prerequisites", "special", "specialities",
-  "subfeats", "unlocks_categories", "blocking", "synonyms",
+  "subfeats", "unlocks_categories", "blocking", "synonyms", "exhaustion",
 ]);
 
 /** Fetch all feat_overrides from DB. Caches in memory. */

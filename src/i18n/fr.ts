@@ -6,6 +6,16 @@ import en from "./en";
 
 const fr: Record<string, string> = {
   ...en,
+  "feats.use": "Utiliser",
+  "feats.recharge": "Recharger",
+  "feats.exhaustedTag": "(épuisé)",
+  "feats.usedTag": "(utilisé)",
+  "adminFeats.fieldExhaustion": "Épuisement",
+  "adminFeats.exhaustion.infinite": "Usage illimité",
+  "adminFeats.exhaustion.once_forever": "Une fois pour toujours",
+  "adminFeats.exhaustion.once_per_scenario": "Une fois par scénario",
+  "adminFeats.exhaustion.once_per_2_scenarios": "Une fois tous les deux scénarios",
+  "adminFeats.exhaustion.once_per_3_scenarios": "Une fois tous les trois scénarios",
   "character.view": "Voir la fiche",
   "character.edit": "Modifier",
   "character.details.title": "Personnage",

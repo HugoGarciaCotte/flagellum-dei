@@ -393,6 +393,16 @@ const en: Record<string, string> = {
   "feats.speciality": "Speciality...",
   "feats.pick": "— Pick —",
   "feats.unknownFeat": "Unknown feat",
+  "feats.use": "Use",
+  "feats.recharge": "Recharge",
+  "feats.exhaustedTag": "(exhausted)",
+  "feats.usedTag": "(used)",
+  "adminFeats.fieldExhaustion": "Exhaustion",
+  "adminFeats.exhaustion.infinite": "Infinite Use",
+  "adminFeats.exhaustion.once_forever": "Once Forever",
+  "adminFeats.exhaustion.once_per_scenario": "Once per Scenario",
+  "adminFeats.exhaustion.once_per_2_scenarios": "Once per Two Scenarios",
+  "adminFeats.exhaustion.once_per_3_scenarios": "Once per Three Scenarios",
 
   // ─── GM / PLAYERS ───
   "gm.myPlayers": "My Players",

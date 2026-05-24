@@ -6,7 +6,7 @@ import { Badge } from "@/components/ui/badge";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Download, Plus, Trash2, ChevronDown, Search, Loader2, AlertTriangle, Check, Sparkles } from "lucide-react";
-import { getHardcodedFeats, getFeatMeta, getAllFeatRedirects, type Feat, type FeatMeta, type FeatRedirect } from "@/data/feats";
+import { getHardcodedFeats, getFeatMeta, getAllFeatRedirects, EXHAUSTION_TYPES, type Feat, type FeatMeta, type FeatRedirect, type ExhaustionType } from "@/data/feats";
 import type { SubfeatSlot } from "@/lib/parseEmbeddedFeatMeta";
 import SubfeatSlotEditor from "@/components/SubfeatSlotEditor";
 import FeatCategoryBadges from "@/components/FeatCategoryBadges";
@@ -20,7 +20,7 @@ type EditorLocale = "en" | "fr";
 const FR_FEAT_FIELDS = ["title", "description", "prerequisites", "special"] as const;
 
 /** Fields that live inside meta */
-const META_FIELDS = ["description", "prerequisites", "special", "specialities", "subfeats", "unlocks_categories", "blocking", "synonyms"] as const;
+const META_FIELDS = ["description", "prerequisites", "special", "specialities", "subfeats", "unlocks_categories", "blocking", "synonyms", "exhaustion"] as const;
 type MetaField = (typeof META_FIELDS)[number];
 
 const GENERATABLE_FIELDS = ["description", "prerequisites", "specialities", "blocking", "unlocks_categories", "subfeats"] as const;
@@ -345,6 +345,7 @@ const FeatEditorPanel = () => {
               unlocks_categories: f.meta.unlocks_categories?.length ? f.meta.unlocks_categories : undefined,
               blocking: f.meta.blocking?.length ? f.meta.blocking : undefined,
               synonyms: f.meta.synonyms || undefined,
+              exhaustion: f.meta.exhaustion || undefined,
             }
           : null,
         ...(hasFr ? { fr } : {}),
@@ -583,6 +584,31 @@ const FeatEditorPanel = () => {
                         />
                       );
                     })}
+
+                    {/* Exhaustion */}
+                    <div>
+                      <div className="flex items-center gap-2 mb-0.5">
+                        <Label className="text-xs">{t("adminFeats.fieldExhaustion")}</Label>
+                        {isOverridden(feat.id, "exhaustion") && (
+                          <Badge variant="secondary" className="text-[10px] cursor-pointer hover:bg-destructive/20" onClick={() => revertField(feat.id, "exhaustion")}>
+                            {t("adminFeats.dbOverrideRevert")}
+                          </Badge>
+                        )}
+                      </div>
+                      <Select
+                        value={(getEffective(feat, "exhaustion") as ExhaustionType) ?? "infinite"}
+                        onValueChange={(v) => saveField(feat.id, "exhaustion", v === "infinite" ? null : v)}
+                      >
+                        <SelectTrigger className="h-8 text-sm">
+                          <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {EXHAUSTION_TYPES.map((opt) => (
+                            <SelectItem key={opt} value={opt}>{t(`adminFeats.exhaustion.${opt}`)}</SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    </div>
 
                     {/* Subfeats */}
                     <div className="space-y-2">
