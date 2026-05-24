@@ -153,8 +153,6 @@ const CharacterDetails = ({ characterId }: CharacterDetailsProps) => {
                 exhausted_scenario_id: f.exhausted_scenario_id,
                 used_forever: f.used_forever,
               };
-              const matchSelf = (x: FeatRow) =>
-                x.feat_id === f.feat_id && !!x.is_free === f.is_free && (f.is_free ? true : x.level === f.level);
               return (
                 <li key={f.key} className="space-y-2">
                   <div className="flex items-center gap-2">
@@ -169,12 +167,12 @@ const CharacterDetails = ({ characterId }: CharacterDetailsProps) => {
                     onUse: () => {
                       const feat = getFeatById(f.feat_id, locale);
                       const exhaustion = feat ? getFeatExhaustion(feat) : undefined;
-                      updateEntry(matchSelf, exhaustion === "once_forever"
+                      updateEntry(f.docIndex, exhaustion === "once_forever"
                         ? { used_forever: true, exhausted_at: new Date().toISOString(), exhausted_scenario_id: currentScenarioId ?? null }
                         : { exhausted_at: new Date().toISOString(), exhausted_scenario_id: currentScenarioId ?? null });
                     },
                     onRecharge: () => {
-                      updateEntry(matchSelf, { exhausted_at: null, exhausted_scenario_id: null, used_forever: false });
+                      updateEntry(f.docIndex, { exhausted_at: null, exhausted_scenario_id: null, used_forever: false });
                     },
                   })}
                   {f.subfeats.length > 0 && (
