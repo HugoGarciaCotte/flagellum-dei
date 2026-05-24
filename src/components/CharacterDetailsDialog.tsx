@@ -6,7 +6,7 @@ import {
   AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
 import { Button } from "@/components/ui/button";
-import { X } from "lucide-react";
+import { X, Trash2 } from "lucide-react";
 import CharacterDetails from "@/components/CharacterDetails";
 import CharacterSheet from "@/components/CharacterSheet";
 import { useLocalRow } from "@/hooks/useLocalData";
@@ -89,7 +89,7 @@ const CharacterDetailsDialog = ({
                     aria-label={t("character.delete.cta")}
                     onClick={() => setConfirmDelete(true)}
                   >
-                    <span className="text-base leading-none" aria-hidden="true">†</span>
+                    <Trash2 className="h-4 w-4" aria-hidden="true" />
                   </Button>
                 )}
                 {editing && (
