@@ -43,9 +43,9 @@ interface FeatListItemProps {
   quickActionLabel?: string;
   /** Exhaustion: when "exhausted" or "used", a tag is shown after the title. */
   exhaustionLabel?: "exhausted" | "used" | null;
-  /** Show Use button (non-compact only). */
+  /** Show Use button. Caller opts in by passing handler. */
   onUse?: () => void;
-  /** Show Recharge button (non-compact only). */
+  /** Show Recharge button. Caller opts in by passing handler. */
   onRecharge?: () => void;
 }
 
