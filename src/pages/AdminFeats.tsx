@@ -1,7 +1,8 @@
 import { useNavigate } from "react-router-dom";
 import { useIsOwner } from "@/hooks/useIsOwner";
 import { Button } from "@/components/ui/button";
-import { ArrowLeft, Swords } from "lucide-react";
+import { Swords } from "lucide-react";
+import BackButton from "@/components/nav/BackButton";
 import FeatEditorPanel from "@/components/FeatEditorPanel";
 import FullPageLoader from "@/components/FullPageLoader";
 import PageHeader from "@/components/PageHeader";
