@@ -162,15 +162,33 @@ const CharacterFeatPicker = ({ characterId, mode = "player", scenarioLevel }: Ch
   // --- Mutations as plain functions ---
 
   const upsertFeat = (level: number, featId: string) => {
-    // Delete existing feat at this level
+    // Reuse existing row at this level (avoids DB unique-constraint conflict on
+    // character_feats_level_unique when replacing a paid feat).
     const existing = characterFeats.filter(cf => cf.level === level && !cf.is_free);
-    for (const cf of existing) {
+    const [reuse, ...extras] = existing;
+    // Soft-delete any extras (shouldn't normally exist) and clear their subfeats
+    for (const cf of extras) {
       softDeleteRow("character_feats", cf.id);
       softDeleteBy("character_feat_subfeats", { character_feat_id: cf.id });
     }
-    // Insert new
-    const newId = crypto.randomUUID();
-    upsertRow("character_feats", { id: newId, character_id: characterId, level, feat_id: featId, is_free: false, note: null });
+
+    let targetId: string;
+    if (reuse) {
+      targetId = reuse.id;
+      // Clear subfeats of the previous feat occupying this row
+      softDeleteBy("character_feat_subfeats", { character_feat_id: reuse.id });
+      upsertRow("character_feats", {
+        ...reuse,
+        feat_id: featId,
+        is_free: false,
+        note: null,
+        deleted_at: null,
+        updated_at: new Date().toISOString(),
+      });
+    } else {
+      targetId = crypto.randomUUID();
+      upsertRow("character_feats", { id: targetId, character_id: characterId, level, feat_id: featId, is_free: false, note: null });
+    }
 
     // Auto-insert fixed subfeats
     const meta = metaMap.get(featId);
@@ -179,7 +197,7 @@ const CharacterFeatPicker = ({ characterId, mode = "player", scenarioLevel }: Ch
       for (const slot of fixedSlots) {
         const subfeat = featByTitle.get(slot.feat_title!);
         if (subfeat) {
-          upsertRow("character_feat_subfeats", { id: crypto.randomUUID(), character_feat_id: newId, slot: slot.slot, subfeat_id: subfeat.id });
+          upsertRow("character_feat_subfeats", { id: crypto.randomUUID(), character_feat_id: targetId, slot: slot.slot, subfeat_id: subfeat.id });
         }
       }
     }
