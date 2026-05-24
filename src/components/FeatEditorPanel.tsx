@@ -346,6 +346,8 @@ const FeatEditorPanel = () => {
               blocking: f.meta.blocking?.length ? f.meta.blocking : undefined,
               synonyms: f.meta.synonyms || undefined,
               exhaustion: f.meta.exhaustion || undefined,
+              transforms_to: f.meta.transforms_to || undefined,
+
             }
           : null,
         ...(hasFr ? { fr } : {}),
