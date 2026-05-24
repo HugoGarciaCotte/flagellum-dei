@@ -120,7 +120,7 @@ const CharacterDetailsDialog = ({
                     tone="destructive"
                     onClick={() => setConfirmDelete(true)}
                   >
-                    <TrashGlyph />
+                    <Trash2 className="h-4 w-4" />
                   </HeaderIconButton>
                 )}
                 <DialogClose asChild>
