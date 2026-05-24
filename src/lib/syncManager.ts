@@ -148,7 +148,7 @@ async function doPull(userId?: string) {
   }
 
   store.setLastSync(now);
-  store.evictStaleGames();
+  store.evictStaleGames(userId);
 }
 
 // --- Push (dirty rows only) ---
