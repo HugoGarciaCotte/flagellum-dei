@@ -196,12 +196,26 @@ const CharacterFeatPicker = ({ characterId, mode = "player", scenarioLevel }: Ch
     writeFeats(next);
   };
 
-  const useFeat = (level: number, isFree: boolean, freeIdx: number, exhaustion: string) => {
+  const useFeat = (level: number, isFree: boolean, freeIdx: number, exhaustion: string, featId?: string) => {
+    if (exhaustion === "transforms_on_use" && featId) {
+      const feat = featMap.get(featId);
+      const target = feat ? getFeatMeta(feat).transforms_to : undefined;
+      if (target) {
+        setExhaustionForLevel(level, isFree, freeIdx, {
+          feat_id: target,
+          exhausted_at: null,
+          exhausted_scenario_id: null,
+          used_forever: false,
+        });
+      }
+      return;
+    }
     const patch = exhaustion === "once_forever"
       ? { used_forever: true, exhausted_at: new Date().toISOString(), exhausted_scenario_id: currentScenarioId ?? null }
       : { exhausted_at: new Date().toISOString(), exhausted_scenario_id: currentScenarioId ?? null };
     setExhaustionForLevel(level, isFree, freeIdx, patch);
   };
+
 
   const rechargeFeat = (level: number, isFree: boolean, freeIdx: number) => {
     setExhaustionForLevel(level, isFree, freeIdx, { exhausted_at: null, exhausted_scenario_id: null, used_forever: false });
