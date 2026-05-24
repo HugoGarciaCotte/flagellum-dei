@@ -7,7 +7,8 @@ import { loadScenarioOverrides } from "@/lib/scenarioOverrides";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { parseWikitext, findSection, resolveBackgroundImage, extractImageUrls, WikiSection } from "@/lib/parseWikitext";
-import { ArrowLeft, Plus, Check, X, GripHorizontal, Pencil, Copy } from "lucide-react";
+import { ArrowLeft, Plus, Check, X, ChevronUp, ChevronDown, Pencil, Copy } from "lucide-react";
+import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
 import CharacterSheet from "@/components/CharacterSheet";
 import { useNetworkStatus } from "@/hooks/useNetworkStatus";
 import { toast } from "@/hooks/use-toast";
@@ -190,64 +191,101 @@ const PlayGame = () => {
         >
           <div className="container max-w-3xl py-2 px-4">
             <div className="flex items-center gap-3">
-              <GripHorizontal className="h-4 w-4 text-muted-foreground shrink-0" />
               {selectedCharacter ? (
-                <div className="flex-1 min-w-0"><CharacterListItem character={selectedCharacter} /></div>
+                <>
+                  <Avatar className="h-8 w-8 border border-primary/20 shrink-0">
+                    {selectedCharacter.portrait_url ? (
+                      <AvatarImage src={selectedCharacter.portrait_url} alt={selectedCharacter.name} />
+                    ) : null}
+                    <AvatarFallback className="text-xs font-display bg-muted">
+                      {selectedCharacter.name.slice(0, 2).toUpperCase()}
+                    </AvatarFallback>
+                  </Avatar>
+                  <span className="flex-1 min-w-0 font-display text-base font-medium text-foreground truncate">
+                    {selectedCharacter.name}
+                  </span>
+                </>
               ) : (
-                <span className="font-display text-base font-medium text-muted-foreground">{t("game.selectCharacter")}</span>
+                <span className="flex-1 font-display text-base font-medium text-muted-foreground">{t("game.selectCharacter")}</span>
               )}
+              <Button
+                variant="ghost"
+                size="icon"
+                className="h-8 w-8 shrink-0"
+                aria-label={t("game.yourCharacters")}
+                onClick={(e) => { e.stopPropagation(); setSheetExpanded(true); }}
+              >
+                <ChevronUp className="h-4 w-4" />
+              </Button>
             </div>
           </div>
         </div>
       )}
 
       {sheetExpanded && (
-        <div className="fixed inset-0 z-50 bg-background flex flex-col animate-in slide-in-from-bottom duration-300 pt-[env(safe-area-inset-top)]">
-          <div className="border-b border-border/50 bg-card/80 backdrop-blur">
-            <div className="container max-w-2xl flex items-center justify-between py-3 px-4">
-              <span className="font-display text-base font-medium text-foreground">{t("game.yourCharacters")}</span>
-              <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => setSheetExpanded(false)}><X className="h-4 w-4" /></Button>
-            </div>
-          </div>
-          <ScrollArea className="flex-1">
-            <div className="container max-w-2xl py-6 px-4 space-y-3">
-              {sortedCharacters.length === 0 ? (
-                <div className="space-y-2">
-                  <p className="text-base text-muted-foreground">{t("game.noCharactersYet")}</p>
-                  <Button variant="outline" size="sm" className="gap-2 w-full" onClick={() => setCreatingChar(true)}>
-                    <Plus className="h-3 w-3" /> {t("game.newCharacter")}
+        <>
+          <div
+            className="fixed inset-0 z-40 bg-black/50 backdrop-blur-sm animate-in fade-in duration-200"
+            onClick={() => setSheetExpanded(false)}
+          />
+          <div
+            className="fixed inset-x-0 bottom-0 z-50 bg-background border-t border-primary/20 rounded-t-xl flex flex-col animate-in slide-in-from-bottom duration-300 gold-glow-box"
+            style={{ maxHeight: "min(70vh, 560px)" }}
+          >
+            <div className="border-b border-border/50 bg-card/80 backdrop-blur rounded-t-xl">
+              <div className="container max-w-2xl flex items-center justify-between py-3 px-4">
+                <span className="font-display text-base font-medium text-foreground">{t("game.yourCharacters")}</span>
+                <div className="flex items-center gap-1">
+                  <Button variant="ghost" size="icon" className="h-8 w-8" aria-label="Collapse" onClick={() => setSheetExpanded(false)}>
+                    <ChevronDown className="h-4 w-4" />
+                  </Button>
+                  <Button variant="ghost" size="icon" className="h-8 w-8" aria-label="Close" onClick={() => setSheetExpanded(false)}>
+                    <X className="h-4 w-4" />
                   </Button>
                 </div>
-              ) : (
-                <>
-                  {sortedCharacters.map((char) => (
-                    <div
-                      key={char.id}
-                      onClick={() => selectCharacter(char.id)}
-                      className={`cursor-pointer rounded-lg transition-colors ${char.id === myPlayer?.character_id ? "ring-2 ring-primary" : "hover:ring-1 hover:ring-primary/50"}`}
-                    >
-                      <CharacterListItem
-                        character={char}
-                        actions={
-                          <div className="flex items-center gap-1">
-                            {char.id === myPlayer?.character_id && <Check className="h-4 w-4 text-primary" />}
-                            <Button variant="ghost" size="icon" className="h-8 w-8" onClick={(e) => { e.stopPropagation(); setEditingCharId(char.id); }}>
-                              <Pencil className="h-3.5 w-3.5" />
-                            </Button>
-                          </div>
-                        }
-                      />
-                    </div>
-                  ))}
-                  <Button variant="outline" size="sm" className="gap-2 w-full" onClick={() => setCreatingChar(true)}>
-                    <Plus className="h-3 w-3" /> {t("game.newCharacter")}
-                  </Button>
-                </>
-              )}
+              </div>
             </div>
-          </ScrollArea>
-        </div>
+            <ScrollArea className="flex-1">
+              <div className="container max-w-2xl py-6 px-4 space-y-3" style={{ paddingBottom: `calc(1.5rem + env(safe-area-inset-bottom))` }}>
+                {sortedCharacters.length === 0 ? (
+                  <div className="space-y-2">
+                    <p className="text-base text-muted-foreground">{t("game.noCharactersYet")}</p>
+                    <Button variant="outline" size="sm" className="gap-2 w-full" onClick={() => setCreatingChar(true)}>
+                      <Plus className="h-3 w-3" /> {t("game.newCharacter")}
+                    </Button>
+                  </div>
+                ) : (
+                  <>
+                    {sortedCharacters.map((char) => (
+                      <div
+                        key={char.id}
+                        onClick={() => selectCharacter(char.id)}
+                        className={`cursor-pointer rounded-lg transition-colors ${char.id === myPlayer?.character_id ? "ring-2 ring-primary" : "hover:ring-1 hover:ring-primary/50"}`}
+                      >
+                        <CharacterListItem
+                          character={char}
+                          actions={
+                            <div className="flex items-center gap-1">
+                              {char.id === myPlayer?.character_id && <Check className="h-4 w-4 text-primary" />}
+                              <Button variant="ghost" size="icon" className="h-8 w-8" onClick={(e) => { e.stopPropagation(); setEditingCharId(char.id); }}>
+                                <Pencil className="h-3.5 w-3.5" />
+                              </Button>
+                            </div>
+                          }
+                        />
+                      </div>
+                    ))}
+                    <Button variant="outline" size="sm" className="gap-2 w-full" onClick={() => setCreatingChar(true)}>
+                      <Plus className="h-3 w-3" /> {t("game.newCharacter")}
+                    </Button>
+                  </>
+                )}
+              </div>
+            </ScrollArea>
+          </div>
+        </>
       )}
+
 
       {creatingChar && (
         <div className="fixed inset-0 z-50 bg-background flex flex-col animate-in fade-in duration-200 pt-[env(safe-area-inset-top)]">
