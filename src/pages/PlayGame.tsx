@@ -316,7 +316,7 @@ const PlayGame = () => {
           </div>
           <ScrollArea className="flex-1">
             <div className="container max-w-2xl py-6 px-4">
-              <CharacterCreationWizard gameId={gameId} onCreated={(id) => { selectCharacter(id); setCreatingChar(false); }} onCancel={() => setCreatingChar(false)} />
+              <CharacterCreationWizard gameId={gameId} onCreated={() => { setCreatingChar(false); }} onCancel={() => setCreatingChar(false)} />
             </div>
           </ScrollArea>
         </div>
