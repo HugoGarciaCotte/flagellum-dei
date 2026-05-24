@@ -98,8 +98,8 @@ const GMPlayerList = () => {
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
             {players.map((p) => {
               const displayName = p.display_name || t("gm.unknown");
-              const selectedChar = p.characters.find((c) => c.id === p.selectedCharId) ?? null;
-              const otherChars = p.characters.filter((c) => c.id !== p.selectedCharId);
+              const selectedChar = p.currentChar;
+              const otherChars = p.otherChars;
               return (
                 <div key={p.user_id} className="space-y-2">
                   <p className="text-sm font-medium text-muted-foreground px-1">{displayName}</p>
