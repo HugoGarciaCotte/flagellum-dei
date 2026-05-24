@@ -135,6 +135,8 @@ const CharacterSheet = ({ characterId, mode = "player", scenarioLevel, onDone }:
 
   return (
     <div className="space-y-4">
+      <SyncIssuesPanel />
+
       {/* Portrait */}
       <div className="flex flex-col items-center gap-3">
         <PortraitViewer src={portraitUrl} alt={character.name} fileName={character.name}>
