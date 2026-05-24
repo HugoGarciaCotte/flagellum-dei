@@ -166,6 +166,7 @@ const GMPlayerList = () => {
                   {selectedChar ? (
                     <CharacterListItem
                       character={{ id: selectedChar.id, name: selectedChar.name, description: selectedChar.description, portrait_url: selectedChar.portrait_url }}
+                      onView={(id) => openView(id)}
                     />
                   ) : (
                     <p className="text-sm text-muted-foreground italic px-1">{t("gm.noCharacterSelected")}</p>
