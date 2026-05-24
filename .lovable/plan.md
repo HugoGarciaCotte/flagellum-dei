@@ -1,41 +1,47 @@
-## Status
+## Goal
 
-The GM-edits-player-character fix is **already in place** in `src/lib/syncManager.ts` (lines 188–217): pushes for `characters` split owned rows (upsert) from foreign rows (UPDATE only), so the host UPDATE policy is used and the INSERT `WITH CHECK (auth.uid() = user_id)` is no longer triggered.
+"My Players" should list **every player who ever joined any game I hosted** (active or ended), filtered to those who currently have at least one character.
 
-## Audit of other synced tables for the same class of bug
+## Current behavior
 
-`doPush` syncs: `profiles`, `user_roles`, `characters`, `games`, `game_players`.
-
-| Table | Foreign rows in local store? | INSERT policy | Risk |
-|---|---|---|---|
-| `profiles` | Yes — GMPlayerList pulls every player's profile | `auth.uid() = user_id` | If any code path ever calls `useLocalRow("profiles", { user_id: otherUser })` and writes, the push would loop forever with RLS error |
-| `user_roles` | Only own | own only | None |
-| `characters` | Yes (players in hosted games) | `auth.uid() = user_id` | **Fixed** |
-| `games` | Only host's own games (host owns) | host only | None |
-| `game_players` | Yes — all players in hosted games | `auth.uid() = user_id` | Same latent risk as profiles if GM-side code ever mutates a foreign `game_players` row locally |
-
-Today no code path writes foreign `profiles` or `game_players`, but the sync layer should not silently retry-spam if one ever does (e.g. a future Spotify token refresh, a GM kick action, a realtime merge with a stale local edit).
+- `doPull` in `syncManager.ts` filters games with `.neq("status", "ended")`, so ended games + their `game_players` rows are never pulled.
+- `GMPlayerList` reads `useLocalRows("games", { host_user_id })` and intersects with `game_players` to build the player list. With no ended games in local store, ex-players disappear.
 
 ## Plan
 
-Make `doPush` generic and defensive:
+### 1. Sync layer (`src/lib/syncManager.ts`)
 
-1. **Generalize the own-vs-foreign split** to every table that has a `user_id` column and a `WITH CHECK (auth.uid() = user_id)` INSERT policy: `profiles`, `characters`, `game_players`, `user_roles`.
-   - Own rows → `upsert` as today.
-   - Foreign rows on `characters` → `.update(...).eq("id", id)` (host UPDATE policy handles it).
-   - Foreign rows on `profiles`, `game_players`, `user_roles` → **skip the push** (no server policy lets a non-owner write these), clear `pending_sync` / dirty flag for that row, and emit a single `sync-error` so it surfaces in the existing SyncIssuesPanel instead of looping every 2 seconds.
+Pull all hosted games regardless of status, but keep the existing scope for games where the user is just a player (still skip ended ones to avoid bloating local store):
 
-2. **Strip `created_at` from update patches** on foreign rows (already done for characters) — keep that uniform.
+- Change the `gamesQuery` `or(...)` clause to:
+  - host branch: `host_user_id.eq.{userId}` (no status filter)
+  - player branch: keep `id.in.(...)` AND status != ended (apply after fetch, or split into two queries)
+- Simplest implementation: run two parallel queries
+  - `supabase.from("games").select("*").eq("host_user_id", userId)` — all my hosted games
+  - `supabase.from("games").select("*").neq("status", "ended").in("id", playerGameIds)` — only active games where I'm a player
+  - merge results
 
-3. **No changes to pull or realtime**. `GMPlayerList.tsx` already subscribes to realtime postgres_changes on `characters`, `profiles`, and `game_players` and re-pulls on player edits, so the "GM sees player's changes" requirement is already covered.
+- Phase 3 `game_players` pull: already uses `activeGameIds` which now includes ended hosted games — good, no change beyond the new game set.
+- Phase 4 character pull for other users: already does full-pull for non-self users — good, will pick up ex-players' characters.
 
-4. **No DB migration** — existing policies are correct; this is purely client-side hardening.
+- Update `evictStaleGames()` if it would now evict ended hosted games (need to verify) — exempt games where I'm the host.
+
+### 2. Component (`src/components/GMPlayerList.tsx`)
+
+- The `games` list (`useLocalRows("games", { host_user_id: user?.id })`) will now include ended games — no code change needed there.
+- The `players` `useMemo` already filters out players with no characters via `chars[0] ?? null` + `otherChars`, but currently still **includes** players with zero characters as entries with `currentChar: null` and empty `otherChars`. Add an explicit filter: skip any player where `chars.length === 0`.
+- "Current" character logic: for ex-players from ended games, `gp.character_id` may be stale or null. Keep the existing "most recently updated character" heuristic — it already works without `game_players.character_id`.
+
+### 3. Realtime
+
+- Subscription already listens for `*` on `characters`, `profiles`, `game_players` and re-pulls when a relevant `user_id` changes. No change needed — ex-players' edits will still flow through.
 
 ## Files
 
-- `src/lib/syncManager.ts` — refactor the `characters` branch in `doPush` into a small per-table policy table; add the "drop foreign-row dirty flag" path for tables where no foreign write is ever legal.
+- `src/lib/syncManager.ts` — split hosted-vs-played game queries; lift `neq("status","ended")` for hosted games.
+- `src/components/GMPlayerList.tsx` — drop players with zero characters from the rendered list.
 
 ## Out of scope
 
-- `character_feats` / `character_feat_subfeats`: no longer synced (feats live in `characters.feats` jsonb), so no risk.
-- Direct `supabase.from(...)` calls in pages (Dashboard, HostGame, AdminTranslations, FeatEditorPanel, ScenarioEditorPanel, SpotifyPlayer): all operate on rows the current user is allowed to write per RLS. No changes needed.
+- Pagination / quota: hosted-game count is small per user; not a concern now. If it grows, can add a 6-month cutoff later.
+- No DB migration needed.

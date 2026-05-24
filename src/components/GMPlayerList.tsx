@@ -122,10 +122,12 @@ const GMPlayerList = () => {
         if (au !== bu) return bu.localeCompare(au);
         return (b.created_at || "").localeCompare(a.created_at || "");
       });
+      if (chars.length === 0) continue;
       out.push({
         user_id: uid,
         display_name: (profile as any)?.display_name ?? null,
         currentChar: chars[0] ?? null,
+
         otherChars: chars.slice(1),
       });
     }

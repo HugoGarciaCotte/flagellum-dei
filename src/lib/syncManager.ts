@@ -70,21 +70,27 @@ async function doPull(userId?: string) {
   if (rolesRes.data) merge("user_roles", rolesRes.data);
   const playerGameIds = (playerRefsRes.data ?? []).map((r: any) => r.game_id);
 
-  // Phase 2: parallel — games, own profile
-  const gamesQuery = withSince(
-    supabase.from("games").select("*")
-      .neq("status", "ended")
-      .or(`host_user_id.eq.${userId}${playerGameIds.length > 0 ? `,id.in.(${playerGameIds.join(",")})` : ""}`),
+  // Phase 2: parallel — games (hosted: ALL statuses incl. ended; played: active only), own profile
+  const hostedGamesQuery = withSince(
+    supabase.from("games").select("*").eq("host_user_id", userId),
     since,
   );
+  const playedGamesQuery = playerGameIds.length > 0
+    ? withSince(
+        supabase.from("games").select("*").neq("status", "ended").in("id", playerGameIds),
+        since,
+      )
+    : Promise.resolve({ data: [] as any[] });
   const profileQuery = withSince(supabase.from("profiles").select("*").eq("user_id", userId), since);
 
-  const [gamesRes, profileRes] = await Promise.all([gamesQuery, profileQuery]);
+  const [hostedRes, playedRes, profileRes] = await Promise.all([hostedGamesQuery, playedGamesQuery, profileQuery]);
 
-  if (gamesRes.data) merge("games", gamesRes.data);
+  const gamesData = [...(hostedRes.data ?? []), ...(playedRes.data ?? [])];
+  if (gamesData.length > 0) merge("games", gamesData);
   if (profileRes.data) merge("profiles", profileRes.data);
 
-  const activeGameIds = (gamesRes.data ?? []).map((g: any) => g.id);
+
+  const activeGameIds = gamesData.map((g: any) => g.id);
   // For incremental, also include games already in local store
   if (isIncremental) {
     const localGames = store.getTable("games");
@@ -142,7 +148,7 @@ async function doPull(userId?: string) {
   }
 
   store.setLastSync(now);
-  store.evictStaleGames();
+  store.evictStaleGames(userId);
 }
 
 // --- Push (dirty rows only) ---

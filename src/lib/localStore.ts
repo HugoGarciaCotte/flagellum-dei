@@ -302,13 +302,16 @@ export function clearAll() {
   window.dispatchEvent(new CustomEvent("localstore-change", { detail: { table: "*" } }));
 }
 
-/** Remove ended/deleted games older than 24h from local cache to reclaim space */
-export function evictStaleGames() {
+/** Remove ended/deleted games older than 24h from local cache to reclaim space.
+ *  Hosted games (host_user_id === hostUserId) are kept indefinitely so the GM
+ *  can still see ex-players who joined past games. */
+export function evictStaleGames(hostUserId?: string) {
   const games = cache.get("games") ?? [];
   const cutoff = Date.now() - 24 * 60 * 60 * 1000;
   const staleIds = new Set<string>();
 
   const freshGames = games.filter((g) => {
+    if (hostUserId && g.host_user_id === hostUserId) return true;
     if (g.status === "ended" || g.deleted_at) {
       const updatedAt = new Date(g.updated_at).getTime();
       if (updatedAt < cutoff) {
@@ -329,3 +332,4 @@ export function evictStaleGames() {
   cache.set("game_players", players.filter((p) => !staleIds.has(p.game_id)));
   persist("game_players");
 }
+
