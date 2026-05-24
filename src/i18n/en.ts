@@ -1,5 +1,9 @@
 /** English translation dictionary — source of truth for all translation keys */
 const en: Record<string, string> = {
+  // ─── NAV ───
+  "nav.back": "Back",
+  "nav.close": "Close",
+
   // ─── HOME: HEADER ───
   "home.header.play": "Play",
 
