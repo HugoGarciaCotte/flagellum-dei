@@ -78,7 +78,7 @@ const CharacterDetailsDialog = ({
                 >
                   <span className="text-base leading-none" aria-hidden="true">←</span>
                 </Button>
-                <span className="font-display text-base font-medium text-foreground truncate leading-none relative top-[3px]">{title}</span>
+                <span className="font-display text-base font-medium text-foreground truncate leading-none relative top-[6px]">{title}</span>
               </div>
               <div className="flex items-center gap-1 shrink-0">
                 {!editing && canEdit && (
