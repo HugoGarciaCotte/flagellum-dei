@@ -81,6 +81,13 @@ const CharacterSheet = ({ characterId, mode = "player", scenarioLevel, onDone }:
     if (!character) return;
     setGenerating(true);
     try {
+      // Pre-flight: ensure session is still valid before invoking the edge function
+      const fresh = await ensureFreshSession();
+      if (!fresh) {
+        toast({ title: t("character.toast.generationFailed"), description: "Please sign in to generate a portrait.", variant: "destructive" });
+        return;
+      }
+
       const characterFeats = useLocalRowsStatic("character_feats", { character_id: characterId });
       const featNames = characterFeats
         .map((cf: any) => getFeatById(cf.feat_id, locale)?.title)
@@ -89,7 +96,18 @@ const CharacterSheet = ({ characterId, mode = "player", scenarioLevel, onDone }:
       const { data, error } = await supabase.functions.invoke("generate-character-portrait", {
         body: { characterId, featNames },
       });
-      if (error) throw error;
+      if (error) {
+        // 401/session_expired → run recovery
+        const status = (error as any).context?.status ?? (error as any).status;
+        const body = (error as any).context?.body;
+        const code = typeof body === "string" && body.includes("session_expired") ? "session_expired" : (data as any)?.code;
+        if (status === 401 || code === "session_expired") {
+          await ensureFreshSession(); // triggers cleanup if still stale
+          toast({ title: t("character.toast.generationFailed"), description: "Session expired. Please sign in again.", variant: "destructive" });
+          return;
+        }
+        throw error;
+      }
       if (data?.error) throw new Error(data.error);
 
       if (data?.portrait_url) {
