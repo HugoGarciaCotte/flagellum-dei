@@ -50,7 +50,7 @@ const CharacterDetails = ({ characterId }: CharacterDetailsProps) => {
         is_free: !!f.is_free,
         level: f.level,
         speciality: f.speciality || null,
-        subfeats: (f.subfeats ?? []) as { slot: number; feat_id: string }[],
+        subfeats: (f.subfeats ?? []) as ({ slot: number; feat_id: string } & Partial<FeatExhaustionState>)[],
         exhausted_at: f.exhausted_at ?? null,
         exhausted_scenario_id: f.exhausted_scenario_id ?? null,
         used_forever: !!f.used_forever,
