@@ -52,7 +52,7 @@ const CharacterListItem = ({ character, actions, onView }: CharacterListItemProp
   const renderTag = (kind: "used" | "exhausted" | null) =>
     kind ? (
       <span className="ml-1 italic text-destructive/80">
-        ({kind === "used" ? t("feats.usedTag") : t("feats.exhaustedTag")})
+        {kind === "used" ? t("feats.usedTag") : t("feats.exhaustedTag")}
       </span>
     ) : null;
 
