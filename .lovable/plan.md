@@ -1,17 +1,42 @@
-The toast means the app tried to insert a new non-free feat for the same character + level before the old one was deleted on the backend. Because `character_feats_level_unique` allows only one paid feat per character level, the push fails and the new feat stays only in local cache.
+# Fix "No content available" on host page
 
-Plan:
+## Root cause
 
-1. Change paid feat replacement to reuse the existing `character_feats` row for that level instead of soft-deleting it and creating a new row.
-   - This turns “replace level feat” into an update by primary key.
-   - It avoids the backend unique constraint conflict entirely.
-   - Existing subfeats for the previous feat will still be soft-deleted.
+The game `dbe43b61-…` points to scenario `a2b3c4d5-e6f7-4890-ab12-cd34ef56ab78`, which exists in `src/data/scenarios.ts`. The DB row is correct and there are no `scenario_overrides` for it.
 
-2. Keep free feats unchanged.
-   - Free feats use `is_free = true`, so they are not part of `character_feats_level_unique`.
+The host page (`src/pages/HostGame.tsx:60`) does:
 
-3. Improve sync conflict reporting for this specific case.
-   - Keep the current sync-error toast, but the core fix should prevent this duplicate-key path from happening when selecting/replacing a level feat.
+```ts
+const effectiveScenario = game ? getScenarioById(game.scenario_id, locale) : null;
+```
 
-4. Verify by checking the changed code path.
-   - Confirm `CharacterFeatPicker` no longer creates a second non-free row for an occupied level.
+`game` comes from the local-first store (`useLocalRow("games", gameId)`), not directly from the DB. If the locally-cached row was written before the scenario-id alias fix (e.g. `…cd34ef56gh78`, which is not even valid hex), `game.scenario_id` is a legacy id.
+
+`getScenarioById` in `src/data/scenarios.ts` does a strict `hardcodedScenarios.find(s => s.id === id)`. It does **not** apply `normalizeScenarioId`. Result → `undefined`, `scenarioContent = ""`, no sections parsed, so the page renders `t("game.noContent")` ("No content available.").
+
+`normalizeScenarioId` is currently only applied in the push path (`syncManager.ts`) and in `retryPublish`, so the DB has the canonical id but the locally cached `games` row can still hold the legacy alias until it gets overwritten by a pull.
+
+## Fix
+
+Apply `normalizeScenarioId` inside the scenario lookup so legacy ids resolve transparently.
+
+### `src/data/scenarios.ts`
+
+- Import `normalizeScenarioId` from `@/lib/scenarioIds`.
+- In `getScenarioById`, normalize the incoming id before `find`:
+  ```ts
+  const normalized = normalizeScenarioId(id) ?? id;
+  const scenario = hardcodedScenarios.find(s => s.id === normalized);
+  ```
+
+That's it — one targeted change. The push path already canonicalizes, the local cache will heal on the next pull, and meanwhile the host/play/dashboard screens will resolve the scenario correctly.
+
+## Out of scope
+
+- No changes to RLS, schema, or sync logic.
+- No bulk rewrite of locally cached `games` rows (the normalized lookup makes it unnecessary).
+- No UI changes.
+
+## Verification
+
+After the change, reload `/game/dbe43b61-…/host`: scenario "Chapter 4 - Danse Macabre" should render with its sections instead of "No content available."
