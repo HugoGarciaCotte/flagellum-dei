@@ -8,10 +8,13 @@ import { useTranslation } from "@/i18n/useTranslation";
 
 interface CharacterListItemProps {
   character: { id: string; name: string; description?: string | null; portrait_url?: string | null };
+  /** Optional extra slot for read-only adornments (e.g. a "current" badge). */
   actions?: ReactNode;
+  /** When provided, the whole card becomes clickable and a view glyph is shown on the right. */
+  onView?: () => void;
 }
 
-const CharacterListItem = ({ character, actions }: CharacterListItemProps) => {
+const CharacterListItem = ({ character, actions, onView }: CharacterListItemProps) => {
   const { t, locale } = useTranslation();
   const charRow = useLocalRow<any>("characters", character.id);
 
@@ -28,23 +31,47 @@ const CharacterListItem = ({ character, actions }: CharacterListItemProps) => {
 
 
   const initials = character.name.slice(0, 2).toUpperCase();
+  const clickable = !!onView;
 
   return (
-    <Card className="border-border hover:border-primary/40 transition-colors gold-glow-box">
+    <Card
+      className={`border-border hover:border-primary/40 transition-colors gold-glow-box ${clickable ? "cursor-pointer" : ""}`}
+      onClick={clickable ? onView : undefined}
+      role={clickable ? "button" : undefined}
+      tabIndex={clickable ? 0 : undefined}
+      onKeyDown={clickable
+        ? (e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); onView!(); } }
+        : undefined}
+    >
       <CardHeader className="pb-2">
         <div className="flex items-start justify-between">
           <div className="flex items-center gap-3">
-            <PortraitViewer src={character.portrait_url} alt={character.name} fileName={character.name}>
-              <Avatar className="h-9 w-9 border border-primary/20">
-                {character.portrait_url ? (
-                  <AvatarImage src={character.portrait_url} alt={character.name} />
-                ) : null}
-                <AvatarFallback className="text-sm font-display bg-muted">{initials}</AvatarFallback>
-              </Avatar>
-            </PortraitViewer>
+            <div onClick={(e) => e.stopPropagation()}>
+              <PortraitViewer src={character.portrait_url} alt={character.name} fileName={character.name}>
+                <Avatar className="h-9 w-9 border border-primary/20">
+                  {character.portrait_url ? (
+                    <AvatarImage src={character.portrait_url} alt={character.name} />
+                  ) : null}
+                  <AvatarFallback className="text-sm font-display bg-muted">{initials}</AvatarFallback>
+                </Avatar>
+              </PortraitViewer>
+            </div>
             <CardTitle className="font-display text-lg">{character.name}</CardTitle>
           </div>
-          {actions && <div className="flex gap-1 shrink-0">{actions}</div>}
+          <div className="flex items-center gap-1 shrink-0" onClick={(e) => e.stopPropagation()}>
+            {actions}
+            {clickable && (
+              <button
+                type="button"
+                onClick={(e) => { e.stopPropagation(); onView!(); }}
+                aria-label={t("character.view")}
+                className="h-7 w-7 inline-flex items-center justify-center rounded-md text-muted-foreground hover:text-primary hover:bg-accent transition-colors"
+                title={t("character.view")}
+              >
+                <span className="text-base" aria-hidden="true">🜍</span>
+              </button>
+            )}
+          </div>
         </div>
         {character.description && (
           <p className="text-base text-muted-foreground mt-1.5 leading-relaxed">{character.description}</p>
