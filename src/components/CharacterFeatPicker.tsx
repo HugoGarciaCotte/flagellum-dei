@@ -97,15 +97,87 @@ const CharacterFeatPicker = ({ characterId, mode = "player", scenarioLevel }: Ch
     return map;
   }, [metaMap]);
 
-  // Local-first data
-  const characterFeats = useLocalRows<CharacterFeat>("character_feats", { character_id: characterId });
-  const allSubfeats = useLocalRows<CharacterFeatSubfeat>("character_feat_subfeats");
-  const characterSubfeats = useMemo(() => {
-    const cfIds = new Set(characterFeats.map(cf => cf.id));
-    return allSubfeats.filter(cs => cfIds.has(cs.character_feat_id));
-  }, [allSubfeats, characterFeats]);
+  // --- Local-first data: character.feats is the document ---
+  const character = useLocalRow<any>("characters", characterId);
+
+  // Legacy fallback: if character.feats is empty/missing but old per-feat rows
+  // still exist locally (pre-migration cache), build the array on the fly.
+  // This avoids a "blank feats" flash before the server-side backfill is pulled.
+  const legacyFeats = useLocalRows<any>("character_feats", { character_id: characterId });
+  const legacyAllSubfeats = useLocalRows<any>("character_feat_subfeats");
+
+  const featsDoc: any[] = useMemo(() => {
+    const fromDoc = Array.isArray(character?.feats) ? character.feats : [];
+    if (fromDoc.length > 0) return fromDoc;
+    if (legacyFeats.length === 0) return [];
+    const cfIds = new Set(legacyFeats.map((cf: any) => cf.id));
+    const subsByCfId = new Map<string, any[]>();
+    for (const cs of legacyAllSubfeats) {
+      if (!cfIds.has(cs.character_feat_id)) continue;
+      const arr = subsByCfId.get(cs.character_feat_id) ?? [];
+      arr.push({ slot: cs.slot, feat_id: cs.subfeat_id });
+      subsByCfId.set(cs.character_feat_id, arr);
+    }
+    return legacyFeats.map((cf: any) => ({
+      level: cf.level,
+      feat_id: cf.feat_id,
+      is_free: cf.is_free,
+      note: cf.note ?? null,
+      subfeats: (subsByCfId.get(cf.id) ?? []).sort((a, b) => a.slot - b.slot),
+    }));
+  }, [character?.feats, legacyFeats, legacyAllSubfeats]);
+
+  // Derive the shapes the JSX below already consumes (synthetic stable IDs).
+  // - paid level feat:  id = `L${level}`
+  // - free feat:        id = `F${index}` (index in is_free=true list)
+  // - subfeat:          id = `${parentId}-S${slot}`
+  const characterFeats: CharacterFeat[] = useMemo(() => {
+    const out: CharacterFeat[] = [];
+    let freeIdx = 0;
+    for (const f of featsDoc) {
+      const id = f.is_free ? `F${freeIdx++}` : `L${f.level}`;
+      out.push({
+        id,
+        character_id: characterId,
+        level: f.level,
+        feat_id: f.feat_id,
+        is_free: !!f.is_free,
+        note: f.note ?? null,
+      });
+    }
+    return out;
+  }, [featsDoc, characterId]);
+
+  const characterSubfeats: CharacterFeatSubfeat[] = useMemo(() => {
+    const out: CharacterFeatSubfeat[] = [];
+    let freeIdx = 0;
+    for (const f of featsDoc) {
+      const parentId = f.is_free ? `F${freeIdx++}` : `L${f.level}`;
+      for (const s of f.subfeats ?? []) {
+        out.push({
+          id: `${parentId}-S${s.slot}`,
+          character_feat_id: parentId,
+          slot: s.slot,
+          subfeat_id: s.feat_id,
+        });
+      }
+    }
+    return out;
+  }, [featsDoc]);
+
+  // Persist a new feats array to the character document.
+  const writeFeats = (next: any[]) => {
+    if (!character) return;
+    upsertRow("characters", {
+      ...character,
+      feats: next,
+      updated_at: new Date().toISOString(),
+    });
+    triggerPush();
+  };
 
   // AI validation helper
+
   const validateWithAI = async (
     featId: string,
     action: () => void,
