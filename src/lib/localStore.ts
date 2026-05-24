@@ -122,6 +122,28 @@ export function mergeTable(table: TableName, rows: Row[]) {
   persist(table);
 }
 
+/**
+ * Replace the slice of `table` matching `filter` with `rows`.
+ * Preserves locally-dirty rows (not yet pushed) so we don't erase in-flight edits.
+ */
+export function replaceBy(table: TableName, filter: Record<string, any>, rows: Row[]) {
+  const existing = cache.get(table) ?? [];
+  const incomingIds = new Set(rows.map((r) => r.id));
+  const kept = existing.filter((row) => {
+    // Keep rows that don't match the filter scope
+    for (const [key, val] of Object.entries(filter)) {
+      if (row[key] !== val) return true;
+    }
+    // In-scope: keep only if dirty AND not in incoming set (preserve in-flight local edits)
+    if (incomingIds.has(row.id)) return false;
+    return _dirtyRows.has(`${table}:${row.id}`);
+  });
+  const map = new Map(kept.map((r) => [r.id, r]));
+  for (const row of rows) map.set(row.id, row);
+  cache.set(table, [...map.values()]);
+  persist(table);
+}
+
 export function upsertRow(table: TableName, row: Row) {
   const rows = cache.get(table) ?? [];
   const idx = rows.findIndex((r) => r.id === row.id);
