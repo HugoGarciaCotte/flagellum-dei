@@ -10,6 +10,8 @@ interface CharacterListItemProps {
   character: { id: string; name: string; description?: string | null; portrait_url?: string | null };
   /** Optional extra slot for read-only adornments (e.g. a "current" badge). */
   actions?: ReactNode;
+  /** Called when the card is clicked (not from interactive children). */
+  onView?: (id: string) => void;
 }
 
 const CharacterListItem = ({ character, actions }: CharacterListItemProps) => {
