@@ -167,6 +167,7 @@ async function doPush() {
         const { error } = await (supabase.from(table as any).upsert(chunk as any, { onConflict: "id" }) as any);
         if (error) {
           console.error(`Push ${table} failed:`, error.message, { ids: chunkIds });
+          store.appendSyncError({ table, ids: chunkIds, message: error.message });
           window.dispatchEvent(new CustomEvent("sync-error", {
             detail: { table, ids: chunkIds, message: error.message },
           }));
@@ -176,6 +177,7 @@ async function doPush() {
       } catch (e: any) {
         const msg = e?.message ?? String(e);
         console.error(`Push ${table} threw:`, msg, { ids: chunkIds });
+        store.appendSyncError({ table, ids: chunkIds, message: msg });
         window.dispatchEvent(new CustomEvent("sync-error", {
           detail: { table, ids: chunkIds, message: msg },
         }));
