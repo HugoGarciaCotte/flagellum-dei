@@ -265,7 +265,6 @@ const PlayGame = () => {
                     {currentCharacter && (
                       <CharacterListItem
                         character={currentCharacter}
-                        onView={() => setViewingCharId(currentCharacter.id)}
                         actions={
                           <span className="text-[10px] uppercase tracking-wider text-primary font-display">{t("common.current")}</span>
                         }
@@ -283,7 +282,6 @@ const PlayGame = () => {
                             <CharacterListItem
                               key={char.id}
                               character={char}
-                              onView={() => setViewingCharId(char.id)}
                             />
                           ))}
                         </CollapsibleContent>

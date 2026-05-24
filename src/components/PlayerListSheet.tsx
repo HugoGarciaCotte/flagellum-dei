@@ -77,7 +77,6 @@ const PlayerListSheet = ({ players, characters }: PlayerListSheetProps) => {
                         {selectedChar && (
                           <CharacterListItem
                             character={{ id: selectedChar.id, name: selectedChar.name, description: selectedChar.description, portrait_url: (selectedChar as any).portrait_url }}
-                            onView={() => setViewingCharId(selectedChar.id)}
                           />
                         )}
 
