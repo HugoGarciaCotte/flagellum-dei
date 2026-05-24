@@ -1,124 +1,33 @@
-## Goal
+## Problem
 
-Add a per-feat "exhaustion" mechanic: feats can be marked Used, display an exhausted/used label everywhere, and auto-recharge based on how many scenarios the player has joined since use.
+Clicking **Use** on a feat in the dashboard's detailed view does nothing — Use button stays, no `(exhausted)` tag appears.
 
-## 1. Data model — exhaustion type (feat definition)
+DB inspection shows your "Test" character has Abuse of Power as `{ level: 1, is_free: false }`, so it should render top-level with the Use button. The wiring through `CharacterDetails → updateEntry → upsertRow → useLocalRow` looks correct on paper, yet nothing changes — meaning either the click isn't reaching `onUse`, or `updateEntry` is no-op'ing, or the re-render isn't happening.
 
-Add a new field to `FeatMeta` in `src/data/feats.ts`:
+## Approach
 
-```ts
-type ExhaustionType =
-  | "infinite"          // default — no Use button
-  | "once_forever"      // permanent once used
-  | "once_per_scenario"
-  | "once_per_2_scenarios"
-  | "once_per_3_scenarios";
+1. **Instrument** the click path with temporary `console.log` calls:
+   - In `CharacterDetails.tsx` `onUse`: log the feat id, the `matchSelf` candidates, the computed patch.
+   - In `localStore.upsertRow`: log table + id + which keys changed.
+   - In `useLocalRow`: log when the change event triggers a re-fetch.
 
-interface FeatMeta {
-  ...
-  exhaustion?: ExhaustionType;
-}
-```
+2. **Reproduce** the click on Abuse of Power in the Test character's detail dialog, read console logs, identify the broken link.
 
-Treat missing/`infinite` as default. Helper `getFeatExhaustion(feat) → ExhaustionType`.
+3. **Fix the root cause.** Most likely suspects, in order of probability:
+   - **`matchSelf` predicate never matches** because `char.feats` doc entries don't carry the exact shape the mapped `f` expects (e.g. `is_free` undefined vs `false`). Fix by relaxing the predicate to compare on `feat_id + level + !!is_free`, or by indexing on a stable position rather than predicate matching.
+   - **Stale closure** — `matchSelf` captures `f` from the mapped array, but if `feats.map` reorders, the index in the original doc no longer aligns. Fix by capturing the doc-index directly when building the mapped `feats` list and using it in `updateEntry` instead of a predicate.
+   - **Re-render not firing** — possible if `upsertRow` merges into the same object ref. Fix by always producing a fresh row object.
 
-### Seed the four defaults in `src/data/feats-data.json`:
+4. **Remove the debug logs** once the cause is confirmed and fixed.
 
-- `⭐ Faith` → `once_per_2_scenarios`
-- `⛧ Dark Faith` → `once_per_scenario`
-- `⭐ Miracle` → `once_forever`
-- All other feats in the `Prowess` category → `once_per_scenario`
+5. **Verify** by clicking Use → expect `(exhausted)` tag to appear next to "Abuse of Power", Use button to disappear, Recharge button to appear. Then click Recharge → expect tag to disappear, Use to return.
 
-Written into each feat's `meta.exhaustion` field directly in the JSON (Miracle wins over the Prowess default).
+## Out of scope
 
-## 2. Per-character exhaustion state
+- Subfeat Use buttons: in two of your characters Abuse of Power is a slot-3 subfeat. Subfeats render compact and intentionally have no Use button. If you also want Use/Recharge on subfeats, say so and I'll add it as a follow-up.
+- Visual styling of the `(exhausted)` tag.
 
-Stored on each entry in `character.feats[i]` (the JSONB doc on `characters`) — no schema migration needed. Added fields:
+## Files likely touched
 
-```ts
-{
-  ...existing,
-  exhausted_at?: string | null;          // ISO timestamp when "Use" was clicked
-  exhausted_scenario_id?: string | null; // scenario id at time of use (null if not in a game)
-  used_forever?: boolean;                // set true for once_forever after Use
-}
-```
-
-Recharge clears all three.
-
-## 3. Auto-recharge logic
-
-New helper `src/lib/featExhaustion.ts`:
-
-```
-isExhausted(featEntry, exhaustionType, userScenarioHistory) → boolean
-labelKey(exhaustionType, isExhausted, used_forever) → "exhausted" | "used" | null
-```
-
-- `infinite` → never exhausted, no Use button.
-- `once_forever` → exhausted iff `used_forever === true`. Label = `(used)`.
-- `once_per_N_scenarios` → exhausted iff `exhausted_at` is set AND the number of **distinct scenarios the player has joined strictly after** `exhausted_scenario_id` (ordered by `joined_at`) is `< N`. The exhausting scenario itself counts as scenario 1 of N; joining the Nth subsequent scenario clears it. Label = `(exhausted)`.
-
-`userScenarioHistory` is computed from local `game_players` rows for the character's `user_id`, joined to local `games` rows to get `scenario_id` + `joined_at`, deduped by scenario_id keeping earliest join.
-
-A new hook `useUserScenarioHistory(userId)` wraps `useLocalRows("game_players", { user_id })` + `useLocalRows("games")` and returns the ordered scenario list.
-
-Manual **Recharge** button always available (even on `infinite`/`once_forever`) — clears the state.
-
-## 4. UI — `FeatListItem`
-
-Extend props:
-
-```ts
-exhaustionType?: ExhaustionType;
-isExhausted?: boolean;       // computed by caller
-isUsedForever?: boolean;
-onUse?: () => void;           // shown only in non-compact mode
-onRecharge?: () => void;      // shown only in non-compact mode
-```
-
-Behavior:
-
-- Always (compact AND non-compact): append ` (exhausted)` or ` (used)` after `feat.title` when `isExhausted` is true. Use a muted/destructive tone styling.
-- Non-compact only: render a **Use** button (when not exhausted and `exhaustionType !== "infinite"`) and a **Recharge** button (when exhausted, OR always as an admin escape — per the spec "regardless there should always be a button to recharge"). Place them next to the existing Info button.
-- Compact: never render Use/Recharge.
-
-## 5. Wire callers
-
-**`CharacterDetails.tsx`** (detailed read-only view): pass `compact={false}` for the main feat entries (subfeats stay compact), supply `onUse`/`onRecharge` that mutate `character.feats[i]` via `upsertRow("characters", ...)` + `triggerPush`. Look up exhaustion from feat meta + history.
-
-**`CharacterFeatPicker.tsx`** (edit view inside `CharacterSheet`): same — render the assigned-feat `FeatListItem` with `compact={false}` for the level row and free-feat row, pass `onUse`/`onRecharge` mutating the same doc. Subfeats stay compact (no use button on subfeats).
-
-**Picker dialog and all subfeat displays**: stay compact; show label only when applicable (subfeats can technically be exhausted too if their feat def has an exhaustion type — render label, no buttons).
-
-Current scenario id (needed to record `exhausted_scenario_id`): read the active game for `mode === "player"` from `game_players` where `user_id = current user` and find the matching game's `scenario_id`. For GM editing a player's feats, use the GM's currently hosted game scenario. Best abstraction: a `useCurrentScenarioId(characterUserId)` helper that returns the scenario id of the most recent non-deleted game the user is part of.
-
-## 6. Feat editor — `FeatEditorPanel.tsx`
-
-Add an `exhaustion` field to:
-
-- `META_FIELDS` (typed)
-- The editable row UI: a `<Select>` with the 5 options, default "Infinite Use", saving via existing `saveField(feat.id, "exhaustion", value)` / `revertField`. Place it in the meta-fields block.
-- Export shape in `handleDownloadAndClear`: include `exhaustion` in the `meta` object.
-
-Not added to `GENERATABLE_FIELDS` (AI can't infer this).
-
-## 7. i18n keys
-
-Add to the `feats.*` and `adminFeats.*` dictionaries:
-
-- `feats.use` = "Use"
-- `feats.recharge` = "Recharge"
-- `feats.exhaustedTag` = "(exhausted)"
-- `feats.usedTag` = "(used)"
-- `adminFeats.fieldExhaustion` = "Exhaustion"
-- `adminFeats.exhaustion.infinite` / `.onceForever` / `.oncePerScenario` / `.oncePer2Scenarios` / `.oncePer3Scenarios`
-
-FR translations alongside.
-
-## Technical notes / out of scope
-
-- No DB migration. `character.feats` is JSONB so new keys flow through `syncManager` and `feat_overrides.value` is JSONB so `meta.exhaustion` round-trips automatically.
-- No change to `character_feats` legacy table (compatibility path remains untouched).
-- The Miracle/Prowess/Faith/Dark Faith defaults are hardcoded in `feats-data.json` so they ship offline; admins can still override per-feat from the editor.
-- "Exhausted timer": the user-visible signal is the `(exhausted)` label until the join-count threshold is reached; we don't render a separate countdown widget. (If you want a textual hint like "recharges in 2 scenarios", say so and I'll add it to the non-compact view.)
+- `src/components/CharacterDetails.tsx` — fix `updateEntry` / `matchSelf` indexing.
+- Possibly `src/lib/localStore.ts` — only if the re-render path turns out to be the culprit.

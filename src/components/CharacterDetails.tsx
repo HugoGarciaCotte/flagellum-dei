@@ -39,9 +39,11 @@ const CharacterDetails = ({ characterId }: CharacterDetailsProps) => {
 
   const feats = useMemo(() => {
     const doc: FeatRow[] = Array.isArray(char?.feats) ? char.feats : [];
-    return [...doc]
+    return doc
+      .map((f, docIndex) => ({ ...f, docIndex }))
       .sort((a, b) => (a.is_free === b.is_free ? (a.level ?? 0) - (b.level ?? 0) : a.is_free ? 1 : -1))
       .map((f, i) => ({
+        docIndex: f.docIndex,
         key: f.is_free ? `F${i}` : `L${f.level}`,
         label: f.is_free ? t("character.details.free") : `${t("character.details.level")} ${f.level}`,
         feat_id: f.feat_id,
@@ -62,14 +64,12 @@ const CharacterDetails = ({ characterId }: CharacterDetailsProps) => {
 
   const initials = (char.name || "?").slice(0, 2).toUpperCase();
 
-  /** Mutate feats doc at the entry matching predicate. */
-  const updateEntry = (
-    predicate: (f: FeatRow, i: number) => boolean,
-    patch: Partial<FeatRow>,
-  ) => {
+  /** Mutate feats doc at a stable original document index. */
+  const updateEntry = (docIndex: number, patch: Partial<FeatRow>) => {
     if (!char) return;
     const doc: FeatRow[] = Array.isArray(char.feats) ? char.feats : [];
-    const next = doc.map((f, i) => (predicate(f, i) ? { ...f, ...patch } : f));
+    if (docIndex < 0 || docIndex >= doc.length) return;
+    const next = doc.map((f, i) => (i === docIndex ? { ...f, ...patch } : f));
     upsertRow("characters", { ...char, feats: next, updated_at: new Date().toISOString() });
     triggerPush();
   };
