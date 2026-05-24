@@ -304,7 +304,7 @@ const PlayGame = () => {
 
       {creatingChar && (
         <div className="fixed inset-0 z-50 bg-background flex flex-col animate-in fade-in duration-200 pt-[env(safe-area-inset-top)]">
-          <div className="border-b border-border/50 bg-card/80 backdrop-blur px-4 py-3 flex items-center justify-between shrink-0">
+          <div className="border-b border-border/50 bg-card/80 backdrop-blur px-4 pt-3 flex items-center justify-between shrink-0">
             <span className="font-display text-base font-medium text-foreground">{t("dashboard.createCharacter")}</span>
             <CloseButton onClose={() => setCreatingChar(false)} />
           </div>
