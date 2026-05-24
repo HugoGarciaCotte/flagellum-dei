@@ -45,6 +45,8 @@ const CharacterDetails = ({ characterId }: CharacterDetailsProps) => {
         key: f.is_free ? `F${i}` : `L${f.level}`,
         label: f.is_free ? t("character.details.free") : `${t("character.details.level")} ${f.level}`,
         feat_id: f.feat_id,
+        is_free: !!f.is_free,
+        level: f.level,
         speciality: f.speciality || null,
         subfeats: (f.subfeats ?? []) as { slot: number; feat_id: string }[],
         exhausted_at: f.exhausted_at ?? null,
@@ -52,6 +54,7 @@ const CharacterDetails = ({ characterId }: CharacterDetailsProps) => {
         used_forever: !!f.used_forever,
       }));
   }, [char?.feats, locale, t]);
+
 
   if (!char) {
     return <div className="text-base text-muted-foreground py-4 text-center">{t("character.loading")}</div>;
