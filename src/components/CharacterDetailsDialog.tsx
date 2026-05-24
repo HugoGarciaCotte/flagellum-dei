@@ -9,6 +9,7 @@ import { Button } from "@/components/ui/button";
 import { ArrowLeft, Pencil, Trash2, X } from "lucide-react";
 
 import CharacterDetails from "@/components/CharacterDetails";
+import PageHeader from "@/components/PageHeader";
 import CharacterSheet from "@/components/CharacterSheet";
 import { useLocalRow } from "@/hooks/useLocalData";
 import { softDeleteRow } from "@/lib/localStore";
