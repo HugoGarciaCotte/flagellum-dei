@@ -34,7 +34,7 @@ const GMPlayerList = () => {
   const { t } = useTranslation();
   const online = useNetworkStatus();
   const [open, setOpen] = useState(false);
-  const [editing, setEditing] = useState<{ characterId: string; playerName: string } | null>(null);
+  const [viewingCharId, setViewingCharId] = useState<string | null>(null);
 
   const games = useLocalRows("games", { host_user_id: user?.id });
   const allGamePlayers = useLocalRows("game_players");
@@ -134,9 +134,8 @@ const GMPlayerList = () => {
     return out;
   }, [user, games, allGamePlayers, allCharacters, allProfiles]);
 
-  const openEdit = async (characterId: string, playerName: string) => {
-    setEditing({ characterId, playerName });
-    // Feats now live on characters.feats — one pull is enough.
+  const openView = async (characterId: string) => {
+    setViewingCharId(characterId);
     await pullTable("characters", { id: characterId });
   };
 
@@ -167,11 +166,7 @@ const GMPlayerList = () => {
                   {selectedChar ? (
                     <CharacterListItem
                       character={{ id: selectedChar.id, name: selectedChar.name, description: selectedChar.description, portrait_url: selectedChar.portrait_url }}
-                      actions={
-                        <Button variant="ghost" size="icon" className="h-7 w-7 shrink-0" onClick={() => openEdit(selectedChar.id, displayName)}>
-                          <Pencil className="h-3.5 w-3.5" />
-                        </Button>
-                      }
+                      onView={() => openView(selectedChar.id)}
                     />
                   ) : (
                     <p className="text-sm text-muted-foreground italic px-1">{t("gm.noCharacterSelected")}</p>
@@ -185,12 +180,15 @@ const GMPlayerList = () => {
                       </CollapsibleTrigger>
                       <CollapsibleContent className="mt-1 space-y-1 pl-1">
                         {otherChars.map((char) => (
-                          <div key={char.id} className="flex items-center justify-between rounded-md border border-border px-3 py-1.5 text-sm">
+                          <button
+                            key={char.id}
+                            type="button"
+                            onClick={() => openView(char.id)}
+                            className="w-full flex items-center justify-between rounded-md border border-border px-3 py-1.5 text-sm hover:border-primary/40 hover:bg-accent/40 transition-colors text-left"
+                          >
                             <span className="text-muted-foreground truncate">{char.name}</span>
-                            <Button variant="ghost" size="icon" className="h-6 w-6 shrink-0" onClick={() => openEdit(char.id, displayName)}>
-                              <Pencil className="h-3 w-3" />
-                            </Button>
-                          </div>
+                            <span className="text-base text-muted-foreground/70 shrink-0" aria-hidden="true">🜍</span>
+                          </button>
                         ))}
                       </CollapsibleContent>
                     </Collapsible>
@@ -202,22 +200,14 @@ const GMPlayerList = () => {
         </CollapsibleContent>
       </Collapsible>
 
-      <Dialog open={!!editing} onOpenChange={(o) => { if (!o) setEditing(null); }}>
-        <DialogContent className="max-h-[85vh] overflow-y-auto">
-          <DialogHeader>
-            <DialogTitle className="font-display">
-              {t("gm.editCharacter").replace("{name}", editing?.playerName || t("gm.unknown"))}
-            </DialogTitle>
-          </DialogHeader>
-          {editing?.characterId && (
-            <CharacterSheet
-              characterId={editing.characterId}
-              mode="gm"
-              onDone={() => setEditing(null)}
-            />
-          )}
-        </DialogContent>
-      </Dialog>
+      <CharacterDetailsDialog
+        characterId={viewingCharId}
+        open={!!viewingCharId}
+        onOpenChange={(o) => { if (!o) setViewingCharId(null); }}
+        canEdit
+        canDelete={false}
+        editMode="gm"
+      />
     </>
   );
 };
