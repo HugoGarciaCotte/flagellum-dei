@@ -247,13 +247,36 @@ const CharacterCreationWizard = ({ onCreated, onCancel, gameId }: CharacterCreat
     if (!characterId || !user) return;
     setCreating(true);
 
+    // If portrait is still a base64 data: URI (from the preview function), upload to storage
+    // before persisting — otherwise it would balloon localStorage and never reach the cloud usefully.
+    let finalPortraitUrl = portraitUrl;
+    if (finalPortraitUrl && finalPortraitUrl.startsWith("data:") && online) {
+      try {
+        const res = await fetch(finalPortraitUrl);
+        const blob = await res.blob();
+        const filePath = `${user.id}/${characterId}.png`;
+        const { error: uploadError } = await supabase.storage
+          .from("character-portraits")
+          .upload(filePath, blob, { contentType: "image/png", upsert: true });
+        if (uploadError) throw uploadError;
+        const { data: publicUrlData } = supabase.storage
+          .from("character-portraits")
+          .getPublicUrl(filePath);
+        finalPortraitUrl = `${publicUrlData.publicUrl}?t=${Date.now()}`;
+      } catch (e: any) {
+        toast({ title: t("wizard.toast.uploadFailed"), description: e.message, variant: "destructive" });
+        // Drop the oversized base64 rather than persist it locally
+        finalPortraitUrl = null;
+      }
+    }
+
     const now = new Date().toISOString();
     upsertRow("characters", {
       id: characterId,
       user_id: user.id,
       name: name || "Blank",
       description: description || null,
-      portrait_url: portraitUrl,
+      portrait_url: finalPortraitUrl,
       updated_at: now,
     });
     triggerPush();
