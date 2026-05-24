@@ -165,7 +165,7 @@ const HostGame = () => {
     const playerCharIds = () => {
       const uids = playerUserIds();
       return new Set(
-        (getBy("characters") as any[]).filter((c) => uids.has(c.user_id)).map((c) => c.id)
+        (getBy("characters", {}) as any[]).filter((c) => uids.has(c.user_id)).map((c) => c.id)
       );
     };
     const refreshSubfeatsForChar = async (characterId: string) => {
