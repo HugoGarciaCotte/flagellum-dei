@@ -157,30 +157,52 @@ const CharacterCreationWizard = ({ onCreated, onCancel, gameId }: CharacterCreat
     }
   }, [step, finalStep, online]);
 
-  // --- Progressive save helpers (local-first) ---
+  // --- Progressive save helpers (local-first, character.feats jsonb) ---
+
+  const buildArchetypeEntry = (featId: string, subfeats: { slot: number; feat_id: string }[] = []) => ({
+    level: 1,
+    feat_id: featId,
+    is_free: false,
+    note: null,
+    subfeats: subfeats.sort((a, b) => a.slot - b.slot),
+  });
 
   const saveArchetype = async (featId: string) => {
     if (!user) return;
     setSaving(true);
 
-    if (characterId && characterFeatId) {
-      // Update existing
-      upsertRow("character_feats", { id: characterFeatId, character_id: characterId, feat_id: featId, level: 1, is_free: false, note: null });
-      softDeleteBy("character_feat_subfeats", { character_feat_id: characterFeatId });
-      setSubfeatSelections(new Map());
+    if (characterId) {
+      // Update existing: replace the archetype entry, drop its subfeats.
+      const cur = getRow<any>("characters", characterId);
+      if (cur) {
+        const others = (Array.isArray(cur.feats) ? cur.feats : []).filter(
+          (f: any) => !(f.level === 1 && !f.is_free),
+        );
+        upsertRow("characters", {
+          ...cur,
+          feats: [...others, buildArchetypeEntry(featId)],
+          updated_at: new Date().toISOString(),
+        });
+        setSubfeatSelections(new Map());
+      }
     } else {
       const tempCharId = crypto.randomUUID();
-      const tempCfId = crypto.randomUUID();
       setCharacterId(tempCharId);
-      setCharacterFeatId(tempCfId);
+      setCharacterFeatId(tempCharId); // keep state populated; identity is the character itself now
 
       const now = new Date().toISOString();
-      upsertRow("characters", { id: tempCharId, user_id: user.id, name: "New Character", description: null, portrait_url: null, created_at: now, updated_at: now });
-      upsertRow("character_feats", { id: tempCfId, character_id: tempCharId, feat_id: featId, level: 1, is_free: false, note: null });
+      upsertRow("characters", {
+        id: tempCharId,
+        user_id: user.id,
+        name: "New Character",
+        description: null,
+        portrait_url: null,
+        feats: [buildArchetypeEntry(featId)],
+        created_at: now,
+        updated_at: now,
+      });
 
       if (gameId) {
-        // Find player row and update
-        const { getBy } = await import("@/lib/localStore");
         const playerRows = getBy("game_players", { game_id: gameId, user_id: user.id });
         if (playerRows.length > 0) {
           upsertRow("game_players", { ...playerRows[0], character_id: tempCharId });
@@ -193,26 +215,33 @@ const CharacterCreationWizard = ({ onCreated, onCancel, gameId }: CharacterCreat
   };
 
   const saveSubfeat = async (slotNum: number, subfeatId: string | null) => {
-    if (!characterFeatId) return;
+    if (!characterId) return;
     setSaving(true);
 
-    // Delete existing at slot
-    if (characterId) {
-      const { getBy } = await import("@/lib/localStore");
-      const existing = getBy("character_feat_subfeats", { character_feat_id: characterFeatId, slot: slotNum });
-      for (const row of existing) {
-        const { softDeleteRow } = await import("@/lib/localStore");
-        softDeleteRow("character_feat_subfeats", row.id);
+    const cur = getRow<any>("characters", characterId);
+    if (cur) {
+      const feats: any[] = Array.isArray(cur.feats) ? cur.feats : [];
+      const idx = feats.findIndex((f) => f.level === 1 && !f.is_free);
+      if (idx >= 0) {
+        const parent = feats[idx];
+        const subs = (parent.subfeats ?? []).filter((s: any) => s.slot !== slotNum);
+        if (subfeatId) subs.push({ slot: slotNum, feat_id: subfeatId });
+        const nextFeats = feats.map((f, i) =>
+          i === idx ? { ...parent, subfeats: subs.sort((a: any, b: any) => a.slot - b.slot) } : f,
+        );
+        upsertRow("characters", {
+          ...cur,
+          feats: nextFeats,
+          updated_at: new Date().toISOString(),
+        });
       }
-    }
-
-    if (subfeatId) {
-      upsertRow("character_feat_subfeats", { id: crypto.randomUUID(), character_feat_id: characterFeatId, slot: slotNum, subfeat_id: subfeatId });
     }
 
     triggerPush();
     setSaving(false);
   };
+
+
 
   const saveFinalDetails = async () => {
     if (!characterId || !user) return;
