@@ -304,10 +304,12 @@ const PlayGame = () => {
 
       {creatingChar && (
         <div className="fixed inset-0 z-50 bg-background flex flex-col animate-in fade-in duration-200 pt-[env(safe-area-inset-top)]">
-          <div className="border-b border-border/50 bg-card/80 backdrop-blur px-4 pt-3 flex items-center justify-between shrink-0">
-            <span className="font-display text-base font-medium text-foreground">{t("dashboard.createCharacter")}</span>
-            <CloseButton onClose={() => setCreatingChar(false)} />
-          </div>
+          <PageHeader
+            showLogo={false}
+            safeTop={false}
+            title={t("dashboard.createCharacter")}
+            rightActions={<CloseButton onClose={() => setCreatingChar(false)} />}
+          />
           <ScrollArea className="flex-1">
             <div className="container max-w-2xl py-6 px-4">
               <CharacterCreationWizard gameId={gameId} onCreated={() => { setCreatingChar(false); }} onCancel={() => setCreatingChar(false)} />
