@@ -6,6 +6,7 @@ import {
   AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
 import { Button } from "@/components/ui/button";
+import { ArrowLeft, Pencil, Trash2, X } from "lucide-react";
 
 import CharacterDetails from "@/components/CharacterDetails";
 import CharacterSheet from "@/components/CharacterSheet";
@@ -88,20 +89,6 @@ const CharacterDetailsDialog = ({
     </Button>
   );
 
-  const Glyph = ({ char }: { char: string }) => (
-    <span className="text-lg leading-none translate-y-[1px]" aria-hidden="true">{char}</span>
-  );
-
-  const TrashGlyph = () => (
-    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"
-      strokeLinecap="round" strokeLinejoin="round" className="h-[18px] w-[18px]" aria-hidden="true">
-      <path d="M3 6h18" />
-      <path d="M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2" />
-      <path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6" />
-      <path d="M10 11v6" />
-      <path d="M14 11v6" />
-    </svg>
-  );
 
   return (
     <>
@@ -114,9 +101,9 @@ const CharacterDetailsDialog = ({
                   label={editing ? t("character.dialog.backToDetails") : t("character.dialog.close")}
                   onClick={() => editing ? setEditing(false) : onOpenChange(false)}
                 >
-                  <Glyph char="←" />
+                  <ArrowLeft className="h-4 w-4" />
                 </HeaderIconButton>
-                <span className="font-display text-base font-medium text-foreground truncate leading-none translate-y-[1px]">{title}</span>
+                <span className="font-display text-base font-medium text-foreground truncate">{title}</span>
               </div>
               <div className="flex items-center gap-1 shrink-0">
                 {!editing && canEdit && (
@@ -124,7 +111,7 @@ const CharacterDetailsDialog = ({
                     label={t("character.edit")}
                     onClick={() => setEditing(true)}
                   >
-                    <Glyph char="✎" />
+                    <Pencil className="h-4 w-4" />
                   </HeaderIconButton>
                 )}
                 {!editing && canDelete && (
@@ -133,12 +120,12 @@ const CharacterDetailsDialog = ({
                     tone="destructive"
                     onClick={() => setConfirmDelete(true)}
                   >
-                    <TrashGlyph />
+                    <Trash2 className="h-4 w-4" />
                   </HeaderIconButton>
                 )}
                 <DialogClose asChild>
                   <HeaderIconButton label={t("character.dialog.close")}>
-                    <Glyph char="✕" />
+                    <X className="h-4 w-4" />
                   </HeaderIconButton>
                 </DialogClose>
               </div>
