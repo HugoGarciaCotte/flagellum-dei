@@ -76,6 +76,44 @@ export function getLastSync(): string | null {
   }
 }
 
+// --- Sync error log (persisted ring buffer) ---
+
+const SYNC_ERRORS_KEY = "ls_sync_errors";
+const MAX_SYNC_ERRORS = 20;
+
+export type SyncError = {
+  at: string; // ISO timestamp
+  table: string;
+  ids: string[];
+  message: string;
+};
+
+export function getSyncErrors(): SyncError[] {
+  try {
+    const raw = localStorage.getItem(SYNC_ERRORS_KEY);
+    return raw ? (JSON.parse(raw) as SyncError[]) : [];
+  } catch {
+    return [];
+  }
+}
+
+export function appendSyncError(err: Omit<SyncError, "at"> & { at?: string }) {
+  const entry: SyncError = { at: err.at ?? new Date().toISOString(), ...err };
+  const existing = getSyncErrors();
+  const next = [entry, ...existing].slice(0, MAX_SYNC_ERRORS);
+  try {
+    localStorage.setItem(SYNC_ERRORS_KEY, JSON.stringify(next));
+  } catch {}
+  window.dispatchEvent(new CustomEvent("sync-errors-change"));
+}
+
+export function clearSyncErrors() {
+  try {
+    localStorage.removeItem(SYNC_ERRORS_KEY);
+  } catch {}
+  window.dispatchEvent(new CustomEvent("sync-errors-change"));
+}
+
 export function setLastSync(ts: string) {
   try {
     localStorage.setItem(LAST_SYNC_KEY, ts);
