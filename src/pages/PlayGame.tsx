@@ -260,25 +260,42 @@ const PlayGame = () => {
                   </div>
                 ) : (
                   <>
-                    {sortedCharacters.map((char) => (
-                      <div
-                        key={char.id}
-                        onClick={() => selectCharacter(char.id)}
-                        className={`cursor-pointer rounded-lg transition-colors ${char.id === myPlayer?.character_id ? "ring-2 ring-primary" : "hover:ring-1 hover:ring-primary/50"}`}
-                      >
-                        <CharacterListItem
-                          character={char}
-                          actions={
-                            <div className="flex items-center gap-1">
-                              {char.id === myPlayer?.character_id && <Check className="h-4 w-4 text-primary" />}
-                              <Button variant="ghost" size="icon" className="h-8 w-8" onClick={(e) => { e.stopPropagation(); setEditingCharId(char.id); }}>
-                                <Pencil className="h-3.5 w-3.5" />
-                              </Button>
-                            </div>
-                          }
-                        />
-                      </div>
-                    ))}
+                    {currentCharacter && (
+                      <CharacterListItem
+                        character={currentCharacter}
+                        actions={
+                          <div className="flex items-center gap-1">
+                            <span className="text-[10px] uppercase tracking-wider text-primary font-display">{t("common.current")}</span>
+                            <Button variant="ghost" size="icon" className="h-8 w-8" onClick={(e) => { e.stopPropagation(); setEditingCharId(currentCharacter.id); }}>
+                              <Pencil className="h-3.5 w-3.5" />
+                            </Button>
+                          </div>
+                        }
+                      />
+                    )}
+
+                    {otherCharacters.length > 0 && (
+                      <Collapsible>
+                        <CollapsibleTrigger className="flex items-center gap-1 text-sm text-muted-foreground hover:text-foreground transition-colors px-1 cursor-pointer group">
+                          <ChevronDown className="h-3 w-3 transition-transform group-data-[state=open]:rotate-180" />
+                          {t("dashboard.otherCharacters").replace("{count}", String(otherCharacters.length))}
+                        </CollapsibleTrigger>
+                        <CollapsibleContent className="mt-2 space-y-2">
+                          {otherCharacters.map((char) => (
+                            <CharacterListItem
+                              key={char.id}
+                              character={char}
+                              actions={
+                                <Button variant="ghost" size="icon" className="h-8 w-8" onClick={(e) => { e.stopPropagation(); setEditingCharId(char.id); }}>
+                                  <Pencil className="h-3.5 w-3.5" />
+                                </Button>
+                              }
+                            />
+                          ))}
+                        </CollapsibleContent>
+                      </Collapsible>
+                    )}
+
                     <Button variant="outline" size="sm" className="gap-2 w-full" onClick={() => setCreatingChar(true)}>
                       <Plus className="h-3 w-3" /> {t("game.newCharacter")}
                     </Button>
