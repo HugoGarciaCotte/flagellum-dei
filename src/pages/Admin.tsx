@@ -34,7 +34,6 @@ const Admin = () => {
     <div className="min-h-screen bg-background">
       <PageHeader
         title={t("admin.title")}
-        leftAction={
         leftAction={<BackButton to="/" />}
       />
 
