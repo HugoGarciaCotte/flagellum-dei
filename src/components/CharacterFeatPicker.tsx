@@ -790,7 +790,7 @@ const CharacterFeatPicker = ({ characterId, mode = "player", scenarioLevel }: Ch
                 onToggleExpand={() => setExpandedAssignedFeatId(expandedAssignedFeatId === cf.id ? null : cf.id)}
                 exhaustionLabel={label}
                 onUse={exhaustion !== "infinite" ? () => useFeat(0, true, freeIdx, exhaustion) : undefined}
-                onRecharge={() => rechargeFeat(0, true, freeIdx)}
+                onRecharge={exhaustion !== "infinite" ? () => rechargeFeat(0, true, freeIdx) : undefined}
                 actions={mode === "gm" ? (
                   <DropdownMenu>
                     <DropdownMenuTrigger asChild>
