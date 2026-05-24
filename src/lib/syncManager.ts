@@ -122,12 +122,12 @@ async function doPull(userId?: string) {
   const charPulls: Promise<any>[] = [];
   if (knownUserIdsToPull.length > 0) {
     charPulls.push(
-      withSince(supabase.from("characters").select("*").in("user_id", knownUserIdsToPull), since),
+      Promise.resolve(withSince(supabase.from("characters").select("*").in("user_id", knownUserIdsToPull), since)),
     );
   }
   if (newUserIds.length > 0) {
     // Full pull (no `since`) for first-time user_ids
-    charPulls.push(supabase.from("characters").select("*").in("user_id", newUserIds));
+    charPulls.push(Promise.resolve(supabase.from("characters").select("*").in("user_id", newUserIds)));
   }
 
   const charResults = await Promise.all(charPulls);
