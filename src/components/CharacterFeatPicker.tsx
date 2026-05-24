@@ -178,6 +178,60 @@ const CharacterFeatPicker = ({ characterId, mode = "player", scenarioLevel }: Ch
     triggerPush();
   };
 
+  // ── Exhaustion state ─────────────────────────────────────────────────────
+  const scenarioHistory = useUserScenarioHistory(character?.user_id);
+  const currentScenarioId = useCurrentScenarioId(character?.user_id);
+
+  const setExhaustionForLevel = (level: number, isFree: boolean, freeIdx: number, patch: Partial<any>) => {
+    let seenFree = 0;
+    const next = featsDoc.map((f) => {
+      if (isFree) {
+        if (!f.is_free) return f;
+        if (seenFree++ !== freeIdx) return f;
+        return { ...f, ...patch };
+      }
+      if (f.is_free || f.level !== level) return f;
+      return { ...f, ...patch };
+    });
+    writeFeats(next);
+  };
+
+  const useFeat = (level: number, isFree: boolean, freeIdx: number, exhaustion: string) => {
+    const patch = exhaustion === "once_forever"
+      ? { used_forever: true, exhausted_at: new Date().toISOString(), exhausted_scenario_id: currentScenarioId ?? null }
+      : { exhausted_at: new Date().toISOString(), exhausted_scenario_id: currentScenarioId ?? null };
+    setExhaustionForLevel(level, isFree, freeIdx, patch);
+  };
+
+  const rechargeFeat = (level: number, isFree: boolean, freeIdx: number) => {
+    setExhaustionForLevel(level, isFree, freeIdx, { exhausted_at: null, exhausted_scenario_id: null, used_forever: false });
+  };
+
+  const getStateForCf = (cf: CharacterFeat): { state: FeatExhaustionState; freeIdx: number } => {
+    let seenFree = 0;
+    let freeIdx = -1;
+    let match: any = null;
+    for (const f of featsDoc) {
+      if (cf.is_free) {
+        if (!f.is_free) continue;
+        const idx = seenFree++;
+        if (`F${idx}` === cf.id) { match = f; freeIdx = idx; break; }
+      } else {
+        if (f.is_free || f.level !== cf.level) continue;
+        match = f; break;
+      }
+    }
+    return {
+      state: {
+        exhausted_at: match?.exhausted_at ?? null,
+        exhausted_scenario_id: match?.exhausted_scenario_id ?? null,
+        used_forever: !!match?.used_forever,
+      },
+      freeIdx,
+    };
+  };
+
+
   // AI validation helper
 
   const validateWithAI = async (
