@@ -142,10 +142,12 @@ async function doPull(userId?: string) {
   }
 
   const charResults = await Promise.all(charPulls);
+  const mergedChars: any[] = [];
   for (const res of charResults) {
     if (res?.error) emitSyncError("characters", res.error.message);
-    if (res?.data) merge("characters", res.data);
+    if (res?.data) mergedChars.push(...res.data);
   }
+  if (mergedChars.length > 0 || !isIncremental) merge("characters", mergedChars);
 
   store.setLastSync(now);
   store.evictStaleGames(userId);
