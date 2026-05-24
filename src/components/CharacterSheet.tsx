@@ -15,6 +15,7 @@ import { useLocalRows } from "@/hooks/useLocalData";
 import { upsertRow } from "@/lib/localStore";
 import { triggerPush } from "@/lib/syncManager";
 import { useTranslation } from "@/i18n/useTranslation";
+import { useAuth } from "@/contexts/AuthContext";
 
 interface CharacterSheetProps {
   characterId: string;
