@@ -224,10 +224,5 @@ const CharacterSheet = ({ characterId, mode = "player", scenarioLevel, onDone }:
   );
 };
 
-// Non-hook helper for reading local rows inside async functions
-import { getBy } from "@/lib/localStore";
-function useLocalRowsStatic(table: any, filter: any) {
-  return getBy(table, filter);
-}
 
 export default CharacterSheet;
