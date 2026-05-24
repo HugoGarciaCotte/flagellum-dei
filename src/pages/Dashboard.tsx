@@ -45,9 +45,16 @@ const Dashboard = () => {
 
   const characters = useLocalRows<any>("characters", user ? { user_id: user.id } : undefined);
   const sortedCharacters = useMemo(() =>
-    [...characters].sort((a, b) => (b.created_at || "").localeCompare(a.created_at || "")),
+    [...characters].sort((a, b) => {
+      const au = a.updated_at || a.created_at || "";
+      const bu = b.updated_at || b.created_at || "";
+      if (au !== bu) return bu.localeCompare(au);
+      return (b.created_at || "").localeCompare(a.created_at || "");
+    }),
     [characters]
   );
+  const currentCharacter = sortedCharacters[0] ?? null;
+  const otherCharacters = sortedCharacters.slice(1);
 
   const handleDeleteChar = (id: string) => {
     setDeleting(true);
