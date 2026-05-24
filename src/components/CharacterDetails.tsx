@@ -192,13 +192,21 @@ const CharacterDetails = ({ characterId }: CharacterDetailsProps) => {
                   })}
                   {f.subfeats.length > 0 && (
                     <ul className="pl-3 mt-1 space-y-2 border-l border-border/60">
-                      {f.subfeats.map((sf) => (
-                        <li key={sf.slot} className="pl-2">
-                          {renderFeat(sf.feat_id, `${f.key}-s${sf.slot}`, { compact: true })}
-                        </li>
-                      ))}
+                      {f.subfeats.map((sf) => {
+                        const sfState: FeatExhaustionState = {
+                          exhausted_at: sf.exhausted_at ?? null,
+                          exhausted_scenario_id: sf.exhausted_scenario_id ?? null,
+                          used_forever: !!sf.used_forever,
+                        };
+                        return (
+                          <li key={sf.slot} className="pl-2">
+                            {renderFeat(sf.feat_id, `${f.key}-s${sf.slot}`, { compact: true, state: sfState })}
+                          </li>
+                        );
+                      })}
                     </ul>
                   )}
+
                 </li>
               );
             })}
