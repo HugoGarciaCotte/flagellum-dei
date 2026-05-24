@@ -39,116 +39,75 @@ function notify(type: "syncing" | "synced") {
   window.dispatchEvent(new CustomEvent(`sync-${type}`));
 }
 
-// --- Helpers ---
-
-/** Build a query with optional incremental filter */
-function withSince(query: any, since: string | null) {
-  return since ? query.gte("updated_at", since) : query;
-}
-
-// --- Pull ---
+// --- Pull (full snapshot — simple & robust) ---
+//
+// Strategy: every pull is a complete snapshot of the user's visible scope.
+// No incremental `since` filter, no merge/eviction, no overlay logic.
+// Data volume is tiny (a few KB) and RLS decides what we see.
 
 async function doPull(userId?: string) {
-  const since = store.getLastSync();
-  const isIncremental = !!since;
-  const merge = isIncremental ? store.mergeTable : store.setTable;
   const now = new Date().toISOString();
 
   if (!userId) {
-    const { data } = await withSince(supabase.from("user_roles").select("*"), since);
-    if (data) merge("user_roles", data);
+    const { data } = await supabase.from("user_roles").select("*");
+    store.setTableKeepDirty("user_roles", data ?? []);
     store.setLastSync(now);
     return;
   }
 
-  // Phase 1: parallel — user_roles + game_players lookup
-  const [rolesRes, playerRefsRes] = await Promise.all([
-    withSince(supabase.from("user_roles").select("*").eq("user_id", userId), since),
+  // Step 1: roles + game refs + hosted games + own profile, in parallel.
+  const [rolesRes, playerRefsRes, hostedRes, profileRes] = await Promise.all([
+    supabase.from("user_roles").select("*").eq("user_id", userId),
     supabase.from("game_players").select("game_id").eq("user_id", userId),
+    supabase.from("games").select("*").eq("host_user_id", userId),
+    supabase.from("profiles").select("*").eq("user_id", userId),
   ]);
 
-  if (rolesRes.data) merge("user_roles", rolesRes.data);
-  const playerGameIds = (playerRefsRes.data ?? []).map((r: any) => r.game_id);
+  store.setTableKeepDirty("user_roles", rolesRes.data ?? []);
 
-  // Phase 2: parallel — games (hosted: ALL statuses incl. ended, ALWAYS full pull so
-  // ex-players from old ended games stay visible; played: active only), own profile
-  const hostedGamesQuery = supabase.from("games").select("*").eq("host_user_id", userId);
-  const playedGamesQuery = playerGameIds.length > 0
-    ? withSince(
-        supabase.from("games").select("*").neq("status", "ended").in("id", playerGameIds),
-        since,
-      )
-    : Promise.resolve({ data: [] as any[] });
-  const profileQuery = withSince(supabase.from("profiles").select("*").eq("user_id", userId), since);
+  const playedGameIds = (playerRefsRes.data ?? []).map((r: any) => r.game_id);
+  const hostedGames = hostedRes.data ?? [];
 
-  const [hostedRes, playedRes, profileRes] = await Promise.all([hostedGamesQuery, playedGamesQuery, profileQuery]);
+  // Step 2: played games (active only)
+  const playedGamesRes = playedGameIds.length > 0
+    ? await supabase.from("games").select("*").neq("status", "ended").in("id", playedGameIds)
+    : { data: [] as any[] };
 
-  const gamesData = [...(hostedRes.data ?? []), ...(playedRes.data ?? [])];
-  if (gamesData.length > 0) merge("games", gamesData);
-  if (profileRes.data) merge("profiles", profileRes.data);
+  const gamesById = new Map<string, any>();
+  for (const g of hostedGames) gamesById.set(g.id, g);
+  for (const g of playedGamesRes.data ?? []) gamesById.set(g.id, g);
+  store.setTableKeepDirty("games", [...gamesById.values()]);
 
+  const allGameIds = [...gamesById.keys()];
 
-  const activeGameIds = gamesData.map((g: any) => g.id);
-  // For incremental, also include games already in local store
-  if (isIncremental) {
-    const localGames = store.getTable("games");
-    for (const g of localGames) {
-      if (!activeGameIds.includes(g.id)) activeGameIds.push(g.id);
-    }
-  }
+  // Step 3: every game_player for every relevant game
+  const gpRes = allGameIds.length > 0
+    ? await supabase.from("game_players").select("*").in("game_id", allGameIds)
+    : { data: [] as any[] };
 
-  // Phase 3: parallel — game_players (full), characters
-  const charUserIds = new Set<string>([userId]);
+  store.setTableKeepDirty("game_players", gpRes.data ?? []);
 
-  if (activeGameIds.length > 0) {
-    const [gpRes] = await Promise.all([
-      withSince(supabase.from("game_players").select("*").in("game_id", activeGameIds), since),
-    ]);
-    if (gpRes.data) {
-      merge("game_players", gpRes.data);
-      for (const p of gpRes.data) charUserIds.add(p.user_id);
-    }
+  // Step 4: characters + profiles for self + every game member
+  const memberUserIds = new Set<string>([userId]);
+  for (const p of gpRes.data ?? []) memberUserIds.add(p.user_id);
+  const memberIdArr = [...memberUserIds];
 
-    // Fetch profiles for all game players
-    const allUserIds = [...charUserIds];
-    const [profilesRes] = await Promise.all([
-      withSince(supabase.from("profiles").select("*").in("user_id", allUserIds), since),
-    ]);
-    if (profilesRes.data) merge("profiles", profilesRes.data);
-  } else if (!isIncremental) {
-    store.setTable("game_players", []);
-  }
+  const [charsRes, profilesRes] = await Promise.all([
+    supabase.from("characters").select("*").in("user_id", memberIdArr),
+    supabase.from("profiles").select("*").in("user_id", memberIdArr),
+  ]);
 
-  // Phase 4: characters (feats live in characters.feats jsonb — no per-feat tables to pull)
-  const charUserIdArr = [...charUserIds];
+  if (charsRes.error) emitSyncError("characters", charsRes.error.message);
+  if (profilesRes.error) emitSyncError("profiles", profilesRes.error.message);
 
-  // For OTHER users (game players, not self), always full-pull. Their characters
-  // may have updated_at older than our lastSync (e.g. created before they joined
-  // our game), so an incremental pull would miss them.
-  // For SELF, use incremental to save bandwidth.
-  const otherUserIds = charUserIdArr.filter((uid) => uid !== userId);
-  const selfUserIds = charUserIdArr.filter((uid) => uid === userId);
+  store.setTableKeepDirty("characters", charsRes.data ?? []);
 
-  const charPulls: Promise<any>[] = [];
-  if (selfUserIds.length > 0) {
-    charPulls.push(
-      Promise.resolve(withSince(supabase.from("characters").select("*").in("user_id", selfUserIds), since)),
-    );
-  }
-  if (otherUserIds.length > 0) {
-    charPulls.push(Promise.resolve(supabase.from("characters").select("*").in("user_id", otherUserIds)));
-  }
-
-  const charResults = await Promise.all(charPulls);
-  const mergedChars: any[] = [];
-  for (const res of charResults) {
-    if (res?.error) emitSyncError("characters", res.error.message);
-    if (res?.data) mergedChars.push(...res.data);
-  }
-  if (mergedChars.length > 0 || !isIncremental) merge("characters", mergedChars);
+  const profilesById = new Map<string, any>();
+  if (profileRes.data) for (const p of profileRes.data) profilesById.set(p.user_id, p);
+  for (const p of profilesRes.data ?? []) profilesById.set(p.user_id, p);
+  store.setTableKeepDirty("profiles", [...profilesById.values()]);
 
   store.setLastSync(now);
-  store.evictStaleGames(userId);
 }
 
 // --- Push (dirty rows only) ---
