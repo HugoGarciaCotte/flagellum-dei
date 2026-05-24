@@ -20,7 +20,7 @@ type EditorLocale = "en" | "fr";
 const FR_FEAT_FIELDS = ["title", "description", "prerequisites", "special"] as const;
 
 /** Fields that live inside meta */
-const META_FIELDS = ["description", "prerequisites", "special", "specialities", "subfeats", "unlocks_categories", "blocking", "synonyms", "exhaustion"] as const;
+const META_FIELDS = ["description", "prerequisites", "special", "specialities", "subfeats", "unlocks_categories", "blocking", "synonyms", "exhaustion", "transforms_to"] as const;
 type MetaField = (typeof META_FIELDS)[number];
 
 const GENERATABLE_FIELDS = ["description", "prerequisites", "specialities", "blocking", "unlocks_categories", "subfeats"] as const;
