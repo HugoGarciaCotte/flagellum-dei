@@ -26,7 +26,7 @@ interface FeatRow extends FeatExhaustionState {
   level?: number;
   is_free?: boolean;
   speciality?: string | null;
-  subfeats?: { slot: number; feat_id: string }[];
+  subfeats?: ({ slot: number; feat_id: string } & Partial<FeatExhaustionState>)[];
 }
 
 const CharacterDetails = ({ characterId }: CharacterDetailsProps) => {
