@@ -20,7 +20,9 @@ import { type SubfeatSlot } from "@/lib/parseEmbeddedFeatMeta";
 import { useLocalRow, useLocalRows } from "@/hooks/useLocalData";
 import { upsertRow, getBy } from "@/lib/localStore";
 import { triggerPush } from "@/lib/syncManager";
-import { getAllFeats, getFeatMeta } from "@/data/feats";
+import { getAllFeats, getFeatMeta, getFeatExhaustion } from "@/data/feats";
+import { isFeatExhausted, exhaustionLabelKind, type FeatExhaustionState } from "@/lib/featExhaustion";
+import { useUserScenarioHistory, useCurrentScenarioId } from "@/hooks/useUserScenarioHistory";
 
 interface CharacterFeatPickerProps {
   characterId: string;
