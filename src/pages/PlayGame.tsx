@@ -283,6 +283,7 @@ const PlayGame = () => {
                             <CharacterListItem
                               key={char.id}
                               character={char}
+                              onView={(id) => setViewingCharId(id)}
                             />
                           ))}
                         </CollapsibleContent>
