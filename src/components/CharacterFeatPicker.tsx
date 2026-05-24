@@ -383,6 +383,15 @@ const CharacterFeatPicker = ({ characterId, mode = "player", scenarioLevel }: Ch
     setSearchTerm("");
   };
 
+  const setSubfeatState = (characterFeatId: string, slot: number, patch: Partial<FeatExhaustionState>) => {
+    const idx = findDocIndex(characterFeatId);
+    if (idx < 0) return;
+    const parent = featsDoc[idx];
+    const subs = (parent.subfeats ?? []).map((s: any) => (s.slot === slot ? { ...s, ...patch } : s));
+    const next = featsDoc.map((f, i) => (i === idx ? { ...parent, subfeats: subs } : f));
+    writeFeats(next);
+  };
+
 
 
   const featMap = useMemo(() => {
