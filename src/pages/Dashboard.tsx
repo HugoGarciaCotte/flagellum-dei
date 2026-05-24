@@ -222,6 +222,7 @@ const Dashboard = () => {
                       <CharacterListItem
                         key={c.id}
                         character={c}
+                        onView={(id) => setViewingCharId(id)}
                       />
                     ))}
                   </CollapsibleContent>
