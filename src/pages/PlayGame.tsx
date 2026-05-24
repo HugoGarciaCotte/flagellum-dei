@@ -247,9 +247,7 @@ const PlayGame = () => {
                   <Button variant="ghost" size="icon" className="h-8 w-8" aria-label="Collapse" onClick={() => setSheetExpanded(false)}>
                     <ChevronDown className="h-4 w-4" />
                   </Button>
-                  <Button variant="ghost" size="icon" className="h-8 w-8" aria-label="Close" onClick={() => setSheetExpanded(false)}>
-                    <X className="h-4 w-4" />
-                  </Button>
+                  <CloseButton onClose={() => setSheetExpanded(false)} />
                 </div>
               </div>
             </div>
