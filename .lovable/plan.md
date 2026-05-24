@@ -1,30 +1,50 @@
-## Diagnosis
+## Why it goes stale
 
-Data is correct — all 42 prowesses have an `exhaustion` value (41 = `once_per_scenario`, 1 = `once_forever`), and Faith / Dark Faith / Whispers of Madness / Abuse of Power all have the right meta.
+Current setup in `vite.config.ts`:
+- `registerType: "autoUpdate"` + `skipWaiting` + `clientsClaim` — good.
+- But Workbox's default precache serves `index.html` **cache-first** from the precache manifest. So on reload, you get the old HTML (which references the old hashed JS bundles) instantly. The new service worker downloads in the background, and you only see the new version on the **next** reload after that.
+- There's also no `runtimeCaching` rule for HTML navigations to override this.
 
-The bug is rendering: when these feats sit as **subfeats under an Archetype** (Aristocrat's Faith slot, Wiki Contributor's Dark Faith slot, etc.), both `CharacterDetails.tsx` and `CharacterFeatPicker.tsx` render them with `compact: true`. `FeatListItem` then hides Use and Recharge unconditionally for any compact row:
+Net effect: every deploy needs two reloads to take effect, and depending on timing you can stay on the old build indefinitely if you close the tab between the two.
 
-```tsx
-{!compact && onUse && !exhaustionLabel && <Use />}
-{!compact && onRecharge && <Recharge />}
+## Fix (one config change, no offline regression)
+
+Add an explicit `NetworkFirst` runtime caching rule for navigation requests, with a short network timeout. This means:
+
+- **Online**: browser fetches fresh `index.html` (which links the new hashed JS chunks). New code shows on the first reload.
+- **Offline / slow network**: after 3 s the SW falls back to the cached HTML, so the app still boots offline exactly like today.
+- Hashed JS/CSS chunks stay precached — instant load, and a stale HTML reference is impossible because the HTML itself is now fresh.
+
+### Change in `vite.config.ts`
+
+Inside the existing `workbox.runtimeCaching` array, add:
+
+```ts
+{
+  urlPattern: ({ request }) => request.mode === "navigate",
+  handler: "NetworkFirst",
+  options: {
+    cacheName: "html-shell",
+    networkTimeoutSeconds: 3,
+    expiration: { maxEntries: 4, maxAgeSeconds: 60 * 60 * 24 * 7 },
+  },
+},
 ```
 
-So the buttons disappear, even though the underlying exhaustion state is wired up.
+Keep everything else as-is (`skipWaiting`, `clientsClaim`, precache, all the existing API/image/font rules). No manifest changes, no new dependencies.
 
-## Fix
+### Optional, only if you want belt-and-braces
 
-Subfeats should get the buttons, but other compact contexts (e.g. compact character-sheet previews on the dashboard, the GM player list, etc.) must stay button-less. So I won't strip the `!compact` guard — I'll let the caller opt in.
-
-1. **`src/components/FeatListItem.tsx`** — keep the `compact` prop's visual role (padding, density), but stop using it to gate Use/Recharge. Instead show those buttons whenever `onUse` / `onRecharge` are passed. Other compact callers already pass `undefined` for both, so they stay unchanged.
-
-2. **`src/components/CharacterDetails.tsx`** — in the subfeats loop (around line 195–206), pass `onUse` and `onRecharge` handlers for each subfeat. They patch the parent feat's `subfeats[]` array at the matching slot via a new `updateSubfeatState(docIndex, slot, patch)` helper that mirrors `updateEntry` but targets the nested entry. Keep `compact: true` so the row stays dense.
-
-3. **`src/components/CharacterFeatPicker.tsx`** — in `renderSubfeats` (around line 585), do the same: pass `onUse` / `onRecharge` that persist per-subfeat state. The per-subfeat columns (`exhausted_at`, `exhausted_scenario_id`, `used_forever`) already exist on `character_feat_subfeats` and on the embedded `subfeats[]` entries.
-
-4. **Audit other compact callers** (`CharacterListItem`, dashboard previews, GM player list, etc.) — they already pass no `onUse`/`onRecharge`, so they keep showing no buttons. I'll grep to confirm before finishing.
+Add a tiny "update available" toast that calls `updateSW()` from `virtual:pwa-register` when a new SW is waiting. This is overkill for your case since `NetworkFirst` HTML already solves the "one stale reload" problem — only worth doing if you ever want to ship a "Refresh to update" prompt to long-lived tabs. I'd skip it unless you ask for it.
 
 ## Verification
 
-- Open a character whose Archetype has Faith / Dark Faith / Whispers of Madness slotted. Confirm Use flips the tag to `(exhausted)`, Recharge clears it, both on read-only Details and in the Edit picker.
-- Reload the compact character cards on the dashboard and GM player list to confirm no Use/Recharge buttons appear there.
-- Re-test at 970-wide desktop and at mobile width — buttons stay tappable in the tight subfeat row.
+After the change ships once (the current stale SW has to update itself one last time):
+1. Publish a small visible change.
+2. Reload the deployed PWA online → new build visible on first reload.
+3. Toggle DevTools → Network → Offline, reload → app still boots from cache.
+4. Confirm in DevTools → Application → Cache Storage that `html-shell` contains your `/` document and precache still contains the hashed JS chunks.
+
+## Caveat
+
+The very next deploy after this change is the one that "unsticks" devices — they still need to pick up the new SW once. From that deploy onward, every future update lands on first online reload.
