@@ -62,6 +62,32 @@ const CharacterDetailsDialog = ({
     ? t("character.dialog.editTitle")
     : (char?.name || t("character.details.title"));
 
+  const HeaderIconButton = ({
+    glyph,
+    label,
+    onClick,
+    tone = "default",
+  }: {
+    glyph: string;
+    label: string;
+    onClick: () => void;
+    tone?: "default" | "destructive";
+  }) => (
+    <Button
+      variant="ghost"
+      size="icon"
+      className={`h-8 w-8 shrink-0 flex items-center justify-center ${
+        tone === "destructive"
+          ? "text-muted-foreground hover:text-destructive"
+          : "text-muted-foreground hover:text-foreground"
+      }`}
+      aria-label={label}
+      onClick={onClick}
+    >
+      <span className="text-lg leading-none translate-y-[1px]" aria-hidden="true">{glyph}</span>
+    </Button>
+  );
+
   return (
     <>
       <Dialog open={open} onOpenChange={onOpenChange}>
@@ -69,45 +95,39 @@ const CharacterDetailsDialog = ({
           <div className="flex flex-col h-full min-h-0">
             <div className="border-b border-border bg-card px-4 py-3 flex items-center justify-between shrink-0 safe-top gap-2 min-h-12">
               <div className="flex items-center gap-2 min-w-0 overflow-hidden">
-                <Button
-                  variant="ghost"
-                  size="icon"
-                  className="h-8 w-8 shrink-1"
-                  aria-label={editing ? t("character.dialog.backToDetails") : t("character.dialog.close")}
+                <HeaderIconButton
+                  glyph="←"
+                  label={editing ? t("character.dialog.backToDetails") : t("character.dialog.close")}
                   onClick={() => editing ? setEditing(false) : onOpenChange(false)}
-                >
-                  <span className="text-base leading-none" aria-hidden="true">←</span>
-                </Button>
-                <span className="font-display text-base font-medium text-foreground truncate leading-none relative top-[6px]">{title}</span>
+                />
+                <span className="font-display text-base font-medium text-foreground truncate leading-none translate-y-[1px]">{title}</span>
               </div>
               <div className="flex items-center gap-1 shrink-0">
                 {!editing && canEdit && (
-                  <Button
-                    variant="ghost"
-                    size="icon"
-                    className="h-8 w-8"
-                    aria-label={t("character.edit")}
+                  <HeaderIconButton
+                    glyph="✎"
+                    label={t("character.edit")}
                     onClick={() => setEditing(true)}
-                  >
-                    <span className="text-base" aria-hidden="true">✎</span>
-                  </Button>
+                  />
                 )}
                 {!editing && canDelete && (
-                  <Button
-                    variant="ghost"
-                    size="icon"
-                    className="h-8 w-8 text-destructive hover:text-destructive"
-                    aria-label={t("character.delete.cta")}
+                  <HeaderIconButton
+                    glyph="🗑"
+                    label={t("character.delete.cta")}
+                    tone="destructive"
                     onClick={() => setConfirmDelete(true)}
-                  >
-                    <Trash2 className="h-4 w-4" aria-hidden="true" />
-                  </Button>
+                  />
                 )}
-                <DialogClose className="rounded-sm opacity-70 hover:opacity-100 p-1">
-                  <X className="h-5 w-5" />
+                <DialogClose asChild>
+                  <HeaderIconButton
+                    glyph="✕"
+                    label={t("character.dialog.close")}
+                    onClick={() => { /* DialogClose handles it */ }}
+                  />
                 </DialogClose>
               </div>
             </div>
+
 
             <ScrollArea className="flex-1">
               <div className="container max-w-2xl py-6 px-4">
