@@ -4,6 +4,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
+import PortraitViewer from "@/components/PortraitViewer";
 import { toast } from "@/hooks/use-toast";
 import { Upload, Sparkles, Loader2, WifiOff } from "lucide-react";
 import CharacterFeatPicker from "@/components/CharacterFeatPicker";
@@ -136,12 +137,14 @@ const CharacterSheet = ({ characterId, mode = "player", scenarioLevel, onDone }:
     <div className="space-y-4">
       {/* Portrait */}
       <div className="flex flex-col items-center gap-3">
-        <Avatar className="h-28 w-28 border-2 border-primary/30">
-          {portraitUrl ? (
-            <AvatarImage src={portraitUrl} alt={character.name} />
-          ) : null}
-          <AvatarFallback className="text-2xl font-display bg-muted">{initials}</AvatarFallback>
-        </Avatar>
+        <PortraitViewer src={portraitUrl} alt={character.name} fileName={character.name}>
+          <Avatar className="h-28 w-28 border-2 border-primary/30">
+            {portraitUrl ? (
+              <AvatarImage src={portraitUrl} alt={character.name} />
+            ) : null}
+            <AvatarFallback className="text-2xl font-display bg-muted">{initials}</AvatarFallback>
+          </Avatar>
+        </PortraitViewer>
         <div className="flex gap-2">
           <input
             ref={fileInputRef}

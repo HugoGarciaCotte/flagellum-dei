@@ -17,6 +17,7 @@ import FullPageLoader from "@/components/FullPageLoader";
 import PageHeader from "@/components/PageHeader";
 import CharacterCreationWizard from "@/components/CharacterCreationWizard";
 import CharacterListItem from "@/components/CharacterListItem";
+import PortraitViewer from "@/components/PortraitViewer";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { useLocalRow, useLocalRows } from "@/hooks/useLocalData";
 import { upsertRow } from "@/lib/localStore";
@@ -193,14 +194,16 @@ const PlayGame = () => {
             <div className="flex items-center gap-3">
               {selectedCharacter ? (
                 <>
-                  <Avatar className="h-8 w-8 border border-primary/20 shrink-0">
-                    {selectedCharacter.portrait_url ? (
-                      <AvatarImage src={selectedCharacter.portrait_url} alt={selectedCharacter.name} />
-                    ) : null}
-                    <AvatarFallback className="text-xs font-display bg-muted">
-                      {selectedCharacter.name.slice(0, 2).toUpperCase()}
-                    </AvatarFallback>
-                  </Avatar>
+                  <PortraitViewer src={selectedCharacter.portrait_url} alt={selectedCharacter.name} fileName={selectedCharacter.name}>
+                    <Avatar className="h-8 w-8 border border-primary/20 shrink-0">
+                      {selectedCharacter.portrait_url ? (
+                        <AvatarImage src={selectedCharacter.portrait_url} alt={selectedCharacter.name} />
+                      ) : null}
+                      <AvatarFallback className="text-xs font-display bg-muted">
+                        {selectedCharacter.name.slice(0, 2).toUpperCase()}
+                      </AvatarFallback>
+                    </Avatar>
+                  </PortraitViewer>
                   <span className="flex-1 min-w-0 font-display text-base font-medium text-foreground truncate">
                     {selectedCharacter.name}
                   </span>

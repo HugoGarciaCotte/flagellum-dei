@@ -1,28 +1,43 @@
-## Context
+## Goal
 
-- `HostGame` (in-game) uses `PlayerListSheet` which already shows each player's selected character **plus** a collapsible "other characters" list with edit buttons.
-- `Dashboard` (main GM screen) uses `GMPlayerList` which only shows the currently-selected character per player — no access to the player's other characters.
+Let anyone click a character portrait to open it large in a popup, with **Download** and **Dismiss** buttons.
 
-## Fix
+## Scope
 
-Bring `GMPlayerList` to parity with `PlayerListSheet`:
+All places that render a character portrait avatar:
+- `CharacterListItem` (used in PlayGame sheet, GMPlayerList, PlayerListSheet)
+- `PlayGame` collapsed bottom bar avatar
+- `CharacterSheet` portrait (edit view)
+- `CharacterCreationWizard` preview portrait
+- `GMPlayerList` / `PlayerListSheet` direct avatars (if any beyond CharacterListItem)
 
-### `src/components/GMPlayerList.tsx`
-1. Stop deduplicating per `user_id`. Instead build, per game-player row:
-   - `display_name`
-   - the player's `selected character` (if any)
-   - all of that player's **other** characters (from `allCharacters` filtered by `user_id`, excluding the selected one)
-2. Render each player card as:
-   - Player name header
-   - Selected character via `CharacterListItem` with a Pencil button (same as today)
-   - If there are other characters → a `Collapsible` "N other character(s)" trigger (reuse `gm.otherCharacters` key) listing each as a compact row with name + Pencil button
-   - If the player has no selected character → keep the existing "no character selected" italic line, and still show the collapsible if they have any characters
-3. Edit click on any character (selected or other) opens the existing `CharacterSheet` dialog with `mode="gm"`, and runs the same pull-on-open refresh already in place (characters / character_feats / character_feat_subfeats by character id). Extract that into a small `openEdit(characterId)` helper so it works for both lists.
+## Approach
 
-### Out of scope
-- No changes to `HostGame`, `PlayerListSheet`, sync, RLS, or any other screen.
-- No new i18n keys (reuse existing `gm.otherCharacters`, `gm.noCharacterSelected`).
-- Layout stays as a `Collapsible` panel on the dashboard; only the per-player block grows.
+1. **New shared component** `src/components/PortraitViewer.tsx`
+   - Small wrapper that takes `src`, `alt`, `fileName`, and `children` (the trigger, typically the `<Avatar>`).
+   - Renders children wrapped in a button with `cursor-zoom-in`; on click opens a `Dialog`.
+   - Dialog content: large image (max 80vh, contain), title = character name, footer with two buttons:
+     - **Download** — fetches the image as blob and uses `downloadFile`-style anchor (`a.download = \`${fileName}.jpg\``) so it saves locally instead of opening in browser.
+     - **Dismiss** — `DialogClose`.
+   - No-op (renders children directly with no click handler) when `src` is empty/null, so fallback initials stay non-interactive.
 
-## Files to change
-- `src/components/GMPlayerList.tsx`
+2. **Wire into each portrait site**
+   - Replace the bare `<Avatar>` with `<PortraitViewer src={...} alt={name} fileName={name}><Avatar>...</Avatar></PortraitViewer>` in:
+     - `CharacterListItem.tsx`
+     - `PlayGame.tsx` (collapsed bar avatar)
+     - `CharacterSheet.tsx` (edit portrait — keep existing "regenerate" controls untouched, just make the image itself clickable)
+     - `CharacterCreationWizard.tsx` (preview)
+   - In `GMPlayerList` and `PlayerListSheet`, portraits are already rendered through `CharacterListItem`, so they inherit the behavior automatically — verify and skip if already covered.
+
+3. **i18n** — add 2 keys: `common.download`, `common.dismiss` (reuse existing if present; check `en.ts`/`fr.ts` first and only add if missing).
+
+4. **Styling** — Dialog uses existing `DialogContent`; image centered with `object-contain`, rounded, subtle gold border to match theme. Stop propagation on the trigger click so wrapping rows (e.g. selectable character row in PlayGame) don't also toggle selection.
+
+## Out of scope
+
+No changes to upload/generation flow, sync, RLS, or data model. No new routes.
+
+## Files
+
+- **New:** `src/components/PortraitViewer.tsx`
+- **Edit:** `src/components/CharacterListItem.tsx`, `src/pages/PlayGame.tsx`, `src/components/CharacterSheet.tsx`, `src/components/CharacterCreationWizard.tsx`, possibly `src/i18n/en.ts` + `src/i18n/fr.ts`
