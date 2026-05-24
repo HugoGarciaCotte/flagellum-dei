@@ -112,7 +112,7 @@ const CharacterDetailsDialog = ({
                 )}
                 {!editing && canDelete && (
                   <HeaderIconButton
-                    glyph="🗑"
+                    glyph={"\uD83D\uDDD1\uFE0E"}
                     label={t("character.delete.cta")}
                     tone="destructive"
                     onClick={() => setConfirmDelete(true)}
