@@ -168,10 +168,24 @@ const CharacterDetails = ({ characterId }: CharacterDetailsProps) => {
                     onUse: () => {
                       const feat = getFeatById(f.feat_id, locale);
                       const exhaustion = feat ? getFeatExhaustion(feat) : undefined;
+                      if (exhaustion === "transforms_on_use") {
+                        const target = getFeatMeta(feat!).transforms_to;
+                        if (target) {
+                          // Swap to the next-stage feat. Preserve subfeats; reset exhaustion state.
+                          updateEntry(f.docIndex, {
+                            feat_id: target,
+                            exhausted_at: null,
+                            exhausted_scenario_id: null,
+                            used_forever: false,
+                          });
+                        }
+                        return;
+                      }
                       updateEntry(f.docIndex, exhaustion === "once_forever"
                         ? { used_forever: true, exhausted_at: new Date().toISOString(), exhausted_scenario_id: currentScenarioId ?? null }
                         : { exhausted_at: new Date().toISOString(), exhausted_scenario_id: currentScenarioId ?? null });
                     },
+
                     onRecharge: () => {
                       updateEntry(f.docIndex, { exhausted_at: null, exhausted_scenario_id: null, used_forever: false });
                     },
