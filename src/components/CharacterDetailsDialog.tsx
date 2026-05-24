@@ -111,7 +111,7 @@ const CharacterDetailsDialog = ({
                     label={t("character.edit")}
                     onClick={() => setEditing(true)}
                   >
-                    <Glyph char="✎" />
+                    <Pencil className="h-4 w-4" />
                   </HeaderIconButton>
                 )}
                 {!editing && canDelete && (
