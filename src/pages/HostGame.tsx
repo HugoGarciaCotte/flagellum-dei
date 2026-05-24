@@ -192,7 +192,7 @@ const HostGame = () => {
       .on("postgres_changes", { event: "*", schema: "public", table: "character_feat_subfeats" }, async (payload: any) => {
         const featId = payload.new?.character_feat_id ?? payload.old?.character_feat_id;
         if (!featId) return;
-        const feat = (getBy("character_feats") as any[]).find((f) => f.id === featId);
+        const feat = (getBy("character_feats", {}) as any[]).find((f) => f.id === featId);
         if (!feat) return;
         if (!playerCharIds().has(feat.character_id)) return;
         await pullTable("character_feat_subfeats", { character_feat_id: featId });
