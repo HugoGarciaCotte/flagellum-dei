@@ -155,7 +155,7 @@ const PlayGame = () => {
     >
       <PageHeader
         title={effectiveScenario?.title ?? ""}
-        leftAction={<Button variant="ghost" size="icon" onClick={() => navigate("/")}><ArrowLeft className="h-4 w-4" /></Button>}
+        leftAction={<BackButton to="/" />}
         rightActions={
           game?.join_code ? (
             <Button variant="outline" size="sm" onClick={copyCode} className="font-mono text-sm gap-1.5">
