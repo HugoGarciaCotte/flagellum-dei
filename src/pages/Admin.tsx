@@ -35,10 +35,7 @@ const Admin = () => {
       <PageHeader
         title={t("admin.title")}
         leftAction={
-          <Button variant="ghost" size="icon" onClick={() => navigate("/")}>
-            <ArrowLeft className="h-4 w-4" />
-          </Button>
-        }
+        leftAction={<BackButton to="/" />}
       />
 
       <main className="container py-8 max-w-5xl space-y-6">
