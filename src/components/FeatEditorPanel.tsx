@@ -20,7 +20,7 @@ type EditorLocale = "en" | "fr";
 const FR_FEAT_FIELDS = ["title", "description", "prerequisites", "special"] as const;
 
 /** Fields that live inside meta */
-const META_FIELDS = ["description", "prerequisites", "special", "specialities", "subfeats", "unlocks_categories", "blocking", "synonyms", "exhaustion"] as const;
+const META_FIELDS = ["description", "prerequisites", "special", "specialities", "subfeats", "unlocks_categories", "blocking", "synonyms", "exhaustion", "transforms_to"] as const;
 type MetaField = (typeof META_FIELDS)[number];
 
 const GENERATABLE_FIELDS = ["description", "prerequisites", "specialities", "blocking", "unlocks_categories", "subfeats"] as const;
@@ -346,6 +346,8 @@ const FeatEditorPanel = () => {
               blocking: f.meta.blocking?.length ? f.meta.blocking : undefined,
               synonyms: f.meta.synonyms || undefined,
               exhaustion: f.meta.exhaustion || undefined,
+              transforms_to: f.meta.transforms_to || undefined,
+
             }
           : null,
         ...(hasFr ? { fr } : {}),
@@ -609,6 +611,38 @@ const FeatEditorPanel = () => {
                         </SelectContent>
                       </Select>
                     </div>
+
+                    {/* Transforms into (only for transforms_on_use) */}
+                    {((getEffective(feat, "exhaustion") as ExhaustionType) ?? "infinite") === "transforms_on_use" && (
+                      <div>
+                        <div className="flex items-center gap-2 mb-0.5">
+                          <Label className="text-xs">{t("adminFeats.fieldTransformsTo")}</Label>
+                          {isOverridden(feat.id, "transforms_to") && (
+                            <Badge variant="secondary" className="text-[10px] cursor-pointer hover:bg-destructive/20" onClick={() => revertField(feat.id, "transforms_to")}>
+                              {t("adminFeats.dbOverrideRevert")}
+                            </Badge>
+                          )}
+                        </div>
+                        <Select
+                          value={(getEffective(feat, "transforms_to") as string) ?? ""}
+                          onValueChange={(v) => saveField(feat.id, "transforms_to", v || null)}
+                        >
+                          <SelectTrigger className="h-8 text-sm">
+                            <SelectValue placeholder={t("adminFeats.fieldTransformsTo")} />
+                          </SelectTrigger>
+                          <SelectContent className="max-h-72">
+                            {hardcodedFeats
+                              .filter(o => o.id !== feat.id)
+                              .slice()
+                              .sort((a, b) => a.title.localeCompare(b.title))
+                              .map((o) => (
+                                <SelectItem key={o.id} value={o.id}>{o.title}</SelectItem>
+                              ))}
+                          </SelectContent>
+                        </Select>
+                      </div>
+                    )}
+
 
                     {/* Subfeats */}
                     <div className="space-y-2">

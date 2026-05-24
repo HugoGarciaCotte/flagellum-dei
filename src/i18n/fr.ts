@@ -16,6 +16,9 @@ const fr: Record<string, string> = {
   "adminFeats.exhaustion.once_per_scenario": "Une fois par scénario",
   "adminFeats.exhaustion.once_per_2_scenarios": "Une fois tous les deux scénarios",
   "adminFeats.exhaustion.once_per_3_scenarios": "Une fois tous les trois scénarios",
+  "adminFeats.exhaustion.transforms_on_use": "Se transforme à l'usage",
+  "adminFeats.fieldTransformsTo": "Se transforme en",
+
   "character.view": "Voir la fiche",
   "character.edit": "Modifier",
   "character.details.title": "Personnage",
