@@ -17,8 +17,8 @@ import { Alert, AlertTitle, AlertDescription } from "@/components/ui/alert";
 
 import { type SubfeatSlot } from "@/lib/parseEmbeddedFeatMeta";
 
-import { useLocalRows } from "@/hooks/useLocalData";
-import { upsertRow, softDeleteRow, softDeleteBy, getBy } from "@/lib/localStore";
+import { useLocalRow, useLocalRows } from "@/hooks/useLocalData";
+import { upsertRow, getBy } from "@/lib/localStore";
 import { triggerPush } from "@/lib/syncManager";
 import { getAllFeats, getFeatMeta } from "@/data/feats";
 
