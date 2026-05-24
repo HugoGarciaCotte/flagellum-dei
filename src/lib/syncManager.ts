@@ -187,16 +187,46 @@ async function doPush() {
       const chunk = sanitized.slice(i, i + 100);
       const chunkIds = chunk.map((r: any) => r.id);
       try {
-        const { error } = await (supabase.from(table as any).upsert(chunk as any, { onConflict: "id" }) as any);
-        if (error) {
-          console.error(`Push ${table} failed:`, error.message, { ids: chunkIds });
-          store.appendSyncError({ table, ids: chunkIds, message: error.message });
-          window.dispatchEvent(new CustomEvent("sync-error", {
-            detail: { table, ids: chunkIds, message: error.message },
-          }));
-          continue; // leave dirty, retry later
+        // For `characters`, split owned rows (upsert) vs foreign rows
+        // (host editing a player's character → UPDATE only, to avoid the
+        // INSERT WITH CHECK policy `auth.uid() = user_id` rejecting the upsert).
+        if (table === "characters" && _currentUserId) {
+          const own = chunk.filter((r: any) => r.user_id === _currentUserId);
+          const foreign = chunk.filter((r: any) => r.user_id !== _currentUserId);
+          if (own.length > 0) {
+            const { error } = await (supabase.from("characters").upsert(own as any, { onConflict: "id" }) as any);
+            if (error) {
+              const ids = own.map((r: any) => r.id);
+              console.error(`Push characters (own) failed:`, error.message, { ids });
+              store.appendSyncError({ table, ids, message: error.message });
+              window.dispatchEvent(new CustomEvent("sync-error", { detail: { table, ids, message: error.message } }));
+            } else {
+              for (const r of own) succeeded.push({ table, id: r.id });
+            }
+          }
+          for (const row of foreign) {
+            const { id, user_id, created_at, ...patch } = row as any;
+            const { error } = await (supabase.from("characters").update(patch).eq("id", id) as any);
+            if (error) {
+              console.error(`Push characters (foreign) failed:`, error.message, { ids: [id] });
+              store.appendSyncError({ table, ids: [id], message: error.message });
+              window.dispatchEvent(new CustomEvent("sync-error", { detail: { table, ids: [id], message: error.message } }));
+            } else {
+              succeeded.push({ table, id });
+            }
+          }
+        } else {
+          const { error } = await (supabase.from(table as any).upsert(chunk as any, { onConflict: "id" }) as any);
+          if (error) {
+            console.error(`Push ${table} failed:`, error.message, { ids: chunkIds });
+            store.appendSyncError({ table, ids: chunkIds, message: error.message });
+            window.dispatchEvent(new CustomEvent("sync-error", {
+              detail: { table, ids: chunkIds, message: error.message },
+            }));
+            continue; // leave dirty, retry later
+          }
+          for (const id of chunkIds) succeeded.push({ table, id });
         }
-        for (const id of chunkIds) succeeded.push({ table, id });
       } catch (e: any) {
         const msg = e?.message ?? String(e);
         console.error(`Push ${table} threw:`, msg, { ids: chunkIds });
