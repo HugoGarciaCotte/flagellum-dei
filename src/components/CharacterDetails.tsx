@@ -169,13 +169,13 @@ const CharacterDetails = ({ characterId }: CharacterDetailsProps) => {
         ) : (
           <ul className="space-y-3">
             {feats.map((f) => {
-              const isFree = !!f.subfeats /* placeholder to keep flow */;
-              const free = f.label === t("character.details.free");
               const state: FeatExhaustionState = {
                 exhausted_at: f.exhausted_at,
                 exhausted_scenario_id: f.exhausted_scenario_id,
                 used_forever: f.used_forever,
               };
+              const matchSelf = (x: FeatRow) =>
+                x.feat_id === f.feat_id && !!x.is_free === f.is_free && (f.is_free ? true : x.level === f.level);
               return (
                 <li key={f.key} className="space-y-2">
                   <div className="flex items-center gap-2">
@@ -189,11 +189,13 @@ const CharacterDetails = ({ characterId }: CharacterDetailsProps) => {
                     state,
                     onUse: () => {
                       const feat = getFeatById(f.feat_id, locale);
-                      handleUse(f.feat_id, free, free ? undefined : (char.feats as any[]).find((x) => x.feat_id === f.feat_id)?.level, feat ? getFeatExhaustion(feat) : undefined);
+                      const exhaustion = feat ? getFeatExhaustion(feat) : undefined;
+                      updateEntry(matchSelf, exhaustion === "once_forever"
+                        ? { used_forever: true, exhausted_at: new Date().toISOString(), exhausted_scenario_id: currentScenarioId ?? null }
+                        : { exhausted_at: new Date().toISOString(), exhausted_scenario_id: currentScenarioId ?? null });
                     },
                     onRecharge: () => {
-                      const level = (char.feats as any[]).find((x) => x.feat_id === f.feat_id && !!x.is_free === free)?.level;
-                      handleRecharge(f.feat_id, free, level);
+                      updateEntry(matchSelf, { exhausted_at: null, exhausted_scenario_id: null, used_forever: false });
                     },
                   })}
                   {f.subfeats.length > 0 && (
@@ -208,6 +210,7 @@ const CharacterDetails = ({ characterId }: CharacterDetailsProps) => {
                 </li>
               );
             })}
+
           </ul>
         )}
       </section>
