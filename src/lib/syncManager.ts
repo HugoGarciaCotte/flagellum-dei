@@ -70,11 +70,9 @@ async function doPull(userId?: string) {
   if (rolesRes.data) merge("user_roles", rolesRes.data);
   const playerGameIds = (playerRefsRes.data ?? []).map((r: any) => r.game_id);
 
-  // Phase 2: parallel — games (hosted: ALL statuses incl. ended; played: active only), own profile
-  const hostedGamesQuery = withSince(
-    supabase.from("games").select("*").eq("host_user_id", userId),
-    since,
-  );
+  // Phase 2: parallel — games (hosted: ALL statuses incl. ended, ALWAYS full pull so
+  // ex-players from old ended games stay visible; played: active only), own profile
+  const hostedGamesQuery = supabase.from("games").select("*").eq("host_user_id", userId);
   const playedGamesQuery = playerGameIds.length > 0
     ? withSince(
         supabase.from("games").select("*").neq("status", "ended").in("id", playerGameIds),
