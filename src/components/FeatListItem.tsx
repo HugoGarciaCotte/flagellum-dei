@@ -98,12 +98,12 @@ const FeatListItem = ({
                   {resolvedQuickActionLabel}
                 </Button>
               )}
-              {!compact && onUse && !exhaustionLabel && (
+              {onUse && !exhaustionLabel && (
                 <Button size="sm" variant="outline" className="h-6 text-xs px-2" onClick={onUse}>
                   {t("feats.use")}
                 </Button>
               )}
-              {!compact && onRecharge && (
+              {onRecharge && (
                 <Button size="sm" variant="outline" className="h-6 text-xs px-2" onClick={onRecharge}>
                   {t("feats.recharge")}
                 </Button>
