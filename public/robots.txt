@@ -12,3 +12,10 @@ Allow: /
 
 User-agent: *
 Allow: /
+Disallow: /admin
+Disallow: /game/
+Disallow: /join/
+Disallow: /spotify-callback
+Disallow: /reset-password
+
+Sitemap: https://flagellum-dei.com/sitemap.xml

@@ -1,0 +1,11 @@
+# Flagellum Dei
+
+> A dark historical horror tabletop RPG companion app set in 1340 AD. Create characters, run scenarios, and play offline-first with realtime multiplayer.
+
+Flagellum Dei is a free, ad-free companion for a medieval horror RPG. All lore is handwritten. The app works offline (PWA) and supports remote play with a Game Master and players.
+
+## Pages
+
+- [Home](/): Landing page introducing the game, world, and play modes.
+- [Sign in](/auth): Account creation and login.
+- [Install](/install): How to install the app as a PWA on desktop and mobile.
