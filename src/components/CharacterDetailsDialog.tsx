@@ -101,9 +101,9 @@ const CharacterDetailsDialog = ({
                   label={editing ? t("character.dialog.backToDetails") : t("character.dialog.close")}
                   onClick={() => editing ? setEditing(false) : onOpenChange(false)}
                 >
-                  <Glyph char="←" />
+                  <ArrowLeft className="h-4 w-4" />
                 </HeaderIconButton>
-                <span className="font-display text-base font-medium text-foreground truncate leading-none translate-y-[1px]">{title}</span>
+                <span className="font-display text-base font-medium text-foreground truncate">{title}</span>
               </div>
               <div className="flex items-center gap-1 shrink-0">
                 {!editing && canEdit && (
