@@ -74,6 +74,19 @@ const CharacterDetails = ({ characterId }: CharacterDetailsProps) => {
     triggerPush();
   };
 
+  /** Mutate a subfeat entry on the parent feat at docIndex. */
+  const updateSubfeat = (docIndex: number, slot: number, patch: Partial<FeatExhaustionState>) => {
+    if (!char) return;
+    const doc: FeatRow[] = Array.isArray(char.feats) ? char.feats : [];
+    if (docIndex < 0 || docIndex >= doc.length) return;
+    const parent = doc[docIndex];
+    const subs = Array.isArray(parent.subfeats) ? parent.subfeats : [];
+    const nextSubs = subs.map((s) => (s.slot === slot ? { ...s, ...patch } : s));
+    const next = doc.map((f, i) => (i === docIndex ? { ...f, subfeats: nextSubs } : f));
+    upsertRow("characters", { ...char, feats: next, updated_at: new Date().toISOString() });
+    triggerPush();
+  };
+
 
 
 
@@ -111,9 +124,9 @@ const CharacterDetails = ({ characterId }: CharacterDetailsProps) => {
         compact={opts.compact}
         exhaustionLabel={labelKind}
         onUse={
-          !opts.compact && opts.onUse && exhaustion !== "infinite" ? opts.onUse : undefined
+          opts.onUse && exhaustion !== "infinite" ? opts.onUse : undefined
         }
-        onRecharge={!opts.compact && opts.onRecharge && exhaustion !== "infinite" && exhaustion !== "transforms_on_use" && exhausted ? opts.onRecharge : undefined}
+        onRecharge={opts.onRecharge && exhaustion !== "infinite" && exhaustion !== "transforms_on_use" && exhausted ? opts.onRecharge : undefined}
       />
 
     );
@@ -200,7 +213,20 @@ const CharacterDetails = ({ characterId }: CharacterDetailsProps) => {
                         };
                         return (
                           <li key={sf.slot} className="pl-2">
-                            {renderFeat(sf.feat_id, `${f.key}-s${sf.slot}`, { compact: true, state: sfState })}
+                            {renderFeat(sf.feat_id, `${f.key}-s${sf.slot}`, {
+                              compact: true,
+                              state: sfState,
+                              onUse: () => {
+                                const sFeat = getFeatById(sf.feat_id, locale);
+                                const sExh = sFeat ? getFeatExhaustion(sFeat) : undefined;
+                                updateSubfeat(f.docIndex, sf.slot, sExh === "once_forever"
+                                  ? { used_forever: true, exhausted_at: new Date().toISOString(), exhausted_scenario_id: currentScenarioId ?? null }
+                                  : { exhausted_at: new Date().toISOString(), exhausted_scenario_id: currentScenarioId ?? null });
+                              },
+                              onRecharge: () => {
+                                updateSubfeat(f.docIndex, sf.slot, { exhausted_at: null, exhausted_scenario_id: null, used_forever: false });
+                              },
+                            })}
                           </li>
                         );
                       })}

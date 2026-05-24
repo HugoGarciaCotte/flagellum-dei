@@ -383,6 +383,15 @@ const CharacterFeatPicker = ({ characterId, mode = "player", scenarioLevel }: Ch
     setSearchTerm("");
   };
 
+  const setSubfeatState = (characterFeatId: string, slot: number, patch: Partial<FeatExhaustionState>) => {
+    const idx = findDocIndex(characterFeatId);
+    if (idx < 0) return;
+    const parent = featsDoc[idx];
+    const subs = (parent.subfeats ?? []).map((s: any) => (s.slot === slot ? { ...s, ...patch } : s));
+    const next = featsDoc.map((f, i) => (i === idx ? { ...parent, subfeats: subs } : f));
+    writeFeats(next);
+  };
+
 
 
   const featMap = useMemo(() => {
@@ -588,6 +597,15 @@ const CharacterFeatPicker = ({ characterId, mode = "player", scenarioLevel }: Ch
                     onToggleExpand={() => setExpandedSubfeatKey(expandedSubfeatKey === subfeatKey ? null : subfeatKey)}
                     compact
                     exhaustionLabel={sfLabel}
+                    onUse={sfExhaustion !== "infinite" && sfExhaustion !== "transforms_on_use" && !sfExhausted ? () => {
+                      const patch = sfExhaustion === "once_forever"
+                        ? { used_forever: true, exhausted_at: new Date().toISOString(), exhausted_scenario_id: currentScenarioId ?? null }
+                        : { exhausted_at: new Date().toISOString(), exhausted_scenario_id: currentScenarioId ?? null };
+                      setSubfeatState(cf.id, slotNum, patch);
+                    } : undefined}
+                    onRecharge={sfExhaustion !== "infinite" && sfExhaustion !== "transforms_on_use" && sfExhausted ? () => {
+                      setSubfeatState(cf.id, slotNum, { exhausted_at: null, exhausted_scenario_id: null, used_forever: false });
+                    } : undefined}
                     actions={
 
                       <>

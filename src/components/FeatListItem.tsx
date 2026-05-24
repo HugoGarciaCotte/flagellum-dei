@@ -43,9 +43,9 @@ interface FeatListItemProps {
   quickActionLabel?: string;
   /** Exhaustion: when "exhausted" or "used", a tag is shown after the title. */
   exhaustionLabel?: "exhausted" | "used" | null;
-  /** Show Use button (non-compact only). */
+  /** Show Use button. Caller opts in by passing handler. */
   onUse?: () => void;
-  /** Show Recharge button (non-compact only). */
+  /** Show Recharge button. Caller opts in by passing handler. */
   onRecharge?: () => void;
 }
 
@@ -98,12 +98,12 @@ const FeatListItem = ({
                   {resolvedQuickActionLabel}
                 </Button>
               )}
-              {!compact && onUse && !exhaustionLabel && (
+              {onUse && !exhaustionLabel && (
                 <Button size="sm" variant="outline" className="h-6 text-xs px-2" onClick={onUse}>
                   {t("feats.use")}
                 </Button>
               )}
-              {!compact && onRecharge && (
+              {onRecharge && (
                 <Button size="sm" variant="outline" className="h-6 text-xs px-2" onClick={onRecharge}>
                   {t("feats.recharge")}
                 </Button>
