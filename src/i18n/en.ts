@@ -403,6 +403,9 @@ const en: Record<string, string> = {
   "adminFeats.exhaustion.once_per_scenario": "Once per Scenario",
   "adminFeats.exhaustion.once_per_2_scenarios": "Once per Two Scenarios",
   "adminFeats.exhaustion.once_per_3_scenarios": "Once per Three Scenarios",
+  "adminFeats.exhaustion.transforms_on_use": "Transforms on Use",
+  "adminFeats.fieldTransformsTo": "Transforms into",
+
 
   // ─── GM / PLAYERS ───
   "gm.myPlayers": "My Players",
