@@ -41,6 +41,12 @@ interface FeatListItemProps {
   onQuickAction?: () => void;
   /** Label for the quick action button */
   quickActionLabel?: string;
+  /** Exhaustion: when "exhausted" or "used", a tag is shown after the title. */
+  exhaustionLabel?: "exhausted" | "used" | null;
+  /** Show Use button (non-compact only). */
+  onUse?: () => void;
+  /** Show Recharge button (non-compact only). */
+  onRecharge?: () => void;
 }
 
 const FeatListItem = ({
@@ -57,26 +63,49 @@ const FeatListItem = ({
   titlePrefix,
   onQuickAction,
   quickActionLabel,
+  exhaustionLabel,
+  onUse,
+  onRecharge,
 }: FeatListItemProps) => {
   const { t } = useTranslation();
   const hasSpecialities = specialities && specialities.length > 0;
   const hasPicker = !!onQuickAction;
   const resolvedQuickActionLabel = quickActionLabel ?? t("feats.select");
+  const tagText = exhaustionLabel === "used"
+    ? t("feats.usedTag")
+    : exhaustionLabel === "exhausted"
+    ? t("feats.exhaustedTag")
+    : null;
 
   return (
     <div
-      className={`rounded border border-border hover:border-primary/50 transition-colors ${compact ? "p-2" : ""}`}
+      className={`rounded border border-border hover:border-primary/50 transition-colors ${compact ? "p-2" : ""} ${exhaustionLabel ? "opacity-70" : ""}`}
     >
       <div>
         <div className={`w-full text-left ${compact ? "" : "p-3"}`}>
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-2 flex-wrap">
             {titlePrefix}
-            <span className="text-base font-medium text-foreground truncate">{feat.title}</span>
+            <span className="text-base font-medium text-foreground truncate">
+              {feat.title}
+              {tagText && (
+                <span className="ml-1 text-sm text-destructive/80 italic">{tagText}</span>
+              )}
+            </span>
             <FeatCategoryBadges categories={feat.categories} />
-            <div className="ml-auto flex gap-1 shrink-0" onClick={(e) => e.stopPropagation()}>
+            <div className="ml-auto flex gap-1 shrink-0 items-center" onClick={(e) => e.stopPropagation()}>
               {hasPicker && (
                 <Button size="sm" variant="default" className="h-6 text-xs px-2" onClick={onQuickAction}>
                   {resolvedQuickActionLabel}
+                </Button>
+              )}
+              {!compact && onUse && !exhaustionLabel && (
+                <Button size="sm" variant="outline" className="h-6 text-xs px-2" onClick={onUse}>
+                  {t("feats.use")}
+                </Button>
+              )}
+              {!compact && onRecharge && (
+                <Button size="sm" variant="outline" className="h-6 text-xs px-2" onClick={onRecharge}>
+                  {t("feats.recharge")}
                 </Button>
               )}
               {actions}
