@@ -97,12 +97,14 @@ const CharacterDetailsDialog = ({
           <div className="flex flex-col h-full min-h-0">
             <div className="border-b border-border bg-card px-4 py-3 flex items-center justify-between shrink-0 safe-top gap-2 min-h-12">
               <div className="flex items-center gap-2 min-w-0 overflow-hidden">
-                <HeaderIconButton
-                  label={editing ? t("character.dialog.backToDetails") : t("character.dialog.close")}
-                  onClick={() => editing ? setEditing(false) : onOpenChange(false)}
-                >
-                  <ArrowLeft className="h-4 w-4" />
-                </HeaderIconButton>
+                {editing && (
+                  <HeaderIconButton
+                    label={t("character.dialog.backToDetails")}
+                    onClick={() => setEditing(false)}
+                  >
+                    <ArrowLeft className="h-4 w-4" />
+                  </HeaderIconButton>
+                )}
                 <span className="font-display text-base font-medium text-foreground truncate">{title}</span>
               </div>
               <div className="flex items-center gap-1 shrink-0">
@@ -124,7 +126,7 @@ const CharacterDetailsDialog = ({
                   </HeaderIconButton>
                 )}
                 <DialogClose asChild>
-                  <HeaderIconButton label={t("character.dialog.close")}>
+                  <HeaderIconButton label={t("nav.close")}>
                     <X className="h-4 w-4" />
                   </HeaderIconButton>
                 </DialogClose>
