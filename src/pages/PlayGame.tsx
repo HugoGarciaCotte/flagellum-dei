@@ -265,6 +265,7 @@ const PlayGame = () => {
                     {currentCharacter && (
                       <CharacterListItem
                         character={currentCharacter}
+                        onView={(id) => setViewingCharId(id)}
                         actions={
                           <span className="text-[10px] uppercase tracking-wider text-primary font-display">{t("common.current")}</span>
                         }
