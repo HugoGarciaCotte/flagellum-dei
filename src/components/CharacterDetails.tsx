@@ -74,6 +74,19 @@ const CharacterDetails = ({ characterId }: CharacterDetailsProps) => {
     triggerPush();
   };
 
+  /** Mutate a subfeat entry on the parent feat at docIndex. */
+  const updateSubfeat = (docIndex: number, slot: number, patch: Partial<FeatExhaustionState>) => {
+    if (!char) return;
+    const doc: FeatRow[] = Array.isArray(char.feats) ? char.feats : [];
+    if (docIndex < 0 || docIndex >= doc.length) return;
+    const parent = doc[docIndex];
+    const subs = Array.isArray(parent.subfeats) ? parent.subfeats : [];
+    const nextSubs = subs.map((s) => (s.slot === slot ? { ...s, ...patch } : s));
+    const next = doc.map((f, i) => (i === docIndex ? { ...f, subfeats: nextSubs } : f));
+    upsertRow("characters", { ...char, feats: next, updated_at: new Date().toISOString() });
+    triggerPush();
+  };
+
 
 
 
