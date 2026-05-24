@@ -46,9 +46,9 @@ export function isFeatExhausted(
     return true;
   }
   // scenarios covered: the exhausting scenario + (span - 1) subsequent ones.
-  // Recharged once the player has joined `span` distinct scenarios *including* the one used in.
+  // Recharged only after the player reaches the next distinct scenario beyond that covered span.
   const scenariosSinceUse = scenarioHistory.length - idx; // includes the used one
-  return scenariosSinceUse < span;
+  return scenariosSinceUse <= span;
 }
 
 export function exhaustionLabelKind(
