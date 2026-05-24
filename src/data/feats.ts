@@ -10,7 +10,8 @@ export type ExhaustionType =
   | "once_forever"
   | "once_per_scenario"
   | "once_per_2_scenarios"
-  | "once_per_3_scenarios";
+  | "once_per_3_scenarios"
+  | "transforms_on_use";
 
 export const EXHAUSTION_TYPES: ExhaustionType[] = [
   "infinite",
@@ -18,7 +19,9 @@ export const EXHAUSTION_TYPES: ExhaustionType[] = [
   "once_per_scenario",
   "once_per_2_scenarios",
   "once_per_3_scenarios",
+  "transforms_on_use",
 ];
+
 
 export interface FeatMeta {
   description?: string;
