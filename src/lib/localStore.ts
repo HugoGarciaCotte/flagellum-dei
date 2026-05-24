@@ -37,13 +37,47 @@ function emitSyncError(table: string, message: string, ids: string[] = []) {
   } catch {}
 }
 
+/** Strip oversized base64 data: URIs from the serialized snapshot so they don't blow the ~5MB quota.
+ * The in-memory cache is kept untouched — only the persisted copy is sanitized. */
+function sanitizeForPersist(table: TableName, rows: Row[]): Row[] {
+  if (table !== "characters") return rows;
+  let stripped = 0;
+  const out = rows.map((r: any) => {
+    const url = r?.portrait_url;
+    if (typeof url === "string" && url.startsWith("data:") && url.length > 100_000) {
+      stripped++;
+      return { ...r, portrait_url: null };
+    }
+    return r;
+  });
+  if (stripped > 0) {
+    emitSyncError(
+      "characters",
+      `${stripped} portrait(s) too large for local storage — they will re-sync from the cloud`,
+    );
+  }
+  return out;
+}
+
 function persist(table: TableName) {
+  const rows = cache.get(table) ?? [];
   try {
-    localStorage.setItem(LS_PREFIX + table, JSON.stringify(cache.get(table) ?? []));
+    localStorage.setItem(LS_PREFIX + table, JSON.stringify(sanitizeForPersist(table, rows)));
   } catch (e: any) {
     console.warn("localStorage persist failed:", e);
     const isQuota = e?.name === "QuotaExceededError" || /quota/i.test(e?.message ?? "");
-    emitSyncError(table, isQuota ? "Local storage full — clear cache or sign out unused devices" : (e?.message ?? "persist failed"));
+    if (isQuota && table === "characters") {
+      // Last-ditch: drop ALL portrait_urls from the serialized copy and retry once.
+      try {
+        const slim = rows.map((r: any) => ({ ...r, portrait_url: null }));
+        localStorage.setItem(LS_PREFIX + table, JSON.stringify(slim));
+        emitSyncError("characters", "Local storage full — portraits dropped from cache (will reload from cloud)");
+      } catch {
+        emitSyncError(table, "Local storage full — clear cache or sign out unused devices");
+      }
+    } else {
+      emitSyncError(table, isQuota ? "Local storage full — clear cache or sign out unused devices" : (e?.message ?? "persist failed"));
+    }
   }
   window.dispatchEvent(new CustomEvent("localstore-change", { detail: { table } }));
 }
