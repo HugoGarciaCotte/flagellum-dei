@@ -51,9 +51,8 @@ const Dashboard = () => {
 
   const handleDeleteChar = (id: string) => {
     setDeleting(true);
+    // Feats live on characters.feats — soft-deleting the character row is enough.
     softDeleteRow("characters", id);
-    softDeleteBy("character_feats", { character_id: id });
-    softDeleteBy("character_feat_subfeats", {});
     triggerPush();
     setDeleteCharTarget(null);
     setDeleting(false);
