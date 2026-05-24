@@ -114,8 +114,9 @@ export function getHardcodedScenarios(): Scenario[] {
 }
 
 export function getScenarioById(id: string, locale?: string): Scenario | undefined {
+  const normalized = normalizeScenarioId(id) ?? id;
   const overrides = getCachedScenarioOverrides();
-  const scenario = hardcodedScenarios.find(s => s.id === id);
+  const scenario = hardcodedScenarios.find(s => s.id === normalized);
   if (!scenario) return undefined;
   const withOverrides = overrides ? applyScenarioOverrides(scenario, overrides) : scenario;
   return locale ? localizeScenario(withOverrides, locale) : withOverrides;
