@@ -5,6 +5,21 @@ import { getCachedOverrides, applyOverrides } from "@/lib/featOverrides";
 
 export type { SubfeatSlot };
 
+export type ExhaustionType =
+  | "infinite"
+  | "once_forever"
+  | "once_per_scenario"
+  | "once_per_2_scenarios"
+  | "once_per_3_scenarios";
+
+export const EXHAUSTION_TYPES: ExhaustionType[] = [
+  "infinite",
+  "once_forever",
+  "once_per_scenario",
+  "once_per_2_scenarios",
+  "once_per_3_scenarios",
+];
+
 export interface FeatMeta {
   description?: string;
   prerequisites?: string;
@@ -14,6 +29,14 @@ export interface FeatMeta {
   unlocks_categories?: string[];
   blocking?: string[];
   synonyms?: string;
+  exhaustion?: ExhaustionType;
+}
+
+/** Get the exhaustion type for a feat (defaults to "infinite"). */
+export function getFeatExhaustion(feat: Feat | undefined | null): ExhaustionType {
+  if (!feat) return "infinite";
+  const meta = getFeatMeta(feat);
+  return meta.exhaustion ?? "infinite";
 }
 
 export interface Feat {
