@@ -4,6 +4,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Sparkles, Loader2, Check, X, RotateCcw, Plus, Image, Timer, SeparatorHorizontal, ListMusic, Music } from "lucide-react";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { ScrollArea } from "@/components/ui/scroll-area";
+import CloseButton from "@/components/nav/CloseButton";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "@/hooks/use-toast";
 
