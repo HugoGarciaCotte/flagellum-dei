@@ -89,7 +89,7 @@ const CharacterDetailsDialog = ({
                     aria-label={t("character.delete.cta")}
                     onClick={() => setConfirmDelete(true)}
                   >
-                    <span className="text-base" aria-hidden="true">🜔</span>
+                    <span className="text-base" aria-hidden="true">🜚</span>
                   </Button>
                 )}
                 {editing && (
