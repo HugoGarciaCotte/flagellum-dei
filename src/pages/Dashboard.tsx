@@ -231,10 +231,10 @@ const Dashboard = () => {
               </div>
 
               {otherCharacters.length > 0 && (
-                <Collapsible>
-                  <CollapsibleTrigger className="flex items-center gap-1 text-sm text-muted-foreground hover:text-foreground transition-colors px-1 cursor-pointer group">
-                    <ChevronDown className="h-3 w-3 transition-transform group-data-[state=open]:rotate-180" />
-                    {t("dashboard.otherCharacters").replace("{count}", String(otherCharacters.length))}
+                <Collapsible defaultOpen>
+                  <CollapsibleTrigger className="flex items-center gap-2 text-sm font-display text-foreground bg-card/60 border border-border/60 rounded-md px-3 py-2 hover:bg-card transition-colors cursor-pointer group w-full">
+                    <ChevronDown className="h-3.5 w-3.5 transition-transform group-data-[state=open]:rotate-180 shrink-0" />
+                    <span className="flex-1 text-left">{t("dashboard.otherCharacters").replace("{count}", String(otherCharacters.length))}</span>
                   </CollapsibleTrigger>
                   <CollapsibleContent className="mt-2 space-y-2">
                     {otherCharacters.map((c) => (
