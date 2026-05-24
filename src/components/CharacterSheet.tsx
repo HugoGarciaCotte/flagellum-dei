@@ -8,6 +8,7 @@ import PortraitViewer from "@/components/PortraitViewer";
 import { toast } from "@/hooks/use-toast";
 import { Upload, Sparkles, Loader2, WifiOff } from "lucide-react";
 import CharacterFeatPicker from "@/components/CharacterFeatPicker";
+import SyncIssuesPanel from "@/components/SyncIssuesPanel";
 import { useNetworkStatus } from "@/hooks/useNetworkStatus";
 import { getFeatById } from "@/data/feats";
 
