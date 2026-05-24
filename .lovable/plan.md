@@ -1,32 +1,46 @@
-## Problem
+## Diagnosis
 
-In `PlayGame`, the bottom character bar renders the full `CharacterListItem` Card — which includes the description and the entire feats list — so even when "collapsed" it can take half the screen. And the expanded view is a fullscreen overlay (`inset-0`), so there is no "outside" to click.
+GM-side data is stale because realtime only refreshes a subset of the player's tables:
 
-## Fix (UI only, in `src/pages/PlayGame.tsx`)
+- `HostGame.tsx`'s `game-players-{gameId}` channel re-pulls `game_players`, `characters`, `profiles` when game_players change, but **never pulls `character_feats` or `character_feat_subfeats`**.
+- There are **no realtime subscriptions on `characters`, `character_feats`, or `character_feat_subfeats`**. So if a player picks/changes their character or edits feats after the GM's initial sync, the GM never sees the update until a full app reload.
+- `GMPlayerList` only reads the local store — it has no fetch-on-open path, so opening the edit dialog also shows stale data.
 
-### 1. Make the collapsed bar truly compact
-Replace the embedded `CharacterListItem` in the collapsed bar with a single-row summary: small avatar + character name on one line, plus a chevron button on the right.
-- Height ≈ 48–56 px (fits one line + safe-area padding).
-- Tapping the row OR the chevron expands it.
+## Fix (host-side only)
 
-### 2. Add an explicit toggle chevron
-Top-right of the bar: a `ChevronUp` button when collapsed, `ChevronDown` when expanded. Replaces the current `GripHorizontal` cue with something obviously interactive.
+### 1. Extend the existing `game_players` realtime handler in `src/pages/HostGame.tsx`
+After pulling `characters` for each player `user_id`, also pull that user's feats and subfeats:
+- For each player's current `character_id`, `pullTable("character_feats", { character_id })`.
+- For each resulting feat id, `pullTable("character_feat_subfeats", { character_feat_id })`.
 
-### 3. Convert the expanded view from fullscreen to a bottom sheet
-Currently expanded is `fixed inset-0 z-50 bg-background`. Change it to:
-- A bottom sheet pinned to the bottom, max-height ~ `min(70vh, 560px)`, rounded top corners, slide-in-from-bottom (keep existing animation).
-- A semi-transparent backdrop above it (`fixed inset-0 z-40 bg-black/40`) that, when clicked, collapses the sheet.
-- Keep the `X` close button in the sheet header for accessibility, and add the chevron-down toggle next to it.
-- Internal `ScrollArea` already handles long lists.
+This guarantees the GM has fresh feats whenever a player selects/changes a character.
 
-### 4. Bottom-stack integration
-The collapsed bar still registers its height with the existing `BottomStackContext` / `bottomOffset` logic so the offline + guest banners stack correctly above it. The expanded bottom-sheet sits above all banners (z-50) and ignores the stack while open.
+### 2. Add a new realtime channel `game-chars-{gameId}` in `HostGame.tsx`
+Subscribes to `postgres_changes` on three tables (no server-side filter, filter client-side):
+- `characters` — on event, if `new.user_id` (or `old.user_id`) is in the current game's player set, pull `characters { user_id }`.
+- `character_feats` — on event, look up the parent `character_id` locally; if it belongs to a game player, pull `character_feats { character_id }` and refresh that character's subfeats.
+- `character_feat_subfeats` — on event, look up `character_feat_id` locally; if its character belongs to a game player, pull `character_feat_subfeats { character_feat_id }`.
+
+This way the GM stays in sync whenever players add/remove feats or specialities, not just when they swap character.
+
+### 3. Pull-on-open in `src/components/GMPlayerList.tsx`
+When opening the edit dialog for a player:
+- `pullTable("characters", { id: editPlayer.character_id })`
+- `pullTable("character_feats", { character_id: editPlayer.character_id })`
+- For each returned feat id, `pullTable("character_feat_subfeats", { character_feat_id })`
+
+This guarantees a fresh sheet even if realtime missed an event (offline gap, reconnect, etc.).
 
 ## Out of scope
-- No changes to character data, selection logic, feat rendering inside the sheet, or any other page.
-- No styling overhaul beyond what's needed to make the collapsed bar one row and the expanded view a bottom sheet.
+- No RLS changes — the existing `Host can view…` policies already grant the GM SELECT on the player's characters/feats/subfeats.
+- No changes to player-side code, sync schedule, or the bottom character bar UI.
+- No schema changes.
 
 ## Files to change
-- `src/pages/PlayGame.tsx` — collapsed bar markup, chevron toggle, expanded view turned into a backdrop + bottom sheet.
+- `src/pages/HostGame.tsx` — extend `game_players` handler; add new `game-chars-{gameId}` channel.
+- `src/components/GMPlayerList.tsx` — pull characters + feats + subfeats when opening the edit dialog.
 
-No new components, no data changes, no i18n keys added (reusing existing `game.selectCharacter` and `game.yourCharacters`).
+## Technical notes
+- `pullTable` only supports `.eq()` filters; we loop per id rather than `.in(...)`, which is fine for the small per-game cardinality.
+- Realtime payload shape: handlers use `payload.new` for INSERT/UPDATE and `payload.old` for DELETE to resolve the affected `user_id` / `character_id` / `character_feat_id`.
+- Client-side filtering against the local store avoids any need for per-id Supabase channel filters.
