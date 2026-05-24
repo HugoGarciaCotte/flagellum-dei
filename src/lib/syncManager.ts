@@ -234,7 +234,10 @@ export async function pullTable(table: TableName, filter?: Record<string, any>):
       }
     }
     const { data } = await query;
-    if (data) store.mergeTable(table, data as any);
+    if (data) {
+      if (filter) store.replaceBy(table, filter, data as any);
+      else store.mergeTable(table, data as any);
+    }
   } catch (e) {
     console.warn(`pullTable ${table} failed:`, e);
   }
