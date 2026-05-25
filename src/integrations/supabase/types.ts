@@ -244,9 +244,6 @@ export type Database = {
           deleted_at: string | null
           display_name: string | null
           id: string
-          spotify_access_token: string | null
-          spotify_refresh_token: string | null
-          spotify_token_expires_at: string | null
           updated_at: string
           user_id: string
         }
@@ -255,9 +252,6 @@ export type Database = {
           deleted_at?: string | null
           display_name?: string | null
           id?: string
-          spotify_access_token?: string | null
-          spotify_refresh_token?: string | null
-          spotify_token_expires_at?: string | null
           updated_at?: string
           user_id: string
         }
@@ -266,9 +260,6 @@ export type Database = {
           deleted_at?: string | null
           display_name?: string | null
           id?: string
-          spotify_access_token?: string | null
-          spotify_refresh_token?: string | null
-          spotify_token_expires_at?: string | null
           updated_at?: string
           user_id?: string
         }
@@ -349,6 +340,30 @@ export type Database = {
         }
         Relationships: []
       }
+      user_spotify_tokens: {
+        Row: {
+          access_token: string | null
+          expires_at: string | null
+          refresh_token: string | null
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          access_token?: string | null
+          expires_at?: string | null
+          refresh_token?: string | null
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          access_token?: string | null
+          expires_at?: string | null
+          refresh_token?: string | null
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never
@@ -360,6 +375,26 @@ export type Database = {
           _user_id: string
         }
         Returns: boolean
+      }
+      join_game_by_code: {
+        Args: { _code: string }
+        Returns: {
+          created_at: string
+          current_section: string | null
+          deleted_at: string | null
+          host_user_id: string
+          id: string
+          join_code: string
+          scenario_id: string
+          status: string
+          updated_at: string
+        }
+        SetofOptions: {
+          from: "*"
+          to: "games"
+          isOneToOne: true
+          isSetofReturn: false
+        }
       }
     }
     Enums: {
