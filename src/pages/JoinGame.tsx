@@ -30,25 +30,12 @@ const JoinGame = () => {
 
     const joinGame = async () => {
       try {
-        const { data: game, error } = await supabase
-          .from("games")
-          .select("*")
-          .eq("join_code", (code || "").toUpperCase())
-          .eq("status", "active")
-          .single();
+        const { data, error } = await supabase
+          .rpc("join_game_by_code", { _code: (code || "").toUpperCase() });
+        const game: any = Array.isArray(data) ? data[0] : data;
 
         if (error || !game) {
           toast({ title: t("dashboard.gameNotFound"), description: t("dashboard.checkCode"), variant: "destructive" });
-          navigate("/", { replace: true });
-          return;
-        }
-
-        const { error: joinError } = await supabase
-          .from("game_players")
-          .insert({ game_id: game.id, user_id: user.id });
-
-        if (joinError && !joinError.message.includes("duplicate")) {
-          toast({ title: t("dashboard.errorJoining"), description: joinError.message, variant: "destructive" });
           navigate("/", { replace: true });
           return;
         }

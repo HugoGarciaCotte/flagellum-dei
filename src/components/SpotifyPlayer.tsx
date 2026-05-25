@@ -100,24 +100,24 @@ const SpotifyPlayer = ({ position = "left", playlistUrl, playlistName, playTrack
   const refreshTokenFromProfile = useCallback(async () => {
     if (!user) return;
     try {
-      const { data: profile } = await supabase
-        .from("profiles")
-        .select("spotify_refresh_token, spotify_access_token, spotify_token_expires_at")
+      const { data: tok } = await supabase
+        .from("user_spotify_tokens")
+        .select("refresh_token, access_token, expires_at")
         .eq("user_id", user.id)
-        .single();
+        .maybeSingle();
 
-      if (!profile?.spotify_refresh_token) return;
+      if (!tok?.refresh_token) return;
 
-      if (profile.spotify_access_token && profile.spotify_token_expires_at) {
-        const expiresAt = new Date(profile.spotify_token_expires_at).getTime();
+      if (tok.access_token && tok.expires_at) {
+        const expiresAt = new Date(tok.expires_at).getTime();
         if (Date.now() < expiresAt - 60000) {
-          setAccessToken(profile.spotify_access_token);
+          setAccessToken(tok.access_token);
           return;
         }
       }
 
       const { data, error } = await supabase.functions.invoke("spotify-token-exchange", {
-        body: { grant_type: "refresh_token", refresh_token: profile.spotify_refresh_token },
+        body: { grant_type: "refresh_token", refresh_token: tok.refresh_token },
       });
 
       if (data?.access_token) {
@@ -179,11 +179,7 @@ const SpotifyPlayer = ({ position = "left", playlistUrl, playlistName, playTrack
       sessionStorage.removeItem("spotify_access_token");
       sessionStorage.removeItem("spotify_token_expires");
       if (user) {
-        supabase.from("profiles").update({
-          spotify_access_token: null,
-          spotify_refresh_token: null,
-          spotify_token_expires_at: null,
-        }).eq("user_id", user.id).then(() => {});
+        supabase.from("user_spotify_tokens").delete().eq("user_id", user.id).then(() => {});
       }
     });
 

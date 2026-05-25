@@ -1,10 +1,5 @@
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
-
-const corsHeaders = {
-  "Access-Control-Allow-Origin": "*",
-  "Access-Control-Allow-Headers":
-    "authorization, x-client-info, apikey, content-type, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version",
-};
+import { corsHeaders } from "../_shared/auth.ts";
 
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") {
@@ -12,7 +7,6 @@ Deno.serve(async (req) => {
   }
 
   const SPOTIFY_CLIENT_ID = Deno.env.get("SPOTIFY_CLIENT_ID");
-  console.info(`Spotify client_id being used: ${SPOTIFY_CLIENT_ID?.slice(0, 8)}...`);
   const SPOTIFY_CLIENT_SECRET = Deno.env.get("SPOTIFY_CLIENT_SECRET");
   if (!SPOTIFY_CLIENT_ID || !SPOTIFY_CLIENT_SECRET) {
     return new Response(JSON.stringify({ error: "Spotify credentials not configured" }), {
@@ -25,13 +19,38 @@ Deno.serve(async (req) => {
     const body = await req.json();
     const { grant_type, code, redirect_uri, refresh_token, code_verifier } = body;
 
-    // Return client ID for frontend PKCE flow
+    // client_id grant: harmless, no auth required.
     if (grant_type === "client_id") {
       return new Response(JSON.stringify({ client_id: SPOTIFY_CLIENT_ID }), {
         status: 200,
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
+
+    // All other grant types require a signed-in app user.
+    const authHeader = req.headers.get("authorization");
+    if (!authHeader?.startsWith("Bearer ")) {
+      return new Response(JSON.stringify({ error: "Unauthorized" }), {
+        status: 401,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
+    const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
+    const serviceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
+    const anonKey = Deno.env.get("SUPABASE_ANON_KEY")!;
+
+    const anonClient = createClient(supabaseUrl, anonKey);
+    const { data: userData, error: userErr } = await anonClient.auth.getUser(
+      authHeader.replace("Bearer ", ""),
+    );
+    if (userErr || !userData?.user) {
+      return new Response(JSON.stringify({ error: "Unauthorized" }), {
+        status: 401,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+    const user = userData.user;
 
     // Build Spotify token request
     const params = new URLSearchParams();
@@ -69,28 +88,17 @@ Deno.serve(async (req) => {
       });
     }
 
-    // Persist refresh_token in user's profile if present
-    const authHeader = req.headers.get("authorization");
-    if (authHeader && tokenData.refresh_token) {
-      const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
-      const serviceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
-      const supabase = createClient(supabaseUrl, serviceKey);
-
-      // Decode JWT to get user id
-      const anonClient = createClient(supabaseUrl, Deno.env.get("SUPABASE_ANON_KEY")!);
-      const { data: { user } } = await anonClient.auth.getUser(authHeader.replace("Bearer ", ""));
-
-      if (user) {
-        const expiresAt = new Date(Date.now() + tokenData.expires_in * 1000).toISOString();
-        await supabase
-          .from("profiles")
-          .update({
-            spotify_refresh_token: tokenData.refresh_token,
-            spotify_access_token: tokenData.access_token,
-            spotify_token_expires_at: expiresAt,
-          })
-          .eq("user_id", user.id);
-      }
+    if (tokenData.refresh_token) {
+      const admin = createClient(supabaseUrl, serviceKey);
+      const expiresAt = new Date(Date.now() + tokenData.expires_in * 1000).toISOString();
+      await admin
+        .from("user_spotify_tokens")
+        .upsert({
+          user_id: user.id,
+          refresh_token: tokenData.refresh_token,
+          access_token: tokenData.access_token,
+          expires_at: expiresAt,
+        });
     }
 
     return new Response(

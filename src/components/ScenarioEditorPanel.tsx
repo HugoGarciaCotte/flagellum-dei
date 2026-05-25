@@ -33,13 +33,13 @@ async function resolveSpotifyName(url: string): Promise<string | null> {
     try {
       const { data: { user } } = await supabase.auth.getUser();
       if (user) {
-        const { data: profile } = await supabase
-          .from("profiles")
-          .select("spotify_access_token")
+        const { data: tok } = await supabase
+          .from("user_spotify_tokens")
+          .select("access_token")
           .eq("user_id", user.id)
-          .single();
-        if (profile?.spotify_access_token) {
-          token = profile.spotify_access_token;
+          .maybeSingle();
+        if (tok?.access_token) {
+          token = tok.access_token;
         }
       }
     } catch {}
