@@ -30,9 +30,9 @@ const JoinGame = () => {
 
     const joinGame = async () => {
       try {
-        const { data: game, error } = await supabase
-          .rpc("join_game_by_code", { _code: (code || "").toUpperCase() })
-          .single();
+        const { data, error } = await supabase
+          .rpc("join_game_by_code", { _code: (code || "").toUpperCase() });
+        const game: any = Array.isArray(data) ? data[0] : data;
 
         if (error || !game) {
           toast({ title: t("dashboard.gameNotFound"), description: t("dashboard.checkCode"), variant: "destructive" });
