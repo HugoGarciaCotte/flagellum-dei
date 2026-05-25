@@ -179,11 +179,7 @@ const SpotifyPlayer = ({ position = "left", playlistUrl, playlistName, playTrack
       sessionStorage.removeItem("spotify_access_token");
       sessionStorage.removeItem("spotify_token_expires");
       if (user) {
-        supabase.from("profiles").update({
-          spotify_access_token: null,
-          spotify_refresh_token: null,
-          spotify_token_expires_at: null,
-        }).eq("user_id", user.id).then(() => {});
+        supabase.from("user_spotify_tokens").delete().eq("user_id", user.id).then(() => {});
       }
     });
 
