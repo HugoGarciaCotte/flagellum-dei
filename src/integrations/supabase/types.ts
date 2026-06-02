@@ -376,8 +376,20 @@ export type Database = {
         }
         Returns: boolean
       }
+      is_game_host: {
+        Args: { _game_id: string; _user_id: string }
+        Returns: boolean
+      }
       is_game_member: {
         Args: { _game_id: string; _user_id: string }
+        Returns: boolean
+      }
+      is_host_of_character: {
+        Args: { _character_id: string; _viewer: string }
+        Returns: boolean
+      }
+      is_host_of_player: {
+        Args: { _player_user: string; _viewer: string }
         Returns: boolean
       }
       join_game_by_code: {

@@ -1,51 +1,29 @@
-## Problem
+The browser is probably not stale. The backend is healthy, but the live policies still contain a circular path:
 
-The `game_players` SELECT policy "Host and members can view game players" contains a subquery against `game_players` itself:
-
-```sql
-... OR (EXISTS (SELECT 1 FROM game_players gp2
-                WHERE gp2.game_id = game_players.game_id
-                  AND gp2.user_id = auth.uid()))
+```text
+characters policy -> game_players -> games policy -> game_players
 ```
 
-Postgres re-applies RLS to that inner reference, causing infinite recursion. Any user belonging to at least one game (like hugo@garcia-cotte) triggers it as soon as the dashboard syncs characters/games.
+That can still raise `infinite recursion detected in policy for relation "game_players"`, especially during character sync.
 
-## Fix
+Plan:
 
-Introduce a `SECURITY DEFINER` helper that bypasses RLS, then rewrite the policy to use it.
+1. Add security-definer helper functions that check game membership/host relationships without re-triggering row-level rules:
+   - `is_game_member(game_id, user_id)` already exists; keep it.
+   - add `is_game_host(game_id, user_id)`.
+   - add character-scope helpers for “host can view/update player characters” so character policies no longer query `game_players` directly.
 
-```sql
-CREATE OR REPLACE FUNCTION public.is_game_member(_game_id uuid, _user_id uuid)
-RETURNS boolean
-LANGUAGE sql
-STABLE
-SECURITY DEFINER
-SET search_path = public
-AS $$
-  SELECT EXISTS (
-    SELECT 1 FROM public.game_players
-    WHERE game_id = _game_id AND user_id = _user_id
-  )
-$$;
+2. Rewrite recursive policies:
+   - `games` read policy: use `is_game_member(...)` instead of querying `game_players` inside the policy.
+   - `game_players` read policy: use `is_game_host(...)` instead of querying `games` inside the policy.
+   - `characters` host read/update policies: replace direct joins through `game_players`/`games` with the new helper functions.
 
-DROP POLICY "Host and members can view game players" ON public.game_players;
+3. Lock down helper execution permissions:
+   - revoke public/anonymous execution.
+   - grant only authenticated users access to the safe helper functions.
 
-CREATE POLICY "Host and members can view game players"
-ON public.game_players
-FOR SELECT
-TO authenticated
-USING (
-  auth.uid() = user_id
-  OR EXISTS (SELECT 1 FROM public.games g
-             WHERE g.id = game_players.game_id
-               AND g.host_user_id = auth.uid())
-  OR public.is_game_member(game_players.game_id, auth.uid())
-);
-```
+4. Validate after migration:
+   - re-read policies to confirm there are no remaining `game_players` subqueries inside policies that can recurse.
+   - run a targeted read-path check against the affected tables.
 
-Also audit the `games` "Host and players can view games" policy — its `EXISTS … FROM game_players` subquery is fine on its own (different table), but I'll verify no symmetric recursion exists once the helper is in place.
-
-## Scope
-
-- One migration: helper function + policy replacement.
-- No client code changes.
+No frontend code changes should be needed.
