@@ -376,6 +376,10 @@ export type Database = {
         }
         Returns: boolean
       }
+      is_game_member: {
+        Args: { _game_id: string; _user_id: string }
+        Returns: boolean
+      }
       join_game_by_code: {
         Args: { _code: string }
         Returns: {
