@@ -3,7 +3,7 @@ import { useIsOwner } from "@/hooks/useIsOwner";
 import { Button } from "@/components/ui/button";
 import { Card, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
-import { FileText, Swords, Archive, ChevronDown, Languages } from "lucide-react";
+import { FileText, Swords, Archive, ChevronDown, Languages, Cloud } from "lucide-react";
 import BackButton from "@/components/nav/BackButton";
 import ManageScenarios from "@/components/ManageScenarios";
 import ImportFeatsCard from "@/components/ImportFeatsCard";
@@ -63,6 +63,15 @@ const Admin = () => {
                 <Languages className="h-5 w-5 text-primary" /> {t("admin.translations")}
               </CardTitle>
               <CardDescription>{t("admin.translationsDesc")}</CardDescription>
+            </CardHeader>
+          </Card>
+
+          <Card className="border-primary/30 cursor-pointer hover:border-primary/60 transition-colors" onClick={() => navigate("/admin/api")}>
+            <CardHeader>
+              <CardTitle className="font-display flex items-center gap-2">
+                <Cloud className="h-5 w-5 text-primary" /> Public API
+              </CardTitle>
+              <CardDescription>Open, unauthenticated read access to feats and scenarios.</CardDescription>
             </CardHeader>
           </Card>
         </div>
