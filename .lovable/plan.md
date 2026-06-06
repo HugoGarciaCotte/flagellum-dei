@@ -1,24 +1,39 @@
-## Problem
+## Root cause
 
-After signing in as `hugo@garcia-cotte.com`, the `/admin` page flashes "Access denied" even though Hugo has the `owner` role in the database.
+When Hugo (or any non-owner) signs in, the app calls:
 
-Root cause: in `AuthContext`, `syncReady` is set to `true` on the initial pre-login pass (no user → nothing to pull). When the session then changes to Hugo, the effect re-runs and starts `pullAll(hugo)`, but `syncReady` stays `true` from the previous pass for the whole duration of the pull. `useIsOwner` therefore reports "ready, no roles" and `Admin.tsx` renders "Access denied" before the role row lands in `localStorage`.
+```
+GET /rest/v1/user_roles?select=*&user_id=eq.<hugo>
+```
+
+Postgres evaluates every RLS policy on `user_roles` for that SELECT. One of them, "Owner can manage roles", is `FOR ALL USING (has_role(auth.uid(), 'owner'))`. Evaluating it requires `EXECUTE` on `public.has_role(uuid, app_role)`, which is **not granted to `authenticated`**. PostgREST returns:
+
+```
+403 {"code":"42501","message":"permission denied for function has_role"}
+```
+
+Because the query errors out, the "Users can view own roles" policy never gets a chance to return Hugo's row. `user_roles` stays empty in local storage, so `useIsOwner` reports "not an owner" and `/admin` shows "Access denied". This affects every authenticated user, not just Hugo — the existing owner only works because their first login happened before the policy that references `has_role` existed (or under a different role grant).
+
+The earlier `AuthContext` / `useIsOwner` changes were chasing the symptom — the network call literally never returns the role row, so client-side gating cannot help.
 
 ## Fix
 
-In `src/contexts/AuthContext.tsx`, reset `syncReady` to `false` at the start of the sync effect, before `pullAll`, whenever the effective user id changes. Only flip it back to `true` once the pull resolves (success or failure).
+Single SQL migration:
 
-Also, when the user id changes from one authenticated user to another (e.g. previous local guest → Hugo) without a `signOut` in between, call `clearAll()` so the new user never reads the previous user's stale rows.
+```sql
+GRANT EXECUTE ON FUNCTION public.has_role(uuid, public.app_role) TO authenticated, anon;
+```
 
-## Files to touch
-
-- `src/contexts/AuthContext.tsx` — track the last synced user id; on change, `setSyncReady(false)`, optionally `clearAll()` if switching between distinct authenticated users, then run `pullAll` and set `syncReady` true.
-
-No DB, RLS, or other component changes needed. `useIsOwner` already gates on `syncReady` from the previous fix.
+Also audit the other SECURITY DEFINER helpers used inside RLS (`is_game_member`, `is_game_host`, `is_host_of_player`, `is_host_of_character`) and grant EXECUTE to `authenticated` for any that are missing it, to prevent the same failure mode on `games` / `game_players` / `characters` reads.
 
 ## Verification
 
-1. Sign out fully.
-2. Sign in as `hugo@garcia-cotte.com`.
-3. Navigate to `/admin`. Expected: loader shows until pull completes, then the Admin dashboard renders (no "Access denied" flash).
-4. Sign out, sign in as a non-owner. `/admin` should show "Access denied" after the loader.
+1. Re-run the failing request as Hugo — should return `[{ user_id, role: "owner" }, { user_id, role: "game_master" }]` with 200.
+2. Sign in as `hugo@garcia-cotte.com`, navigate to `/admin` — Admin dashboard renders.
+3. Sign in as a non-owner account — `/admin` shows "Access denied" (policy works, just returns nothing).
+4. Confirm normal game flows still work for a non-owner (regression check for the other helpers).
+
+## Notes
+
+- No client code changes needed. The defensive `syncReady` reset added previously to `AuthContext` is still correct and can stay.
+- This is a pure permission grant; no data is modified.
