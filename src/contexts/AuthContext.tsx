@@ -111,7 +111,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   // Without this reset, components that gate on `syncReady` would briefly see
   // the previous user's empty/stale local cache and render wrong (e.g. Admin
   // flashing "Access denied" before the new user's roles land).
-  const lastSyncedUserRef = React.useRef<string | undefined>(undefined);
+  const lastSyncedUserRef = useRef<string | undefined>(undefined);
   useEffect(() => {
     if (loading) return;
 
