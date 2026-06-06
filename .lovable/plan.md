@@ -1,49 +1,24 @@
-## Goal
+## Problem
 
-Expose all game content (feats + scenarios) through a public, unauthenticated, read-only API, and document it in the admin panel.
+After signing in as `hugo@garcia-cotte.com`, the `/admin` page flashes "Access denied" even though Hugo has the `owner` role in the database.
 
-## Approach
+Root cause: in `AuthContext`, `syncReady` is set to `true` on the initial pre-login pass (no user → nothing to pull). When the session then changes to Hugo, the effect re-runs and starts `pullAll(hugo)`, but `syncReady` stays `true` from the previous pass for the whole duration of the pull. `useIsOwner` therefore reports "ready, no roles" and `Admin.tsx` renders "Access denied" before the role row lands in `localStorage`.
 
-Add two public edge functions (`verify_jwt = false`) that return the same merged content the app uses internally (hardcoded data + DB overrides + localization). No DB schema changes — feats/scenarios already live in `src/data` and overrides in existing tables.
+## Fix
 
-## Endpoints
+In `src/contexts/AuthContext.tsx`, reset `syncReady` to `false` at the start of the sync effect, before `pullAll`, whenever the effective user id changes. Only flip it back to `true` once the pull resolves (success or failure).
 
-Base: `https://bcisbkompyqtfrtzccit.supabase.co/functions/v1/`
+Also, when the user id changes from one authenticated user to another (e.g. previous local guest → Hugo) without a `signOut` in between, call `clearAll()` so the new user never reads the previous user's stale rows.
 
-1. `GET public-feats`
-   - Query params: `locale=en|fr` (optional), `id=<uuid>` (optional, single feat)
-   - Returns: `{ feats: Feat[], redirects: FeatRedirect[] }` or single feat object
-2. `GET public-scenarios`
-   - Query params: `locale=en|fr` (optional), `id=<uuid>` (optional, single scenario)
-   - Returns: `{ scenarios: Scenario[] }` or single scenario object
+## Files to touch
 
-Both:
-- CORS open (`*`)
-- Cache headers (`Cache-Control: public, max-age=300`)
-- No `Authorization` header required
-- Read-only (HEAD/GET only; other methods → 405)
+- `src/contexts/AuthContext.tsx` — track the last synced user id; on change, `setSyncReady(false)`, optionally `clearAll()` if switching between distinct authenticated users, then run `pullAll` and set `syncReady` true.
 
-## Implementation details
+No DB, RLS, or other component changes needed. `useIsOwner` already gates on `syncReady` from the previous fix.
 
-- New folder `supabase/functions/public-feats/index.ts` — imports the same JSON used by the app (copy `feats-data.json` into the function, or fetch via a shared bundling step). Apply `feat_overrides` from DB with service role, then localize.
-- New folder `supabase/functions/public-scenarios/index.ts` — embeds the hardcoded scenarios array, merges `scenario_overrides` table, localizes.
-- Update `supabase/config.toml`: add `[functions.public-feats] verify_jwt = false` and `[functions.public-scenarios] verify_jwt = false`.
-- Since edge functions can't import `src/data` directly, ship the JSON/TS as sibling files inside each function folder. For scenarios (currently a TS module with ~30 large string consts), generate a JSON snapshot once via a small `scripts/export-scenarios.ts` and commit it next to the function.
+## Verification
 
-## Admin docs
-
-Add a new "Public API" card on `src/pages/Admin.tsx` (alongside Scenarios/Feats/Translations). Clicking opens a new page `src/pages/AdminApiDocs.tsx` showing:
-
-- Plain-English intro: "Anyone can read the game's feats and scenarios. No login required."
-- Each endpoint with: URL, method, query params, sample `curl`, sample JSON response shape.
-- Note on caching and rate limits.
-- Note that write operations are not exposed.
-
-Wire route `/admin/api` in `src/App.tsx`, gated by `useIsOwner` like the other admin routes.
-
-## Out of scope
-
-- No changes to RLS or tables.
-- No new dependencies.
-- No write/mutate endpoints.
-- Characters, games, profiles, and user data remain private.
+1. Sign out fully.
+2. Sign in as `hugo@garcia-cotte.com`.
+3. Navigate to `/admin`. Expected: loader shows until pull completes, then the Admin dashboard renders (no "Access denied" flash).
+4. Sign out, sign in as a non-owner. `/admin` should show "Access denied" after the loader.
