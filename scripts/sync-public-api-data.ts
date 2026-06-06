@@ -5,7 +5,14 @@
  */
 import { writeFileSync, copyFileSync, mkdirSync } from "node:fs";
 import { resolve } from "node:path";
-import { getHardcodedScenarios } from "../src/data/scenarios";
+
+// Stub browser-only globals used transitively by src/integrations/supabase/client.ts
+(globalThis as any).localStorage = {
+  getItem: () => null, setItem: () => {}, removeItem: () => {}, clear: () => {}, key: () => null, length: 0,
+};
+(globalThis as any).import = { meta: { env: {} } };
+
+const { getHardcodedScenarios } = await import("../src/data/scenarios");
 
 const root = resolve(__dirname, "..");
 
