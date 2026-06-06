@@ -105,21 +105,42 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     return () => subscription.unsubscribe();
   }, [handleStaleSession]);
 
-  // After auth resolved, pull data from server if online
+  // After auth resolved, pull data from server if online.
+  // Track the last user we synced for so we can reset `syncReady` when the
+  // effective user changes (e.g. anonymous guest -> real user, or user A -> B).
+  // Without this reset, components that gate on `syncReady` would briefly see
+  // the previous user's empty/stale local cache and render wrong (e.g. Admin
+  // flashing "Access denied" before the new user's roles land).
+  const lastSyncedUserRef = React.useRef<string | undefined>(undefined);
   useEffect(() => {
     if (loading) return;
 
     const userId = session?.user?.id;
     setCurrentUserId(userId);
 
+    // If the user changed (including null <-> user), invalidate local cache
+    // belonging to the previous identity and force consumers back into loading.
+    if (lastSyncedUserRef.current !== userId) {
+      if (lastSyncedUserRef.current && lastSyncedUserRef.current !== userId) {
+        // Switching between distinct identities — drop the previous user's rows
+        // so we never serve them to the new user.
+        clearAll();
+      }
+      setSyncReady(false);
+    }
+
+    let cancelled = false;
     async function initSync() {
       if (navigator.onLine && userId) {
         try { await pullAll(userId); } catch { /* stay with local data */ }
       }
+      if (cancelled) return;
+      lastSyncedUserRef.current = userId;
       setSyncReady(true);
     }
 
     initSync();
+    return () => { cancelled = true; };
   }, [loading, session]);
 
   const enterGuestMode = async () => {
