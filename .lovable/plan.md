@@ -1,39 +1,37 @@
-## Root cause
+## The bug
 
-When Hugo (or any non-owner) signs in, the app calls:
+The toast "Couldn't sync game_players: duplicate key value violates unique constraint `game_players_game_id_user_id_key`" fires every time an existing player opens a game they already joined. Backgrounds appearing broken is a side effect — the sync loop keeps erroring, so the client stays stuck on the failed push instead of pulling fresh game state (including `current_section` changes that drive the background).
 
-```
-GET /rest/v1/user_roles?select=*&user_id=eq.<hugo>
-```
+### Why
 
-Postgres evaluates every RLS policy on `user_roles` for that SELECT. One of them, "Owner can manage roles", is `FOR ALL USING (has_role(auth.uid(), 'owner'))`. Evaluating it requires `EXECUTE` on `public.has_role(uuid, app_role)`, which is **not granted to `authenticated`**. PostgREST returns:
+`src/pages/JoinGame.tsx` calls the `join_game_by_code` RPC. That RPC already server-side inserts the `game_players` row (`ON CONFLICT DO NOTHING`) with its own server-generated `id`.
 
-```
-403 {"code":"42501","message":"permission denied for function has_role"}
-```
+Then the client does:
 
-Because the query errors out, the "Users can view own roles" policy never gets a chance to return Hugo's row. `user_roles` stays empty in local storage, so `useIsOwner` reports "not an owner" and `/admin` shows "Access denied". This affects every authenticated user, not just Hugo — the existing owner only works because their first login happened before the policy that references `has_role` existed (or under a different role grant).
-
-The earlier `AuthContext` / `useIsOwner` changes were chasing the symptom — the network call literally never returns the role row, so client-side gating cannot help.
-
-## Fix
-
-Single SQL migration:
-
-```sql
-GRANT EXECUTE ON FUNCTION public.has_role(uuid, public.app_role) TO authenticated, anon;
+```ts
+upsertRow("game_players", {
+  id: crypto.randomUUID(),   // ← brand new local id
+  game_id: game.id,
+  user_id: user.id,
+  ...
+});
+triggerPush();
 ```
 
-Also audit the other SECURITY DEFINER helpers used inside RLS (`is_game_member`, `is_game_host`, `is_host_of_player`, `is_host_of_character`) and grant EXECUTE to `authenticated` for any that are missing it, to prevent the same failure mode on `games` / `game_players` / `characters` reads.
+Push in `syncManager.ts` does `.upsert(chunk, { onConflict: "id" })`. Since the local `id` is new but `(game_id, user_id)` already exists from the RPC, Postgres rejects with the unique-constraint error. The local row stays dirty forever → the toast reappears on every sync.
+
+## The fix (frontend only, no schema change)
+
+`src/pages/JoinGame.tsx`
+- Remove the client-side `upsertRow("game_players", {...})` and `triggerPush()` — the RPC already created the row.
+- Replace with `await pullTable("game_players", { game_id: game.id, user_id: user.id })` so the authoritative row lands in local cache before navigating to `/game/:id/play`.
+
+`src/lib/syncManager.ts` (recovery for already-affected users)
+- In the `game_players` "own" push branch, when the upsert fails with the `game_players_game_id_user_id_key` unique-violation, treat it as recoverable: mark the local row succeeded (so `clearDirtyFor` drops it) and immediately trigger a scoped `pullTable("game_players", { game_id, user_id })` so the real server row replaces the phantom local one. This clears the persistent error toast for everyone currently stuck without waiting for them to re-join.
+
+No DB migration, no changes to `PlayGame.tsx`, `HostGame.tsx`, or the RPC.
 
 ## Verification
 
-1. Re-run the failing request as Hugo — should return `[{ user_id, role: "owner" }, { user_id, role: "game_master" }]` with 200.
-2. Sign in as `hugo@garcia-cotte.com`, navigate to `/admin` — Admin dashboard renders.
-3. Sign in as a non-owner account — `/admin` shows "Access denied" (policy works, just returns nothing).
-4. Confirm normal game flows still work for a non-owner (regression check for the other helpers).
-
-## Notes
-
-- No client code changes needed. The defensive `syncReady` reset added previously to `AuthContext` is still correct and can stay.
-- This is a pure permission grant; no data is modified.
+1. New player joins via `/join/CODE` → no toast, lands in Play view, background renders.
+2. Existing player who was seeing the loop opens the game once → toast disappears after the first sync, background renders.
