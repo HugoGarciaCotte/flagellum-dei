@@ -173,9 +173,25 @@ async function doPush() {
             const ownIds = own.map((r: any) => r.id);
             const { error } = await (supabase.from(table as any).upsert(own as any, { onConflict: "id" }) as any);
             if (error) {
-              console.error(`Push ${table} (own) failed:`, error.message, { ids: ownIds });
-              store.appendSyncError({ table, ids: ownIds, message: error.message });
-              window.dispatchEvent(new CustomEvent("sync-error", { detail: { table, ids: ownIds, message: error.message } }));
+              // Recovery: a stale local game_players row (different id) collides with the
+              // server row created by the join_game_by_code RPC. Drop the phantom local row
+              // and pull the authoritative one, so the error toast stops looping.
+              const isGpDuplicate =
+                table === "game_players" &&
+                /game_players_game_id_user_id_key|duplicate key/i.test(error.message);
+              if (isGpDuplicate) {
+                console.warn("Dropping phantom game_players rows and pulling server truth", { ids: ownIds });
+                for (const r of own) succeeded.push({ table, id: r.id });
+                const pairs = new Set(own.map((r: any) => `${r.game_id}|${r.user_id}`));
+                for (const pair of pairs) {
+                  const [game_id, user_id] = pair.split("|");
+                  pullTable("game_players", { game_id, user_id }).catch(() => {});
+                }
+              } else {
+                console.error(`Push ${table} (own) failed:`, error.message, { ids: ownIds });
+                store.appendSyncError({ table, ids: ownIds, message: error.message });
+                window.dispatchEvent(new CustomEvent("sync-error", { detail: { table, ids: ownIds, message: error.message } }));
+              }
             } else {
               for (const r of own) succeeded.push({ table, id: r.id });
             }
