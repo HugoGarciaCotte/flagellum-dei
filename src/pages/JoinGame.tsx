@@ -41,14 +41,10 @@ const JoinGame = () => {
         }
 
         upsertRow("games", game);
-        upsertRow("game_players", {
-          id: crypto.randomUUID(),
-          game_id: game.id,
-          user_id: user.id,
-          character_id: null,
-          joined_at: new Date().toISOString(),
-        });
-        triggerPush();
+        // The RPC already inserted the game_players row server-side (with its own id).
+        // Pull it into the local cache instead of inserting a phantom row with a new id,
+        // which would violate the (game_id, user_id) unique constraint on push.
+        await pullTable("game_players", { game_id: game.id, user_id: user.id });
         navigate(`/game/${game.id}/play`, { replace: true });
       } catch {
         toast({ title: t("dashboard.serverUnreachable"), description: t("dashboard.needOnlineToJoin"), variant: "destructive" });
