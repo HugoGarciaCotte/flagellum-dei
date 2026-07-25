@@ -1,5 +1,6 @@
 import { supabase } from "@/integrations/supabase/client";
 import type { Scenario } from "@/data/scenarios";
+import { normalizeScenarioId } from "@/lib/scenarioIds";
 
 /** field name → JSONB value */
 export type ScenarioOverrideMap = Map<string, Map<string, any>>;
@@ -17,9 +18,24 @@ export async function loadScenarioOverrides(): Promise<ScenarioOverrideMap> {
       .from("scenario_overrides" as any)
       .select("scenario_id, field, value");
     if (data) {
+      const setOverride = (scenarioId: string, field: string, value: any) => {
+        const existing = map.get(scenarioId);
+        if (existing) {
+          existing.set(field, value);
+          return;
+        }
+
+        map.set(scenarioId, new Map([[field, value]]));
+      };
+
       for (const row of data as any[]) {
-        if (!map.has(row.scenario_id)) map.set(row.scenario_id, new Map());
-        map.get(row.scenario_id)!.set(row.field, row.value);
+        const scenarioId = row.scenario_id as string;
+        setOverride(scenarioId, row.field, row.value);
+
+        const normalizedScenarioId = normalizeScenarioId(scenarioId);
+        if (normalizedScenarioId && normalizedScenarioId !== scenarioId) {
+          setOverride(normalizedScenarioId, row.field, row.value);
+        }
       }
     }
     _overrides = map;
@@ -42,7 +58,8 @@ export function invalidateScenarioOverrides() {
 
 /** Apply DB overrides to a single scenario. */
 export function applyScenarioOverrides(scenario: Scenario, overrides: ScenarioOverrideMap): Scenario {
-  const fields = overrides.get(scenario.id);
+  const normalizedScenarioId = normalizeScenarioId(scenario.id);
+  const fields = overrides.get(scenario.id) ?? (normalizedScenarioId ? overrides.get(normalizedScenarioId) : undefined);
   if (!fields || fields.size === 0) return scenario;
 
   const result = { ...scenario };
