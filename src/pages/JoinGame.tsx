@@ -3,7 +3,7 @@ import { useParams, useNavigate } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
 import { upsertRow } from "@/lib/localStore";
-import { triggerPush } from "@/lib/syncManager";
+import { pullTable } from "@/lib/syncManager";
 import { toast } from "@/hooks/use-toast";
 import { useTranslation } from "@/i18n/useTranslation";
 import FullPageLoader from "@/components/FullPageLoader";
