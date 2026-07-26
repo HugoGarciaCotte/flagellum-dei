@@ -3,8 +3,9 @@ import * as store from "./localStore";
 import type { TableName } from "./localStore";
 import { normalizeScenarioId } from "./scenarioIds";
 import { purgeSwRestCaches } from "./swCachePurge";
-import { invalidateScenarioOverrides, loadScenarioOverrides } from "./scenarioOverrides";
-import { invalidateOverrides as invalidateFeatOverrides, loadFeatOverrides } from "./featOverrides";
+import { invalidateScenarioOverrides, loadScenarioOverrides, refreshScenarioOverrides } from "./scenarioOverrides";
+import { invalidateOverrides as invalidateFeatOverrides, loadFeatOverrides, refreshFeatOverrides } from "./featOverrides";
+import { isReachable, lastReachable } from "./reachability";
 
 const LOCAL_GUEST_KEY = "local-guest-user";
 
@@ -48,12 +49,15 @@ async function ensureSession(): Promise<boolean> {
 let _chain: Promise<void> = Promise.resolve();
 let _syncDepth = 0;
 let _opStartedAt: number | null = null;
+// B-03: generation-based watchdog reset so orphaned ops can't corrupt _syncDepth.
+let _generation = 0;
 
 // §2.1.4 wedge watchdog — kick every 30s to abort ops in flight > 90s.
 if (typeof window !== "undefined") {
   setInterval(() => {
     if (_opStartedAt && Date.now() - _opStartedAt > 90_000) {
       store.journal({ op: "watchdog-reset", msg: `sync op exceeded 90s`, ok: false });
+      _generation++; // orphan the stuck chain
       _chain = Promise.resolve();
       _syncDepth = 0;
       _opStartedAt = null;
@@ -64,16 +68,20 @@ if (typeof window !== "undefined") {
 
 function enqueueSync<T = void>(fn: () => Promise<T>): Promise<T> {
   const run = async (): Promise<T> => {
+    const myGen = _generation;
     _syncDepth++;
     _opStartedAt = Date.now();
     if (_syncDepth === 1) notify("syncing");
     try {
       return await fn();
     } finally {
-      _syncDepth--;
-      if (_syncDepth === 0) {
-        notify("synced");
-        _opStartedAt = null;
+      // B-03: ignore ops orphaned by a watchdog reset so bookkeeping stays sane.
+      if (myGen === _generation) {
+        _syncDepth--;
+        if (_syncDepth === 0) {
+          notify("synced");
+          _opStartedAt = null;
+        }
       }
     }
   };
@@ -125,8 +133,10 @@ async function doPull(userId?: string) {
   const playedGameIds = (playerRefsRes.data ?? []).map((r: any) => r.game_id);
   const hostedGames = hostedRes.data ?? [];
 
+  // B-19: keep ended played games in the pull so players on /game/:id/play
+  // still see the "quest ended" screen. `evictStaleGames` handles cleanup.
   const playedGamesRes = playedGameIds.length > 0
-    ? await supabase.from("games").select("*").neq("status", "ended").in("id", playedGameIds)
+    ? await supabase.from("games").select("*").in("id", playedGameIds)
     : { data: [] as any[], error: null };
   if ((playedGamesRes as any).error) {
     const msg = (playedGamesRes as any).error.message;
@@ -179,13 +189,15 @@ async function doPull(userId?: string) {
   store.setLastSync(now);
   store.journal({ op: "pull", ok: true, ms: Date.now() - started });
 
-  // SYNC-15: refresh scenario/feat overrides on every successful sync so
-  // admin edits reach every device.
+  // A-17: evict ended/deleted games older than 24h so the local cache doesn't
+  // grow unbounded (host's own games are preserved).
+  try { store.evictStaleGames(userId); } catch {}
+
+  // SYNC-15 + B-05: refresh overrides non-destructively so consumers never
+  // see the null-cache window that would downgrade content to bundled base.
   try {
-    invalidateScenarioOverrides();
-    invalidateFeatOverrides();
-    loadScenarioOverrides().catch(() => {});
-    loadFeatOverrides().catch(() => {});
+    refreshScenarioOverrides().catch(() => {});
+    refreshFeatOverrides().catch(() => {});
   } catch {}
 }
 
@@ -198,17 +210,38 @@ function isEligible(table: TableName, id: string): boolean {
   return Date.now() >= meta.nextAttemptAt;
 }
 
+function isConnectivityError(error: { code?: string; message?: string; status?: number }): boolean {
+  if (!error) return false;
+  if (error.code === "TypeError" || error.code === "TimeoutError" || error.code === "AbortError") return true;
+  const msg = (error.message ?? "").toLowerCase();
+  return /failed to fetch|load failed|network|timeout|sync-timeout|aborted/.test(msg);
+}
+
 function handleRowFailure(table: TableName, row: any, error: { code?: string; message: string; status?: number }) {
+  // B-01: connectivity failures are NOT attempts. Defer without incrementing.
+  if (isConnectivityError(error)) {
+    // Only count against the cap when the server was actually reachable.
+    if (lastReachable() !== true) {
+      store.noteDeferred(table, row.id, Date.now() + 30_000, error);
+      return;
+    }
+  }
   const kind = classify(error);
   if (kind === "terminal") {
-    store.quarantineRow(table, row.id, "terminal-error", error);
+    const parked = store.quarantineRow(table, row.id, "terminal-error", error);
+    // B-13: quarantine full → back off instead of hot-looping.
+    if (!parked) {
+      const attempts = (store.getOutboxMeta(table, row.id)?.attempts ?? 0) + 1;
+      store.noteAttempt(table, row.id, nextBackoff(attempts), error);
+    }
     return;
   }
   // Transient: bump attempts, backoff. Cap → quarantine.
   const meta = store.getOutboxMeta(table, row.id);
   const attempts = (meta?.attempts ?? 0) + 1;
   if (attempts >= ATTEMPT_CAP) {
-    store.quarantineRow(table, row.id, "max-attempts", error);
+    const parked = store.quarantineRow(table, row.id, "max-attempts", error);
+    if (!parked) store.noteAttempt(table, row.id, nextBackoff(attempts), error);
     return;
   }
   store.noteAttempt(table, row.id, nextBackoff(attempts), error);
@@ -220,8 +253,9 @@ function handleRowFailure(table: TableName, row: any, error: { code?: string; me
 async function pushRow(table: TableName, row: any): Promise<boolean> {
   try {
     if (table === "user_roles") {
-      // SYNC-16: differing-id duplicates on (user_id, role) should resolve, not error.
-      const { error } = await (supabase.from(table as any).upsert(row, { onConflict: "user_id,role", ignoreDuplicates: true }) as any);
+      // SYNC-16 + B-22: keep conflict target, drop ignoreDuplicates so updates
+      // (e.g. tombstones) can reach the server.
+      const { error } = await (supabase.from(table as any).upsert(row, { onConflict: "user_id,role" }) as any);
       if (error) { handleRowFailure(table, row, error); return false; }
       return true;
     }
@@ -238,7 +272,7 @@ async function pushChunk(table: TableName, chunk: any[], succeeded: { table: Tab
   if (chunk.length === 0) return;
   try {
     const onConflict = table === "user_roles" ? "user_id,role" : "id";
-    const q: any = supabase.from(table as any).upsert(chunk as any, { onConflict, ignoreDuplicates: table === "user_roles" });
+    const q: any = supabase.from(table as any).upsert(chunk as any, { onConflict });
     const { error } = await q;
     if (!error) {
       for (const r of chunk) succeeded.push({ table, id: r.id });
@@ -254,9 +288,22 @@ async function pushChunk(table: TableName, chunk: any[], succeeded: { table: Tab
       if (ok) succeeded.push({ table, id: row.id });
     }
   } catch (e: any) {
-    handleRowFailure(table, chunk[0] ?? { id: "?" }, { message: e?.message ?? String(e) });
+    // B-01: connectivity-level throws should not penalize any row — just re-arm.
+    const err = { message: e?.message ?? String(e), code: e?.name };
+    if (isConnectivityError(err)) {
+      store.journal({ op: "push", table, ok: false, code: err.code, msg: err.message });
+      scheduleRetry();
+      return;
+    }
+    // For non-network throws, isolate row-by-row so healthy rows aren't punished.
+    for (const row of chunk) {
+      const ok = await pushRow(table, row);
+      if (ok) succeeded.push({ table, id: row.id });
+    }
   }
 }
+
+
 
 async function doPush() {
   const dirtyRows = store.getDirtyRows();

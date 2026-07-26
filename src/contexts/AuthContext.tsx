@@ -1,8 +1,8 @@
 import React, { createContext, useContext, useEffect, useState, useCallback, useRef } from "react";
 import { Session, User } from "@supabase/supabase-js";
 import { supabase } from "@/integrations/supabase/client";
-import { pullAll, setCurrentUserId } from "@/lib/syncManager";
-import { clearAll, reassignLocalUser } from "@/lib/localStore";
+import { pullAll, pushAll, setCurrentUserId, triggerPush } from "@/lib/syncManager";
+import { clearAll, getDirtyRows, reassignLocalUser, shouldClearOnUserChange } from "@/lib/localStore";
 import { toast } from "sonner";
 
 const LOCAL_GUEST_KEY = "local-guest-user";
@@ -83,16 +83,19 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
           const stored = localStorage.getItem(LOCAL_GUEST_KEY);
           if (stored) {
             const guest = JSON.parse(stored) as User;
-            if (guest?.id && guest.id !== newSession.user.id) reassignLocalUser(guest.id, newSession.user.id);
+            if (guest?.id && guest.id !== newSession.user.id) {
+              reassignLocalUser(guest.id, newSession.user.id);
+              // B-25: schedule a push so rehomed rows don't sit until the next edit.
+              try { triggerPush(); } catch {}
+            }
           }
         } catch { /* ignore */ }
         setLocalGuestUser(null);
         localStorage.removeItem(LOCAL_GUEST_KEY);
       }
-      // SDK gave up refreshing — token is dead
-      if (event === "TOKEN_REFRESHED" && !newSession) {
-        handleStaleSession();
-      }
+      // A-02: the dead `TOKEN_REFRESHED && !newSession` branch is removed —
+      // supabase-js v2 emits `SIGNED_OUT` in that case; handleStaleSession
+      // is invoked by the initial getUser probe instead.
       setLoading(false);
     });
 
@@ -115,11 +118,6 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   }, [handleStaleSession]);
 
   // After auth resolved, pull data from server if online.
-  // Track the last user we synced for so we can reset `syncReady` when the
-  // effective user changes (e.g. anonymous guest -> real user, or user A -> B).
-  // Without this reset, components that gate on `syncReady` would briefly see
-  // the previous user's empty/stale local cache and render wrong (e.g. Admin
-  // flashing "Access denied" before the new user's roles land).
   const lastSyncedUserRef = useRef<string | undefined>(undefined);
   useEffect(() => {
     if (loading) return;
@@ -127,12 +125,11 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     const userId = session?.user?.id;
     setCurrentUserId(userId);
 
-    // If the user changed (including null <-> user), invalidate local cache
-    // belonging to the previous identity and force consumers back into loading.
+    // A-01: only clear when switching between two distinct non-null identities.
+    // A transient signed-out state (token refresh, cross-tab sign-out) must
+    // NOT wipe local unpushed edits.
     if (lastSyncedUserRef.current !== userId) {
-      if (lastSyncedUserRef.current && lastSyncedUserRef.current !== userId) {
-        // Switching between distinct identities — drop the previous user's rows
-        // so we never serve them to the new user.
+      if (shouldClearOnUserChange(lastSyncedUserRef.current, userId)) {
         clearAll();
       }
       setSyncReady(false);
@@ -146,6 +143,12 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       if (cancelled) return;
       lastSyncedUserRef.current = userId;
       setSyncReady(true);
+      // B-25: startup drain — flush any queued edits (e.g. rehomed guest rows).
+      if (navigator.onLine && userId) {
+        try {
+          if (getDirtyRows().length > 0) pushAll();
+        } catch {}
+      }
     }
 
     initSync();
@@ -165,6 +168,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   };
 
   const signOut = async () => {
+    // A-02: flush pending edits before revoking the session that could push them.
+    try { if (navigator.onLine) await pushAll(); } catch {}
     await supabase.auth.signOut();
     setLocalGuestUser(null);
     localStorage.removeItem(LOCAL_GUEST_KEY);

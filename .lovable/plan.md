@@ -1,68 +1,87 @@
 
-# Sync overhaul: apply FIX_SPEC + FIX_SPEC_UNSTICK
+# FIX_SPEC_V2 — Full Remediation Plan
 
-Scope: 68 bugs from `FIX_SPEC.md` and the 12 stuck-state remediations + Repair UX from `FIX_SPEC_UNSTICK.md`. Executed in phases so P0 data-loss bugs are fixed and shippable before larger refactors.
+Scope: 19 Section-A regressions (previous fixes that were wrong/missing), 25 Section-B new bugs, plus the C-2 verification tests. Executed in strict severity order so P0/P1 land first even if later phases are interrupted.
 
-## Phase 1 — P0 sync correctness (data-loss stoppers)
+## Phase 1 — P0 data-loss and dead flows (A-01, A-02, A-03, B-01)
 
-Client (`src/lib/localStore.ts`, `src/lib/syncManager.ts`, `src/contexts/AuthContext.tsx`):
+- **A-01** `src/contexts/AuthContext.tsx`: add `userId &&` to the clear guard. Extract `shouldClearOnUserChange(prev, next)` into `src/lib/localStore.ts` (pure, unit-tested).
+- **A-02** `AuthContext.signOut`: `await pushAll()` (best-effort) before `supabase.auth.signOut()`; delete the dead `TOKEN_REFRESHED && !newSession` branch.
+- **A-03** `src/pages/Dashboard.tsx` `handleJoinGame`: replace direct SELECT + phantom `upsertRow` with the `join_game_by_code` RPC + `pullTable("game_players", { game_id, user_id })`, using `mergeCleanRow` for the games write-back. Add phantom-cleanup effect in `PlayGame.tsx` preferring the non-dirty row and `deleteRow`-ing duplicates.
+- **B-01** `src/lib/syncManager.ts`:
+  - `scheduleRetry` timer: skip `pushAll` when `!navigator.onLine`, re-arm.
+  - New `src/lib/reachability.ts` probing `/auth/v1/health` with 5s abort, cached 60s.
+  - `handleRowFailure`: connectivity failures (`TypeError`, `TimeoutError`, `/failed to fetch|load failed|network/i`) call a new `noteDeferred` (nextAttemptAt only, no `attempts++`, no quarantine). Only count an attempt when the reachability probe recently succeeded.
+  - `pushChunk` catch: don't per-row-penalize on thrown network errors; just `scheduleRetry`.
 
-- **SYNC-01** Persist dirty set to `localStorage` under `ls_dirty_rows`; load on init; add `persistDirtySet()` to `markDirty` / `clearDirty` / `clearDirtyFor`; clear on `clearAll()`. Drain queue at end of successful `pullAll` and on reconnect.
-- **SYNC-02** In `setTableKeepDirty` and `replaceBy`, dirty local row ALWAYS wins over server snapshot (drop the `&& !incoming.has(id)` clause; swap merge order). Change AuthContext sync effect deps from `[loading, session]` → `[loading, session?.user?.id]` to stop pulls on every token refresh.
-- **SYNC-03** Replace `_syncing` boolean guard with a serialized promise chain (`enqueueSync`). `pullAll` / `pushAll` enqueue instead of dropping.
-- **SYNC-04** Foreign-character UPDATE path uses `.update(patch).eq("id",id).select("id")`; 0-row result → quarantine + `pullTable({id})` (via Phase 2 quarantine). Migration widens `characters` UPDATE policy: `USING/WITH CHECK is_host_of_player(user_id, auth.uid())`.
-- **SYNC-05** Migration: `REPLICA IDENTITY FULL` and `ALTER PUBLICATION supabase_realtime ADD TABLE` for `games`, `game_players`, `characters`, `profiles`. All 5 `.subscribe()` sites take a status callback that (a) logs `CHANNEL_ERROR/TIMED_OUT/CLOSED`, (b) runs a catch-up pull on `SUBSCRIBED`.
-- **SYNC-06** Rewrite `Dashboard.handleJoinGame` to use `rpc("join_game_by_code")` + `pullTable("game_players", …)` (mirror `JoinGame.tsx`). Delete phantom insert.
-- **SYNC-07** Add `mergeCleanRow(table, row)` to `localStore` (no dirty marker). Replace `upsertRow` at server-response sites: `JoinGame:43`, `Dashboard:101,113`, `HostGame:212`. In `doPush`, filter out `games` rows whose `host_user_id !== _currentUserId`, mark synced, log a single sync error.
-- **SYNC-08** AuthContext: only `clearAll()` when switching between two non-null distinct user ids. `signOut` runs `pushAll` first when online. Delete dead `TOKEN_REFRESHED && !newSession` branch.
-- **SYNC-09** `doPull` aborts (throw) on any step error; never writes snapshots derived from errored responses; no-user branch returns early instead of overwriting `user_roles`.
-- **SYNC-15** In `scenarioOverrides.ts` and `featOverrides.ts` propagate `error`; never cache failed loads. Dispatch `"overrides-change"`. On reconnect/focus, invalidate + reload. Replace frozen module maps in `WikiLinkedText.tsx`, `FeatDetailsDisplay.tsx`, `ManageFeats.tsx`, `ManageRedirects.tsx`, `WikiSectionTree.tsx`, `ManageScenarios.tsx` with a version-keyed rebuild via `useSyncExternalStore`.
-- **DATA-01** In `ScenarioEditorPanel` `mergedScenarios`, fold `fr:*` into nested `fr` object (match `applyScenarioOverrides`). Gate deletion behind explicit confirm; only delete after download.
+## Phase 2 — P1 correctness (A-04..A-08, B-02..B-04)
 
-## Phase 2 — Unsticking machinery (FIX_SPEC_UNSTICK §5–6)
+- **A-04** `CharacterSheet.tsx`: split the sync effect — one initializer keyed on `characterId`, one guarded by `!dirty` keyed on row fields.
+- **A-05** `GMPlayerList.tsx`: subscribe when `games.length > 0` (not `playerUserIds.length`), key on `gameIdsKey`, read games via `getBy` inside handlers, and pull characters/profiles for new members. Same guard on initial-pull effect.
+- **A-06** New `src/lib/realtime.ts` `subscribeWithCatchup(name, bindings, onCatchup)` handling `SUBSCRIBED`/`CHANNEL_ERROR`/`TIMED_OUT`. Migrate 5 call sites: `HostGame.tsx` (3), `PlayGame.tsx`, `GMPlayerList.tsx`.
+- **A-07** Add `feats.delete` to `src/i18n/en.ts` and `src/i18n/fr.ts`.
+- **A-08** `generate-character-portrait/index.ts`: allow hosts via `is_host_of_player` RPC (service-role); 403/404 instead of 500. `CharacterSheet.tsx`: hide Upload when `mode === "gm"`.
+- **B-02** `Dashboard.tsx` guest header button: just `navigate("/auth")` — no `signOut()`.
+- **B-03** `syncManager.ts`: generation-based watchdog. Ops orphaned by a reset skip their `_syncDepth--`/notify in `finally`.
+- **B-04** `localStore.ts` cross-tab: on `clearDirtyFor`/`quarantineRow` write a `ls_dirty_cleared` tombstone `{keys, at}`. Storage listener handles that key: remove marker unless local `_outboxMeta.get(k)?.at > tombstone.at`. Apply union-with-removal to `OUTBOX_META_KEY` too.
 
-- **Queue metadata (§5.1)** — `ls_outbox_meta` map with `{ at, attempts, lastAttemptAt, nextAttemptAt, lastError }`. `noteEnqueued/noteAttempt/noteSynced`. Re-editing keeps `at` but clears `nextAttemptAt`.
-- **Quarantine store (§5.2)** — `ls_quarantine` with full row copy, reason, error. `quarantineRow / retryQuarantined / discardQuarantined`. Capacity 100. Re-route silent-drop paths (foreign "drop", phantom `game_players` recovery, SYNC-04 0-row) through quarantine.
-- **Error classification + backoff + attempt cap (§5.3)** — Terminal PG codes → quarantine on first failure; transient → backoff `30s → 30min` ±20% jitter, cap 8 attempts → quarantine.
-- **Chunk isolation (§5.4)** — On chunk push failure, retry row-by-row so one poison row can't block healthy rows.
-- **Instrumented fetch (§5.5)** — Wrap `fetch` in `supabase/client.ts` with per-URL timeouts (REST 30 s / auth 15 s). Emit `Date`-header EWMA (`serverClockOffsetMs`) and stale-response detection (§2.4). 90 s watchdog that aborts wedged ops and resets the chain.
-- **SW cache purge (§5.6, ST-05)** — New `src/lib/swCachePurge.ts` deleting `supabase-api-cache` / `scenario-api-cache` at boot and before U4/U5. Delete the two `/rest/v1/` `runtimeCaching` entries in `vite.config.ts`. `doPull`/`pullTable` await purge (max 2 s).
-- **`syncHealth.ts` (§2)** — `SyncHealth` state (`healthy | pending | degraded | stuck | wedged`), persisted at `ls_health`, `"sync-health-change"` event. 60 s tick performs: ghost scan (ST-08), orphan-identity scan (ST-07c), attempt-cap check, wedge check, retry eligibility. Reachability probe against `/auth/v1/health` replaces trust in `navigator.onLine`.
-- **Push echo check (§2.2)** — After successful push chunk, `select id, updated_at` for the ids; absent → quarantine `"rls-rejected"` + pull.
-- **Realtime lifecycle helper (CROSS-02)** — `src/lib/realtime.ts` `subscribeWithCatchup(...)`. Every 30 s + `visibilitychange` re-subscribe if `state !== "joined"` > 30 s.
-- **Structured journal (§6.1)** — `ls_sync_journal` ring buffer (300 entries): every push/pull outcome, fetch results, health transitions, quarantines, watchdog resets, boot.
-- **Boot deadlock guards (ST-04)** — Race every AuthContext gate with 8 s timeout; `initSync` races `pullAll` with 8 s then `setSyncReady(true)`.
-- **Session/limbo (§2.7, ST-07b)** — Never auto-anon in `ensureSession`; surface deduped "Sign in to send your changes".
-- **AUTH-01 helper** — `reassignLocalUser(oldUid, newUid)` in `localStore`; called from AuthContext when a session appears while a local-guest exists.
+## Phase 3 — P2 correctness (A-09..A-14, B-05..B-12)
 
-## Phase 3 — Repair UX (FIX_SPEC_UNSTICK §4)
+- **A-09** `supabase/functions/_shared/auth.ts`: `.is("deleted_at", null)` in the roles query.
+- **A-10** `GameTimer.tsx`: guard `!hasAmbiance` in expanded branch → collapse and return null. Add top-level `ErrorBoundary` in `src/App.tsx` wrapping `<Routes>`, fallback offers Reload + mounts `SyncIssuesPanel`.
+- **A-11** `GameTimer.tsx`: wall-clock timer via `startedAtRef = Date.now() - elapsed*1000`; recompute on `visibilitychange`.
+- **A-12** `package.json`: replace `bunx tsx` with `npx tsx` in `predev`/`prebuild`; add `tsx` to `devDependencies`.
+- **A-13** Replace remaining `upsertRow` server-response writes with `mergeCleanRow` at `Dashboard.tsx:101`, `JoinGame.tsx:43`, `HostGame.tsx:212`.
+- **A-14** `HostGame.tsx`: add `.catch` on `loadScenarioOverrides` (or delete dead state). Add `useOverridesVersion()` hook (see B-05) and consume it in the scenario memo.
+- **A-19 minimum** Global mount of `<SyncIssuesPanel />` as a floating pill in `App.tsx` (visible when pending+errors+quarantine > 0). New `src/lib/syncHealth.ts` with a 60s ghost scan + attempt-cap sweep.
+- **B-05** `scenarioOverrides.ts` / `featOverrides.ts`: add `refreshOverrides()` that swaps `_overrides` only on success (no null window); add generation guard. `syncManager.doPull` uses `refresh*` instead of `invalidate + load`. `useOverridesVersion()` via `useSyncExternalStore` on `overrides-change`; consumed in `HostGame`, `PlayGame`, wiki/feat memos.
+- **B-06** `Dashboard.handleCreateGame`: retry ≤3× on `23505` join_code collision (regen code); toast destructive on other online errors; keep offline path.
+- **B-07** `syncManager.doPush`: when `normalizeScenarioId(r.scenario_id) !== r.scenario_id`, `mergeCleanRow("games", { id, scenario_id: normalized })` before sanitizing so snapshot equals stored row.
+- **B-08** `syncManager.ensureSession`: rate-limit "Not signed in" emission once per session and skip for `LOCAL_GUEST_KEY`. `GuestBanner` renders "Sign in to send your {n} pending changes" when dirty>0. `OfflineBanner` ignores `detail.table === "session"`.
+- **B-09** i18n the entire `SyncIssuesPanel`; replace `window.confirm` with `AlertDialog`; add per-entry "Download" (JSON via `downloadFile.ts`). New `sync.*` key group in en/fr.
+- **B-10** `OfflineBanner`: new `common.syncFailed` key EN+FR, use `.replace('{table}',…).replace('{message}',…)`.
+- **B-11** `CharacterSheet`: `character.toast.signInForPortrait` + `character.toast.sessionExpired` keys.
+- **B-12** `vite.config.ts` storage route → `StaleWhileRevalidate`. Ensure `generate-character-portrait` returns `publicUrl + "?t=" + Date.now()`; wizard upload mirrors `handleUpload`.
 
-- `SyncStatusPill` mounted globally in `App.tsx` alongside `<OfflineBanner />`; hidden when healthy, colored by state, absorbs the OfflineBanner spinner.
-- `SyncHealthDialog` component: status line, last successful sync, pending + quarantined lists with human labels, "Repair synchronization" (U4: probe → purge → per-row push → full pull → report), "Sync now" (U5 skips purge), Advanced (Free up space, Copy/Download diagnostics, Reset local data, Restore backup). Session-limbo variant navigates to `/auth?redirect`.
-- U5 nuclear reset: build loss manifest with names, mandatory backup for >1 MB, purge caches, `clearAll`, network-only re-pull, restore backup on failure; keep `ls_pre_reset_backup` for 7 days.
-- Repurpose `SyncIssuesPanel` to open the same dialog.
-- Add error boundary around `<Routes>` in `App.tsx`; fallback includes "Repair synchronization".
-- Add `syncHealth.*` keys to `en.ts` and `fr.ts`.
+## Phase 4 — P3 polish (A-15..A-19, B-13..B-25)
 
-## Phase 4 — P1 fixes
+- **A-15** `GameTimer` reset compare via `JSON.stringify`; don't force `running` on if user paused.
+- **A-16** `spotify-token-exchange`: for `refresh_token` grant, ignore client-supplied token, look up caller's row via service-role, always update `access_token`/`expires_at`; only update `refresh_token` if returned.
+- **A-17** Call `evictStaleGames(userId)` after successful `pullAll`; also clear markers/outbox for evicted `game_players` rows.
+- **A-18** `syncManager.pullTable`/`pullAll` catch: `store.appendSyncError(...)` in addition to `emitSyncError`.
+- **B-13** Terminal + max-attempts branches: if `quarantineRow` returns false, `noteAttempt` with backoff instead of leaving row hot.
+- **B-14** `deleteBy`: mirror `deleteRow`'s marker/outbox cleanup for every removed id. Test.
+- **B-15** `clearAll`: also clear `SYNC_ERRORS_KEY` and `QUARANTINE_KEY`; keep journal.
+- **B-16** `GMPlayerList`: drop `if (chars.length === 0) continue`; `currentChar = chars[0] ?? null`.
+- **B-17** `PlayGame`: either delete dead `sectionTitle` derivation or render it (choose render — show title inside `<main>` when `currentSectionId` set).
+- **B-18** `Dashboard` Active Games memo deps: add `locale`, `t`, and `useOverridesVersion()`.
+- **B-19** Remove `.neq("status","ended")` on played games pull; `evictStaleGames` handles cleanup.
+- **B-20** `HostGame`/`PlayGame`: `lookupDone` state; when `syncReady && lookupDone && !game`, render "Game not found" card with Back-to-Dashboard.
+- **B-21** Wrap `HostGame.endGame` in `AlertDialog`; add `game.endConfirmTitle`/`game.endConfirmBody` EN+FR.
+- **B-22** `syncManager` user_roles push: drop `ignoreDuplicates`; keep `onConflict: "user_id,role"`.
+- **B-23** `I18nContext`: try/catch localStorage; clear stale dbOverrides synchronously on `setLocale`. `LanguagePicker` — keep current guard (confirm intent). FR fixes: fr.ts 62/84/27-28 (unify "Talents"), remove dead `gm.editCharacter`, i18n `aria-label`s in `GameTimer`/`PlayGame`/`LanguagePicker`.
+- **B-24** Handled by B-05 generation guard; ensure both override modules include it.
+- **B-25** `AuthContext` after `reassignLocalUser`: call `triggerPush()`. In `initSync`, if `getDirtyRows().length > 0`, `pushAll()` at end.
 
-SYNC-10 retry scheduler + visibilitychange hook · SYNC-11 pull-before-push on reconnect · SYNC-12 push-time snapshot + games write-back via `mergeCleanRow` · SYNC-13 remove `signInAnonymously` from `ensureSession` · SYNC-14 cross-tab `storage` listener · SYNC-16 `user_roles` reuse existing row + `onConflict: "user_id,role"` · SYNC-17 CharacterSheet key init per id, guard on unsaved · SYNC-18 GMPlayerList subscribe on any hosted game · EDIT-01 add `transforms_to` to META_FIELDS · EDIT-02 delete override row on null/empty · EDIT-03 local SubfeatSlotEditor state + debounced save · EDIT-04 generator emits `normalizeScenarioId` · EDIT-05 Translations upsert error check · GAME-01 async `getOAuthToken` refresh, don't delete token row · GAME-02 propagate subfeat exhaustion fields · GAME-03 offline portrait via FileReader, no `blob:` in store · AUTH-01 wire `reassignLocalUser` + copy fix · SRV-01 GM portrait function checks `is_host_of_player`, correct HTTP codes.
+## Phase 5 — Tests & verification (Section C)
 
-## Phase 5 — P2 / P3 / Build
+Add vitest coverage in `src/lib/localStore.test.ts` (extend) and new files:
 
-GAME-04..08 (GameTimer guards + wall-clock, Spotify onTrackConsumed, stale AI action re-read, GM upload folder) · EDIT-06..09 (raw options text, editor sync-on-dirty, beforeunload, nested FR fallback) · UI-01 add `feats.delete` · SRV-02..04 migrations (deleted_at filters, join_game_by_code deleted_at + resurrect, scoped host access) · P3-01..19 (require→ESM, FAQ index, timer keys, dice ref, portal, guest profile via store, tooltip hoist, AI empty-response toasts, ZIP try/catch, revoke object URLs, translations delete, join_code UNIQUE + retry, first-owner lock, WITH CHECK, validate-feat notes, public-feats hidden split, spotify proxy) · BUILD-01 `npx tsx` in `pre*` + add `tsx` dep · BUILD-02 `passWithNoTests: true` + regression tests · BUILD-03 rewrite `sync-public-api-data.ts` · SCHEMA-01 dump baseline schema.
+- `shouldClearOnUserChange` truth table (A-01)
+- `handleRowFailure` "Failed to fetch" ×20 → no attempts, no quarantine (B-01)
+- `scheduleRetry` offline → no `pushAll` (B-01)
+- Watchdog generation orphan test (B-03)
+- `ls_dirty_cleared` tombstone semantics (B-04)
+- `refreshOverrides` non-destructive + stale-gen guard (B-05/B-24)
+- `doPush` legacy-scenario-id clears dirty (B-07)
+- `deleteBy` ghost cleanup (B-14)
+- `clearAll` clears errors + quarantine (B-15)
+- Quarantine-full terminal → noteAttempt backoff (B-13)
+- RTL: `CharacterSheet` keeps typed input across `mergeCleanRow` (A-04)
 
-## Phase 6 — CROSS-01 outbox (optional, after P0/P1 ship)
+Final checks: `npx tsc --noEmit`, `npm run lint`, `npm test`, `npm run build` (no Bun).
 
-Persistent op-log `ls_outbox` replacing `_dirtyRows`; per-field patches for `characters.feats`; optional `rev` optimistic-concurrency column + trigger; single-write API audit. Documented as follow-up because it supersedes several point fixes and is a larger refactor.
+## Notes / deferrals
 
-## Verification
-
-Per FIX_SPEC §5 checklist and FIX_SPEC_UNSTICK §6.4 acceptance tests. Add regression tests under `src/**/__tests__/` covering: dirty persistence, dirty-wins merge, serialized sync chain, 0-row echo → quarantine, chunk isolation, wedge watchdog, stale-response detection, U5 reset restore-on-failure, invariant 1 grep check. Run `npm run build` and `npx vitest run` after each phase.
-
-## Technical notes
-
-- Every new/changed table gets `GRANT` block per project rules; RLS re-verified against migrations.
-- No user-facing use of "Supabase" / "queue" / "RLS" — copy per §4.3.
-- Migrations bundled per CROSS-04 to minimize churn.
-- Never violate the four data-safety invariants (never silently drop an edit; quarantine inspectable/recoverable; destructive resets show manifest + backup; repair actions restore on failure).
+- Section C-4 re-verification debt (GAME-01/02/03/06/07, EDIT-03..09, SCHEMA-01, DATA-01 confirm dialog) will be spot-audited in Phase 4; adding an explicit confirm dialog around `ScenarioEditorPanel`'s destructive delete-all is included.
+- Full FIX_SPEC_UNSTICK §2 (health, echo, telemetry, U5 nuclear reset, diagnostics bundle) is out of scope beyond the "minimum viable" items in A-19; they can follow in a dedicated pass.
