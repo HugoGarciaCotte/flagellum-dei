@@ -232,3 +232,76 @@ describe("journal ring buffer (§6.1)", () => {
     expect(entries).toHaveLength(5);
   });
 });
+
+describe("A-01: shouldClearOnUserChange", () => {
+  it("only fires for two distinct non-null user ids", async () => {
+    const store = await freshStore();
+    expect(store.shouldClearOnUserChange("A", undefined)).toBe(false);
+    expect(store.shouldClearOnUserChange(undefined, "A")).toBe(false);
+    expect(store.shouldClearOnUserChange(undefined, undefined)).toBe(false);
+    expect(store.shouldClearOnUserChange("A", "A")).toBe(false);
+    expect(store.shouldClearOnUserChange("A", "B")).toBe(true);
+  });
+});
+
+describe("B-14: deleteBy clears dirty markers", () => {
+  it("removes dirty markers and outbox meta for deleted rows", async () => {
+    const store = await freshStore();
+    store.upsertRow("characters", { id: "c1", user_id: "u1", name: "A" });
+    store.upsertRow("characters", { id: "c2", user_id: "u1", name: "B" });
+    store.upsertRow("characters", { id: "c3", user_id: "u2", name: "C" });
+    expect(store.getDirtyRows()).toHaveLength(3);
+    store.deleteBy("characters", { user_id: "u1" });
+    const dirty = store.getDirtyRows();
+    expect(dirty.map((r) => r.id).sort()).toEqual(["c3"]);
+    expect(store.getOutboxMeta("characters", "c1")).toBeUndefined();
+    expect(store.getOutboxMeta("characters", "c2")).toBeUndefined();
+  });
+});
+
+describe("B-15: clearAll wipes sync errors and quarantine", () => {
+  it("removes parked entries and error log alongside tables", async () => {
+    const store = await freshStore();
+    store.upsertRow("characters", { id: "c1", user_id: "u1", name: "A" });
+    store.appendSyncError({ table: "characters", ids: ["c1"], message: "boom" });
+    store.quarantineRow("characters", "c1", "terminal-error", { message: "nope" });
+    expect(store.getQuarantine()).toHaveLength(1);
+    expect(store.getSyncErrors()).toHaveLength(1);
+    store.clearAll();
+    expect(store.getQuarantine()).toHaveLength(0);
+    expect(store.getSyncErrors()).toHaveLength(0);
+    expect(store.getTable("characters")).toHaveLength(0);
+  });
+});
+
+describe("B-01: noteDeferred defers without incrementing attempts", () => {
+  it("keeps attempts at 0 across many connectivity failures", async () => {
+    const store = await freshStore();
+    store.noteEnqueued("characters", "c1");
+    for (let i = 0; i < 20; i++) {
+      store.noteDeferred("characters", "c1", Date.now() + 30_000, { message: "Failed to fetch" });
+    }
+    const meta = store.getOutboxMeta("characters", "c1");
+    expect(meta?.attempts).toBe(0);
+    expect(meta?.nextAttemptAt).toBeGreaterThan(Date.now());
+    expect(store.getQuarantine()).toHaveLength(0);
+  });
+});
+
+describe("B-13: quarantine cap → caller can back off", () => {
+  it("quarantineRow eventually returns false so caller falls back to noteAttempt", async () => {
+    const store = await freshStore();
+    let parkedFalseSeen = false;
+    for (let i = 0; i < 300; i++) {
+      const parked = store.quarantineRow("characters", `c${i}`, "terminal-error", { message: "e" });
+      if (!parked) {
+        parkedFalseSeen = true;
+        store.noteAttempt("characters", `c${i}`, Date.now() + 30_000, { message: "e" });
+        const m = store.getOutboxMeta("characters", `c${i}`);
+        expect(m?.nextAttemptAt).toBeGreaterThan(Date.now());
+        break;
+      }
+    }
+    expect(parkedFalseSeen).toBe(true);
+  });
+});
