@@ -8,30 +8,31 @@ export type ScenarioOverrideMap = Map<string, Map<string, any>>;
 let _overrides: ScenarioOverrideMap | null = null;
 let _loading: Promise<ScenarioOverrideMap> | null = null;
 
-/** Fetch all scenario_overrides from DB. Caches in memory. */
+/**
+ * SYNC-15: propagate load errors (never cache a failed load) and notify
+ * subscribers when overrides refresh.
+ */
 export async function loadScenarioOverrides(): Promise<ScenarioOverrideMap> {
   if (_overrides) return _overrides;
   if (_loading) return _loading;
   _loading = (async () => {
     const map: ScenarioOverrideMap = new Map();
-    const { data } = await supabase
+    const { data, error } = await supabase
       .from("scenario_overrides" as any)
       .select("scenario_id, field, value");
+    if (error) {
+      _loading = null;
+      throw error;
+    }
     if (data) {
       const setOverride = (scenarioId: string, field: string, value: any) => {
         const existing = map.get(scenarioId);
-        if (existing) {
-          existing.set(field, value);
-          return;
-        }
-
+        if (existing) { existing.set(field, value); return; }
         map.set(scenarioId, new Map([[field, value]]));
       };
-
       for (const row of data as any[]) {
         const scenarioId = row.scenario_id as string;
         setOverride(scenarioId, row.field, row.value);
-
         const normalizedScenarioId = normalizeScenarioId(scenarioId);
         if (normalizedScenarioId && normalizedScenarioId !== scenarioId) {
           setOverride(normalizedScenarioId, row.field, row.value);
@@ -40,17 +41,16 @@ export async function loadScenarioOverrides(): Promise<ScenarioOverrideMap> {
     }
     _overrides = map;
     _loading = null;
+    try { window.dispatchEvent(new CustomEvent("overrides-change")); } catch {}
     return map;
   })();
   return _loading;
 }
 
-/** Get cached overrides (returns null if not yet loaded). */
 export function getCachedScenarioOverrides(): ScenarioOverrideMap | null {
   return _overrides;
 }
 
-/** Invalidate cache so next load re-fetches. */
 export function invalidateScenarioOverrides() {
   _overrides = null;
   _loading = null;
@@ -81,7 +81,6 @@ export function applyScenarioOverrides(scenario: Scenario, overrides: ScenarioOv
   return result;
 }
 
-/** Check if a scenario has any DB overrides. */
 export function hasScenarioOverrides(scenarioId: string, overrides: ScenarioOverrideMap): boolean {
   const fields = overrides.get(scenarioId);
   return !!fields && fields.size > 0;

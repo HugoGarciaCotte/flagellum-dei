@@ -2,60 +2,110 @@ import { supabase } from "@/integrations/supabase/client";
 import * as store from "./localStore";
 import type { TableName } from "./localStore";
 import { normalizeScenarioId } from "./scenarioIds";
+import { purgeSwRestCaches } from "./swCachePurge";
+import { invalidateScenarioOverrides, loadScenarioOverrides } from "./scenarioOverrides";
+import { invalidateOverrides as invalidateFeatOverrides, loadFeatOverrides } from "./featOverrides";
 
 const LOCAL_GUEST_KEY = "local-guest-user";
 
-function emitSyncError(table: string, message: string) {
+// §5.3 Error classification & backoff
+const TERMINAL_CODES = new Set(["42501", "23505", "23503", "23502", "22P02", "22001", "PGRST204", "PGRST100", "413"]);
+const BACKOFF_BASE_MS = 30_000;
+const BACKOFF_MAX_MS = 30 * 60_000;
+const ATTEMPT_CAP = 8;
+
+function classify(error: { code?: string; message?: string; status?: number }): "terminal" | "transient" {
+  if (error.code && TERMINAL_CODES.has(error.code)) return "terminal";
+  if (error.status && error.status >= 400 && error.status < 500 && error.status !== 401 && error.status !== 408 && error.status !== 429) return "terminal";
+  return "transient";
+}
+
+function nextBackoff(attempts: number): number {
+  const raw = Math.min(BACKOFF_BASE_MS * 2 ** Math.max(0, attempts - 1), BACKOFF_MAX_MS);
+  return Date.now() + raw * (0.8 + Math.random() * 0.4);
+}
+
+function emitSyncError(table: string, message: string, ids: string[] = []) {
   try {
-    window.dispatchEvent(new CustomEvent("sync-error", { detail: { table, ids: [], message } }));
+    window.dispatchEvent(new CustomEvent("sync-error", { detail: { table, ids, message } }));
   } catch {}
 }
 
+/**
+ * SYNC-13: never auto-mint an anonymous identity from the sync engine.
+ * Session creation is exclusively AuthContext.enterGuestMode's job.
+ */
 async function ensureSession(): Promise<boolean> {
   const { data: { session } } = await supabase.auth.getSession();
   if (session) return true;
-
-  const localGuest = localStorage.getItem(LOCAL_GUEST_KEY);
-  if (!localGuest || !navigator.onLine) return false;
-
-  const { error } = await supabase.auth.signInAnonymously();
-  if (error) {
-    console.warn("Session retry failed:", error.message);
-    emitSyncError("session", error.message);
-    return false;
+  if (store.getDirtyRows().length > 0) {
+    emitSyncError("session", "Not signed in — local changes will sync after you sign in");
   }
-  return true;
+  return false;
 }
 
-let _syncing = false;
-let _pushTimer: ReturnType<typeof setTimeout> | null = null;
-let _listenerAttached = false;
+// SYNC-03: serialized promise chain instead of a boolean guard.
+let _chain: Promise<void> = Promise.resolve();
+let _syncDepth = 0;
+let _opStartedAt: number | null = null;
 
-export function isSyncing() {
-  return _syncing;
+// §2.1.4 wedge watchdog — kick every 30s to abort ops in flight > 90s.
+if (typeof window !== "undefined") {
+  setInterval(() => {
+    if (_opStartedAt && Date.now() - _opStartedAt > 90_000) {
+      store.journal({ op: "watchdog-reset", msg: `sync op exceeded 90s`, ok: false });
+      _chain = Promise.resolve();
+      _syncDepth = 0;
+      _opStartedAt = null;
+      notify("synced");
+    }
+  }, 30_000);
 }
+
+function enqueueSync<T = void>(fn: () => Promise<T>): Promise<T> {
+  const run = async (): Promise<T> => {
+    _syncDepth++;
+    _opStartedAt = Date.now();
+    if (_syncDepth === 1) notify("syncing");
+    try {
+      return await fn();
+    } finally {
+      _syncDepth--;
+      if (_syncDepth === 0) {
+        notify("synced");
+        _opStartedAt = null;
+      }
+    }
+  };
+  const next: Promise<T> = _chain.then(run, run);
+  _chain = next.then(() => {}, () => {});
+  return next;
+}
+
+export function isSyncing() { return _syncDepth > 0; }
 
 function notify(type: "syncing" | "synced") {
-  window.dispatchEvent(new CustomEvent(`sync-${type}`));
+  try { window.dispatchEvent(new CustomEvent(`sync-${type}`)); } catch {}
 }
 
-// --- Pull (full snapshot — simple & robust) ---
+// --- Pull ---
 //
-// Strategy: every pull is a complete snapshot of the user's visible scope.
-// No incremental `since` filter, no merge/eviction, no overlay logic.
-// Data volume is tiny (a few KB) and RLS decides what we see.
+// SYNC-09: never write snapshots derived from an errored response.
 
 async function doPull(userId?: string) {
   const now = new Date().toISOString();
+  const started = Date.now();
+
+  // Give the SW cache purge a chance to finish; capped at 2s so a broken
+  // Cache API can never block sync.
+  await Promise.race([purgeSwRestCaches(), new Promise<void>((r) => setTimeout(r, 2000))]);
 
   if (!userId) {
-    const { data } = await supabase.from("user_roles").select("*");
-    store.setTableKeepDirty("user_roles", data ?? []);
+    // SYNC-09: no-user branch must not overwrite the cache with an empty snapshot.
     store.setLastSync(now);
     return;
   }
 
-  // Step 1: roles + game refs + hosted games + own profile, in parallel.
   const [rolesRes, playerRefsRes, hostedRes, profileRes] = await Promise.all([
     supabase.from("user_roles").select("*").eq("user_id", userId),
     supabase.from("game_players").select("game_id").eq("user_id", userId),
@@ -63,15 +113,26 @@ async function doPull(userId?: string) {
     supabase.from("profiles").select("*").eq("user_id", userId),
   ]);
 
+  if (rolesRes.error || playerRefsRes.error || hostedRes.error || profileRes.error) {
+    const msg = rolesRes.error?.message ?? playerRefsRes.error?.message ?? hostedRes.error?.message ?? profileRes.error?.message ?? "pull failed";
+    store.appendSyncError({ table: "pull", ids: [], message: msg });
+    store.journal({ op: "pull", ok: false, msg, ms: Date.now() - started });
+    throw new Error(msg);
+  }
+
   store.setTableKeepDirty("user_roles", rolesRes.data ?? []);
 
   const playedGameIds = (playerRefsRes.data ?? []).map((r: any) => r.game_id);
   const hostedGames = hostedRes.data ?? [];
 
-  // Step 2: played games (active only)
   const playedGamesRes = playedGameIds.length > 0
     ? await supabase.from("games").select("*").neq("status", "ended").in("id", playedGameIds)
-    : { data: [] as any[] };
+    : { data: [] as any[], error: null };
+  if ((playedGamesRes as any).error) {
+    const msg = (playedGamesRes as any).error.message;
+    store.journal({ op: "pull", table: "games", ok: false, msg });
+    throw new Error(msg);
+  }
 
   const gamesById = new Map<string, any>();
   for (const g of hostedGames) gamesById.set(g.id, g);
@@ -80,14 +141,16 @@ async function doPull(userId?: string) {
 
   const allGameIds = [...gamesById.keys()];
 
-  // Step 3: every game_player for every relevant game
   const gpRes = allGameIds.length > 0
     ? await supabase.from("game_players").select("*").in("game_id", allGameIds)
-    : { data: [] as any[] };
-
+    : { data: [] as any[], error: null };
+  if ((gpRes as any).error) {
+    const msg = (gpRes as any).error.message;
+    store.journal({ op: "pull", table: "game_players", ok: false, msg });
+    throw new Error(msg);
+  }
   store.setTableKeepDirty("game_players", gpRes.data ?? []);
 
-  // Step 4: characters + profiles for self + every game member
   const memberUserIds = new Set<string>([userId]);
   for (const p of gpRes.data ?? []) memberUserIds.add(p.user_id);
   const memberIdArr = [...memberUserIds];
@@ -97,8 +160,14 @@ async function doPull(userId?: string) {
     supabase.from("profiles").select("*").in("user_id", memberIdArr),
   ]);
 
-  if (charsRes.error) emitSyncError("characters", charsRes.error.message);
-  if (profilesRes.error) emitSyncError("profiles", profilesRes.error.message);
+  if (charsRes.error) {
+    store.journal({ op: "pull", table: "characters", ok: false, msg: charsRes.error.message });
+    throw new Error(charsRes.error.message);
+  }
+  if (profilesRes.error) {
+    store.journal({ op: "pull", table: "profiles", ok: false, msg: profilesRes.error.message });
+    throw new Error(profilesRes.error.message);
+  }
 
   store.setTableKeepDirty("characters", charsRes.data ?? []);
 
@@ -108,30 +177,104 @@ async function doPull(userId?: string) {
   store.setTableKeepDirty("profiles", [...profilesById.values()]);
 
   store.setLastSync(now);
+  store.journal({ op: "pull", ok: true, ms: Date.now() - started });
+
+  // SYNC-15: refresh scenario/feat overrides on every successful sync so
+  // admin edits reach every device.
+  try {
+    invalidateScenarioOverrides();
+    invalidateFeatOverrides();
+    loadScenarioOverrides().catch(() => {});
+    loadFeatOverrides().catch(() => {});
+  } catch {}
 }
 
-// --- Push (dirty rows only) ---
+// --- Push ---
+
+function isEligible(table: TableName, id: string): boolean {
+  const meta = store.getOutboxMeta(table, id);
+  if (!meta) return true;
+  if (!meta.nextAttemptAt) return true;
+  return Date.now() >= meta.nextAttemptAt;
+}
+
+function handleRowFailure(table: TableName, row: any, error: { code?: string; message: string; status?: number }) {
+  const kind = classify(error);
+  if (kind === "terminal") {
+    store.quarantineRow(table, row.id, "terminal-error", error);
+    return;
+  }
+  // Transient: bump attempts, backoff. Cap → quarantine.
+  const meta = store.getOutboxMeta(table, row.id);
+  const attempts = (meta?.attempts ?? 0) + 1;
+  if (attempts >= ATTEMPT_CAP) {
+    store.quarantineRow(table, row.id, "max-attempts", error);
+    return;
+  }
+  store.noteAttempt(table, row.id, nextBackoff(attempts), error);
+  store.appendSyncError({ table, ids: [row.id], message: error.message });
+  emitSyncError(table, error.message, [row.id]);
+  store.journal({ op: "push", table, ids: [row.id], ok: false, code: error.code, msg: error.message });
+}
+
+async function pushRow(table: TableName, row: any): Promise<boolean> {
+  try {
+    if (table === "user_roles") {
+      // SYNC-16: differing-id duplicates on (user_id, role) should resolve, not error.
+      const { error } = await (supabase.from(table as any).upsert(row, { onConflict: "user_id,role", ignoreDuplicates: true }) as any);
+      if (error) { handleRowFailure(table, row, error); return false; }
+      return true;
+    }
+    const { error } = await (supabase.from(table as any).upsert(row, { onConflict: "id" }) as any);
+    if (error) { handleRowFailure(table, row, error); return false; }
+    return true;
+  } catch (e: any) {
+    handleRowFailure(table, row, { message: e?.message ?? String(e), code: e?.name });
+    return false;
+  }
+}
+
+async function pushChunk(table: TableName, chunk: any[], succeeded: { table: TableName; id: string }[]) {
+  if (chunk.length === 0) return;
+  try {
+    const onConflict = table === "user_roles" ? "user_id,role" : "id";
+    const q: any = supabase.from(table as any).upsert(chunk as any, { onConflict, ignoreDuplicates: table === "user_roles" });
+    const { error } = await q;
+    if (!error) {
+      for (const r of chunk) succeeded.push({ table, id: r.id });
+      return;
+    }
+    if (chunk.length === 1) {
+      handleRowFailure(table, chunk[0], error);
+      return;
+    }
+    // §5.4 Chunk isolation: retry row-by-row so poison rows can't block the healthy majority.
+    for (const row of chunk) {
+      const ok = await pushRow(table, row);
+      if (ok) succeeded.push({ table, id: row.id });
+    }
+  } catch (e: any) {
+    handleRowFailure(table, chunk[0] ?? { id: "?" }, { message: e?.message ?? String(e) });
+  }
+}
 
 async function doPush() {
   const dirtyRows = store.getDirtyRows();
   if (dirtyRows.length === 0) return;
 
-  // Group by table
   const byTable = new Map<TableName, string[]>();
   for (const { table, id } of dirtyRows) {
+    if (!isEligible(table, id)) continue;
     const ids = byTable.get(table) || [];
     ids.push(id);
     byTable.set(table, ids);
   }
 
-  // Push in FK-dependency order
-  // Push in FK-dependency order. character_feats / character_feat_subfeats
-  // are no longer synced — feats now live in characters.feats (jsonb).
-  const pushOrder: TableName[] = [
-    "profiles", "user_roles", "characters", "games", "game_players",
-  ];
-
+  const pushOrder: TableName[] = ["profiles", "user_roles", "characters", "games", "game_players"];
   const succeeded: { table: TableName; id: string }[] = [];
+
+  // SYNC-12: snapshot content at push time so mid-flight edits aren't wrongly cleared.
+  const snapshot = new Map<string, string>();
 
   for (const table of pushOrder) {
     const ids = byTable.get(table);
@@ -141,18 +284,25 @@ async function doPush() {
     const rows = allRows.filter((r: any) => ids.includes(r.id));
     if (rows.length === 0) continue;
 
-    // Strip local-only flags before sending to DB
-    const sanitized = rows.map((r: any) => {
-      const { pending_sync, ...rest } = r;
-      if (table === "games") rest.scenario_id = normalizeScenarioId(rest.scenario_id) ?? rest.scenario_id;
-      return rest;
-    });
+    // SYNC-07: never push a foreign `games` row (only the host can).
+    // Marks them synced (so they leave the queue) and logs once.
+    const sanitized = rows
+      .map((r: any) => {
+        const { pending_sync, ...rest } = r;
+        if (table === "games") rest.scenario_id = normalizeScenarioId(rest.scenario_id) ?? rest.scenario_id;
+        return rest;
+      })
+      .filter((r: any) => {
+        if (table === "games" && _currentUserId && r.host_user_id && r.host_user_id !== _currentUserId) {
+          store.journal({ op: "push", table, ids: [r.id], ok: false, msg: "skipped foreign game" });
+          succeeded.push({ table, id: r.id });
+          return false;
+        }
+        return true;
+      });
 
-    // Tables where rows are user-owned and the INSERT policy is `auth.uid() = user_id`.
-    // For these tables, foreign rows can never be inserted by the current user.
-    // - `characters` has a host UPDATE policy → foreign rows go through .update()
-    // - `profiles`, `game_players`, `user_roles` have no host-write policy → drop the
-    //   dirty flag for foreign rows so we don't retry-spam, and surface one sync-error.
+    for (const r of sanitized) snapshot.set(`${table}:${r.id}`, JSON.stringify(r));
+
     const ownedTables: Partial<Record<TableName, "update" | "drop">> = {
       characters: "update",
       profiles: "drop",
@@ -162,97 +312,74 @@ async function doPush() {
 
     for (let i = 0; i < sanitized.length; i += 100) {
       const chunk = sanitized.slice(i, i + 100);
-      const chunkIds = chunk.map((r: any) => r.id);
-      try {
-        const foreignMode = ownedTables[table];
-        if (foreignMode && _currentUserId) {
-          const own = chunk.filter((r: any) => r.user_id === _currentUserId);
-          const foreign = chunk.filter((r: any) => r.user_id !== _currentUserId);
+      const foreignMode = ownedTables[table];
 
-          if (own.length > 0) {
-            const ownIds = own.map((r: any) => r.id);
-            const { error } = await (supabase.from(table as any).upsert(own as any, { onConflict: "id" }) as any);
-            if (error) {
-              // Recovery: a stale local game_players row (different id) collides with the
-              // server row created by the join_game_by_code RPC. Drop the phantom local row
-              // and pull the authoritative one, so the error toast stops looping.
-              const isGpDuplicate =
-                table === "game_players" &&
-                /game_players_game_id_user_id_key|duplicate key/i.test(error.message);
-              if (isGpDuplicate) {
-                console.warn("Dropping phantom game_players rows and pulling server truth", { ids: ownIds });
-                for (const r of own) succeeded.push({ table, id: r.id });
-                const pairs = new Set(own.map((r: any) => `${r.game_id}|${r.user_id}`));
-                for (const pair of pairs) {
-                  const [game_id, user_id] = pair.split("|");
-                  pullTable("game_players", { game_id, user_id }).catch(() => {});
-                }
-              } else {
-                console.error(`Push ${table} (own) failed:`, error.message, { ids: ownIds });
-                store.appendSyncError({ table, ids: ownIds, message: error.message });
-                window.dispatchEvent(new CustomEvent("sync-error", { detail: { table, ids: ownIds, message: error.message } }));
-              }
-            } else {
-              for (const r of own) succeeded.push({ table, id: r.id });
-            }
-          }
+      if (foreignMode && _currentUserId) {
+        const own = chunk.filter((r: any) => r.user_id === _currentUserId);
+        const foreign = chunk.filter((r: any) => r.user_id !== _currentUserId);
 
-          if (foreign.length > 0) {
-            if (foreignMode === "update") {
-              for (const row of foreign) {
-                const { id, user_id, created_at, ...patch } = row as any;
-                const { error } = await (supabase.from(table as any).update(patch).eq("id", id) as any);
+        await pushChunk(table, own, succeeded);
+
+        if (foreign.length > 0) {
+          if (foreignMode === "update") {
+            // SYNC-04: use .select("id") so 0-row RLS-rejected updates are visible.
+            for (const row of foreign) {
+              const { id, user_id, created_at, ...patch } = row as any;
+              try {
+                const { data: updated, error } = await (supabase.from(table as any).update(patch).eq("id", id).select("id") as any);
                 if (error) {
-                  console.error(`Push ${table} (foreign) failed:`, error.message, { ids: [id] });
-                  store.appendSyncError({ table, ids: [id], message: error.message });
-                  window.dispatchEvent(new CustomEvent("sync-error", { detail: { table, ids: [id], message: error.message } }));
+                  handleRowFailure(table, row, error);
+                } else if (!updated || updated.length === 0) {
+                  // RLS rejected — quarantine local copy, pull server truth.
+                  store.quarantineRow(table, id, "rls-rejected", { message: "Change refused by the server (no permission)" });
+                  pullTable(table, { id }).catch(() => {});
                 } else {
                   succeeded.push({ table, id });
                 }
+              } catch (e: any) {
+                handleRowFailure(table, row, { message: e?.message ?? String(e) });
               }
-            } else {
-              // "drop": no policy permits this write — clear dirty flag so we don't loop.
-              const foreignIds = foreign.map((r: any) => r.id);
-              const msg = `Skipped pushing ${foreign.length} foreign ${table} row(s) — no write permission`;
-              console.warn(msg, { ids: foreignIds });
-              store.appendSyncError({ table, ids: foreignIds, message: msg });
-              window.dispatchEvent(new CustomEvent("sync-error", { detail: { table, ids: foreignIds, message: msg } }));
-              for (const id of foreignIds) succeeded.push({ table, id }); // succeeded → clearDirtyFor will drop it
+            }
+          } else {
+            // "drop" — no policy permits the write; quarantine (invariant 1: never silent).
+            for (const row of foreign) {
+              store.quarantineRow(table, row.id, "foreign-owner", { message: `No permission to write this ${table} row` });
             }
           }
-        } else {
-          const { error } = await (supabase.from(table as any).upsert(chunk as any, { onConflict: "id" }) as any);
-          if (error) {
-            console.error(`Push ${table} failed:`, error.message, { ids: chunkIds });
-            store.appendSyncError({ table, ids: chunkIds, message: error.message });
-            window.dispatchEvent(new CustomEvent("sync-error", {
-              detail: { table, ids: chunkIds, message: error.message },
-            }));
-            continue; // leave dirty, retry later
-          }
-          for (const id of chunkIds) succeeded.push({ table, id });
         }
-      } catch (e: any) {
-        const msg = e?.message ?? String(e);
-        console.error(`Push ${table} threw:`, msg, { ids: chunkIds });
-        store.appendSyncError({ table, ids: chunkIds, message: msg });
-        window.dispatchEvent(new CustomEvent("sync-error", {
-          detail: { table, ids: chunkIds, message: msg },
-
-        }));
-      }
-    }
-
-    // Clear pending_sync on rows that pushed successfully
-    if (table === "games") {
-      const okIds = new Set(succeeded.filter(s => s.table === "games").map(s => s.id));
-      for (const r of rows) {
-        if (r.pending_sync && okIds.has(r.id)) store.upsertRow("games", { ...r, pending_sync: false });
+      } else {
+        await pushChunk(table, chunk, succeeded);
       }
     }
   }
 
-  store.clearDirtyFor(succeeded);
+  // SYNC-12: only clear dirty for rows whose content matches the pushed snapshot.
+  const clearable = succeeded.filter(({ table, id }) => {
+    const current = store.getTableRaw(table).find((r: any) => r.id === id);
+    if (!current) return true; // row gone locally — nothing more to push
+    const key = `${table}:${id}`;
+    const snap = snapshot.get(key);
+    if (!snap) return true;
+    const { pending_sync, ...stripped } = current as any;
+    return JSON.stringify(stripped) === snap;
+  });
+
+  // For games rows, patch pending_sync = false via mergeCleanRow (SYNC-12).
+  for (const { table, id } of clearable) {
+    if (table !== "games") continue;
+    const cur = store.getTableRaw("games").find((r: any) => r.id === id) as any;
+    if (cur?.pending_sync) store.mergeCleanRow("games", { id, pending_sync: false });
+  }
+
+  store.clearDirtyFor(clearable);
+
+  if (clearable.length < succeeded.length) {
+    scheduleRetry(); // rows edited mid-flight need another attempt
+  }
+
+  const stillDirty = store.getDirtyRows().length;
+  store.journal({ op: "push", ok: true, msg: `synced=${clearable.length} pending=${stillDirty}` });
+  if (stillDirty > 0) scheduleRetry();
 }
 
 // --- Public API ---
@@ -264,57 +391,78 @@ export function setCurrentUserId(userId: string | undefined) {
 }
 
 export async function pullAll(userId?: string): Promise<void> {
-  if (_syncing) return;
-  if (!(await ensureSession())) return;
-  _syncing = true;
-  notify("syncing");
-  try {
-    await doPull(userId ?? _currentUserId);
-  } catch (e: any) {
-    console.warn("Pull failed:", e);
-    emitSyncError("pull", e?.message ?? String(e));
-  } finally {
-    _syncing = false;
-    notify("synced");
-  }
+  return enqueueSync(async () => {
+    if (!(await ensureSession())) return;
+    try {
+      await doPull(userId ?? _currentUserId);
+    } catch (e: any) {
+      console.warn("Pull failed:", e);
+      emitSyncError("pull", e?.message ?? String(e));
+    }
+  });
 }
 
-/** Pull a single table with optional filter, then merge into local store */
+/** Pull a single table with optional filter. */
 export async function pullTable(table: TableName, filter?: Record<string, any>): Promise<void> {
-  if (!(await ensureSession())) return;
-  try {
-    let query = supabase.from(table as any).select("*");
-    if (filter) {
-      for (const [key, val] of Object.entries(filter)) {
-        query = (query as any).eq(key, val);
+  return enqueueSync(async () => {
+    if (!(await ensureSession())) return;
+    await Promise.race([purgeSwRestCaches(), new Promise<void>((r) => setTimeout(r, 2000))]);
+    try {
+      let query = supabase.from(table as any).select("*");
+      if (filter) {
+        for (const [key, val] of Object.entries(filter)) {
+          query = (query as any).eq(key, val);
+        }
       }
+      const { data, error } = await query;
+      if (error) {
+        emitSyncError(table, error.message);
+        store.journal({ op: "pullTable", table, ok: false, msg: error.message });
+        return;
+      }
+      if (data) {
+        if (filter) store.replaceBy(table, filter, data as any);
+        else store.mergeTable(table, data as any);
+      }
+    } catch (e: any) {
+      console.warn(`pullTable ${table} failed:`, e);
+      emitSyncError(table, e?.message ?? String(e));
     }
-    const { data, error } = await query;
-    if (error) emitSyncError(table, error.message);
-    if (data) {
-      if (filter) store.replaceBy(table, filter, data as any);
-      else store.mergeTable(table, data as any);
-    }
-  } catch (e: any) {
-    console.warn(`pullTable ${table} failed:`, e);
-    emitSyncError(table, e?.message ?? String(e));
-  }
+  });
 }
 
 export async function pushAll(): Promise<void> {
-  if (_syncing) return;
-  if (!(await ensureSession())) return;
-  _syncing = true;
-  notify("syncing");
-  try {
-    await doPush();
-  } catch (e: any) {
-    console.warn("Sync failed:", e);
-    emitSyncError("push", e?.message ?? String(e));
-  } finally {
-    _syncing = false;
-    notify("synced");
+  return enqueueSync(async () => {
+    if (!(await ensureSession())) return;
+    try {
+      await doPush();
+    } catch (e: any) {
+      console.warn("Sync failed:", e);
+      emitSyncError("push", e?.message ?? String(e));
+    }
+  });
+}
+
+// --- Retry scheduler (SYNC-10) ---
+
+let _pushTimer: ReturnType<typeof setTimeout> | null = null;
+let _retryTimer: ReturnType<typeof setTimeout> | null = null;
+let _listenerAttached = false;
+
+function scheduleRetry() {
+  if (_retryTimer) return;
+  // Wake at the earliest nextAttemptAt (or 30s fallback).
+  const now = Date.now();
+  let earliest = now + 30_000;
+  for (const { key, meta } of store.getAllOutboxMeta()) {
+    if (meta.nextAttemptAt && meta.nextAttemptAt < earliest) earliest = meta.nextAttemptAt;
+    void key;
   }
+  const delay = Math.max(5_000, earliest - now);
+  _retryTimer = setTimeout(() => {
+    _retryTimer = null;
+    if (store.getDirtyRows().length > 0) pushAll();
+  }, delay);
 }
 
 /** Debounced push — call after every local mutation */
@@ -322,14 +470,26 @@ export function triggerPush() {
   if (_pushTimer) clearTimeout(_pushTimer);
   _pushTimer = setTimeout(() => {
     if (navigator.onLine) pushAll();
+    else scheduleRetry();
   }, 2000);
 }
 
-/** Attach reconnect listener (call once at app start) */
+/** Attach reconnect / visibility listeners (call once at app start). */
 export function attachOnlineListener() {
   if (_listenerAttached) return;
   _listenerAttached = true;
+
   window.addEventListener("online", () => {
-    pushAll().then(() => pullAll());
+    // SYNC-11: pull-before-push shrinks the clobber window.
+    pullAll().then(() => pushAll());
   });
+
+  document.addEventListener("visibilitychange", () => {
+    if (document.visibilityState === "visible" && navigator.onLine) {
+      pullAll().then(() => pushAll());
+    }
+  });
+
+  // Kick a background retry loop when we come online with a non-empty queue.
+  if (navigator.onLine && store.getDirtyRows().length > 0) scheduleRetry();
 }
