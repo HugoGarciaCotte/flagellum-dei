@@ -24,8 +24,9 @@ import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, 
 import GMPlayerList from "@/components/GMPlayerList";
 import { useNetworkStatus } from "@/hooks/useNetworkStatus";
 import { useLocalRows } from "@/hooks/useLocalData";
-import { upsertRow } from "@/lib/localStore";
-import { triggerPush } from "@/lib/syncManager";
+import { upsertRow, mergeCleanRow } from "@/lib/localStore";
+import { triggerPush, pullTable } from "@/lib/syncManager";
+import SyncIssuesPanel from "@/components/SyncIssuesPanel";
 import { useTranslation } from "@/i18n/useTranslation";
 import { normalizeScenarioId } from "@/lib/scenarioIds";
 
