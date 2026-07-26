@@ -107,12 +107,16 @@ const Dashboard = () => {
   const handleJoinGame = async () => {
     if (!joinCode.trim()) return;
     try {
-      const { data: game, error } = await supabase.from("games").select("*").eq("join_code", joinCode.toUpperCase()).eq("status", "active").single();
-      if (error || !game) { toast({ title: t("dashboard.gameNotFound"), description: t("dashboard.checkCode"), variant: "destructive" }); return; }
-      const { error: joinError } = await supabase.from("game_players").insert({ game_id: game.id, user_id: user!.id });
-      if (joinError && !joinError.message.includes("duplicate")) { toast({ title: t("dashboard.errorJoining"), description: joinError.message, variant: "destructive" }); return; }
-      upsertRow("games", game);
-      upsertRow("game_players", { id: crypto.randomUUID(), game_id: game.id, user_id: user!.id, character_id: null, joined_at: new Date().toISOString() });
+      // A-03: use RPC (RLS-safe) instead of direct SELECT+INSERT, which
+      // manufactured a phantom game_players row that got quarantined.
+      const { data, error } = await supabase.rpc("join_game_by_code", { _code: joinCode.trim().toUpperCase() });
+      const game: any = Array.isArray(data) ? data[0] : data;
+      if (error || !game) {
+        toast({ title: t("dashboard.gameNotFound"), description: t("dashboard.checkCode"), variant: "destructive" });
+        return;
+      }
+      mergeCleanRow("games", game);
+      await pullTable("game_players", { game_id: game.id, user_id: user!.id });
       navigate(`/game/${game.id}/play`);
     } catch {
       toast({ title: t("dashboard.serverUnreachable"), description: t("dashboard.needOnlineToJoin"), variant: "destructive" });
