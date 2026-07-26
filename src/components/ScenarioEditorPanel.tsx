@@ -118,14 +118,23 @@ const ScenarioEditorPanel = () => {
   }, [overrides]);
 
   const mergedScenarios = useMemo(() => {
+    // DATA-01: nest `fr:*` overrides under merged.fr so ZIP export retains translations.
     return hardcodedScenarios.map(scenario => {
       const fields = overrides.get(scenario.id);
       if (!fields || fields.size === 0) return scenario;
-      const merged = { ...scenario };
+      const merged: any = { ...scenario };
+      const fr: Record<string, any> = { ...(scenario.fr || {}) };
+      let hasFr = !!scenario.fr;
       for (const [field, value] of fields) {
-        (merged as any)[field] = value;
+        if (field.startsWith("fr:")) {
+          fr[field.slice(3)] = value;
+          hasFr = true;
+        } else {
+          merged[field] = value;
+        }
       }
-      return merged;
+      if (hasFr) merged.fr = fr;
+      return merged as Scenario;
     });
   }, [hardcodedScenarios, overrides]);
 

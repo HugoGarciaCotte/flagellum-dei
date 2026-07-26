@@ -2,7 +2,7 @@ import React, { createContext, useContext, useEffect, useState, useCallback, use
 import { Session, User } from "@supabase/supabase-js";
 import { supabase } from "@/integrations/supabase/client";
 import { pullAll, setCurrentUserId } from "@/lib/syncManager";
-import { clearAll } from "@/lib/localStore";
+import { clearAll, reassignLocalUser } from "@/lib/localStore";
 import { toast } from "sonner";
 
 const LOCAL_GUEST_KEY = "local-guest-user";
@@ -77,6 +77,15 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     const { data: { subscription } } = supabase.auth.onAuthStateChange((event, newSession) => {
       setSession(newSession);
       if (newSession?.user) {
+        // AUTH-01: rehome any local-guest rows to the real uid so the queued
+        // edits get pushed under the new identity instead of orphaned.
+        try {
+          const stored = localStorage.getItem(LOCAL_GUEST_KEY);
+          if (stored) {
+            const guest = JSON.parse(stored) as User;
+            if (guest?.id && guest.id !== newSession.user.id) reassignLocalUser(guest.id, newSession.user.id);
+          }
+        } catch { /* ignore */ }
         setLocalGuestUser(null);
         localStorage.removeItem(LOCAL_GUEST_KEY);
       }
