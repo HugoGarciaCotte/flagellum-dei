@@ -93,7 +93,7 @@ const GMPlayerList = () => {
         const uid = payload.new?.user_id ?? payload.old?.user_id;
         if (!uid) return;
         const hostedIds = new Set(getBy("games", { host_user_id: user.id }).map((g: any) => g.id));
-        const relevant = getBy("game_players").some((gp: any) =>
+        const relevant = getBy("game_players", {}).some((gp: any) =>
           hostedIds.has(gp.game_id) && gp.user_id === uid,
         );
         if (relevant) pullTable("profiles", { user_id: uid });
