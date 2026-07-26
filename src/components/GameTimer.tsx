@@ -66,7 +66,8 @@ const GameTimer = ({ ambianceTrack, position = "left", hasActiveSection = false 
 
   const reset = useCallback(() => {
     setElapsed(0);
-  }, []);
+    startedAtRef.current = running ? Date.now() : null;
+  }, [running]);
 
   const minutes = Math.floor(elapsed / 60);
   const seconds = elapsed % 60;
