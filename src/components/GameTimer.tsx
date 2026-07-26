@@ -140,6 +140,13 @@ const GameTimer = ({ ambianceTrack, position = "left", hasActiveSection = false 
     );
   }
 
+  // A-10: ambianceTrack can go from defined → undefined while the panel is
+  // open (e.g. remote section change). Guard so `.map` can't crash the app.
+  if (!hasAmbiance) {
+    if (expanded) setExpanded(false);
+    return null;
+  }
+
   return (
     <>
       <div className="fixed inset-0 z-40" onClick={() => setExpanded(false)} />
