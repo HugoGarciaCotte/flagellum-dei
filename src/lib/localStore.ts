@@ -550,13 +550,21 @@ export function deleteRow(table: TableName, id: string) {
 
 export function deleteBy(table: TableName, filter: Record<string, any>) {
   const rows = cache.get(table) ?? [];
-  cache.set(table, rows.filter((row) => {
+  const removed: string[] = [];
+  const kept = rows.filter((row) => {
     for (const [key, val] of Object.entries(filter)) {
       if (row[key] !== val) return true;
     }
+    if (typeof row.id === "string") removed.push(row.id);
     return false;
-  }));
+  });
+  cache.set(table, kept);
   persist(table);
+  // B-14: also drop the dirty marker + outbox meta for each removed row so
+  // deletions don't leave phantom dirty ids in the queue.
+  if (removed.length > 0) {
+    clearDirtyFor(removed.map((id) => ({ table, id })));
+  }
 }
 
 /**
