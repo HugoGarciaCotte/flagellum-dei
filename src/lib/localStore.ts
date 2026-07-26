@@ -142,13 +142,26 @@ export function clearDirty() {
 
 /** Clear dirty markers for a specific set of (table,id) rows (successful push). */
 export function clearDirtyFor(rows: { table: TableName; id: string }[]) {
+  const keys: string[] = [];
   for (const { table, id } of rows) {
     const k = `${table}:${id}`;
     _dirtyRows.delete(k);
     _outboxMeta.delete(k);
+    keys.push(k);
   }
   persistDirtySet();
   persistOutboxMeta();
+  // B-04: broadcast clears cross-tab so other tabs drop their now-stale
+  // dirty markers instead of re-pushing an outdated row.
+  writeDirtyTombstone(keys);
+}
+
+const DIRTY_TOMBSTONE_KEY = "ls_dirty_cleared";
+function writeDirtyTombstone(keys: string[]) {
+  if (keys.length === 0) return;
+  try {
+    localStorage.setItem(DIRTY_TOMBSTONE_KEY, JSON.stringify({ keys, at: Date.now() }));
+  } catch {}
 }
 
 // --- Outbox metadata (§5.1) ---
@@ -286,6 +299,7 @@ export function quarantineRow(table: TableName, id: string, reason: QuarantineRe
   _outboxMeta.delete(k);
   persistDirtySet();
   persistOutboxMeta();
+  writeDirtyTombstone([k]); // B-04: mirror to other tabs.
   appendSyncError({ table, ids: [id], message: `Change parked: ${reason}${error?.message ? ` — ${error.message}` : ""}` });
   journal({ op: "quarantine", table, ids: [id], code: error?.code, msg: error?.message, ok: false });
   return true;
@@ -661,6 +675,19 @@ if (typeof window !== "undefined") {
         for (const [k, v] of JSON.parse(e.newValue ?? "[]") as [string, OutboxMeta][]) {
           if (!_outboxMeta.has(k)) _outboxMeta.set(k, v);
         }
+      } catch {}
+      return;
+    }
+    if (e.key === DIRTY_TOMBSTONE_KEY) {
+      // B-04: another tab pushed/quarantined these rows — drop our stale dirty markers.
+      try {
+        const payload = JSON.parse(e.newValue ?? "{}") as { keys?: string[] };
+        for (const k of payload.keys ?? []) {
+          _dirtyRows.delete(k);
+          _outboxMeta.delete(k);
+        }
+        persistDirtySet();
+        persistOutboxMeta();
       } catch {}
       return;
     }

@@ -204,13 +204,19 @@ const ScenarioEditorPanel = () => {
   };
 
   const handleDownloadAndClear = async () => {
+    // DATA-01: destructive action — every scenario_overrides row is deleted
+    // immediately after the download starts. Confirm explicitly.
+    const confirmed = window.confirm(
+      "This will download scenarios.ts AND delete ALL scenario overrides from the database. " +
+      "Anything not written back into the exported file (including edits still showing the ✓ button) will be lost. " +
+      "Continue?"
+    );
+    if (!confirmed) return;
     if (dirtyFieldsRef.current.size > 0) {
-      const confirmed = window.confirm(
-        `You have ${dirtyFieldsRef.current.size} unsaved field(s) (still showing the ✓ button). ` +
-        `These will NOT be included in the download and will be lost when the DB is cleared. ` +
-        `Continue anyway?`
+      const stillOk = window.confirm(
+        `You have ${dirtyFieldsRef.current.size} unsaved field(s). These will NOT be in the download and will be lost. Continue anyway?`
       );
-      if (!confirmed) return;
+      if (!stillOk) return;
     }
     const scenarios = mergedScenarios;
 

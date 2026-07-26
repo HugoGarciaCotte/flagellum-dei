@@ -24,8 +24,9 @@ import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, 
 import GMPlayerList from "@/components/GMPlayerList";
 import { useNetworkStatus } from "@/hooks/useNetworkStatus";
 import { useLocalRows } from "@/hooks/useLocalData";
-import { upsertRow } from "@/lib/localStore";
-import { triggerPush } from "@/lib/syncManager";
+import { upsertRow, mergeCleanRow } from "@/lib/localStore";
+import { triggerPush, pullTable } from "@/lib/syncManager";
+import SyncIssuesPanel from "@/components/SyncIssuesPanel";
 import { useTranslation } from "@/i18n/useTranslation";
 import { normalizeScenarioId } from "@/lib/scenarioIds";
 
@@ -106,12 +107,16 @@ const Dashboard = () => {
   const handleJoinGame = async () => {
     if (!joinCode.trim()) return;
     try {
-      const { data: game, error } = await supabase.from("games").select("*").eq("join_code", joinCode.toUpperCase()).eq("status", "active").single();
-      if (error || !game) { toast({ title: t("dashboard.gameNotFound"), description: t("dashboard.checkCode"), variant: "destructive" }); return; }
-      const { error: joinError } = await supabase.from("game_players").insert({ game_id: game.id, user_id: user!.id });
-      if (joinError && !joinError.message.includes("duplicate")) { toast({ title: t("dashboard.errorJoining"), description: joinError.message, variant: "destructive" }); return; }
-      upsertRow("games", game);
-      upsertRow("game_players", { id: crypto.randomUUID(), game_id: game.id, user_id: user!.id, character_id: null, joined_at: new Date().toISOString() });
+      // A-03: use RPC (RLS-safe) instead of direct SELECT+INSERT, which
+      // manufactured a phantom game_players row that got quarantined.
+      const { data, error } = await supabase.rpc("join_game_by_code", { _code: joinCode.trim().toUpperCase() });
+      const game: any = Array.isArray(data) ? data[0] : data;
+      if (error || !game) {
+        toast({ title: t("dashboard.gameNotFound"), description: t("dashboard.checkCode"), variant: "destructive" });
+        return;
+      }
+      mergeCleanRow("games", game);
+      await pullTable("game_players", { game_id: game.id, user_id: user!.id });
       navigate(`/game/${game.id}/play`);
     } catch {
       toast({ title: t("dashboard.serverUnreachable"), description: t("dashboard.needOnlineToJoin"), variant: "destructive" });
@@ -130,7 +135,7 @@ const Dashboard = () => {
               </Button>
             )}
             {isGuest ? (
-              <Button variant="ghost" size="sm" onClick={() => { signOut(); navigate("/auth"); }} className="gap-2">
+              <Button variant="ghost" size="sm" onClick={() => navigate("/auth")} className="gap-2">
                 {t("dashboard.signUp")}
               </Button>
             ) : (
@@ -144,6 +149,8 @@ const Dashboard = () => {
 
       <div className="flex-1 overflow-y-auto">
       <main className="container py-8 space-y-10 max-w-2xl" style={{ background: "radial-gradient(ellipse at center top, hsl(43 74% 49% / 0.04) 0%, transparent 50%)" }}>
+        {/* A-19: global repair surface — self-hides when nothing needs attention */}
+        <SyncIssuesPanel />
         {/* Join a Game */}
         <section className="space-y-3">
           <h2 className="font-display text-2xl text-foreground flex items-center gap-2">

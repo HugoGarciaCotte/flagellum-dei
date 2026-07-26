@@ -55,8 +55,10 @@ const GMPlayerList = () => {
   }, [user, games, allGamePlayers]);
 
   const playerIdsKey = playerUserIds.join(",");
+  // A-05: key subscription on hosted-games set, not on known players.
+  const gameIdsKey = useMemo(() => games.map((g: any) => g.id).sort().join(","), [games]);
 
-  // Pull characters + profiles for every player whenever the player set changes
+  // Pull characters + profiles for every known player whenever the player set changes
   useEffect(() => {
     if (!online || playerUserIds.length === 0) return;
     let cancelled = false;
@@ -72,29 +74,54 @@ const GMPlayerList = () => {
     return () => { cancelled = true; };
   }, [playerIdsKey, online]);
 
-  // Realtime: refresh a player's characters/profile when they edit on their side
+  // Realtime: subscribe whenever the GM hosts ≥1 game (even with zero players yet),
+  // so the very first player-join is observed. Read hosted-game ids inside handlers
+  // via getBy so we don't miss games created after subscribe.
   useEffect(() => {
-    if (!online || playerUserIds.length === 0) return;
-    const idSet = new Set(playerUserIds);
-    const channel = supabase.channel(`gm-players-${user?.id ?? "anon"}`)
+    if (!online || !user || gameIdsKey === "") return;
+    const channel = supabase.channel(`gm-players-${user.id}`)
       .on("postgres_changes", { event: "*", schema: "public", table: "characters" }, (payload: any) => {
         const uid = payload.new?.user_id ?? payload.old?.user_id;
-        if (uid && idSet.has(uid)) pullTable("characters", { user_id: uid });
+        if (!uid) return;
+        const hostedIds = new Set(getBy("games", { host_user_id: user.id }).map((g: any) => g.id));
+        const relevant = getBy("game_players", {}).some((gp: any) =>
+          hostedIds.has(gp.game_id) && gp.user_id === uid,
+        );
+        if (relevant) pullTable("characters", { user_id: uid });
       })
       .on("postgres_changes", { event: "*", schema: "public", table: "profiles" }, (payload: any) => {
         const uid = payload.new?.user_id ?? payload.old?.user_id;
-        if (uid && idSet.has(uid)) pullTable("profiles", { user_id: uid });
+        if (!uid) return;
+        const hostedIds = new Set(getBy("games", { host_user_id: user.id }).map((g: any) => g.id));
+        const relevant = getBy("game_players", {}).some((gp: any) =>
+          hostedIds.has(gp.game_id) && gp.user_id === uid,
+        );
+        if (relevant) pullTable("profiles", { user_id: uid });
       })
-      .on("postgres_changes", { event: "*", schema: "public", table: "game_players" }, (payload: any) => {
+      .on("postgres_changes", { event: "*", schema: "public", table: "game_players" }, async (payload: any) => {
         const gid = payload.new?.game_id ?? payload.old?.game_id;
-        const myGameIds = new Set(games.map((g: any) => g.id));
-        if (gid && myGameIds.has(gid)) {
-          pullTable("game_players", { game_id: gid });
+        if (!gid) return;
+        const hostedIds = new Set(getBy("games", { host_user_id: user.id }).map((g: any) => g.id));
+        if (!hostedIds.has(gid)) return;
+        await pullTable("game_players", { game_id: gid });
+        // Pull the new member's character + profile so they appear immediately.
+        const uid = payload.new?.user_id ?? payload.old?.user_id;
+        if (uid && uid !== user.id) {
+          await Promise.all([
+            pullTable("characters", { user_id: uid }),
+            pullTable("profiles", { user_id: uid }),
+          ]);
         }
       })
-      .subscribe();
+      .subscribe((status) => {
+        if (status === "SUBSCRIBED") {
+          // A-06 catch-up: on (re)subscribe, refresh every hosted game's players.
+          const hostedIds = getBy("games", { host_user_id: user.id }).map((g: any) => g.id);
+          for (const gid of hostedIds) pullTable("game_players", { game_id: gid });
+        }
+      });
     return () => { supabase.removeChannel(channel); };
-  }, [playerIdsKey, online, user?.id]);
+  }, [gameIdsKey, online, user?.id]);
 
   const players = useMemo<PlayerEntry[]>(() => {
     if (!user) return [];
