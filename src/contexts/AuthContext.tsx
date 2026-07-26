@@ -1,8 +1,8 @@
 import React, { createContext, useContext, useEffect, useState, useCallback, useRef } from "react";
 import { Session, User } from "@supabase/supabase-js";
 import { supabase } from "@/integrations/supabase/client";
-import { pullAll, setCurrentUserId } from "@/lib/syncManager";
-import { clearAll, reassignLocalUser } from "@/lib/localStore";
+import { pullAll, pushAll, setCurrentUserId, triggerPush } from "@/lib/syncManager";
+import { clearAll, getDirtyRows, reassignLocalUser, shouldClearOnUserChange } from "@/lib/localStore";
 import { toast } from "sonner";
 
 const LOCAL_GUEST_KEY = "local-guest-user";
