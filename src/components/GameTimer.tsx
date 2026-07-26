@@ -95,6 +95,11 @@ const GameTimer = ({ ambianceTrack, position = "left", hasActiveSection = false 
     }
   }, [expanded]);
 
+  // A-10: close the expanded panel if ambiance disappears mid-session.
+  useEffect(() => {
+    if (!hasAmbiance && expanded) setExpanded(false);
+  }, [hasAmbiance, expanded]);
+
   
 
   const mobileBottom = bannerOffset + 16; // 16px base spacing on mobile
