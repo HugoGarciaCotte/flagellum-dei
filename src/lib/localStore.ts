@@ -142,13 +142,26 @@ export function clearDirty() {
 
 /** Clear dirty markers for a specific set of (table,id) rows (successful push). */
 export function clearDirtyFor(rows: { table: TableName; id: string }[]) {
+  const keys: string[] = [];
   for (const { table, id } of rows) {
     const k = `${table}:${id}`;
     _dirtyRows.delete(k);
     _outboxMeta.delete(k);
+    keys.push(k);
   }
   persistDirtySet();
   persistOutboxMeta();
+  // B-04: broadcast clears cross-tab so other tabs drop their now-stale
+  // dirty markers instead of re-pushing an outdated row.
+  writeDirtyTombstone(keys);
+}
+
+const DIRTY_TOMBSTONE_KEY = "ls_dirty_cleared";
+function writeDirtyTombstone(keys: string[]) {
+  if (keys.length === 0) return;
+  try {
+    localStorage.setItem(DIRTY_TOMBSTONE_KEY, JSON.stringify({ keys, at: Date.now() }));
+  } catch {}
 }
 
 // --- Outbox metadata (§5.1) ---
