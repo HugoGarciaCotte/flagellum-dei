@@ -27,6 +27,8 @@ const GameTimer = ({ ambianceTrack, position = "left", hasActiveSection = false 
   const flashTimeoutRef = useRef<ReturnType<typeof setTimeout>>();
   const prevAmbianceIdxRef = useRef<number>(-1);
   const prevTrackRef = useRef<AmbianceEntry[] | undefined>();
+  // A-11: wall-clock anchor so background-throttled tabs stay accurate.
+  const startedAtRef = useRef<number | null>(null);
   const { t } = useTranslation();
 
   const hasAmbiance = ambianceTrack && ambianceTrack.length > 0;
@@ -34,19 +36,32 @@ const GameTimer = ({ ambianceTrack, position = "left", hasActiveSection = false 
   useEffect(() => {
     if (ambianceTrack && ambianceTrack.length > 0 && prevTrackRef.current !== ambianceTrack) {
       setElapsed(0);
+      startedAtRef.current = Date.now();
       setRunning(true);
       prevAmbianceIdxRef.current = -1;
     }
     prevTrackRef.current = ambianceTrack;
   }, [ambianceTrack]);
 
+  // A-11: derive elapsed from wall clock, not tick count.
   useEffect(() => {
     if (running) {
-      intervalRef.current = setInterval(() => setElapsed((s) => s + 1), 1000);
+      if (startedAtRef.current == null) startedAtRef.current = Date.now() - elapsed * 1000;
+      const tick = () => {
+        const anchor = startedAtRef.current ?? Date.now();
+        setElapsed(Math.floor((Date.now() - anchor) / 1000));
+      };
+      tick();
+      intervalRef.current = setInterval(tick, 1000);
+      const onVisible = () => { if (document.visibilityState === "visible") tick(); };
+      document.addEventListener("visibilitychange", onVisible);
+      return () => { clearInterval(intervalRef.current); document.removeEventListener("visibilitychange", onVisible); };
     } else {
       clearInterval(intervalRef.current);
+      startedAtRef.current = null;
     }
     return () => clearInterval(intervalRef.current);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [running]);
 
   const reset = useCallback(() => {
