@@ -189,13 +189,15 @@ async function doPull(userId?: string) {
   store.setLastSync(now);
   store.journal({ op: "pull", ok: true, ms: Date.now() - started });
 
-  // SYNC-15: refresh scenario/feat overrides on every successful sync so
-  // admin edits reach every device.
+  // A-17: evict ended/deleted games older than 24h so the local cache doesn't
+  // grow unbounded (host's own games are preserved).
+  try { store.evictStaleGames(userId); } catch {}
+
+  // SYNC-15 + B-05: refresh overrides non-destructively so consumers never
+  // see the null-cache window that would downgrade content to bundled base.
   try {
-    invalidateScenarioOverrides();
-    invalidateFeatOverrides();
-    loadScenarioOverrides().catch(() => {});
-    loadFeatOverrides().catch(() => {});
+    refreshScenarioOverrides().catch(() => {});
+    refreshFeatOverrides().catch(() => {});
   } catch {}
 }
 
