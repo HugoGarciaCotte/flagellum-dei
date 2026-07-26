@@ -4,6 +4,8 @@ import { buildFeatsMap, getFeatMeta, type Feat } from "@/data/feats";
 import { convertBodyToHtml } from "@/lib/parseWikitext";
 import WikiLinkedText from "@/components/WikiLinkedText";
 import { useTranslation } from "@/i18n/useTranslation";
+import { parseEmbeddedFeatMeta } from "@/lib/parseEmbeddedFeatMeta";
+import { parseFeatFields } from "@/lib/parseFeatContent";
 
 function stripLinks(text: string): string {
   return text
