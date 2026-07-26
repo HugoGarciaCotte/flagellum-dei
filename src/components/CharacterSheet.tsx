@@ -39,13 +39,24 @@ const CharacterSheet = ({ characterId, mode = "player", scenarioLevel, onDone }:
 
   const character = useLocalRow<any>("characters", characterId);
 
+  // A-04: initialize on characterId change only; while mounted, only
+  // re-sync from the row when the local form is not dirty, so background
+  // pulls can't clobber in-progress typing.
   useEffect(() => {
-    if (character) {
+    if (!character) return;
+    setName(character.name);
+    setDesc(character.description || "");
+    setDirty(false);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [characterId]);
+
+  useEffect(() => {
+    if (character && !dirty) {
       setName(character.name);
       setDesc(character.description || "");
-      setDirty(false);
     }
-  }, [character]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [character?.updated_at, character?.name, character?.description]);
 
   const handleSave = () => {
     if (!character) return;
