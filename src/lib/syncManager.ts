@@ -49,12 +49,15 @@ async function ensureSession(): Promise<boolean> {
 let _chain: Promise<void> = Promise.resolve();
 let _syncDepth = 0;
 let _opStartedAt: number | null = null;
+// B-03: generation-based watchdog reset so orphaned ops can't corrupt _syncDepth.
+let _generation = 0;
 
 // §2.1.4 wedge watchdog — kick every 30s to abort ops in flight > 90s.
 if (typeof window !== "undefined") {
   setInterval(() => {
     if (_opStartedAt && Date.now() - _opStartedAt > 90_000) {
       store.journal({ op: "watchdog-reset", msg: `sync op exceeded 90s`, ok: false });
+      _generation++; // orphan the stuck chain
       _chain = Promise.resolve();
       _syncDepth = 0;
       _opStartedAt = null;
@@ -65,16 +68,20 @@ if (typeof window !== "undefined") {
 
 function enqueueSync<T = void>(fn: () => Promise<T>): Promise<T> {
   const run = async (): Promise<T> => {
+    const myGen = _generation;
     _syncDepth++;
     _opStartedAt = Date.now();
     if (_syncDepth === 1) notify("syncing");
     try {
       return await fn();
     } finally {
-      _syncDepth--;
-      if (_syncDepth === 0) {
-        notify("synced");
-        _opStartedAt = null;
+      // B-03: ignore ops orphaned by a watchdog reset so bookkeeping stays sane.
+      if (myGen === _generation) {
+        _syncDepth--;
+        if (_syncDepth === 0) {
+          notify("synced");
+          _opStartedAt = null;
+        }
       }
     }
   };
