@@ -290,8 +290,12 @@ describe("B-01: noteDeferred defers without incrementing attempts", () => {
 describe("B-13: quarantine cap → caller can back off", () => {
   it("quarantineRow eventually returns false so caller falls back to noteAttempt", async () => {
     const store = await freshStore();
+    // Seed 200 rows so quarantineRow actually pushes entries (cap=100).
+    for (let i = 0; i < 200; i++) {
+      store.upsertRow("characters", { id: `c${i}`, user_id: "u1", name: `n${i}` });
+    }
     let parkedFalseSeen = false;
-    for (let i = 0; i < 300; i++) {
+    for (let i = 0; i < 200; i++) {
       const parked = store.quarantineRow("characters", `c${i}`, "terminal-error", { message: "e" });
       if (!parked) {
         parkedFalseSeen = true;
