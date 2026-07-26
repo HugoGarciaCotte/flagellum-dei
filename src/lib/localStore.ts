@@ -299,6 +299,7 @@ export function quarantineRow(table: TableName, id: string, reason: QuarantineRe
   _outboxMeta.delete(k);
   persistDirtySet();
   persistOutboxMeta();
+  writeDirtyTombstone([k]); // B-04: mirror to other tabs.
   appendSyncError({ table, ids: [id], message: `Change parked: ${reason}${error?.message ? ` — ${error.message}` : ""}` });
   journal({ op: "quarantine", table, ids: [id], code: error?.code, msg: error?.message, ok: false });
   return true;
