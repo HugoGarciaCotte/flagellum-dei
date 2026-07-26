@@ -677,6 +677,18 @@ if (typeof window !== "undefined") {
         }
       } catch {}
       return;
+    if (e.key === DIRTY_TOMBSTONE_KEY) {
+      // B-04: another tab pushed/quarantined these rows — drop our stale dirty markers.
+      try {
+        const payload = JSON.parse(e.newValue ?? "{}") as { keys?: string[] };
+        for (const k of payload.keys ?? []) {
+          _dirtyRows.delete(k);
+          _outboxMeta.delete(k);
+        }
+        persistDirtySet();
+        persistOutboxMeta();
+      } catch {}
+      return;
     }
     if (e.key.startsWith(LS_PREFIX) && e.key !== LAST_SYNC_KEY && e.key !== SYNC_ERRORS_KEY && e.key !== QUARANTINE_KEY && e.key !== JOURNAL_KEY) {
       const table = e.key.slice(LS_PREFIX.length) as TableName;
