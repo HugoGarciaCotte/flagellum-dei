@@ -203,6 +203,21 @@ export function noteAttempt(table: TableName, id: string, nextAttemptAt: number 
   persistOutboxMeta();
 }
 
+/**
+ * B-01: defer a retry WITHOUT incrementing attempts. Used for connectivity
+ * failures so offline / lie-fi / captive-portal edits can't drift into the
+ * quarantine cap and disappear from the UI.
+ */
+export function noteDeferred(table: TableName, id: string, nextAttemptAt: number, error?: { code?: string; message: string }) {
+  const k = `${table}:${id}`;
+  const meta = _outboxMeta.get(k) ?? { at: new Date().toISOString(), attempts: 0 };
+  meta.lastAttemptAt = new Date().toISOString();
+  meta.nextAttemptAt = nextAttemptAt;
+  if (error) meta.lastError = { ...error, at: new Date().toISOString() };
+  _outboxMeta.set(k, meta);
+  persistOutboxMeta();
+}
+
 export function getOutboxMeta(table: TableName, id: string): OutboxMeta | undefined {
   return _outboxMeta.get(`${table}:${id}`);
 }
