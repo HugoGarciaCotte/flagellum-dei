@@ -89,8 +89,6 @@ const FeatDetailsDisplay = ({ content, rawContent, className = "" }: FeatDetails
   const meta = useMemo(() => {
     if (featFromMap) return getFeatMeta(featFromMap);
     // Fallback for content not in the feats map
-    const { parseEmbeddedFeatMeta } = require("@/lib/parseEmbeddedFeatMeta");
-    const { parseFeatFields } = require("@/lib/parseFeatContent");
     const embedded = parseEmbeddedFeatMeta(rawContent || content);
     const fields = parseFeatFields(rawContent || content);
     return {
