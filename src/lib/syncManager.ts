@@ -133,8 +133,10 @@ async function doPull(userId?: string) {
   const playedGameIds = (playerRefsRes.data ?? []).map((r: any) => r.game_id);
   const hostedGames = hostedRes.data ?? [];
 
+  // B-19: keep ended played games in the pull so players on /game/:id/play
+  // still see the "quest ended" screen. `evictStaleGames` handles cleanup.
   const playedGamesRes = playedGameIds.length > 0
-    ? await supabase.from("games").select("*").neq("status", "ended").in("id", playedGameIds)
+    ? await supabase.from("games").select("*").in("id", playedGameIds)
     : { data: [] as any[], error: null };
   if ((playedGamesRes as any).error) {
     const msg = (playedGamesRes as any).error.message;
