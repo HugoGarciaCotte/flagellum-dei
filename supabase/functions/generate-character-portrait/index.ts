@@ -45,8 +45,22 @@ serve(async (req) => {
       .select("*")
       .eq("id", characterId)
       .single();
-    if (charError || !character) throw new Error("Character not found");
-    if (character.user_id !== user.id) throw new Error("Not your character");
+    if (charError || !character) {
+      return new Response(JSON.stringify({ error: "Character not found" }), {
+        status: 404, headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+    // A-08: allow the character owner OR the GM hosting that player.
+    if (character.user_id !== user.id) {
+      const { data: isHost } = await adminClient.rpc("is_host_of_player", {
+        _player_user: character.user_id, _viewer: user.id,
+      });
+      if (!isHost) {
+        return new Response(JSON.stringify({ error: "Forbidden" }), {
+          status: 403, headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
+    }
 
     // Use client-provided feat names, or fall back to feat_ids only
     let featNames: string[] = clientFeatNames || [];
