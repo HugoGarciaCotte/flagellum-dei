@@ -34,23 +34,10 @@ export default defineConfig(({ mode }) => ({
               expiration: { maxEntries: 4, maxAgeSeconds: 60 * 60 * 24 * 7 },
             },
           },
-          {
-            urlPattern: /^https:\/\/.*\.supabase\.co\/rest\/v1\/scenarios.*/i,
-            handler: "StaleWhileRevalidate",
-            options: {
-              cacheName: "scenario-api-cache",
-              expiration: { maxEntries: 50, maxAgeSeconds: 60 * 60 * 24 * 7 },
-            },
-          },
-          {
-            urlPattern: /^https:\/\/.*\.supabase\.co\/rest\/v1\/.*/i,
-            handler: "NetworkFirst",
-            options: {
-              cacheName: "supabase-api-cache",
-              expiration: { maxEntries: 100, maxAgeSeconds: 60 * 60 * 24 },
-              networkTimeoutSeconds: 5,
-            },
-          },
+          // ST-05 (FIX_SPEC_UNSTICK): the two /rest/v1/ runtimeCaching entries
+          // that used to live here served stale REST snapshots up to 24h old,
+          // creating a "device can never converge" loop. The local store is
+          // the offline cache; caching REST responses in the SW is harmful.
           {
             urlPattern: /\.(?:png|jpg|jpeg|svg|gif|webp)$/i,
             handler: "CacheFirst",

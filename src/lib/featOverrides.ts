@@ -7,20 +7,29 @@ export type FeatOverrideMap = Map<string, Map<string, any>>;
 let _overrides: FeatOverrideMap | null = null;
 let _loading: Promise<FeatOverrideMap> | null = null;
 
+// EDIT-01: include `transforms_to` so admin-saved transform targets apply at runtime.
 const META_FIELDS = new Set([
   "description", "prerequisites", "special", "specialities",
   "subfeats", "unlocks_categories", "blocking", "synonyms", "exhaustion",
+  "transforms_to",
 ]);
 
-/** Fetch all feat_overrides from DB. Caches in memory. */
+/**
+ * SYNC-15: propagate load errors (never cache a failed load) and notify
+ * subscribers when overrides refresh.
+ */
 export async function loadFeatOverrides(): Promise<FeatOverrideMap> {
   if (_overrides) return _overrides;
   if (_loading) return _loading;
   _loading = (async () => {
     const map: FeatOverrideMap = new Map();
-    const { data } = await supabase
+    const { data, error } = await supabase
       .from("feat_overrides")
       .select("feat_id, field, value");
+    if (error) {
+      _loading = null;
+      throw error;
+    }
     if (data) {
       for (const row of data) {
         if (!map.has(row.feat_id)) map.set(row.feat_id, new Map());
@@ -29,23 +38,21 @@ export async function loadFeatOverrides(): Promise<FeatOverrideMap> {
     }
     _overrides = map;
     _loading = null;
+    try { window.dispatchEvent(new CustomEvent("overrides-change")); } catch {}
     return map;
   })();
   return _loading;
 }
 
-/** Get cached overrides (returns null if not yet loaded). */
 export function getCachedOverrides(): FeatOverrideMap | null {
   return _overrides;
 }
 
-/** Invalidate cache so next loadFeatOverrides re-fetches. */
 export function invalidateOverrides() {
   _overrides = null;
   _loading = null;
 }
 
-/** Apply DB overrides to a single feat. */
 export function applyOverrides(feat: Feat, overrides: FeatOverrideMap): Feat {
   const fields = overrides.get(feat.id);
   if (!fields || fields.size === 0) return feat;
@@ -72,7 +79,6 @@ export function applyOverrides(feat: Feat, overrides: FeatOverrideMap): Feat {
   return result;
 }
 
-/** Check if a feat has any DB overrides. */
 export function hasOverrides(featId: string, overrides: FeatOverrideMap): boolean {
   const fields = overrides.get(featId);
   return !!fields && fields.size > 0;
