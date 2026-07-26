@@ -4,6 +4,8 @@ import { buildFeatsMap, getFeatMeta, type Feat } from "@/data/feats";
 import { convertBodyToHtml } from "@/lib/parseWikitext";
 import WikiLinkedText from "@/components/WikiLinkedText";
 import { useTranslation } from "@/i18n/useTranslation";
+import { parseEmbeddedFeatMeta } from "@/lib/parseEmbeddedFeatMeta";
+import { parseFeatFields } from "@/lib/parseFeatContent";
 
 function stripLinks(text: string): string {
   return text
@@ -87,8 +89,6 @@ const FeatDetailsDisplay = ({ content, rawContent, className = "" }: FeatDetails
   const meta = useMemo(() => {
     if (featFromMap) return getFeatMeta(featFromMap);
     // Fallback for content not in the feats map
-    const { parseEmbeddedFeatMeta } = require("@/lib/parseEmbeddedFeatMeta");
-    const { parseFeatFields } = require("@/lib/parseFeatContent");
     const embedded = parseEmbeddedFeatMeta(rawContent || content);
     const fields = parseFeatFields(rawContent || content);
     return {
