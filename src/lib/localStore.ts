@@ -544,6 +544,14 @@ export function deleteBy(table: TableName, filter: Record<string, any>) {
   persist(table);
 }
 
+/**
+ * Return true only when we're switching between two distinct non-null user ids.
+ * A-01: prevents `clearAll()` on transient `SIGNED_OUT` events (token refresh, cross-tab sign-out).
+ */
+export function shouldClearOnUserChange(prev: string | undefined, next: string | undefined): boolean {
+  return !!prev && !!next && prev !== next;
+}
+
 export function clearAll() {
   for (const table of TABLES) {
     cache.set(table, []);
@@ -553,6 +561,13 @@ export function clearAll() {
   try { localStorage.removeItem(LAST_SYNC_KEY); } catch {}
   try { localStorage.removeItem(DIRTY_KEY); } catch {}
   try { localStorage.removeItem(OUTBOX_META_KEY); } catch {}
+  // B-15: also drop errors and quarantine so a new user on the same device
+  // doesn't inherit A's parked rows / error log.
+  try { localStorage.removeItem(SYNC_ERRORS_KEY); } catch {}
+  try { localStorage.removeItem(QUARANTINE_KEY); } catch {}
+  _quarantine = [];
+  window.dispatchEvent(new CustomEvent("sync-errors-change"));
+  window.dispatchEvent(new CustomEvent("sync-quarantine-change"));
   window.dispatchEvent(new CustomEvent("localstore-change", { detail: { table: "*" } }));
 }
 
