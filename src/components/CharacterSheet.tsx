@@ -167,15 +167,18 @@ const CharacterSheet = ({ characterId, mode = "player", scenarioLevel, onDone }:
             className="hidden"
             onChange={handleUpload}
           />
-          <Button
-            variant="outline"
-            size="sm"
-            className="gap-1.5"
-            onClick={() => fileInputRef.current?.click()}
-            disabled={effectivelyOffline}
-          >
-            <Upload className="h-3.5 w-3.5" /> {t("wizard.portrait.upload")}
-          </Button>
+          {/* A-08: hide Upload for GM — storage RLS blocks writes to the player's folder. */}
+          {mode !== "gm" && (
+            <Button
+              variant="outline"
+              size="sm"
+              className="gap-1.5"
+              onClick={() => fileInputRef.current?.click()}
+              disabled={effectivelyOffline}
+            >
+              <Upload className="h-3.5 w-3.5" /> {t("wizard.portrait.upload")}
+            </Button>
+          )}
           <Button
             variant="outline"
             size="sm"
