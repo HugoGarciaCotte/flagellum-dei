@@ -677,6 +677,7 @@ if (typeof window !== "undefined") {
         }
       } catch {}
       return;
+    }
     if (e.key === DIRTY_TOMBSTONE_KEY) {
       // B-04: another tab pushed/quarantined these rows — drop our stale dirty markers.
       try {
