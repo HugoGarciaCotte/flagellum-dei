@@ -135,7 +135,7 @@ const Dashboard = () => {
               </Button>
             )}
             {isGuest ? (
-              <Button variant="ghost" size="sm" onClick={() => { signOut(); navigate("/auth"); }} className="gap-2">
+              <Button variant="ghost" size="sm" onClick={() => navigate("/auth")} className="gap-2">
                 {t("dashboard.signUp")}
               </Button>
             ) : (
