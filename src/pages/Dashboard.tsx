@@ -149,6 +149,8 @@ const Dashboard = () => {
 
       <div className="flex-1 overflow-y-auto">
       <main className="container py-8 space-y-10 max-w-2xl" style={{ background: "radial-gradient(ellipse at center top, hsl(43 74% 49% / 0.04) 0%, transparent 50%)" }}>
+        {/* A-19: global repair surface — self-hides when nothing needs attention */}
+        <SyncIssuesPanel />
         {/* Join a Game */}
         <section className="space-y-3">
           <h2 className="font-display text-2xl text-foreground flex items-center gap-2">
