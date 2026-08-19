@@ -26,7 +26,10 @@ function nextBackoff(attempts: number): number {
   return Date.now() + raw * (0.8 + Math.random() * 0.4);
 }
 
+// LOG-01: persist+console every emitted error via appendSyncError; the
+// "sync-error" event alone only produced a transient toast and was lost.
 function emitSyncError(table: string, message: string, ids: string[] = []) {
+  try { store.appendSyncError({ table, ids, message }); } catch { /* never block sync */ }
   try {
     window.dispatchEvent(new CustomEvent("sync-error", { detail: { table, ids, message } }));
   } catch {}
@@ -123,7 +126,7 @@ async function doPull(userId?: string) {
 
   if (rolesRes.error || playerRefsRes.error || hostedRes.error || profileRes.error) {
     const msg = rolesRes.error?.message ?? playerRefsRes.error?.message ?? hostedRes.error?.message ?? profileRes.error?.message ?? "pull failed";
-    store.appendSyncError({ table: "pull", ids: [], message: msg });
+    // LOG-01: no appendSyncError here — pullAll's catch persists it via emitSyncError.
     store.journal({ op: "pull", ok: false, msg, ms: Date.now() - started });
     throw new Error(msg);
   }
@@ -245,8 +248,7 @@ function handleRowFailure(table: TableName, row: any, error: { code?: string; me
     return;
   }
   store.noteAttempt(table, row.id, nextBackoff(attempts), error);
-  store.appendSyncError({ table, ids: [row.id], message: error.message });
-  emitSyncError(table, error.message, [row.id]);
+  emitSyncError(table, error.message, [row.id]); // LOG-01: persists via appendSyncError
   store.journal({ op: "push", table, ids: [row.id], ok: false, code: error.code, msg: error.message });
 }
 

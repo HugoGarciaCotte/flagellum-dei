@@ -134,7 +134,12 @@ export const SyncIssuesPanel = () => {
                   className="rounded-md border border-border bg-muted/30 p-2 text-xs space-y-1"
                 >
                   <div className="flex items-center justify-between gap-2">
-                    <span className="font-mono text-muted-foreground">{e.table}</span>
+                    <span className="font-mono text-muted-foreground">
+                      {e.table}
+                      {(e.count ?? 1) > 1 && (
+                        <span className="ml-1.5 rounded bg-destructive/15 px-1 text-destructive">×{e.count}</span>
+                      )}
+                    </span>
                     <span className="text-muted-foreground">
                       {new Date(e.at).toLocaleString()}
                     </span>

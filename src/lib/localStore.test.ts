@@ -5,7 +5,7 @@
  * Each test re-imports the module fresh so its top-level cache
  * hydrates from a freshly-seeded localStorage.
  */
-import { describe, it, expect, beforeEach, vi } from "vitest";
+import { describe, it, expect, beforeEach, afterEach, vi } from "vitest";
 
 async function freshStore(seed: Record<string, unknown> = {}) {
   localStorage.clear();
@@ -16,8 +16,16 @@ async function freshStore(seed: Record<string, unknown> = {}) {
   return await import("./localStore");
 }
 
+// LOG-01 mirrors every sync error to console.error; keep test output clean.
+let consoleErrorSpy: ReturnType<typeof vi.spyOn>;
+
 beforeEach(() => {
   localStorage.clear();
+  consoleErrorSpy = vi.spyOn(console, "error").mockImplementation(() => {});
+});
+
+afterEach(() => {
+  consoleErrorSpy.mockRestore();
 });
 
 describe("SYNC-01: dirty set is persisted", () => {
@@ -270,6 +278,82 @@ describe("B-15: clearAll wipes sync errors and quarantine", () => {
     expect(store.getQuarantine()).toHaveLength(0);
     expect(store.getSyncErrors()).toHaveLength(0);
     expect(store.getTable("characters")).toHaveLength(0);
+  });
+});
+
+describe("LOG-01: durable sync error log", () => {
+  it("mirrors every appended error to console.error", async () => {
+    const store = await freshStore();
+    store.appendSyncError({ table: "pull", ids: [], message: "Failed to fetch" });
+    expect(consoleErrorSpy).toHaveBeenCalledTimes(1);
+    expect(consoleErrorSpy.mock.calls[0][0]).toContain("Failed to fetch");
+  });
+
+  it("writes to both the active list and the durable log", async () => {
+    const store = await freshStore();
+    store.appendSyncError({ table: "games", ids: ["g1"], message: "boom" });
+    expect(store.getSyncErrors()).toHaveLength(1);
+    expect(store.getSyncErrorLog()).toHaveLength(1);
+    expect(store.getSyncErrorLog()[0].message).toBe("boom");
+  });
+
+  it("collapses identical consecutive errors into a count", async () => {
+    const store = await freshStore();
+    store.appendSyncError({ table: "pull", ids: [], message: "Failed to fetch" });
+    store.appendSyncError({ table: "pull", ids: [], message: "Failed to fetch" });
+    store.appendSyncError({ table: "pull", ids: [], message: "Failed to fetch" });
+    const active = store.getSyncErrors();
+    expect(active).toHaveLength(1);
+    expect(active[0].count).toBe(3);
+    expect(active[0].firstAt).toBeDefined();
+    // A different message starts a new entry.
+    store.appendSyncError({ table: "pull", ids: [], message: "sync-timeout" });
+    expect(store.getSyncErrors()).toHaveLength(2);
+    expect(store.getSyncErrorLog()).toHaveLength(2);
+  });
+
+  it("clearSyncErrors clears the active list but preserves the durable log", async () => {
+    const store = await freshStore();
+    store.appendSyncError({ table: "push", ids: ["c1"], message: "denied" });
+    store.clearSyncErrors();
+    expect(store.getSyncErrors()).toHaveLength(0);
+    expect(store.getSyncErrorLog()).toHaveLength(1);
+  });
+
+  it("clearAll preserves the durable log while clearing the active list", async () => {
+    const store = await freshStore();
+    store.appendSyncError({ table: "push", ids: ["c1"], message: "denied" });
+    store.clearAll();
+    expect(store.getSyncErrors()).toHaveLength(0);
+    expect(store.getSyncErrorLog()).toHaveLength(1);
+  });
+
+  it("caps the active list at 20 and the durable log at 500", async () => {
+    const store = await freshStore();
+    for (let i = 0; i < 510; i++) {
+      store.appendSyncError({ table: "t", ids: [], message: `error-${i}` });
+    }
+    expect(store.getSyncErrors()).toHaveLength(20);
+    const log = store.getSyncErrorLog();
+    expect(log).toHaveLength(500);
+    expect(log[0].message).toBe("error-509"); // newest first
+  });
+
+  it("hands each error to the forwarder; a throwing forwarder cannot break append", async () => {
+    const store = await freshStore();
+    const seen: string[] = [];
+    store.setSyncErrorForwarder((e) => { seen.push(e.message); });
+    store.appendSyncError({ table: "t", ids: [], message: "one" });
+    expect(seen).toEqual(["one"]);
+    store.setSyncErrorForwarder(() => { throw new Error("forwarder bug"); });
+    expect(() => store.appendSyncError({ table: "t", ids: [], message: "two" })).not.toThrow();
+    expect(store.getSyncErrorLog()[0].message).toBe("two");
+  });
+
+  it("truncates oversized messages", async () => {
+    const store = await freshStore();
+    store.appendSyncError({ table: "t", ids: [], message: "x".repeat(1000) });
+    expect(store.getSyncErrorLog()[0].message.length).toBe(300);
   });
 });
 

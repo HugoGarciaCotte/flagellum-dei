@@ -45,7 +45,10 @@ for (const table of TABLES) {
   }
 }
 
+// LOG-01: every emitted error is also persisted+consoled via appendSyncError —
+// the "sync-error" event alone only produced a transient toast and was lost.
 function emitSyncError(table: string, message: string, ids: string[] = []) {
+  try { appendSyncError({ table, ids, message }); } catch { /* never block the write path */ }
   try {
     window.dispatchEvent(new CustomEvent("sync-error", { detail: { table, ids, message } }));
   } catch {}
@@ -378,17 +381,40 @@ export function setLastSync(ts: string) {
   try { localStorage.setItem(LAST_SYNC_KEY, ts); } catch {}
 }
 
-// --- Sync error log ---
+// --- Sync error log (LOG-01: no sync error is ever silently lost) ---
+//
+// Two persisted lists share one funnel (`appendSyncError`):
+//  - `ls_sync_errors` — the ACTIVE list shown in SyncIssuesPanel; dismissible.
+//  - `ls_sync_error_log` — the DURABLE append-only log; survives "Clear errors",
+//    the repair ladder, and `clearAll` (sign-out / user switch).
+// Every error is also mirrored to the console and handed to an optional
+// forwarder (remote logging) — both fire even when localStorage writes fail.
 
 const SYNC_ERRORS_KEY = "ls_sync_errors";
+const SYNC_ERROR_LOG_KEY = "ls_sync_error_log";
+/** Outbox for the remote reporter; lives here so clearAll can reset it on user switch. */
+export const SYNC_ERROR_OUTBOX_KEY = "ls_sync_error_outbox";
 const MAX_SYNC_ERRORS = 20;
+const MAX_SYNC_ERROR_LOG = 500;
+const MAX_SYNC_ERROR_MSG = 300;
+const COLLAPSE_WINDOW_MS = 5 * 60_000;
 
 export type SyncError = {
   at: string;
   table: string;
   ids: string[];
   message: string;
+  /** Repeat count when the same table+message fired within the collapse window. */
+  count?: number;
+  /** First occurrence timestamp when count > 1. */
+  firstAt?: string;
 };
+
+export type SyncErrorForwarder = (e: SyncError) => void;
+let _syncErrorForwarder: SyncErrorForwarder | null = null;
+export function setSyncErrorForwarder(fn: SyncErrorForwarder | null) {
+  _syncErrorForwarder = fn;
+}
 
 export function getSyncErrors(): SyncError[] {
   try {
@@ -397,14 +423,51 @@ export function getSyncErrors(): SyncError[] {
   } catch { return []; }
 }
 
+export function getSyncErrorLog(): SyncError[] {
+  try {
+    const raw = localStorage.getItem(SYNC_ERROR_LOG_KEY);
+    return raw ? (JSON.parse(raw) as SyncError[]) : [];
+  } catch { return []; }
+}
+
+/** Merge into the head entry when it repeats the same table+message recently; else prepend. */
+function collapseOrPrepend(list: SyncError[], entry: SyncError, cap: number): SyncError[] {
+  const head = list[0];
+  if (
+    head &&
+    head.table === entry.table &&
+    head.message === entry.message &&
+    Math.abs(new Date(entry.at).getTime() - new Date(head.at).getTime()) < COLLAPSE_WINDOW_MS
+  ) {
+    const merged: SyncError = {
+      ...head,
+      at: entry.at,
+      firstAt: head.firstAt ?? head.at,
+      count: (head.count ?? 1) + 1,
+    };
+    return [merged, ...list.slice(1)].slice(0, cap);
+  }
+  return [entry, ...list].slice(0, cap);
+}
+
 export function appendSyncError(err: Omit<SyncError, "at"> & { at?: string }) {
   const entry: SyncError = { at: err.at ?? new Date().toISOString(), ...err };
-  const existing = getSyncErrors();
-  const next = [entry, ...existing].slice(0, MAX_SYNC_ERRORS);
-  try { localStorage.setItem(SYNC_ERRORS_KEY, JSON.stringify(next)); } catch {}
+  if (entry.message.length > MAX_SYNC_ERROR_MSG) entry.message = entry.message.slice(0, MAX_SYNC_ERROR_MSG);
+  // Console first: visible in devtools even if every storage write below fails.
+  try {
+    console.error(`[sync-error] ${entry.table}: ${entry.message}`, entry.ids.length > 0 ? { ids: entry.ids } : "");
+  } catch { /* ignore */ }
+  try {
+    localStorage.setItem(SYNC_ERRORS_KEY, JSON.stringify(collapseOrPrepend(getSyncErrors(), entry, MAX_SYNC_ERRORS)));
+  } catch { /* quota */ }
+  try {
+    localStorage.setItem(SYNC_ERROR_LOG_KEY, JSON.stringify(collapseOrPrepend(getSyncErrorLog(), entry, MAX_SYNC_ERROR_LOG)));
+  } catch { /* quota */ }
+  try { _syncErrorForwarder?.(entry); } catch { /* forwarder must not break logging */ }
   window.dispatchEvent(new CustomEvent("sync-errors-change"));
 }
 
+/** Clears only the ACTIVE list (panel display). The durable log is never cleared here. */
 export function clearSyncErrors() {
   try { localStorage.removeItem(SYNC_ERRORS_KEY); } catch {}
   window.dispatchEvent(new CustomEvent("sync-errors-change"));
@@ -600,8 +663,12 @@ export function clearAll() {
   try { localStorage.removeItem(OUTBOX_META_KEY); } catch {}
   // B-15: also drop errors and quarantine so a new user on the same device
   // doesn't inherit A's parked rows / error log.
+  // LOG-01: the durable log (SYNC_ERROR_LOG_KEY) is intentionally PRESERVED —
+  // it is device-level diagnostics and must survive sign-out / user switch.
+  // The remote outbox is dropped so old entries aren't attributed to the new user.
   try { localStorage.removeItem(SYNC_ERRORS_KEY); } catch {}
   try { localStorage.removeItem(QUARANTINE_KEY); } catch {}
+  try { localStorage.removeItem(SYNC_ERROR_OUTBOX_KEY); } catch {}
   _quarantine = [];
   window.dispatchEvent(new CustomEvent("sync-errors-change"));
   window.dispatchEvent(new CustomEvent("sync-quarantine-change"));

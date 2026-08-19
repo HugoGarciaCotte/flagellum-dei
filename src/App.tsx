@@ -9,6 +9,7 @@ import { GuestBanner } from "@/components/GuestBanner";
 import { BottomStackProvider } from "@/contexts/BottomStackContext";
 import LanguagePicker from "@/components/LanguagePicker";
 import { attachOnlineListener } from "@/lib/syncManager";
+import { initSyncErrorReporter } from "@/lib/syncErrorReporter";
 import { loadFeatOverrides } from "@/lib/featOverrides";
 import { loadScenarioOverrides } from "@/lib/scenarioOverrides";
 import Index from "./pages/Index";
@@ -28,6 +29,8 @@ import NotFound from "./pages/NotFound";
 
 // Auto-sync when connectivity returns
 attachOnlineListener();
+// LOG-01: ship persisted sync errors to the backend (fire-and-forget)
+initSyncErrorReporter();
 // Pre-load overrides (non-blocking)
 loadFeatOverrides().catch(() => {});
 loadScenarioOverrides().catch(() => {});
