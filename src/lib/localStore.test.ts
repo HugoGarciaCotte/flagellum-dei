@@ -403,8 +403,7 @@ describe("Sync error TTL sweep", () => {
       message: "ancient",
       at: new Date(Date.now() - 7 * 60 * 60_000).toISOString(),
     });
-    const errs = store.getSyncErrors();
-    expect(errs.map((e) => e.message)).toEqual(["ancient", "fresh"].filter((m) => m === "fresh"));
+    expect(store.getSyncErrors().map((e) => e.message)).toEqual(["fresh"]);
     // durable log keeps everything
     expect(store.getSyncErrorLog().length).toBe(2);
   });
