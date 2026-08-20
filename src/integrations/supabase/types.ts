@@ -98,6 +98,7 @@ export type Database = {
           feats: Json
           id: string
           name: string
+          notes: string | null
           portrait_url: string | null
           updated_at: string
           user_id: string
@@ -109,6 +110,7 @@ export type Database = {
           feats?: Json
           id?: string
           name: string
+          notes?: string | null
           portrait_url?: string | null
           updated_at?: string
           user_id: string
@@ -120,6 +122,7 @@ export type Database = {
           feats?: Json
           id?: string
           name?: string
+          notes?: string | null
           portrait_url?: string | null
           updated_at?: string
           user_id?: string

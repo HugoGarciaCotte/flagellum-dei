@@ -31,6 +31,7 @@ const CharacterSheet = ({ characterId, mode = "player", scenarioLevel, onDone }:
   const effectivelyOffline = !online;
   const [name, setName] = useState("");
   const [desc, setDesc] = useState("");
+  const [notes, setNotes] = useState("");
   const [dirty, setDirty] = useState(false);
   const [generating, setGenerating] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -46,6 +47,7 @@ const CharacterSheet = ({ characterId, mode = "player", scenarioLevel, onDone }:
     if (!character) return;
     setName(character.name);
     setDesc(character.description || "");
+    setNotes(character.notes || "");
     setDirty(false);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [characterId]);
@@ -54,13 +56,14 @@ const CharacterSheet = ({ characterId, mode = "player", scenarioLevel, onDone }:
     if (character && !dirty) {
       setName(character.name);
       setDesc(character.description || "");
+      setNotes(character.notes || "");
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [character?.updated_at, character?.name, character?.description]);
+  }, [character?.updated_at, character?.name, character?.description, character?.notes]);
 
   const handleSave = () => {
     if (!character) return;
-    upsertRow("characters", { ...character, name, description: desc || null, updated_at: new Date().toISOString() });
+    upsertRow("characters", { ...character, name, description: desc || null, notes: notes || null, updated_at: new Date().toISOString() });
     triggerPush();
     setDirty(false);
     toast({ title: t("character.toast.updated") });
@@ -137,6 +140,7 @@ const CharacterSheet = ({ characterId, mode = "player", scenarioLevel, onDone }:
 
   const handleNameChange = (val: string) => { setName(val); setDirty(true); };
   const handleDescChange = (val: string) => { setDesc(val); setDirty(true); };
+  const handleNotesChange = (val: string) => { setNotes(val); setDirty(true); };
 
   if (!character) {
     return <div className="text-base text-muted-foreground py-4 text-center">{t("character.loading")}</div>;
@@ -212,6 +216,19 @@ const CharacterSheet = ({ characterId, mode = "player", scenarioLevel, onDone }:
         onChange={(e) => handleDescChange(e.target.value)}
         rows={3}
       />
+
+      <div className="space-y-1.5">
+        <label className="text-xs uppercase tracking-wider text-primary font-display flex items-center gap-2">
+          <span aria-hidden="true">🜍</span> {t("character.notes.label")}
+        </label>
+        <Textarea
+          placeholder={t("character.notes.placeholder")}
+          value={notes}
+          onChange={(e) => handleNotesChange(e.target.value)}
+          rows={5}
+        />
+      </div>
+
       {dirty && (
         <Button
           onClick={handleSave}
