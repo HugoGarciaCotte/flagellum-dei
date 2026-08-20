@@ -416,12 +416,25 @@ export function setSyncErrorForwarder(fn: SyncErrorForwarder | null) {
   _syncErrorForwarder = fn;
 }
 
+/** Active errors older than this are dropped on read — they are long resolved. */
+const SYNC_ERROR_TTL_MS = 6 * 60 * 60_000;
+
 export function getSyncErrors(): SyncError[] {
   try {
     const raw = localStorage.getItem(SYNC_ERRORS_KEY);
-    return raw ? (JSON.parse(raw) as SyncError[]) : [];
+    const list = raw ? (JSON.parse(raw) as SyncError[]) : [];
+    const cutoff = Date.now() - SYNC_ERROR_TTL_MS;
+    const fresh = list.filter((e) => {
+      const t = new Date(e.at).getTime();
+      return Number.isNaN(t) ? false : t >= cutoff;
+    });
+    if (fresh.length !== list.length) {
+      try { localStorage.setItem(SYNC_ERRORS_KEY, JSON.stringify(fresh)); } catch {}
+    }
+    return fresh;
   } catch { return []; }
 }
+
 
 export function getSyncErrorLog(): SyncError[] {
   try {
@@ -552,6 +565,24 @@ export function replaceBy(table: TableName, filter: Record<string, any>, rows: R
   cache.set(table, [...map.values()]);
   persist(table);
 }
+
+/**
+ * Batched variant of `replaceBy`: replaces every row whose `column` is in
+ * `values` with the incoming set. Dirty rows always win (SYNC-02).
+ */
+export function replaceIn(table: TableName, column: string, values: string[], rows: Row[]) {
+  const scope = new Set(values);
+  const existing = cache.get(table) ?? [];
+  const kept = existing.filter((row) => {
+    if (!scope.has(row[column])) return true;
+    return _dirtyRows.has(`${table}:${row.id}`);
+  });
+  const map = new Map(rows.map((r) => [r.id, r]));
+  for (const row of kept) map.set(row.id, row);
+  cache.set(table, [...map.values()]);
+  persist(table);
+}
+
 
 export function upsertRow(table: TableName, row: Row) {
   const rows = cache.get(table) ?? [];

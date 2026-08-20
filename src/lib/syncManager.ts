@@ -28,12 +28,21 @@ function nextBackoff(attempts: number): number {
 
 // LOG-01: persist+console every emitted error via appendSyncError; the
 // "sync-error" event alone only produced a transient toast and was lost.
+// Connectivity blips (aborts/timeouts/offline) are self-healing — they are
+// journaled and retried, but never shown to the user as a sync failure.
+const CONNECTIVITY_RE = /failed to fetch|load failed|network(?:error)?|timeout|sync-timeout|aborted|abort/i;
+
 function emitSyncError(table: string, message: string, ids: string[] = []) {
+  if (CONNECTIVITY_RE.test(message ?? "")) {
+    try { store.journal({ op: "sync", table, ids, ok: false, msg: message }); } catch {}
+    return;
+  }
   try { store.appendSyncError({ table, ids, message }); } catch { /* never block sync */ }
   try {
     window.dispatchEvent(new CustomEvent("sync-error", { detail: { table, ids, message } }));
   } catch {}
 }
+
 
 /**
  * SYNC-13: never auto-mint an anonymous identity from the sync engine.
@@ -482,11 +491,14 @@ export async function pullAll(userId?: string): Promise<void> {
   });
 }
 
-/** Pull a single table with optional filter. */
+/**
+ * Pull a single table with optional filter.
+ * No SW cache purge here: REST responses are not SW-cached any more (ST-05),
+ * and racing a purge before every pull added up to 2s of dead time per call.
+ */
 export async function pullTable(table: TableName, filter?: Record<string, any>): Promise<void> {
   return enqueueSync(async () => {
     if (!(await ensureSession())) return;
-    await Promise.race([purgeSwRestCaches(), new Promise<void>((r) => setTimeout(r, 2000))]);
     try {
       let query = supabase.from(table as any).select("*");
       if (filter) {
@@ -510,6 +522,35 @@ export async function pullTable(table: TableName, filter?: Record<string, any>):
     }
   });
 }
+
+/**
+ * Batched pull: one request for a whole set of values instead of N sequential
+ * per-value pulls (the GM player-list fan-out that caused sync-timeouts).
+ */
+export async function pullTableIn(
+  table: TableName,
+  column: string,
+  values: string[],
+): Promise<void> {
+  const uniq = [...new Set(values.filter(Boolean))];
+  if (uniq.length === 0) return;
+  return enqueueSync(async () => {
+    if (!(await ensureSession())) return;
+    try {
+      const { data, error } = await (supabase.from(table as any).select("*").in(column, uniq) as any);
+      if (error) {
+        emitSyncError(table, error.message);
+        store.journal({ op: "pullTable", table, ok: false, msg: error.message });
+        return;
+      }
+      if (data) store.replaceIn(table, column, uniq, data as any);
+    } catch (e: any) {
+      console.warn(`pullTableIn ${table} failed:`, e);
+      emitSyncError(table, e?.message ?? String(e));
+    }
+  });
+}
+
 
 export async function pushAll(): Promise<void> {
   return enqueueSync(async () => {

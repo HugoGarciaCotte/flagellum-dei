@@ -392,3 +392,40 @@ describe("B-13: quarantine cap → caller can back off", () => {
     expect(parkedFalseSeen).toBe(true);
   });
 });
+
+describe("Sync error TTL sweep", () => {
+  it("drops active errors older than 6h and keeps fresh ones", async () => {
+    const store = await freshStore();
+    store.appendSyncError({ table: "characters", ids: [], message: "fresh" });
+    store.appendSyncError({
+      table: "game_players",
+      ids: [],
+      message: "ancient",
+      at: new Date(Date.now() - 7 * 60 * 60_000).toISOString(),
+    });
+    expect(store.getSyncErrors().map((e) => e.message)).toEqual(["fresh"]);
+    // durable log keeps everything
+    expect(store.getSyncErrorLog().length).toBe(2);
+  });
+});
+
+describe("replaceIn: batched scoped replace", () => {
+  it("replaces rows in scope, keeps out-of-scope rows and dirty rows", async () => {
+    const store = await freshStore();
+    store.mergeTable("characters", [
+      { id: "a", user_id: "u1", name: "A" },
+      { id: "b", user_id: "u2", name: "B" },
+      { id: "c", user_id: "u3", name: "C" },
+    ]);
+    store.upsertRow("characters", { id: "d", user_id: "u1", name: "Dirty" }); // dirty
+    store.replaceIn("characters", "user_id", ["u1", "u2"], [
+      { id: "a", user_id: "u1", name: "A2" },
+    ]);
+    const rows = store.getTable("characters") as any[];
+    const byId = Object.fromEntries(rows.map((r) => [r.id, r]));
+    expect(byId.a.name).toBe("A2");
+    expect(byId.b).toBeUndefined();      // in scope, not returned → dropped
+    expect(byId.c.name).toBe("C");       // out of scope → kept
+    expect(byId.d.name).toBe("Dirty");   // dirty → kept
+  });
+});

@@ -2,7 +2,7 @@ import { useState, useMemo, useEffect } from "react";
 import { useAuth } from "@/contexts/AuthContext";
 import { useLocalRows } from "@/hooks/useLocalData";
 import { getBy } from "@/lib/localStore";
-import { pullTable } from "@/lib/syncManager";
+import { pullTable, pullTableIn } from "@/lib/syncManager";
 import { supabase } from "@/integrations/supabase/client";
 import { useNetworkStatus } from "@/hooks/useNetworkStatus";
 import { Button } from "@/components/ui/button";
@@ -58,21 +58,15 @@ const GMPlayerList = () => {
   // A-05: key subscription on hosted-games set, not on known players.
   const gameIdsKey = useMemo(() => games.map((g: any) => g.id).sort().join(","), [games]);
 
-  // Pull characters + profiles for every known player whenever the player set changes
+  // Pull characters + profiles for every known player in TWO batched requests
+  // (was one request per player, which serialized into dozens of REST calls
+  // and tripped the 30s client abort as "sync-timeout").
   useEffect(() => {
     if (!online || playerUserIds.length === 0) return;
-    let cancelled = false;
-    (async () => {
-      for (const uid of playerUserIds) {
-        if (cancelled) return;
-        await Promise.all([
-          pullTable("characters", { user_id: uid }),
-          pullTable("profiles", { user_id: uid }),
-        ]);
-      }
-    })();
-    return () => { cancelled = true; };
+    pullTableIn("characters", "user_id", playerUserIds);
+    pullTableIn("profiles", "user_id", playerUserIds);
   }, [playerIdsKey, online]);
+
 
   // Realtime: subscribe whenever the GM hosts ≥1 game (even with zero players yet),
   // so the very first player-join is observed. Read hosted-game ids inside handlers
@@ -115,9 +109,10 @@ const GMPlayerList = () => {
       })
       .subscribe((status) => {
         if (status === "SUBSCRIBED") {
-          // A-06 catch-up: on (re)subscribe, refresh every hosted game's players.
+          // A-06 catch-up: one batched refresh for all hosted games' players.
           const hostedIds = getBy("games", { host_user_id: user.id }).map((g: any) => g.id);
-          for (const gid of hostedIds) pullTable("game_players", { game_id: gid });
+          pullTableIn("game_players", "game_id", hostedIds);
+
         }
       });
     return () => { supabase.removeChannel(channel); };
