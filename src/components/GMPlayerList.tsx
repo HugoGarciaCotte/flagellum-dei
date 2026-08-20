@@ -109,9 +109,10 @@ const GMPlayerList = () => {
       })
       .subscribe((status) => {
         if (status === "SUBSCRIBED") {
-          // A-06 catch-up: on (re)subscribe, refresh every hosted game's players.
+          // A-06 catch-up: one batched refresh for all hosted games' players.
           const hostedIds = getBy("games", { host_user_id: user.id }).map((g: any) => g.id);
-          for (const gid of hostedIds) pullTable("game_players", { game_id: gid });
+          pullTableIn("game_players", "game_id", hostedIds);
+
         }
       });
     return () => { supabase.removeChannel(channel); };
