@@ -135,6 +135,16 @@ const GMPlayerList = () => {
       charsByUser.set(c.user_id, list);
     }
 
+    // Latest membership per player, so recent sessions surface first.
+    const lastSeen = new Map<string, string>();
+    for (const gp of allGamePlayers) {
+      const uid = (gp as any).user_id;
+      if (!myGameIds.has((gp as any).game_id) || !uid) continue;
+      const ts = (gp as any).joined_at || (gp as any).updated_at || "";
+      const prev = lastSeen.get(uid) ?? "";
+      if (ts > prev) lastSeen.set(uid, ts);
+    }
+
     const seen = new Set<string>();
     const out: PlayerEntry[] = [];
     for (const gp of allGamePlayers) {
@@ -149,7 +159,6 @@ const GMPlayerList = () => {
         if (au !== bu) return bu.localeCompare(au);
         return (b.created_at || "").localeCompare(a.created_at || "");
       });
-      if (chars.length === 0) continue;
       out.push({
         user_id: uid,
         display_name: (profile as any)?.display_name ?? null,
@@ -158,8 +167,10 @@ const GMPlayerList = () => {
         otherChars: chars.slice(1),
       });
     }
+    out.sort((a, b) => (lastSeen.get(b.user_id) ?? "").localeCompare(lastSeen.get(a.user_id) ?? ""));
     return out;
   }, [user, games, allGamePlayers, allCharacters, allProfiles]);
+
 
   const openView = async (characterId: string) => {
     setViewingCharId(characterId);

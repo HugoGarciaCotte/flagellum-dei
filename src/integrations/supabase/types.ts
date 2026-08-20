@@ -376,6 +376,10 @@ export type Database = {
         }
         Returns: boolean
       }
+      is_active_host_of_player: {
+        Args: { _player_user: string; _viewer: string }
+        Returns: boolean
+      }
       is_game_host: {
         Args: { _game_id: string; _user_id: string }
         Returns: boolean
