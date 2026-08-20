@@ -240,6 +240,20 @@ const CharacterDetails = ({ characterId }: CharacterDetailsProps) => {
           </ul>
         )}
       </section>
+
+      {char.notes && (
+        <>
+          <div className="ornamental-divider" />
+          <section className="space-y-3">
+            <h3 className="font-display text-lg text-foreground flex items-center gap-2">
+              <span className="text-primary" aria-hidden="true">🜍</span> {t("character.details.notes")}
+            </h3>
+            <p className="text-base text-muted-foreground leading-relaxed whitespace-pre-wrap">
+              {char.notes}
+            </p>
+          </section>
+        </>
+      )}
     </div>
   );
 };
