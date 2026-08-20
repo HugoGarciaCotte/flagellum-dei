@@ -1,4 +1,13 @@
-# Fix "foreign game_players row — no write permission" sync noise
+# Fix sync noise: foreign memberships and refused character edits
+
+## Refused character edits (today, 12:11)
+
+Two `characters` changes were parked as "rls-rejected". Cause (to confirm as step one, by checking which character rows are parked and the status of the games those players belong to): after this morning's roster fix, a host can now *read* the characters of players from ended games, but writing is still limited to games that are still active. The GM roster therefore shows those old players with an editable sheet, and any edit is refused by the server and parked.
+
+Fix: make read-only what the server treats as read-only — in the GM roster and character sheet, disable editing (and the portrait/upload actions) when the player is only reachable through an ended game, with a short "session ended — read only" note instead of a failed save. The two currently parked entries can then be discarded from the panel.
+
+# Foreign game_players rows
+
 
 ## What's happening
 
