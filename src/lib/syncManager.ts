@@ -28,12 +28,21 @@ function nextBackoff(attempts: number): number {
 
 // LOG-01: persist+console every emitted error via appendSyncError; the
 // "sync-error" event alone only produced a transient toast and was lost.
+// Connectivity blips (aborts/timeouts/offline) are self-healing — they are
+// journaled and retried, but never shown to the user as a sync failure.
+const CONNECTIVITY_RE = /failed to fetch|load failed|network(?:error)?|timeout|sync-timeout|aborted|abort/i;
+
 function emitSyncError(table: string, message: string, ids: string[] = []) {
+  if (CONNECTIVITY_RE.test(message ?? "")) {
+    try { store.journal({ op: "sync", table, ids, ok: false, msg: message }); } catch {}
+    return;
+  }
   try { store.appendSyncError({ table, ids, message }); } catch { /* never block sync */ }
   try {
     window.dispatchEvent(new CustomEvent("sync-error", { detail: { table, ids, message } }));
   } catch {}
 }
+
 
 /**
  * SYNC-13: never auto-mint an anonymous identity from the sync engine.
