@@ -2,9 +2,12 @@
 
 ## Refused character edits (today, 12:11)
 
-Two `characters` changes were parked as "rls-rejected". Cause (to confirm as step one, by checking which character rows are parked and the status of the games those players belong to): after this morning's roster fix, a host can now *read* the characters of players from ended games, but writing is still limited to games that are still active. The GM roster therefore shows those old players with an editable sheet, and any edit is refused by the server and parked.
+Two `characters` changes were parked as "rls-rejected". Cause: the database currently lets a host *write* a player's character only while the game is still active (`is_active_host_of_player`, added this morning); reads were widened to all hosted games but writes were not. So editing the sheet of a player from a past session is refused by the server and parked.
 
-Fix: make read-only what the server treats as read-only — in the GM roster and character sheet, disable editing (and the portrait/upload actions) when the player is only reachable through an ended game, with a short "session ended — read only" note instead of a failed save. The two currently parked entries can then be discarded from the panel.
+Fix: the GM must be able to edit any of their players' characters, past or present. Change the `characters` UPDATE policy to use `is_host_of_player` (any game the user hosts, ended or not) instead of `is_active_host_of_player`, and drop the now-unused active-only helper. No UI restriction — the sheet stays fully editable everywhere it is shown.
+
+After the policy change, the two parked entries can be retried from the Sync issues panel and will go through.
+
 
 # Foreign game_players rows
 
