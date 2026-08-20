@@ -252,6 +252,28 @@ function handleRowFailure(table: TableName, row: any, error: { code?: string; me
   store.journal({ op: "push", table, ids: [row.id], ok: false, code: error.code, msg: error.message });
 }
 
+// DUP-01: a 23505 on game_players means this (game_id, user_id) membership
+// already exists server-side under a DIFFERENT row id — a phantom join row
+// minted locally by the pre-RPC join flow (A-03 removed the minting sites,
+// but old rows persist in local stores and get re-dirtied by the character
+// mirror in PlayGame/CharacterCreationWizard, so they error forever).
+// The membership is the same; the upsert conflicts on `id`, so the natural
+// key is the only unique constraint that can fire here.
+function isDuplicateMembership(table: TableName, error: { code?: string }): boolean {
+  return table === "game_players" && error?.code === "23505";
+}
+
+// Retire the local duplicate and adopt the server's row for this membership.
+// A character_id carried only by the phantom re-syncs on its own: PlayGame's
+// mirror effect re-applies it to the adopted row on the next visit.
+function adoptServerMembership(row: any) {
+  store.deleteRow("game_players", row.id);
+  store.journal({ op: "push", table: "game_players", ids: [row.id], ok: true, msg: "duplicate membership — adopted server row" });
+  if (row.game_id && row.user_id) {
+    pullTable("game_players", { game_id: row.game_id, user_id: row.user_id }).catch(() => {});
+  }
+}
+
 async function pushRow(table: TableName, row: any): Promise<boolean> {
   try {
     if (table === "user_roles") {
@@ -262,7 +284,11 @@ async function pushRow(table: TableName, row: any): Promise<boolean> {
       return true;
     }
     const { error } = await (supabase.from(table as any).upsert(row, { onConflict: "id" }) as any);
-    if (error) { handleRowFailure(table, row, error); return false; }
+    if (error) {
+      if (isDuplicateMembership(table, error)) { adoptServerMembership(row); return true; }
+      handleRowFailure(table, row, error);
+      return false;
+    }
     return true;
   } catch (e: any) {
     handleRowFailure(table, row, { message: e?.message ?? String(e), code: e?.name });
@@ -281,6 +307,11 @@ async function pushChunk(table: TableName, chunk: any[], succeeded: { table: Tab
       return;
     }
     if (chunk.length === 1) {
+      if (isDuplicateMembership(table, error)) {
+        adoptServerMembership(chunk[0]);
+        succeeded.push({ table, id: chunk[0].id });
+        return;
+      }
       handleRowFailure(table, chunk[0], error);
       return;
     }
@@ -527,6 +558,15 @@ export function triggerPush() {
 export function attachOnlineListener() {
   if (_listenerAttached) return;
   _listenerAttached = true;
+
+  // DUP-01: re-queue game_players rows parked as duplicate-key before the
+  // resolver above existed. The next push adopts the server row, so the same
+  // parked error stops resurfacing on every device forever.
+  for (const q of store.getQuarantine()) {
+    if (q.table === "game_players" && q.error?.code === "23505") {
+      store.retryQuarantined(q.key);
+    }
+  }
 
   window.addEventListener("online", () => {
     // SYNC-11: pull-before-push shrinks the clobber window.
