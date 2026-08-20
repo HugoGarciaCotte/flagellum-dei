@@ -553,6 +553,24 @@ export function replaceBy(table: TableName, filter: Record<string, any>, rows: R
   persist(table);
 }
 
+/**
+ * Batched variant of `replaceBy`: replaces every row whose `column` is in
+ * `values` with the incoming set. Dirty rows always win (SYNC-02).
+ */
+export function replaceIn(table: TableName, column: string, values: string[], rows: Row[]) {
+  const scope = new Set(values);
+  const existing = cache.get(table) ?? [];
+  const kept = existing.filter((row) => {
+    if (!scope.has(row[column])) return true;
+    return _dirtyRows.has(`${table}:${row.id}`);
+  });
+  const map = new Map(rows.map((r) => [r.id, r]));
+  for (const row of kept) map.set(row.id, row);
+  cache.set(table, [...map.values()]);
+  persist(table);
+}
+
+
 export function upsertRow(table: TableName, row: Row) {
   const rows = cache.get(table) ?? [];
   const idx = rows.findIndex((r) => r.id === row.id);
