@@ -1,39 +1,25 @@
-# Fix sync noise: foreign memberships and refused character edits
+# Restore GM editing of player character sheets
 
-## Refused character edits (today, 12:11)
+## Confirmed issue
 
-Two `characters` changes were parked as "rls-rejected". Cause: the database currently lets a host *write* a player's character only while the game is still active (`is_active_host_of_player`, added this morning); reads were widened to all hosted games but writes were not. So editing the sheet of a player from a past session is refused by the server and parked.
+The live `characters` write policy currently authorizes a GM through `is_active_host_of_player`. That helper rejects edits once the shared game is ended, even though the GM can still view the player and open the editable character sheet. The sync engine detects the zero-row update and correctly parks it as `rls-rejected`.
 
-Fix: the GM must be able to edit any of their players' characters, past or present. Change the `characters` UPDATE policy to use `is_host_of_player` (any game the user hosts, ended or not) instead of `is_active_host_of_player`, and drop the now-unused active-only helper. No UI restriction — the sheet stays fully editable everywhere it is shown.
+## Changes
 
-After the policy change, the two parked entries can be retried from the Sync issues panel and will go through.
+1. **Widen the character update policy.** Replace the active-game-only authorization with `is_host_of_player(user_id, auth.uid())`, allowing a GM to edit characters belonging to players in any non-deleted game they host, including ended games.
+2. **Keep ownership secure.** Preserve the existing player's self-edit policy and require both the old and resulting `user_id` to remain within the GM's hosted-player scope, preventing a character from being reassigned to an unrelated user.
+3. **Remove the obsolete helper.** Drop `is_active_host_of_player` after confirming no remaining policy or code depends on it.
+4. **Recover the refused edits.** Retry the two parked character changes through the existing Sync Issues repair flow after the policy is live; do not discard the GM's edits.
 
+## Verification
 
-# Foreign game_players rows
+- Sign in as the GM and edit another player's character sheet through the real UI.
+- Confirm the update succeeds, the database row contains the edit, and no new `rls-rejected` entry appears.
+- Repeat against a player from an ended hosted game.
+- Attempt the same update as an unrelated authenticated user and confirm it remains denied.
+- Confirm a caller cannot change the character's `user_id` to someone outside the GM's hosted players.
+- Run the targeted sync tests and backend security checks.
 
+## Technical detail
 
-## What's happening
-
-The sync engine keeps a local copy of every membership row of the games you host or join, including rows that belong to other players. When one of those foreign rows ends up marked as "needs pushing" (typically after an identity change — guest to account, or switching accounts — or after a stale local copy from an older session), the push step correctly refuses to send it (the database only lets each player write their own membership), and then reports it as a user-facing sync error.
-
-Nothing is actually lost or broken: the row belongs to another player and the server copy is authoritative. The problem is that a harmless, non-actionable situation is surfaced as a scary "Sync issues" error you cannot resolve, and the errors you see are dated May 2026 — they are stale entries persisted in the browser that never expire.
-
-## What to change
-
-1. **Stop treating foreign membership rows as errors.** When a dirty `game_players` row does not belong to the current user:
-   - Compare the local copy with the server copy for that row.
-   - If they match (or the local copy is just older), silently drop the dirty marker and refresh from the server — no error, no parked entry.
-   - Only if the local copy genuinely diverges (a real unsent edit) park it as before with a clear message.
-
-2. **Never mark foreign rows dirty in the first place.** Guard the local store so identity-remap and refresh paths only flag rows the current user owns; foreign rows pulled from the server stay clean.
-
-3. **Expire stale sync errors.** Drop recorded errors older than ~48 hours when the panel loads, and make the "Repair synchronization" action clear resolved entries so the banner disappears once the situation is healed.
-
-4. **One-off cleanup for the current state.** On startup, sweep any existing dirty/parked `game_players` rows that are not the current user's and clear them, so the two May 2026 errors go away without you having to clear browser storage.
-
-## Technical notes
-
-- `src/lib/syncManager.ts` — `doPush()` `ownedTables.game_players: "drop"` branch: replace the unconditional `quarantineRow(..., "foreign-owner")` with a compare-against-server reconciliation (`pullTable("game_players", { id })`, then diff on meaningful fields: `character_id`, `deleted_at`). Clear the dirty marker on match.
-- `src/lib/localStore.ts` — add an owner guard in `markDirty` callers for `game_players`; add TTL pruning in `getSyncErrors`/`appendSyncError`; add a startup sweep that removes foreign `game_players` entries from `_dirtyRows` and `_quarantine`.
-- `src/components/SyncIssuesPanel.tsx` — after "Repair synchronization", re-read state and drop entries whose underlying row is no longer dirty or parked.
-- Add unit tests in `src/lib/localStore.test.ts` for: foreign row never marked dirty, stale error pruning, foreign-row sweep.
+This is a backend access-policy migration. The existing GM editing UI and local-first save path remain intact; no controls will be hidden or disabled.
