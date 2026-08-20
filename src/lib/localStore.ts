@@ -416,12 +416,25 @@ export function setSyncErrorForwarder(fn: SyncErrorForwarder | null) {
   _syncErrorForwarder = fn;
 }
 
+/** Active errors older than this are dropped on read — they are long resolved. */
+const SYNC_ERROR_TTL_MS = 6 * 60 * 60_000;
+
 export function getSyncErrors(): SyncError[] {
   try {
     const raw = localStorage.getItem(SYNC_ERRORS_KEY);
-    return raw ? (JSON.parse(raw) as SyncError[]) : [];
+    const list = raw ? (JSON.parse(raw) as SyncError[]) : [];
+    const cutoff = Date.now() - SYNC_ERROR_TTL_MS;
+    const fresh = list.filter((e) => {
+      const t = new Date(e.at).getTime();
+      return Number.isNaN(t) ? false : t >= cutoff;
+    });
+    if (fresh.length !== list.length) {
+      try { localStorage.setItem(SYNC_ERRORS_KEY, JSON.stringify(fresh)); } catch {}
+    }
+    return fresh;
   } catch { return []; }
 }
+
 
 export function getSyncErrorLog(): SyncError[] {
   try {
