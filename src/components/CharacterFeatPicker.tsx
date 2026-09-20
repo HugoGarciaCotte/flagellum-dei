@@ -17,7 +17,8 @@ import { Alert, AlertTitle, AlertDescription } from "@/components/ui/alert";
 
 import { type SubfeatSlot } from "@/lib/parseEmbeddedFeatMeta";
 
-import { useLocalRow, useLocalRows } from "@/hooks/useLocalData";
+import { useLocalRow } from "@/hooks/useLocalData";
+import { useCharacterFeats, type CharacterSubfeatDocument } from "@/hooks/useCharacterFeats";
 import { upsertRow, getBy } from "@/lib/localStore";
 import { triggerPush } from "@/lib/syncManager";
 import { getAllFeats, getFeatMeta, getFeatExhaustion } from "@/data/feats";
@@ -106,32 +107,7 @@ const CharacterFeatPicker = ({ characterId, mode = "player", scenarioLevel }: Ch
   // --- Local-first data: character.feats is the document ---
   const character = useLocalRow<any>("characters", characterId);
 
-  // Legacy fallback: if character.feats is empty/missing but old per-feat rows
-  // still exist locally (pre-migration cache), build the array on the fly.
-  // This avoids a "blank feats" flash before the server-side backfill is pulled.
-  const legacyFeats = useLocalRows<any>("character_feats", { character_id: characterId });
-  const legacyAllSubfeats = useLocalRows<any>("character_feat_subfeats");
-
-  const featsDoc: any[] = useMemo(() => {
-    const fromDoc = Array.isArray(character?.feats) ? character.feats : [];
-    if (fromDoc.length > 0) return fromDoc;
-    if (legacyFeats.length === 0) return [];
-    const cfIds = new Set(legacyFeats.map((cf: any) => cf.id));
-    const subsByCfId = new Map<string, any[]>();
-    for (const cs of legacyAllSubfeats) {
-      if (!cfIds.has(cs.character_feat_id)) continue;
-      const arr = subsByCfId.get(cs.character_feat_id) ?? [];
-      arr.push({ slot: cs.slot, feat_id: cs.subfeat_id });
-      subsByCfId.set(cs.character_feat_id, arr);
-    }
-    return legacyFeats.map((cf: any) => ({
-      level: cf.level,
-      feat_id: cf.feat_id,
-      is_free: cf.is_free,
-      note: cf.note ?? null,
-      subfeats: (subsByCfId.get(cf.id) ?? []).sort((a, b) => a.slot - b.slot),
-    }));
-  }, [character?.feats, legacyFeats, legacyAllSubfeats]);
+  const featsDoc = useCharacterFeats(characterId, character?.feats);
 
   // Derive the shapes the JSX below already consumes (synthetic stable IDs).
   // - paid level feat:  id = `L${level}`
@@ -165,6 +141,9 @@ const CharacterFeatPicker = ({ characterId, mode = "player", scenarioLevel }: Ch
           character_feat_id: parentId,
           slot: s.slot,
           subfeat_id: s.feat_id,
+          exhausted_at: s.exhausted_at,
+          exhausted_scenario_id: s.exhausted_scenario_id,
+          used_forever: s.used_forever,
         });
       }
     }
@@ -383,7 +362,7 @@ const CharacterFeatPicker = ({ characterId, mode = "player", scenarioLevel }: Ch
     setSearchTerm("");
   };
 
-  const setSubfeatState = (characterFeatId: string, slot: number, patch: Partial<FeatExhaustionState>) => {
+  const setSubfeatState = (characterFeatId: string, slot: number, patch: Partial<CharacterSubfeatDocument>) => {
     const idx = findDocIndex(characterFeatId);
     if (idx < 0) return;
     const parent = featsDoc[idx];
@@ -597,7 +576,17 @@ const CharacterFeatPicker = ({ characterId, mode = "player", scenarioLevel }: Ch
                     onToggleExpand={() => setExpandedSubfeatKey(expandedSubfeatKey === subfeatKey ? null : subfeatKey)}
                     compact
                     exhaustionLabel={sfLabel}
-                    onUse={sfExhaustion !== "infinite" && sfExhaustion !== "transforms_on_use" && !sfExhausted ? () => {
+                    onUse={sfExhaustion !== "infinite" && !sfExhausted ? () => {
+                      if (sfExhaustion === "transforms_on_use") {
+                        const target = getFeatMeta(assignedFeat).transforms_to;
+                        if (target) setSubfeatState(cf.id, slotNum, {
+                          feat_id: target,
+                          exhausted_at: null,
+                          exhausted_scenario_id: null,
+                          used_forever: false,
+                        });
+                        return;
+                      }
                       const patch = sfExhaustion === "once_forever"
                         ? { used_forever: true, exhausted_at: new Date().toISOString(), exhausted_scenario_id: currentScenarioId ?? null }
                         : { exhausted_at: new Date().toISOString(), exhausted_scenario_id: currentScenarioId ?? null };

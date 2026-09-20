@@ -1,5 +1,6 @@
 import { useMemo, useState } from "react";
 import { useLocalRow } from "@/hooks/useLocalData";
+import { useCharacterFeats, type CharacterFeatDocument, type CharacterSubfeatDocument } from "@/hooks/useCharacterFeats";
 import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
 import PortraitViewer from "@/components/PortraitViewer";
 import { getFeatById, getFeatMeta, getFeatExhaustion } from "@/data/feats";
@@ -21,25 +22,17 @@ interface CharacterDetailsProps {
   characterId: string;
 }
 
-interface FeatRow extends FeatExhaustionState {
-  feat_id: string;
-  level?: number;
-  is_free?: boolean;
-  speciality?: string | null;
-  subfeats?: ({ slot: number; feat_id: string } & Partial<FeatExhaustionState>)[];
-}
-
 const CharacterDetails = ({ characterId }: CharacterDetailsProps) => {
   const { t, locale } = useTranslation();
   const char = useLocalRow<any>("characters", characterId);
+  const featsDoc = useCharacterFeats(characterId, char?.feats);
   const [expandedKey, setExpandedKey] = useState<string | null>(null);
 
   const scenarioHistory = useUserScenarioHistory(char?.user_id);
   const currentScenarioId = useCurrentScenarioId(char?.user_id);
 
   const feats = useMemo(() => {
-    const doc: FeatRow[] = Array.isArray(char?.feats) ? char.feats : [];
-    return doc
+    return featsDoc
       .map((f, docIndex) => ({ ...f, docIndex }))
       .sort((a, b) => (a.is_free === b.is_free ? (a.level ?? 0) - (b.level ?? 0) : a.is_free ? 1 : -1))
       .map((f, i) => ({
@@ -49,13 +42,13 @@ const CharacterDetails = ({ characterId }: CharacterDetailsProps) => {
         feat_id: f.feat_id,
         is_free: !!f.is_free,
         level: f.level,
-        speciality: f.speciality || null,
+        speciality: f.speciality || f.note || null,
         subfeats: (f.subfeats ?? []) as ({ slot: number; feat_id: string } & Partial<FeatExhaustionState>)[],
         exhausted_at: f.exhausted_at ?? null,
         exhausted_scenario_id: f.exhausted_scenario_id ?? null,
         used_forever: !!f.used_forever,
       }));
-  }, [char?.feats, locale, t]);
+  }, [featsDoc, locale, t]);
 
 
   if (!char) {
@@ -65,9 +58,9 @@ const CharacterDetails = ({ characterId }: CharacterDetailsProps) => {
   const initials = (char.name || "?").slice(0, 2).toUpperCase();
 
   /** Mutate feats doc at a stable original document index. */
-  const updateEntry = (docIndex: number, patch: Partial<FeatRow>) => {
+  const updateEntry = (docIndex: number, patch: Partial<CharacterFeatDocument>) => {
     if (!char) return;
-    const doc: FeatRow[] = Array.isArray(char.feats) ? char.feats : [];
+    const doc = featsDoc;
     if (docIndex < 0 || docIndex >= doc.length) return;
     const next = doc.map((f, i) => (i === docIndex ? { ...f, ...patch } : f));
     upsertRow("characters", { ...char, feats: next, updated_at: new Date().toISOString() });
@@ -75,9 +68,9 @@ const CharacterDetails = ({ characterId }: CharacterDetailsProps) => {
   };
 
   /** Mutate a subfeat entry on the parent feat at docIndex. */
-  const updateSubfeat = (docIndex: number, slot: number, patch: Partial<FeatExhaustionState>) => {
+  const updateSubfeat = (docIndex: number, slot: number, patch: Partial<CharacterSubfeatDocument>) => {
     if (!char) return;
-    const doc: FeatRow[] = Array.isArray(char.feats) ? char.feats : [];
+    const doc = featsDoc;
     if (docIndex < 0 || docIndex >= doc.length) return;
     const parent = doc[docIndex];
     const subs = Array.isArray(parent.subfeats) ? parent.subfeats : [];
@@ -219,6 +212,16 @@ const CharacterDetails = ({ characterId }: CharacterDetailsProps) => {
                               onUse: () => {
                                 const sFeat = getFeatById(sf.feat_id, locale);
                                 const sExh = sFeat ? getFeatExhaustion(sFeat) : undefined;
+                                if (sExh === "transforms_on_use") {
+                                  const target = getFeatMeta(sFeat!).transforms_to;
+                                  if (target) updateSubfeat(f.docIndex, sf.slot, {
+                                    feat_id: target,
+                                    exhausted_at: null,
+                                    exhausted_scenario_id: null,
+                                    used_forever: false,
+                                  });
+                                  return;
+                                }
                                 updateSubfeat(f.docIndex, sf.slot, sExh === "once_forever"
                                   ? { used_forever: true, exhausted_at: new Date().toISOString(), exhausted_scenario_id: currentScenarioId ?? null }
                                   : { exhausted_at: new Date().toISOString(), exhausted_scenario_id: currentScenarioId ?? null });
